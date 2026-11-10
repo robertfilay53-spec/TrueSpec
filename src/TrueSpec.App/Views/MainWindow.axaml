@@ -1,0 +1,124 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TrueSpec.App.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DesignWidth="1280" d:DesignHeight="800"
+        x:Class="TrueSpec.App.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="TrueSpec - Command Center"
+        Width="1280" Height="800"
+        MinWidth="1100" MinHeight="720"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="*,Auto">
+        <!-- Left rail -->
+        <Border Grid.Column="0" Grid.RowSpan="2"
+                Width="{Binding RailWidth}"
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource AppBorder}"
+                BorderThickness="0,0,1,0">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="16,18,12,14" Spacing="10">
+                    <Border Width="34" Height="34" CornerRadius="9"
+                            Background="{DynamicResource AccentBrush}">
+                        <TextBlock Text="TS" FontSize="13" FontWeight="Bold"
+                                   Foreground="{DynamicResource AccentTextBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center"
+                                IsVisible="{Binding IsRailExpanded}">
+                        <TextBlock Text="TrueSpec" FontSize="16" FontWeight="SemiBold" />
+                        <TextBlock Text="Command Center" FontSize="11" Classes="muted" />
+                    </StackPanel>
+                </StackPanel>
+
+                <ListBox Grid.Row="1"
+                         Classes="nav"
+                         ItemsSource="{Binding NavItems}"
+                         SelectedItem="{Binding SelectedNavItem}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:NavItemViewModel">
+                            <Grid ColumnDefinitions="20,*" ColumnSpacing="12">
+                                <PathIcon Width="16" Height="16"
+                                          Data="{Binding IconData, Converter={StaticResource Geometry}}"
+                                          Foreground="{Binding $parent[ListBoxItem].Foreground}"
+                                          VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Label}"
+                                           VerticalAlignment="Center"
+                                           IsVisible="{Binding $parent[Window].((vm:MainViewModel)DataContext).IsRailExpanded}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <StackPanel Grid.Row="2" Margin="10,10,10,14" Spacing="4">
+                    <Button Classes="ghost"
+                            Command="{Binding ToggleThemeCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Width="15" Height="15"
+                                      Data="M12,8 C14.21,8 16,9.79 16,12 C16,14.21 14.21,16 12,16 C9.79,16 8,14.21 8,12 C8,9.79 9.79,8 12,8 M12,2 V4 M12,20 V22 M2,12 H4 M20,12 H22 M4.93,4.93 L6.34,6.34 M17.66,17.66 L19.07,19.07 M19.07,4.93 L17.66,6.34 M6.34,17.66 L4.93,19.07"
+                                      Foreground="{DynamicResource TextSecondary}" />
+                            <TextBlock Text="{Binding ThemeToggleText}"
+                                       VerticalAlignment="Center"
+                                       IsVisible="{Binding IsRailExpanded}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="ghost"
+                            Command="{Binding ToggleRailCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left">
+                        <StackPanel>
+                            <TextBlock Text="&lt;&lt; Collapse" IsVisible="{Binding IsRailExpanded}" />
+                            <TextBlock Text="&gt;&gt;" IsVisible="{Binding !IsRailExpanded}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Page host -->
+        <ContentControl Grid.Column="1" Grid.Row="0"
+                        Content="{Binding CurrentPage}"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch" />
+
+        <!-- Status bar -->
+        <Border Grid.Column="1" Grid.Row="1"
+                Background="{DynamicResource StatusBarBackground}"
+                BorderBrush="{DynamicResource AppBorder}"
+                BorderThickness="0,1,0,0"
+                Padding="18,8">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" VerticalAlignment="Center">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                    <Ellipse Width="7" Height="7" Fill="{DynamicResource HealthyBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding LastScanText}" Classes="muted" FontSize="12" />
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding AdminText}" Classes="muted" FontSize="12"
+                           Margin="18,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="{Binding VersionText}" Classes="muted" FontSize="12"
+                           Margin="18,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="3" Text="{Binding StatusMessage}" Classes="muted" FontSize="12"
+                           Margin="18,0,18,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                    <Ellipse Width="7" Height="7" Fill="{DynamicResource HealthyBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding UpdateText}" Classes="muted" FontSize="12" />
+                    <Button Classes="ghost" Command="{Binding RefreshCommand}" Padding="4,0" Margin="8,0,0,0">
+                        <PathIcon Width="14" Height="14"
+                                  Data="M20,12 A8,8 0 1 1 17,6 M20,3 V7 H16"
+                                  Foreground="{DynamicResource TextSecondary}" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,105 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TrueSpec.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="TrueSpec.App.Views.ComponentDetailView"
+             x:DataType="vm:ComponentDetailViewModel">
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="18">
+            <Border Classes="card" Padding="22">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                    <Border Width="54" Height="54" CornerRadius="13"
+                            Background="{DynamicResource CardBackgroundAlt}"
+                            BorderBrush="{DynamicResource AppBorder}"
+                            BorderThickness="1">
+                        <PathIcon Width="24" Height="24"
+                                  Data="{Binding IconData, Converter={StaticResource Geometry}}"
+                                  Foreground="{Binding Status, Converter={StaticResource StatusBrush}}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center" />
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                        <TextBlock Text="{Binding Name}" Classes="h1" />
+                        <TextBlock Text="{Binding Headline}" FontSize="14" Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding CapturedText}" FontSize="11" Classes="muted" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="6" HorizontalAlignment="Right">
+                        <Border Background="{Binding Status, Converter={StaticResource StatusTint}}"
+                                CornerRadius="20"
+                                Padding="14,6"
+                                HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding HealthText}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{Binding Status, Converter={StaticResource StatusBrush}}" />
+                        </Border>
+                        <TextBlock Text="{Binding StatusText}" Classes="muted" HorizontalAlignment="Right" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Specifications" Classes="h3" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1"
+                                 Width="250"
+                                 PlaceholderText="Search specifications"
+                                 Text="{Binding SearchText, Mode=TwoWay}" />
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding Specs}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SpecRowViewModel">
+                                <Border BorderBrush="{DynamicResource AppBorder}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="0,9">
+                                    <Grid ColumnDefinitions="230,*,Auto" ColumnSpacing="16">
+                                        <TextBlock Text="{Binding Label}"
+                                                   Classes="muted"
+                                                   VerticalAlignment="Center" />
+                                        <Button Grid.Column="1"
+                                                Classes="ghost"
+                                                Padding="0"
+                                                HorizontalAlignment="Left"
+                                                Foreground="{DynamicResource TextPrimary}"
+                                                Tag="{Binding Value}"
+                                                Click="CopyValue_Click"
+                                                ToolTip.Tip="{Binding Source}">
+                                            <TextBlock Text="{Binding DisplayValue}" TextWrapping="Wrap" />
+                                        </Button>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding Source}"
+                                                   Classes="muted"
+                                                   FontSize="11"
+                                                   MaxWidth="220"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip.Tip="{Binding Source}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="Click any value to copy it. Hover a value or source name to see where the reading came from."
+                               Classes="muted"
+                               FontSize="11" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="20">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="What this means" Classes="h3" />
+                    <TextBlock Text="{Binding WhatThisMeans}"
+                               TextWrapping="Wrap"
+                               LineHeight="20" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

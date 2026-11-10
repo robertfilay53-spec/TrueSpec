@@ -1,0 +1,45 @@
+# Build output
+bin/
+obj/
+artifacts/
+publish/
+*.dll
+*.exe
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+
+# Test results
+TestResults/
+coverage/
+*.coverage
+*.coverlet.json
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Packages
+packages/
+*.nupkg
+*.snupkg
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local runtime data
+*.db
+*.db-shm
+*.db-wal
+window-state.json
+TrueSpec-report-*.json
+
+# Logs
+*.log

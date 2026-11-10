@@ -1,0 +1,106 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TrueSpec.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="TrueSpec.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="18" MaxWidth="860" HorizontalAlignment="Left">
+            <StackPanel Spacing="6">
+                <TextBlock Text="SETTINGS" Classes="eyebrow" />
+                <TextBlock Text="Settings" Classes="h1" />
+                <TextBlock Text="Small, honest controls. Nothing here phones home."
+                           Classes="muted" />
+            </StackPanel>
+
+            <Border Classes="card" Padding="18">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+                    <StackPanel Spacing="4" VerticalAlignment="Center">
+                        <TextBlock Text="Appearance" Classes="h3" />
+                        <TextBlock Text="{Binding ThemeText}" Classes="muted" />
+                        <TextBlock Text="Dark is the default theme. Light is available for bright rooms."
+                                   Classes="muted"
+                                   FontSize="11" />
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="1"
+                                  IsChecked="{Binding IsDarkTheme, Mode=TwoWay}"
+                                  OnContent="Dark"
+                                  OffContent="Light"
+                                  VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+                    <StackPanel Spacing="4" VerticalAlignment="Center">
+                        <TextBlock Text="Live sensor refresh rate" Classes="h3" />
+                        <TextBlock Text="How often the live strip refreshes when real sensors arrive in P4."
+                                   Classes="muted"
+                                   FontSize="11" />
+                    </StackPanel>
+                    <ComboBox Grid.Column="1"
+                              Width="170"
+                              ItemsSource="{Binding RefreshRateOptions}"
+                              SelectedItem="{Binding RefreshRate}" />
+                </Grid>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Startup" Classes="h3" />
+                    <CheckBox Content="Start TrueSpec when Windows starts"
+                              IsChecked="{Binding StartWithWindows, Mode=TwoWay}" />
+                    <CheckBox Content="Check for updates on startup"
+                              IsChecked="{Binding CheckForUpdatesOnStartup, Mode=TwoWay}" />
+                    <TextBlock Text="Update checks only read the public GitHub releases page. Nothing is installed without your consent."
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+                    <StackPanel Spacing="4" VerticalAlignment="Center">
+                        <TextBlock Text="Update channel" Classes="h3" />
+                        <TextBlock Text="Stable is recommended. Preview builds may be rough."
+                                   Classes="muted"
+                                   FontSize="11" />
+                    </StackPanel>
+                    <ComboBox Grid.Column="1"
+                              Width="170"
+                              ItemsSource="{Binding UpdateChannelOptions}"
+                              SelectedItem="{Binding UpdateChannel}" />
+                </Grid>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+                    <StackPanel Spacing="4" VerticalAlignment="Center">
+                        <TextBlock Text="Language" Classes="h3" />
+                        <TextBlock Text="English only in v1. More languages are considered after the first release."
+                                   Classes="muted"
+                                   FontSize="11"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding LanguageText}"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Privacy" Classes="h3" />
+                    <TextBlock Text="TrueSpec has no telemetry, no account, and no network calls in P0. Scans stay on this machine."
+                               Classes="muted"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TrueSpec.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="TrueSpec.App.Views.TestsView"
+             x:DataType="vm:TestsViewModel">
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="18">
+            <StackPanel Spacing="6">
+                <TextBlock Text="TESTS" Classes="eyebrow" />
+                <TextBlock Text="Built-in tests" Classes="h1" />
+                <TextBlock Text="One click each. No hidden uploads, no account, and nothing runs without you starting it."
+                           Classes="muted"
+                           TextWrapping="Wrap"
+                           MaxWidth="720" />
+            </StackPanel>
+
+            <Border Classes="card" Padding="16">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                    <Ellipse Width="9" Height="9"
+                             Fill="{DynamicResource WatchBrush}"
+                             VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1"
+                               Text="Test launchers arrive in P8. This page shows the planned set so the navigation shell is complete."
+                               Classes="muted"
+                               TextWrapping="Wrap" />
+                </Grid>
+            </Border>
+
+            <ItemsControl ItemsSource="{Binding Tests}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TestItemViewModel">
+                        <Border Classes="card" Padding="18" Margin="0,0,0,10">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="{Binding Name}" Classes="h3" />
+                                    <TextBlock Text="{Binding Description}"
+                                               Classes="muted"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="620" />
+                                </StackPanel>
+                                <Border Grid.Column="1"
+                                        Background="{DynamicResource CardBackgroundAlt}"
+                                        BorderBrush="{DynamicResource AppBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="20"
+                                        Padding="12,4"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Status}" Classes="muted" FontSize="11" />
+                                </Border>
+                                <Button Grid.Column="2"
+                                        Classes="secondary"
+                                        Content="Run test"
+                                        IsEnabled="False"
+                                        VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

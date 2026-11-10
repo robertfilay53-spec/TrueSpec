@@ -1,0 +1,193 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrueSpec.App.App"
+             xmlns:local="using:TrueSpec.App"
+             xmlns:converters="using:TrueSpec.App.Converters"
+             RequestedThemeVariant="Dark">
+
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppBackground" Color="#121417" />
+                    <SolidColorBrush x:Key="CardBackground" Color="#1B1E22" />
+                    <SolidColorBrush x:Key="CardBackgroundAlt" Color="#17191D" />
+                    <SolidColorBrush x:Key="AppBorder" Color="#2A2E33" />
+                    <SolidColorBrush x:Key="TextPrimary" Color="#EDEFF2" />
+                    <SolidColorBrush x:Key="TextSecondary" Color="#9AA3AD" />
+                    <SolidColorBrush x:Key="NavHover" Color="#23272C" />
+                    <SolidColorBrush x:Key="NavSelected" Color="#1F22C55E" />
+                    <SolidColorBrush x:Key="InputBackground" Color="#15171A" />
+                    <SolidColorBrush x:Key="StatusBarBackground" Color="#0E1012" />
+                    <SolidColorBrush x:Key="ScoreTrack" Color="#2A2E33" />
+                    <SolidColorBrush x:Key="HeroGlow" Color="#1822C55E" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppBackground" Color="#F4F5F7" />
+                    <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="CardBackgroundAlt" Color="#FAFBFC" />
+                    <SolidColorBrush x:Key="AppBorder" Color="#E2E5E9" />
+                    <SolidColorBrush x:Key="TextPrimary" Color="#16181D" />
+                    <SolidColorBrush x:Key="TextSecondary" Color="#5B6470" />
+                    <SolidColorBrush x:Key="NavHover" Color="#ECEEF1" />
+                    <SolidColorBrush x:Key="NavSelected" Color="#E622C55E" />
+                    <SolidColorBrush x:Key="InputBackground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="StatusBarBackground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="ScoreTrack" Color="#E2E5E9" />
+                    <SolidColorBrush x:Key="HeroGlow" Color="#1422C55E" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <SolidColorBrush x:Key="HealthyBrush" Color="#22C55E" />
+            <SolidColorBrush x:Key="WatchBrush" Color="#F59E0B" />
+            <SolidColorBrush x:Key="ProblemBrush" Color="#EF4444" />
+            <SolidColorBrush x:Key="NotMeasurableBrush" Color="#6B7280" />
+            <SolidColorBrush x:Key="AccentBrush" Color="#22C55E" />
+            <SolidColorBrush x:Key="AccentHoverBrush" Color="#16A34A" />
+            <SolidColorBrush x:Key="AccentTextBrush" Color="#06140C" />
+
+            <converters:HealthStatusToBrushConverter x:Key="StatusBrush" />
+            <converters:HealthStatusToTintConverter x:Key="StatusTint" />
+            <converters:BuyerCheckStateToBrushConverter x:Key="CheckBrush" />
+            <converters:StringToGeometryConverter x:Key="Geometry" />
+            <converters:HealthPercentToTextConverter x:Key="HealthText" />
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{DynamicResource AppBackground}" />
+            <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI, Inter, sans-serif" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+
+        <Style Selector="TextBlock.muted">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        </Style>
+
+        <Style Selector="TextBlock.eyebrow">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="TextBlock.h1">
+            <Setter Property="FontSize" Value="26" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="TextBlock.h2">
+            <Setter Property="FontSize" Value="19" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="TextBlock.h3">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+
+        <Style Selector="Border.hero">
+            <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="16" />
+        </Style>
+
+        <Style Selector="Button">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,9" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+        </Style>
+
+        <Style Selector="Button.secondary">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style Selector="Button.ghost">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="Padding" Value="8,6" />
+        </Style>
+        <Style Selector="Button.ghost:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource NavHover}" />
+        </Style>
+
+        <Style Selector="Button.link">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="{DynamicResource InputBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="Padding" Value="10,8" />
+        </Style>
+
+        <Style Selector="ProgressBar.health">
+            <Setter Property="Height" Value="6" />
+            <Setter Property="MinHeight" Value="6" />
+            <Setter Property="Background" Value="{DynamicResource ScoreTrack}" />
+            <Setter Property="CornerRadius" Value="3" />
+        </Style>
+
+        <Style Selector="ListBox.nav">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="8,4" />
+        </Style>
+
+        <Style Selector="ListBox.nav ListBoxItem">
+            <Setter Property="Padding" Value="11,9" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource NavHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:selected">
+            <Setter Property="Background" Value="{DynamicResource NavSelected}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+
+        <Style Selector="ScrollViewer">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </Application.Styles>
+</Application>

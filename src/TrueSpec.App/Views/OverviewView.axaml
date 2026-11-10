@@ -1,0 +1,232 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TrueSpec.App.ViewModels"
+             xmlns:controls="using:TrueSpec.App.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="TrueSpec.App.Views.OverviewView"
+             x:DataType="vm:OverviewViewModel">
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="18">
+            <!-- Hero strip -->
+            <Border Classes="hero" Padding="24">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="26">
+                    <Grid Width="136" Height="136" VerticalAlignment="Center">
+                        <controls:ScoreRing Value="{Binding Score}"
+                                            Thickness="12"
+                                            RingBrush="{Binding VerdictStatus, Converter={StaticResource StatusBrush}}"
+                                            TrackBrush="{DynamicResource ScoreTrack}" />
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding ScoreText}"
+                                       FontSize="38"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Text="out of 100"
+                                       FontSize="11"
+                                       Classes="muted"
+                                       HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="12">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{Binding MachineName}" Classes="eyebrow" />
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding VerdictText}" Classes="h1" VerticalAlignment="Center" />
+                                <Border Background="{Binding VerdictStatus, Converter={StaticResource StatusTint}}"
+                                        CornerRadius="20" Padding="10,4" VerticalAlignment="Center">
+                                    <TextBlock Text="Overall health"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding VerdictStatus, Converter={StaticResource StatusBrush}}" />
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="{Binding ScoreExplanation}"
+                                       Classes="muted"
+                                       TextWrapping="Wrap"
+                                       MaxWidth="560" />
+                        </StackPanel>
+
+                        <ItemsControl ItemsSource="{Binding KeyStats}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:KeyStatViewModel">
+                                    <Border Background="{DynamicResource CardBackgroundAlt}"
+                                            BorderBrush="{DynamicResource AppBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="12,10"
+                                            Margin="0,0,10,10"
+                                            MinWidth="132">
+                                        <StackPanel Spacing="4">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <Ellipse Width="7" Height="7"
+                                                         Fill="{Binding Status, Converter={StaticResource StatusBrush}}"
+                                                         VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Label}" Classes="muted" FontSize="11" />
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Value}" FontSize="17" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Source}"
+                                                       Classes="muted"
+                                                       FontSize="10"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="10" Width="190">
+                        <Button Classes="primary"
+                                Content="New Laptop Check"
+                                Command="{Binding NewLaptopCheckCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center" />
+                        <Button Classes="secondary"
+                                Content="Export Report"
+                                Command="{Binding ExportCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Component cards -->
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="Component health" Classes="h2" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding OperatingSystem}"
+                           Classes="muted"
+                           VerticalAlignment="Center" />
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding Cards}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ComponentCardViewModel">
+                        <Border Classes="card" Width="292" Margin="0,0,14,14" Padding="16">
+                            <StackPanel Spacing="12">
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                    <Border Width="34" Height="34" CornerRadius="9"
+                                            Background="{DynamicResource CardBackgroundAlt}"
+                                            BorderBrush="{DynamicResource AppBorder}"
+                                            BorderThickness="1">
+                                        <PathIcon Width="16" Height="16"
+                                                  Data="{Binding IconData, Converter={StaticResource Geometry}}"
+                                                  Foreground="{Binding Status, Converter={StaticResource StatusBrush}}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center" />
+                                    </Border>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Name}"
+                                               Classes="h3"
+                                               VerticalAlignment="Center" />
+                                    <Ellipse Grid.Column="2"
+                                             Width="9" Height="9"
+                                             Fill="{Binding Status, Converter={StaticResource StatusBrush}}"
+                                             VerticalAlignment="Center" />
+                                </Grid>
+
+                                <TextBlock Text="{Binding Headline}"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap"
+                                           MinHeight="40" />
+
+                                <StackPanel Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="Health" Classes="muted" FontSize="11" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding HealthText}"
+                                                   FontSize="11"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding Status, Converter={StaticResource StatusBrush}}" />
+                                    </Grid>
+                                    <ProgressBar Classes="health"
+                                                 Minimum="0"
+                                                 Maximum="100"
+                                                 Value="{Binding HealthValue}"
+                                                 Foreground="{Binding Status, Converter={StaticResource StatusBrush}}" />
+                                </StackPanel>
+
+                                <Button Classes="link"
+                                        Content="Details"
+                                        Command="{Binding DetailsCommand}"
+                                        HorizontalAlignment="Left" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Live strip -->
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel>
+                            <TextBlock Text="Live sensors" Classes="h3" />
+                            <TextBlock Text="Sample data refreshes every 2 seconds. Real sensors arrive in P4."
+                                       Classes="muted"
+                                       FontSize="11" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding StatusMessage}"
+                                   Classes="muted"
+                                   FontSize="11"
+                                   VerticalAlignment="Bottom" />
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding LiveMetrics}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="4" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:LiveMetricViewModel">
+                                <Border Background="{DynamicResource CardBackgroundAlt}"
+                                        BorderBrush="{DynamicResource AppBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="10"
+                                        Padding="12"
+                                        Margin="0,0,10,0">
+                                    <StackPanel Spacing="8">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="{Binding Name}" Classes="muted" FontSize="11" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding CurrentText}"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold" />
+                                        </Grid>
+                                        <controls:Sparkline Height="52"
+                                                            Values="{Binding Values}"
+                                                            Stroke="{Binding Stroke}"
+                                                            Fill="{Binding Fill}"
+                                                            StrokeThickness="2" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="All readings are sample data in P0. No telemetry, no network calls."
+                       Classes="muted"
+                       FontSize="11"
+                       HorizontalAlignment="Center"
+                       Margin="0,2,0,12" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TrueSpec.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="TrueSpec.App.Views.NewLaptopCheckView"
+             x:DataType="vm:NewLaptopCheckViewModel">
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="18">
+            <Border Classes="card" Padding="24">
+                <Grid ColumnDefinitions="6,*" ColumnSpacing="18">
+                    <Border Width="6"
+                            CornerRadius="3"
+                            Background="{Binding OverallState, Converter={StaticResource CheckBrush}}" />
+                    <StackPanel Grid.Column="1" Spacing="8">
+                        <TextBlock Text="NEW LAPTOP CHECK" Classes="eyebrow" />
+                        <TextBlock Text="{Binding BannerText}"
+                                   Classes="h1"
+                                   TextWrapping="Wrap"
+                                   Foreground="{Binding OverallState, Converter={StaticResource CheckBrush}}" />
+                        <TextBlock Text="{Binding Summary}" Classes="muted" />
+                        <TextBlock Text="{Binding MachineName}" Classes="muted" FontSize="11" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="Checklist" Classes="h2" VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        Classes="secondary"
+                        Content="Export Report"
+                        Command="{Binding ExportCommand}" />
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding Checks}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:BuyerCheckRowViewModel">
+                        <Border Classes="card" Padding="16" Margin="0,0,0,10">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                                <Border Width="32" Height="32"
+                                        CornerRadius="16"
+                                        VerticalAlignment="Top"
+                                        Background="{Binding Status, Converter={StaticResource StatusTint}}">
+                                    <Ellipse Width="11" Height="11"
+                                             Fill="{Binding Status, Converter={StaticResource StatusBrush}}"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center" />
+                                </Border>
+
+                                <StackPanel Grid.Column="1" Spacing="5">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="{Binding Title}" Classes="h3" VerticalAlignment="Center" />
+                                        <Border Grid.Column="1"
+                                                Background="{Binding Status, Converter={StaticResource StatusTint}}"
+                                                CornerRadius="20"
+                                                Padding="10,3">
+                                            <TextBlock Text="{Binding StateText}"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding Status, Converter={StaticResource StatusBrush}}" />
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Text="{Binding Detail}" Classes="muted" TextWrapping="Wrap" />
+                                    <StackPanel IsVisible="{Binding NeedsAttention}" Spacing="2" Margin="0,4,0,0">
+                                        <TextBlock Text="What to ask the seller"
+                                                   FontSize="11"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding WhatToAsk}"
+                                                   Classes="muted"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="Buyer checks use the same honest rules as the rest of the app: measured values only, no invented numbers."
+                       Classes="muted"
+                       FontSize="11"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

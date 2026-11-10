@@ -1,0 +1,112 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TrueSpec.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="TrueSpec.App.Views.ReportView"
+             x:DataType="vm:ReportViewModel">
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="18">
+            <StackPanel Spacing="6">
+                <TextBlock Text="REPORT" Classes="eyebrow" />
+                <TextBlock Text="Export the truth" Classes="h1" />
+                <TextBlock Text="One data model, three outputs. Everything is generated on this machine."
+                           Classes="muted"
+                           TextWrapping="Wrap"
+                           MaxWidth="720" />
+            </StackPanel>
+
+            <Border Classes="hero" Padding="24">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="24">
+                    <Border Width="92" Height="92"
+                            CornerRadius="46"
+                            Background="{Binding VerdictStatus, Converter={StaticResource StatusTint}}"
+                            VerticalAlignment="Center">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding ScoreText}"
+                                       FontSize="28"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Text="score" Classes="muted" FontSize="10" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+                        <TextBlock Text="{Binding MachineName}" Classes="eyebrow" />
+                        <TextBlock Text="{Binding VerdictText}"
+                                   Classes="h1"
+                                   Foreground="{Binding VerdictStatus, Converter={StaticResource StatusBrush}}" />
+                        <TextBlock Text="{Binding BuyerBanner}" Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding BuyerSummary}" Classes="muted" FontSize="11" />
+                        <TextBlock Text="{Binding GeneratedText}" Classes="muted" FontSize="11" />
+                    </StackPanel>
+
+                    <Button Grid.Column="2"
+                            Classes="primary"
+                            Content="Export JSON"
+                            Command="{Binding ExportCommand}"
+                            VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <Border Classes="card" Padding="16">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="JSON" Classes="h3" />
+                        <TextBlock Text="Machine readable data for scripts and support." Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="Available in P0" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Classes="card" Padding="16">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="HTML" Classes="h3" />
+                        <TextBlock Text="A clean page you can open in any browser." Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="Planned for P7" Foreground="{DynamicResource NotMeasurableBrush}" FontSize="11" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Classes="card" Padding="16">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="PDF" Classes="h3" />
+                        <TextBlock Text="A shareable document for a seller or a shop." Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="Planned for P7" Foreground="{DynamicResource NotMeasurableBrush}" FontSize="11" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Report preview" Classes="h3" />
+                    <ItemsControl ItemsSource="{Binding Components}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ReportComponentRow">
+                                <Border BorderBrush="{DynamicResource AppBorder}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="0,9">
+                                    <Grid ColumnDefinitions="160,*,Auto">
+                                        <TextBlock Text="{Binding Name}" Classes="muted" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Headline}"
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding HealthText}"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding Status, Converter={StaticResource StatusBrush}}"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="The JSON export is written to your Documents/TrueSpec folder. No upload, no cloud."
+                       Classes="muted"
+                       FontSize="11" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
