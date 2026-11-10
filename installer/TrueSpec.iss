@@ -49,6 +49,21 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.17763
 UninstallDisplayName={#AppName} {#AppVersion}
 
+; Uninstall-while-running (P9). The installer auto-launches TrueSpec on
+; Finish, so the app is usually still running when the user uninstalls,
+; and a running single-file exe locks its install-dir file: if the app is
+; not closed first, the exe (and the install folder) survives the
+; uninstall. CloseApplications asks the running app to close via Restart
+; Manager before any file is removed; the [Code] section below posts
+; WM_CLOSE to the main window as a deterministic fallback (the single-file
+; exe runs from a temp-extracted copy, so Restart Manager does not always
+; associate it with the install dir). RestartApplications MUST be no: after
+; an uninstall there is nothing to restart into, and the default (yes)
+; would try to relaunch the just-deleted app.
+CloseApplications=yes
+CloseApplicationsFilter=*.exe
+RestartApplications=no
+
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
@@ -68,9 +83,68 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: deskto
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
-; Remove only the app's own data folders, and only if they are empty of
-; user files the app did not create. Exports live in Documents\TrueSpec;
-; settings, history and the startup log live in %LocalAppData%\TrueSpec
-; (PathSafety.DefaultAppDataFolder), NOT in Roaming %APPDATA%.
+; The app-data folder holds ONLY files the app itself created (settings.json,
+; history.db, startup.log, window-state.json — all under
+; %LocalAppData%\TrueSpec, see PathSafety.DefaultAppDataFolder), so remove
+; the whole folder on uninstall: after an uninstall no TrueSpec files may
+; remain. Exports live in Documents\TrueSpec and are the user's own files,
+; so that folder is removed only if it is empty.
+Type: filesandordirs; Name: "{localappdata}\TrueSpec"
 Type: dirifempty; Name: "{userdocs}\TrueSpec"
-Type: dirifempty; Name: "{localappdata}\TrueSpec"
+
+[Code]
+// P9: close the running app before uninstalling.
+//
+// The installer auto-launches TrueSpec on Finish, so the app is usually
+// still running when the user uninstalls. A running single-file exe locks
+// its install-dir file, so the uninstaller must close the app first or the
+// exe (and the install folder) survives the uninstall. Restart Manager
+// (CloseApplications, above) is the first line of defence; this is the
+// deterministic fallback: post WM_CLOSE to the main window
+// ("TrueSpec - Command Center"), which Avalonia handles by shutting the
+// app down promptly (no unsaved state, no close prompt), wait up to 10
+// seconds, and if the window is still there ask the user to close it or
+// cancel the uninstall. Returning False aborts the uninstall cleanly:
+// nothing is half-deleted.
+
+const
+  WM_CLOSE = $0010;
+  UninstallCloseWaitMs = 10000;
+  UninstallClosePollMs = 250;
+
+function PostMessage(hWnd: Longint; Msg: Cardinal; wParam: Longint; lParam: Longint): Boolean;
+  external 'PostMessageW@user32.dll stdcall';
+
+function CloseRunningApp(): Boolean;
+var
+  WindowHandle: Longint;
+  Waited: Integer;
+  Choice: Integer;
+begin
+  Result := True;
+  while FindWindowByWindowName('TrueSpec - Command Center') <> 0 do
+  begin
+    WindowHandle := FindWindowByWindowName('TrueSpec - Command Center');
+    PostMessage(WindowHandle, WM_CLOSE, 0, 0);
+    Waited := 0;
+    while (Waited < UninstallCloseWaitMs) and (FindWindowByWindowName('TrueSpec - Command Center') <> 0) do
+    begin
+      Sleep(UninstallClosePollMs);
+      Waited := Waited + UninstallClosePollMs;
+    end;
+    if FindWindowByWindowName('TrueSpec - Command Center') = 0 then
+      Break;
+    Choice := MsgBox('TrueSpec is still running. Please close it, then click Retry to continue uninstalling, or Cancel to stop the uninstall.',
+      mbInformation, MB_RETRYCANCEL);
+    if Choice <> IDRETRY then
+    begin
+      Result := False;
+      Break;
+    end;
+  end;
+end;
+
+function InitializeUninstall(): Boolean;
+begin
+  Result := CloseRunningApp();
+end;
