@@ -64,8 +64,9 @@ dotnet run --project src/TrueSpec.App -c Release
 
 1. Build the app in Release mode on Windows:
    ```powershell
-   dotnet publish src/TrueSpec.App/TrueSpec.App.csproj -c Release -r win-x64 --self-contained -o publish
+   dotnet publish src/TrueSpec.App/TrueSpec.App.csproj -p:PublishProfile=win-x64 -o publish
    ```
+   This uses `src/TrueSpec.App/Properties/PublishProfiles/win-x64.pubxml`, which publishes self-contained and single-file: the .NET Desktop Runtime 10 is bundled inside `TrueSpec.App.exe`, so an end user can double-click it on a machine with no .NET installed. The installer ships the publish folder as-is and installs no runtime.
 2. Build the installer with [Inno Setup 6](https://jrsoftware.org/isdl.php):
    ```
    iscc installer\TrueSpec.iss

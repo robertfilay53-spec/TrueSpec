@@ -1,8 +1,13 @@
 ; TrueSpec installer — Inno Setup 6.
 ;
 ; Build on Windows only:
-;   1. dotnet publish src\TrueSpec.App\TrueSpec.App.csproj -c Release -r win-x64 --self-contained -o publish
+;   1. dotnet publish src\TrueSpec.App\TrueSpec.App.csproj -p:PublishProfile=win-x64 -o publish
 ;   2. iscc installer\TrueSpec.iss
+;
+; The publish profile (src\TrueSpec.App\Properties\PublishProfiles\win-x64.pubxml)
+; is self-contained and single-file: the .NET Desktop Runtime 10 is bundled
+; inside TrueSpec.App.exe, so the app runs on a machine with no .NET
+; installed and the installer never needs to install a runtime.
 ;
 ; The installer only copies the published files, creates shortcuts and the
 ; standard uninstall entry. It writes nothing else to the system, makes no
