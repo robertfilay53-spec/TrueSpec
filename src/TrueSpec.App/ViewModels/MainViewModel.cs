@@ -78,11 +78,11 @@ public partial class MainViewModel : ViewModelBase
         // Loading state only: the constructor must never run a scan or block.
         // The window has to appear immediately. The real scan starts after
         // the window is shown (MainWindow calls BeginInitialScan on Opened)
-        // and rebuilds the UI when it completes.
+        // and updates the Overview in place when it completes.
         _snapshot = CreateLoadingSnapshot();
 
         NavItems = new ObservableCollection<NavItemViewModel>(NavItemViewModel.CreateDefault());
-        Overview = CreateOverview();
+        Overview = CreateOverview(isScanning: true);
 
         LastScanText = "Scanning hardware...";
         SelectedNavItem = NavItems.FirstOrDefault();
@@ -134,9 +134,12 @@ public partial class MainViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Applies a finished scan to the shell: rebuilds the overview and clears
-    /// cached pages so every page reads the new snapshot. Shared by the
-    /// initial load and by Refresh.
+    /// Applies a finished scan to the shell: updates the single live
+    /// Overview in place and clears cached pages so every page reads the new
+    /// snapshot. Shared by the initial load and by Refresh. The Overview is
+    /// deliberately never rebuilt: the page the window already shows is the
+    /// one that gets the new score, so Overview, Report and the exports can
+    /// never disagree about the score or the verdict.
     /// </summary>
     private void ApplySnapshot(SystemSnapshot snapshot, string statusMessage)
     {
@@ -144,9 +147,7 @@ public partial class MainViewModel : ViewModelBase
         _buyerContext = new BuyerCheckContext();
         _pageCache.Clear();
 
-        var previous = Overview;
-        Overview = CreateOverview();
-        previous.Dispose();
+        Overview.UpdateSnapshot(snapshot, isScanning: false);
 
         LastScanText = $"Last scan {snapshot.CapturedAt:HH:mm:ss}";
         OnPropertyChanged(nameof(LastScanText));
@@ -402,19 +403,21 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    private OverviewViewModel CreateOverview() => new(
+    private OverviewViewModel CreateOverview(bool isScanning) => new(
         _snapshot,
         OpenComponent,
         ShowBuyerCheckCommand,
         ExportJsonCommand,
         _sensorMonitor,
-        TimeSpan.FromSeconds(_settings.RefreshIntervalSeconds));
+        TimeSpan.FromSeconds(_settings.RefreshIntervalSeconds),
+        isScanning);
 
     private void OnBuyerChecksChanged(BuyerCheckResult checks, string? advertisedRam)
     {
         _snapshot = _snapshot with { BuyerChecks = checks };
         _buyerContext = new BuyerCheckContext(
             string.IsNullOrWhiteSpace(advertisedRam) ? null : advertisedRam.Trim());
+        Overview.UpdateSnapshot(_snapshot, isScanning: false);
         _pageCache.Remove("report");
     }
 
@@ -424,7 +427,7 @@ public partial class MainViewModel : ViewModelBase
         {
             "overview" => Overview,
             "tests" => GetOrCreate("tests", () => new TestsViewModel()),
-            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder())),
+            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: _scanRunning)),
             "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
             _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key)),

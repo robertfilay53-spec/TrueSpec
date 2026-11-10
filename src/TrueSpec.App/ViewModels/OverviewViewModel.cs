@@ -12,12 +12,23 @@ using TrueSpec.Core.Sensors;
 
 namespace TrueSpec.App.ViewModels;
 
-/// <summary>The Overview page: hero, component cards and the live strip.</summary>
+/// <summary>
+/// The Overview page: hero, component cards and the live strip.
+///
+/// One instance lives for the whole app lifetime and is updated in place
+/// whenever a scan finishes (see <see cref="UpdateSnapshot"/>). The page the
+/// window already shows can therefore never be a stale copy of an older
+/// snapshot: Overview, Report and every export all read the same, current
+/// snapshot. While a scan is running the hero says "Scanning..." — it never
+/// claims "Not measurable", because "no score yet" is not the same as
+/// "no measurable health value".
+/// </summary>
 public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
 {
     private readonly DispatcherTimer _timer;
     private readonly ISensorMonitor _sensorMonitor;
-    private readonly IReadOnlyList<SpecValue> _cpuSpecs;
+    private readonly Action<string> _openComponent;
+    private IReadOnlyList<SpecValue> _cpuSpecs = Array.Empty<SpecValue>();
     private bool _refreshing;
 
     public OverviewViewModel(
@@ -26,31 +37,14 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         ICommand newLaptopCheckCommand,
         ICommand exportCommand,
         ISensorMonitor sensorMonitor,
-        TimeSpan? refreshInterval = null)
+        TimeSpan? refreshInterval = null,
+        bool isScanning = false)
     {
         _sensorMonitor = sensorMonitor;
-        MachineName = snapshot.MachineName;
-        OperatingSystem = snapshot.OperatingSystem;
-        Score = snapshot.Score.OverallScore;
-        ScoreText = snapshot.Score.HasMeasurableComponents ? $"{Score:0}" : "--";
-        VerdictText = snapshot.Score.Verdict.ToDisplayText();
-        VerdictStatus = snapshot.Score.Verdict.ToHealthStatus();
-        ScoreExplanation = snapshot.Score.Explanation;
-        ScoreBreakdown = snapshot.Score.Components
-            .Select(c => new ScoreBreakdownRow(
-                c.Component,
-                $"{c.HealthPercent:0.#}%",
-                $"Weight {c.Weight:0.#}",
-                $"+{c.Contribution:0.#} pts",
-                HealthStatusExtensions.FromHealth(c.HealthPercent)))
-            .ToList();
+        _openComponent = openComponent;
         NewLaptopCheckCommand = newLaptopCheckCommand;
         ExportCommand = exportCommand;
-
-        _cpuSpecs = snapshot.Find("cpu")?.Specs ?? Array.Empty<SpecValue>();
-        KeyStats = BuildKeyStats(snapshot);
-        Cards = new ObservableCollection<ComponentCardViewModel>(
-            snapshot.Components.Select(c => new ComponentCardViewModel(c, openComponent)));
+        Cards = new ObservableCollection<ComponentCardViewModel>();
         LiveMetrics = new ObservableCollection<LiveMetricViewModel>
         {
             new("CPU temp", "C"),
@@ -58,6 +52,9 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
             new("CPU usage", "%"),
             new("Battery drain", "W"),
         };
+
+        UpdateSnapshot(snapshot, isScanning);
+
         StatusMessage = sensorMonitor.StatusText;
 
         _timer = new DispatcherTimer { Interval = refreshInterval ?? TimeSpan.FromSeconds(2) };
@@ -65,6 +62,57 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         _timer.Tick += async (_, _) => await RefreshSensorsAsync();
         _timer.Start();
         _ = RefreshSensorsAsync();
+    }
+
+    /// <summary>
+    /// Refreshes every snapshot-derived value in place from the latest scan.
+    /// The shell calls this after every scan instead of building a new page,
+    /// so the Overview on screen always shows the current score and verdict.
+    /// While <paramref name="isScanning"/> is true the hero reports the scan
+    /// in progress; a finished scan with genuinely no measurable component
+    /// reports "Not measurable" instead.
+    /// </summary>
+    public void UpdateSnapshot(SystemSnapshot snapshot, bool isScanning)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        MachineName = snapshot.MachineName;
+        OperatingSystem = snapshot.OperatingSystem;
+
+        if (isScanning)
+        {
+            Score = 0d;
+            ScoreText = "…";
+            VerdictText = "Scanning…";
+            VerdictStatus = HealthStatus.NotMeasurable;
+            ScoreExplanation = "The hardware scan is still running. The score appears when the scan finishes.";
+            ScoreBreakdown = Array.Empty<ScoreBreakdownRow>();
+        }
+        else
+        {
+            Score = snapshot.Score.OverallScore;
+            ScoreText = snapshot.Score.HasMeasurableComponents ? $"{Score:0}" : "--";
+            VerdictText = snapshot.Score.Verdict.ToDisplayText();
+            VerdictStatus = snapshot.Score.Verdict.ToHealthStatus();
+            ScoreExplanation = snapshot.Score.Explanation;
+            ScoreBreakdown = snapshot.Score.Components
+                .Select(c => new ScoreBreakdownRow(
+                    c.Component,
+                    $"{c.HealthPercent:0.#}%",
+                    $"Weight {c.Weight:0.#}",
+                    $"+{c.Contribution:0.#} pts",
+                    HealthStatusExtensions.FromHealth(c.HealthPercent)))
+                .ToList();
+        }
+
+        _cpuSpecs = snapshot.Find("cpu")?.Specs ?? Array.Empty<SpecValue>();
+        KeyStats = BuildKeyStats(snapshot);
+
+        Cards.Clear();
+        foreach (var card in snapshot.Components.Select(c => new ComponentCardViewModel(c, _openComponent)))
+        {
+            Cards.Add(card);
+        }
     }
 
     /// <summary>
@@ -87,24 +135,35 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         return $"Live sensors refresh every {label}. Values appear only when LibreHardwareMonitor reports them.";
     }
 
-    public string MachineName { get; }
+    [ObservableProperty]
+    private string _machineName = string.Empty;
 
-    public string OperatingSystem { get; }
+    [ObservableProperty]
+    private string _operatingSystem = string.Empty;
 
-    public double Score { get; }
+    /// <summary>Numeric score for the ring. 0 while scanning or unmeasurable.</summary>
+    [ObservableProperty]
+    private double _score;
 
-    public string ScoreText { get; }
+    /// <summary>"…" while scanning, "--" when a finished scan has no measurable component, otherwise the score.</summary>
+    [ObservableProperty]
+    private string _scoreText = "--";
 
-    public string VerdictText { get; }
+    [ObservableProperty]
+    private string _verdictText = string.Empty;
 
-    public HealthStatus VerdictStatus { get; }
+    [ObservableProperty]
+    private HealthStatus _verdictStatus = HealthStatus.NotMeasurable;
 
-    public string ScoreExplanation { get; }
+    [ObservableProperty]
+    private string _scoreExplanation = string.Empty;
 
     /// <summary>Per-component score breakdown: health, weight and points contributed.</summary>
-    public IReadOnlyList<ScoreBreakdownRow> ScoreBreakdown { get; }
+    [ObservableProperty]
+    private IReadOnlyList<ScoreBreakdownRow> _scoreBreakdown = Array.Empty<ScoreBreakdownRow>();
 
-    public IReadOnlyList<KeyStatViewModel> KeyStats { get; }
+    [ObservableProperty]
+    private IReadOnlyList<KeyStatViewModel> _keyStats = Array.Empty<KeyStatViewModel>();
 
     public ObservableCollection<ComponentCardViewModel> Cards { get; }
 

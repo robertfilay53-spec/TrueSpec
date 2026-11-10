@@ -5,7 +5,13 @@ using TrueSpec.Core.Models;
 
 namespace TrueSpec.App.ViewModels;
 
-/// <summary>Report page: JSON and HTML exports share the same report model.</summary>
+/// <summary>
+/// Report page: JSON and HTML exports share the same report model, so the
+/// Report screen always agrees with the Overview and the exports: all of
+/// them read the same snapshot. While a scan is running the hero says
+/// "Scanning..." instead of "Not measurable" — "no score yet" is not the
+/// same as "no measurable health value".
+/// </summary>
 public sealed class ReportViewModel : ViewModelBase
 {
     public ReportViewModel(
@@ -13,7 +19,8 @@ public sealed class ReportViewModel : ViewModelBase
         ICommand exportJsonCommand,
         ICommand exportHtmlCommand,
         ICommand exportCsvCommand,
-        string exportFolder)
+        string exportFolder,
+        bool isScanning = false)
     {
         ExportJsonCommand = exportJsonCommand;
         ExportHtmlCommand = exportHtmlCommand;
@@ -22,10 +29,20 @@ public sealed class ReportViewModel : ViewModelBase
         MachineName = snapshot.MachineName;
         OperatingSystem = snapshot.OperatingSystem;
         GeneratedText = $"Snapshot captured {snapshot.CapturedAt:yyyy-MM-dd HH:mm:ss}";
-        ScoreText = snapshot.Score.HasMeasurableComponents ? $"{snapshot.Score.OverallScore:0}" : "--";
-        VerdictText = snapshot.Score.Verdict.ToDisplayText();
-        VerdictStatus = snapshot.Score.Verdict.ToHealthStatus();
-        ScoreExplanation = snapshot.Score.Explanation;
+        if (isScanning)
+        {
+            ScoreText = "…";
+            VerdictText = "Scanning…";
+            VerdictStatus = HealthStatus.NotMeasurable;
+            ScoreExplanation = "The hardware scan is still running. The score appears when the scan finishes.";
+        }
+        else
+        {
+            ScoreText = snapshot.Score.HasMeasurableComponents ? $"{snapshot.Score.OverallScore:0}" : "--";
+            VerdictText = snapshot.Score.Verdict.ToDisplayText();
+            VerdictStatus = snapshot.Score.Verdict.ToHealthStatus();
+            ScoreExplanation = snapshot.Score.Explanation;
+        }
         BuyerBanner = snapshot.BuyerChecks.BannerText;
 
         var passed = snapshot.BuyerChecks.Checks.Count(c => c.IsPass);
