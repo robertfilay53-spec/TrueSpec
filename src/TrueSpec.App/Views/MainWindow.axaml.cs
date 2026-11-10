@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
+using TrueSpec.App.Services;
 using TrueSpec.App.ViewModels;
 
 namespace TrueSpec.App.Views;
@@ -21,6 +22,7 @@ public partial class MainWindow : Window
             "window-state.json");
 
         Opened += (_, _) => RestoreWindowState();
+        Opened += (_, _) => WindowsTaskbar.EnsureMainWindowVisible(this);
         Opened += (_, _) => (DataContext as MainViewModel)?.BeginInitialScan();
         Closing += (_, _) => SaveWindowState();
     }

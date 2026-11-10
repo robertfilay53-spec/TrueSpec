@@ -61,6 +61,80 @@ public class ScoringEngineTests
     }
 
     [Fact]
+    public void CombineVerdict_LikeNewScoreAndAllBuyerChecksPass_ReturnsNew()
+    {
+        var score = ScoreOf(100d);
+        var checks = ChecksOf(BuyerCheckState.Pass);
+
+        Assert.Equal(Verdict.New, ScoringEngine.CombineVerdict(score, checks));
+    }
+
+    [Fact]
+    public void CombineVerdict_LikeNewScoreAndOneBuyerCheckFails_CapsAtUsedHealthy()
+    {
+        var score = ScoreOf(100d);
+        var checks = ChecksOf(BuyerCheckState.Pass, BuyerCheckState.Fail);
+
+        Assert.Equal(Verdict.UsedHealthy, ScoringEngine.CombineVerdict(score, checks));
+    }
+
+    [Fact]
+    public void CombineVerdict_LikeNewScoreAndOneBuyerCheckWarns_CapsAtUsedHealthy()
+    {
+        var score = ScoreOf(100d);
+        var checks = ChecksOf(BuyerCheckState.Pass, BuyerCheckState.Warning);
+
+        Assert.Equal(Verdict.UsedHealthy, ScoringEngine.CombineVerdict(score, checks));
+    }
+
+    [Fact]
+    public void CombineVerdict_LikeNewScoreAndNoBuyerData_KeepsLikeNew()
+    {
+        var score = ScoreOf(100d);
+        var checks = ChecksOf(BuyerCheckState.NotApplicable, BuyerCheckState.NotApplicable);
+
+        Assert.Equal(Verdict.LikeNew, ScoringEngine.CombineVerdict(score, checks));
+    }
+
+    [Fact]
+    public void CombineVerdict_UsedHealthyScoreAndAllBuyerChecksPass_KeepsUsedHealthy()
+    {
+        var score = ScoreOf(85d);
+        var checks = ChecksOf(BuyerCheckState.Pass);
+
+        Assert.Equal(Verdict.UsedHealthy, ScoringEngine.CombineVerdict(score, checks));
+    }
+
+    [Fact]
+    public void CombineVerdict_LowScoreAndBuyerCheckFails_KeepsTheLowerScoreVerdict()
+    {
+        var score = ScoreOf(55d);
+        var checks = ChecksOf(BuyerCheckState.Fail);
+
+        Assert.Equal(Verdict.ReplaceSoon, ScoringEngine.CombineVerdict(score, checks));
+    }
+
+    [Fact]
+    public void CombineVerdict_NoMeasurableScore_ReturnsNotMeasurable()
+    {
+        var score = ScoreResult.Empty;
+        var checks = ChecksOf(BuyerCheckState.Pass);
+
+        Assert.Equal(Verdict.NotMeasurable, ScoringEngine.CombineVerdict(score, checks));
+    }
+
+    private static ScoreResult ScoreOf(double health) =>
+        new ScoringEngine().Score(new[] { MakeComponent("Storage", "Storage", health) });
+
+    private static BuyerCheckResult ChecksOf(params BuyerCheckState[] states) =>
+        new(states.Select((state, index) => new BuyerCheck(
+            $"check-{index}",
+            $"Check {index}",
+            "Test detail.",
+            state,
+            "Nothing to ask.")).ToList());
+
+    [Fact]
     public void HealthStatus_UsesTheSameBandsAsTheUi()
     {
         Assert.Equal(HealthStatus.Healthy, HealthStatusExtensions.FromHealth(80d));

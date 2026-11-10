@@ -38,6 +38,7 @@
                         <TextBlock Text="{Binding VerdictText}"
                                    Classes="h1"
                                    Foreground="{Binding VerdictStatus, Converter={StaticResource StatusBrush}}" />
+                        <TextBlock Text="{Binding ScoreExplanation}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding BuyerBanner}" Classes="muted" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding BuyerSummary}" Classes="muted" FontSize="11" />
                         <TextBlock Text="{Binding GeneratedText}" Classes="muted" FontSize="11" />

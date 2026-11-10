@@ -24,6 +24,20 @@ public class BuyerCheckEvaluatorTests
         Assert.All(result.Checks, check =>
             Assert.Equal(BuyerCheckState.NotApplicable, check.State));
         Assert.Equal(BuyerCheckState.NotApplicable, result.OverallState);
+        Assert.Equal("Not enough data for a verdict", result.BannerText);
+    }
+
+    [Fact]
+    public void OnePassedCheckAmongMissingReadings_IsAPassNotNotApplicable()
+    {
+        // Only the RAM check has data and it passes; the rest are missing.
+        // One real pass is enough for an overall Pass.
+        var result = new BuyerCheckEvaluator().Evaluate(
+            new[] { TestSnapshots.Ram("16 GB") },
+            new BuyerCheckContext("16 GB"));
+
+        Assert.Equal(BuyerCheckState.Pass, result.Checks.Single(c => c.Id == "ram-size").State);
+        Assert.Equal(BuyerCheckState.Pass, result.OverallState);
     }
 
     [Fact]

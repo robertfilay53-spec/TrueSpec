@@ -1,8 +1,10 @@
 namespace TrueSpec.Core.Models;
 
 /// <summary>
-/// Overall machine verdict. "New" is reserved for a machine that passes every
-/// buyer check; a score alone can only say "Like new" or below.
+/// Overall machine verdict. "New" is reserved for a machine that scores
+/// Like-new AND passes every applicable buyer check; a score alone can only
+/// say "Like new" or below, and any failed or warning buyer check caps the
+/// verdict at "Used - healthy" (see ScoringEngine.CombineVerdict).
 /// </summary>
 public enum Verdict
 {

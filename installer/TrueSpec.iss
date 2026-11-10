@@ -14,7 +14,6 @@
 ; network calls and never installs anything without consent. It does not
 ; require administrator rights; run it elevated only if you want every
 ; sensor (some SMART and driver data needs elevation).
-;
 ; This script is authored and reviewed by hand. It cannot be compiled on
 ; Linux (Inno Setup is Windows-only), so validate it with `iscc` on Windows
 ; before cutting a release. There is no SetupIconFile yet: add a branded
@@ -70,7 +69,8 @@ Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(
 
 [UninstallDelete]
 ; Remove only the app's own data folders, and only if they are empty of
-; user files the app did not create. Reports and history live in
-; Documents\TrueSpec; settings live in %APPDATA%\TrueSpec.
+; user files the app did not create. Exports live in Documents\TrueSpec;
+; settings, history and the startup log live in %LocalAppData%\TrueSpec
+; (PathSafety.DefaultAppDataFolder), NOT in Roaming %APPDATA%.
 Type: dirifempty; Name: "{userdocs}\TrueSpec"
-Type: dirifempty; Name: "{userappdata}\TrueSpec"
+Type: dirifempty; Name: "{localappdata}\TrueSpec"

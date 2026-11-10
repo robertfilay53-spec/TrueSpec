@@ -55,6 +55,56 @@ public class CollectorAndScanTests
     }
 
     [Fact]
+    public async Task ScanService_HealthyMachineWithAllBuyerChecksPassed_IsNew()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var components = new[]
+        {
+            TestSnapshots.System(now),
+            TestSnapshots.Cpu(),
+            TestSnapshots.Ram("16 GB"),
+            TestSnapshots.Storage("0", "0"),
+            TestSnapshots.Battery(2),
+            TestSnapshots.Gpu(),
+            TestSnapshots.Network(now.AddDays(-20).ToString("yyyy-MM-dd")),
+        };
+        var service = MachineScanService.Create(components.Select(c => new FixedCollector(c)));
+
+        var snapshot = await service.ScanAsync(new BuyerCheckContext("16 GB"));
+
+        Assert.True(snapshot.Score.OverallScore >= 90d);
+        Assert.Equal(BuyerCheckState.Pass, snapshot.BuyerChecks.OverallState);
+        Assert.Equal(Verdict.New, snapshot.Score.Verdict);
+    }
+
+    [Fact]
+    public async Task ScanService_HighScoreButFailedBuyerCheck_IsUsedHealthyNotLikeNew()
+    {
+        // The AppOnFly case: 100% healthy measured parts, but the drive has
+        // wear, so the machine has clearly been used. The verdict must say
+        // "Used - healthy", never "Like new", on the same screen as the
+        // FAIL buyer banner.
+        var now = DateTimeOffset.UtcNow;
+        var components = new[]
+        {
+            TestSnapshots.System(now),
+            TestSnapshots.Cpu(),
+            TestSnapshots.Ram("16 GB"),
+            TestSnapshots.Storage("10", "0", health: 100d),
+            TestSnapshots.Battery(2),
+            TestSnapshots.Gpu(),
+            TestSnapshots.Network(now.AddDays(-20).ToString("yyyy-MM-dd")),
+        };
+        var service = MachineScanService.Create(components.Select(c => new FixedCollector(c)));
+
+        var snapshot = await service.ScanAsync(new BuyerCheckContext("16 GB"));
+
+        Assert.True(snapshot.Score.OverallScore >= 90d);
+        Assert.Equal(BuyerCheckState.Fail, snapshot.BuyerChecks.OverallState);
+        Assert.Equal(Verdict.UsedHealthy, snapshot.Score.Verdict);
+    }
+
+    [Fact]
     public async Task ScanService_AppliesMeasuredHealthRulesAndKeepsSources()
     {
         var now = DateTimeOffset.UtcNow;

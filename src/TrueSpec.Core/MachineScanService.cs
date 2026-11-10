@@ -132,6 +132,12 @@ public sealed class MachineScanService
         var score = _scoringEngine.Score(components);
         var buyerChecks = _buyerCheckEvaluator.Evaluate(components, buyerContext);
 
+        // One verdict for the whole machine: a score alone only says how
+        // healthy the measured parts are, so the buyer checks cap it. A
+        // machine with 100% healthy parts but failed buyer checks (wear,
+        // power-on hours, old BIOS) is "Used - healthy", never "Like new".
+        score = score with { Verdict = ScoringEngine.CombineVerdict(score, buyerChecks) };
+
         var system = components.FirstOrDefault(c =>
             string.Equals(c.Id, "system", StringComparison.OrdinalIgnoreCase));
         var machineName = system?.Headline ?? Environment.MachineName;

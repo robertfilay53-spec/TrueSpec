@@ -25,6 +25,7 @@ public sealed class ReportViewModel : ViewModelBase
         ScoreText = snapshot.Score.HasMeasurableComponents ? $"{snapshot.Score.OverallScore:0}" : "--";
         VerdictText = snapshot.Score.Verdict.ToDisplayText();
         VerdictStatus = snapshot.Score.Verdict.ToHealthStatus();
+        ScoreExplanation = snapshot.Score.Explanation;
         BuyerBanner = snapshot.BuyerChecks.BannerText;
 
         var passed = snapshot.BuyerChecks.Checks.Count(c => c.IsPass);
@@ -46,6 +47,9 @@ public sealed class ReportViewModel : ViewModelBase
     public string VerdictText { get; }
 
     public HealthStatus VerdictStatus { get; }
+
+    /// <summary>What the score is based on: only components with a real sensor are included.</summary>
+    public string ScoreExplanation { get; }
 
     public string BuyerBanner { get; }
 

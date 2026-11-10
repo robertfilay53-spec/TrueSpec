@@ -60,7 +60,14 @@ public sealed record BuyerCheckResult(IReadOnlyList<BuyerCheck> Checks)
                 return BuyerCheckState.Warning;
             }
 
-            return Checks.Count == 0 ? BuyerCheckState.NotApplicable : BuyerCheckState.Pass;
+            // PASS needs at least one check that actually passed. A machine
+            // with no usable readings is "not enough data", never a pass.
+            if (Checks.Any(c => c.State == BuyerCheckState.Pass))
+            {
+                return BuyerCheckState.Pass;
+            }
+
+            return BuyerCheckState.NotApplicable;
         }
     }
 
