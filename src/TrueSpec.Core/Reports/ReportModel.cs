@@ -10,8 +10,8 @@ public enum ReportFormat
 }
 
 /// <summary>
-/// One report data model feeds every output format. P0 ships the JSON exporter;
-/// HTML and PDF arrive in P7 without changing this model.
+/// One report data model feeds every output format. The JSON and HTML exporters
+/// use the same real snapshot, so both always agree.
 /// </summary>
 public sealed record ReportModel(
     string SchemaVersion,
@@ -31,7 +31,7 @@ public sealed record ReportModel(
     public BuyerCheckResult BuyerChecks => Snapshot.BuyerChecks;
 
     public static ReportModel FromSnapshot(SystemSnapshot snapshot) =>
-        new("0.1", DateTimeOffset.Now, snapshot);
+        new("1.0", DateTimeOffset.Now, snapshot);
 }
 
 public interface IReportExporter

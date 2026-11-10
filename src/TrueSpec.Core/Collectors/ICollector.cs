@@ -4,8 +4,8 @@ using TrueSpec.Core.Models;
 
 /// <summary>
 /// The one contract every data source implements. New hardware support is a new
-/// collector, never a change to the core. P0 ships stub collectors only; real
-/// CIM/WMI collectors arrive in P1.
+/// collector, never a change to the core. Windows builds use the CIM/WMI
+/// collectors; other platforms use the honest unavailable catalogue.
 /// </summary>
 public interface ICollector
 {

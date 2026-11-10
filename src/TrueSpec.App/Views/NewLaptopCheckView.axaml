@@ -34,6 +34,22 @@
                         Command="{Binding ExportCommand}" />
             </Grid>
 
+            <Border Classes="card" Padding="16">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <StackPanel Spacing="4" VerticalAlignment="Center">
+                        <TextBlock Text="Advertised RAM (optional)" Classes="h3" />
+                        <TextBlock Text="Used only for the RAM check. It is never treated as a hardware reading."
+                                   Classes="muted"
+                                   FontSize="11" />
+                    </StackPanel>
+                    <TextBox Grid.Column="1"
+                             Width="220"
+                             Text="{Binding AdvertisedRam, Mode=TwoWay}"
+                             PlaceholderText="e.g. 16 GB"
+                             VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
             <ItemsControl ItemsSource="{Binding Checks}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:BuyerCheckRowViewModel">

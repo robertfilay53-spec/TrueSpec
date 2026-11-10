@@ -1,35 +1,37 @@
 namespace TrueSpec.Core.Scoring;
 
 using System.Globalization;
+using TrueSpec.Core.Health;
 using TrueSpec.Core.Models;
 
 public interface IBuyerCheckEvaluator
 {
-    BuyerCheckResult Evaluate(IEnumerable<ComponentSnapshot> components);
+    BuyerCheckResult Evaluate(IEnumerable<ComponentSnapshot> components, BuyerCheckContext? context = null);
 }
 
 /// <summary>
-/// Skeleton buyer-mode rules for P0. Each rule reads a labelled spec value and
-/// returns pass, warning or fail with a plain English explanation. Real CIM
-/// readings arrive in P1; the rule structure stays the same.
+/// Buyer-mode rules. Each rule reads a measured spec value and returns pass,
+/// warning or fail with a plain English explanation. Missing readings become
+/// "Not applicable" so the report never claims a fake pass or fail.
 /// </summary>
 public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
 {
-    public BuyerCheckResult Evaluate(IEnumerable<ComponentSnapshot> components)
+    public BuyerCheckResult Evaluate(IEnumerable<ComponentSnapshot> components, BuyerCheckContext? context = null)
     {
         ArgumentNullException.ThrowIfNull(components);
 
         var byId = components.ToDictionary(c => c.Id, StringComparer.OrdinalIgnoreCase);
-        var checks = new List<BuyerCheck>();
-
-        checks.Add(CheckSsdWear(byId));
-        checks.Add(CheckBatteryCycles(byId));
-        checks.Add(CheckPowerOnHours(byId));
-        checks.Add(CheckAdvertisedRam(byId));
-        checks.Add(CheckBiosDate(byId));
-        checks.Add(CheckWindowsInstallDate(byId));
-        checks.Add(CheckCriticalErrors(byId));
-        checks.Add(CheckSignedDrivers(byId));
+        var checks = new List<BuyerCheck>
+        {
+            CheckSsdWear(byId),
+            CheckBatteryCycles(byId),
+            CheckPowerOnHours(byId),
+            CheckAdvertisedRam(byId, context),
+            CheckBiosDate(byId),
+            CheckWindowsInstallDate(byId),
+            CheckCriticalErrors(byId),
+            CheckSignedDrivers(byId),
+        };
 
         return new BuyerCheckResult(checks);
     }
@@ -39,8 +41,8 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "ssd-wear";
         const string title = "SSD wear is 0%";
 
-        if (!TryGetSpec(byId, "storage", "Wear level", out var value) ||
-            !TryParsePercent(value, out var wear))
+        if (!TryGetSpec(byId, "storage", out var component, "Wear level") ||
+            !SpecText.TryParseLeadingNumber(component, out var wear))
         {
             return new BuyerCheck(id, title,
                 "No SSD wear reading was available.",
@@ -48,13 +50,18 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
                 "Ask the seller for a screenshot of the drive SMART data.");
         }
 
-        return wear <= 0d
+        var smartWarning = SpecValue(byId, "storage", "SMART warnings");
+        var extra = string.Equals(smartWarning, "Yes", StringComparison.OrdinalIgnoreCase)
+            ? " The drive also reports SMART warnings."
+            : string.Empty;
+
+        return wear <= 0d && extra.Length == 0
             ? new BuyerCheck(id, title,
-                "The drive reports 0% wear.",
+                "The drive reports 0% wear and no SMART warnings.",
                 BuyerCheckState.Pass,
                 "Nothing to ask.")
             : new BuyerCheck(id, title,
-                $"The drive reports {wear:0.#}% wear, so it has been used.",
+                FormattableString.Invariant($"The drive reports {wear:0.#}% wear.{extra}"),
                 BuyerCheckState.Fail,
                 "Ask why the drive has wear if the laptop is being sold as new.");
     }
@@ -64,7 +71,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "battery-cycles";
         const string title = "Battery cycles 5 or fewer";
 
-        if (!TryGetSpec(byId, "battery", "Cycle count", out var value) ||
+        if (!TryGetSpec(byId, "battery", out var value, "Cycle count") ||
             !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var cycles))
         {
             return new BuyerCheck(id, title,
@@ -89,7 +96,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "power-on-hours";
         const string title = "Drive power-on hours are 0";
 
-        if (!TryGetSpec(byId, "storage", "Power-on hours", out var value) ||
+        if (!TryGetSpec(byId, "storage", out var value, "Power-on hours") ||
             !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours))
         {
             return new BuyerCheck(id, title,
@@ -109,16 +116,26 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
                 "Ask how a new laptop already has powered-on hours on its drive.");
     }
 
-    private static BuyerCheck CheckAdvertisedRam(IReadOnlyDictionary<string, ComponentSnapshot> byId)
+    private static BuyerCheck CheckAdvertisedRam(
+        IReadOnlyDictionary<string, ComponentSnapshot> byId,
+        BuyerCheckContext? context)
     {
         const string id = "ram-size";
         const string title = "RAM size matches the advertisement";
 
-        if (!TryGetSpec(byId, "ram", "Total memory", out var actual) ||
-            !TryGetSpec(byId, "ram", "Advertised memory", out var advertised))
+        if (!TryGetSpec(byId, "ram", out var actual, "Total memory"))
         {
             return new BuyerCheck(id, title,
-                "There was no advertised RAM size to compare against.",
+                "The installed RAM size was not available.",
+                BuyerCheckState.NotApplicable,
+                "Ask the seller for the exact RAM size.");
+        }
+
+        var advertised = context?.AdvertisedRam;
+        if (string.IsNullOrWhiteSpace(advertised))
+        {
+            return new BuyerCheck(id, title,
+                $"Installed memory is {actual}. No advertised size was entered.",
                 BuyerCheckState.NotApplicable,
                 "Type the RAM size from the seller listing to enable this check.");
         }
@@ -139,7 +156,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "bios-date";
         const string title = "BIOS date is recent";
 
-        if (!TryGetSpec(byId, "system", "BIOS date", out var value) ||
+        if (!TryGetSpec(byId, "system", out var value, "BIOS date") ||
             !DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var biosDate))
         {
             return new BuyerCheck(id, title,
@@ -171,7 +188,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "windows-install";
         const string title = "Windows install date is recent";
 
-        if (!TryGetSpec(byId, "system", "Windows install date", out var value) ||
+        if (!TryGetSpec(byId, "system", out var value, "Windows install date") ||
             !DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var installDate))
         {
             return new BuyerCheck(id, title,
@@ -203,7 +220,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "critical-errors";
         const string title = "No critical errors in the event log";
 
-        if (!TryGetSpec(byId, "system", "Critical errors (event log)", out var value) ||
+        if (!TryGetSpec(byId, "system", out var value, "Critical errors (event log)") ||
             !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var errors))
         {
             return new BuyerCheck(id, title,
@@ -228,7 +245,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "signed-drivers";
         const string title = "All drivers are signed";
 
-        if (!TryGetSpec(byId, "system", "Signed drivers only", out var value))
+        if (!TryGetSpec(byId, "system", out var value, "Signed drivers only"))
         {
             return new BuyerCheck(id, title,
                 "The driver signature state was not available.",
@@ -236,23 +253,33 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
                 "Ask the seller whether any unsigned drivers are installed.");
         }
 
-        var ok = string.Equals(value, "Yes", StringComparison.OrdinalIgnoreCase);
-        return ok
-            ? new BuyerCheck(id, title,
+        if (string.Equals(value, "Yes", StringComparison.OrdinalIgnoreCase))
+        {
+            return new BuyerCheck(id, title,
                 "Only signed drivers are installed.",
                 BuyerCheckState.Pass,
-                "Nothing to ask.")
-            : new BuyerCheck(id, title,
+                "Nothing to ask.");
+        }
+
+        if (string.Equals(value, "No", StringComparison.OrdinalIgnoreCase))
+        {
+            return new BuyerCheck(id, title,
                 "Unsigned drivers were found.",
                 BuyerCheckState.Fail,
                 "Ask why unsigned drivers were installed on the machine.");
+        }
+
+        return new BuyerCheck(id, title,
+            "Windows did not report a complete driver signature state.",
+            BuyerCheckState.NotApplicable,
+            "Ask the seller whether any unsigned drivers are installed.");
     }
 
     private static bool TryGetSpec(
         IReadOnlyDictionary<string, ComponentSnapshot> byId,
         string componentId,
-        string label,
-        out string value)
+        out string value,
+        string label)
     {
         value = string.Empty;
         if (!byId.TryGetValue(componentId, out var component))
@@ -271,11 +298,14 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         return true;
     }
 
-    private static bool TryParsePercent(string text, out double percent)
-    {
-        var cleaned = text.Replace("%", string.Empty, StringComparison.Ordinal).Trim();
-        return double.TryParse(cleaned, NumberStyles.Float, CultureInfo.InvariantCulture, out percent);
-    }
+    private static string? SpecValue(
+        IReadOnlyDictionary<string, ComponentSnapshot> byId,
+        string componentId,
+        string label) =>
+        byId.TryGetValue(componentId, out var component)
+            ? component.Specs.FirstOrDefault(s =>
+                string.Equals(s.Label, label, StringComparison.OrdinalIgnoreCase))?.Value
+            : null;
 
     private static string NormalizeSize(string text) =>
         text.Replace(" ", string.Empty, StringComparison.Ordinal)

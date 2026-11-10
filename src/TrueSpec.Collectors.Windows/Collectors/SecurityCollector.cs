@@ -1,0 +1,232 @@
+namespace TrueSpec.Collectors.Windows.Collectors;
+
+using Microsoft.Win32;
+using TrueSpec.Collectors.Windows.Wmi;
+using TrueSpec.Core.Collectors;
+using TrueSpec.Core.Models;
+
+/// <summary>
+/// TPM, Secure Boot, BitLocker, virtualization-based security and driver
+/// signatures from real Windows sources.
+/// </summary>
+public sealed class SecurityCollector : ICollector
+{
+    public string Id => "security";
+
+    public string Name => "Security";
+
+    public string Category => "Security";
+
+    public TimeSpan RefreshInterval => TimeSpan.FromMinutes(10);
+
+    public bool RequiresAdministrator => false;
+
+    public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var tpm = ReadTpm();
+        var deviceGuard = Wmi.Query(
+            "root\\Microsoft\\Windows\\DeviceGuard",
+            "SELECT * FROM Win32_DeviceGuard").FirstOrDefault();
+        var antivirus = Wmi.Query(
+            "root\\SecurityCenter2",
+            "SELECT * FROM AntiVirusProduct");
+        var firewall = Wmi.Query(
+            "root\\SecurityCenter2",
+            "SELECT * FROM FirewallProduct");
+        var drivers = Wmi.Query(
+            "root\\cimv2",
+            "SELECT DeviceName, IsSigned FROM Win32_PnPSignedDriver");
+
+        var unsigned = drivers.Count(r => r.Bool("IsSigned") is false);
+        var secureBoot = ReadSecureBoot();
+        var bitLocker = ReadBitLocker();
+        var uac = ReadUac();
+
+        if (tpm is null && deviceGuard is null && drivers.Count == 0 && antivirus.Count == 0)
+        {
+            return Task.FromResult(ComponentSnapshot.NotAvailable(
+                Id,
+                Name,
+                Category,
+                Id,
+                "Windows security CIM namespaces did not return TPM, Device Guard or driver signature data."));
+        }
+
+        var tpmVersion = tpm is { } tpmValue ? tpmValue.Version : null;
+        var tpmEnabled = tpm is { } tpmEnabledValue ? tpmEnabledValue.Enabled : null;
+        var tpmActivated = tpm is { } tpmActivatedValue ? tpmActivatedValue.Activated : null;
+        var tpmOwned = tpm is { } tpmOwnedValue ? tpmOwnedValue.Owned : null;
+
+        var headline = string.Join(" - ", new[]
+        {
+            tpmVersion is null ? null : $"TPM {tpmVersion}",
+            secureBoot == "On" ? "Secure Boot on" : null,
+        }.Where(v => !string.IsNullOrWhiteSpace(v)));
+
+        var specs = new List<SpecValue>
+        {
+            CollectorSupport.Spec("TPM version", tpmVersion, "CIM Win32_Tpm"),
+            CollectorSupport.Spec("TPM enabled", tpmEnabled, "CIM Win32_Tpm"),
+            CollectorSupport.Spec("TPM activated", tpmActivated, "CIM Win32_Tpm"),
+            CollectorSupport.Spec("TPM owned", tpmOwned, "CIM Win32_Tpm"),
+            CollectorSupport.Spec("Secure Boot", secureBoot, "Windows registry SecureBoot\\State"),
+            CollectorSupport.Spec("BitLocker", bitLocker, "CIM Win32_EncryptableVolume"),
+            CollectorSupport.Spec("Virtualization-based security", DeviceGuardText(deviceGuard), "CIM Win32_DeviceGuard"),
+            CollectorSupport.Spec("User Account Control", uac, "Windows registry EnableLUA"),
+            CollectorSupport.Spec("Antivirus", antivirus.Count == 0
+                ? null
+                : string.Join(", ", antivirus.Select(r => r.String("displayName")).Where(v => !string.IsNullOrWhiteSpace(v))), "CIM SecurityCenter2 AntiVirusProduct"),
+            CollectorSupport.Spec("Firewall", firewall.Count == 0
+                ? null
+                : string.Join(", ", firewall.Select(r => r.String("displayName")).Where(v => !string.IsNullOrWhiteSpace(v))), "CIM SecurityCenter2 FirewallProduct"),
+            CollectorSupport.Spec("Unsigned drivers", drivers.Count == 0 ? null : unsigned.ToString(), "CIM Win32_PnPSignedDriver.IsSigned"),
+        };
+
+        foreach (var item in antivirus)
+        {
+            specs.Add(CollectorSupport.Spec(
+                $"Antivirus state - {item.String("displayName") ?? "product"}",
+                DecodeProductState(item.UInt32("productState")),
+                "CIM SecurityCenter2 AntiVirusProduct.productState"));
+        }
+
+        return Task.FromResult(ComponentSnapshot.NotMeasurable(
+            Id,
+            Name,
+            Category,
+            Id,
+            string.IsNullOrWhiteSpace(headline) ? "Security" : headline,
+            specs,
+            "This block shows the security features that protect the machine. There is no health percentage here because security state is not a wear measurement. A used laptop with BitLocker and Secure Boot already on has been set up properly."));
+    }
+
+    private static (string? Version, string? Enabled, string? Activated, string? Owned)? ReadTpm()
+    {
+        var rows = Wmi.Query("root\\CIMV2\\Security\\MicrosoftTpm", "SELECT * FROM Win32_Tpm");
+        if (rows.Count == 0)
+        {
+            rows = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_Tpm");
+        }
+
+        var tpm = rows.FirstOrDefault();
+        if (tpm is null)
+        {
+            return null;
+        }
+
+        var version = tpm.String("SpecVersion")?.Split(',')[0].Trim();
+        return (
+            version,
+            YesNo(tpm.Bool("IsEnabled_InitialValue")),
+            YesNo(tpm.Bool("IsActivated_InitialValue")),
+            YesNo(tpm.Bool("IsOwned_InitialValue")));
+    }
+
+    private static string DeviceGuardText(WmiRow? deviceGuard)
+    {
+        if (deviceGuard is null)
+        {
+            return CollectorSupport.NotReported;
+        }
+
+        return deviceGuard.UInt32("VirtualizationBasedSecurityStatus") switch
+        {
+            0 => "Off",
+            1 => "Enabled, not running",
+            2 => "Running",
+            _ => CollectorSupport.NotReported,
+        };
+    }
+
+    private static string ReadSecureBoot()
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(
+                @"SYSTEM\CurrentControlSet\Control\SecureBoot\State");
+            var value = key?.GetValue("UEFISecureBootEnabled");
+            return value switch
+            {
+                int number => number == 1 ? "On" : "Off",
+                _ => CollectorSupport.NotReported,
+            };
+        }
+        catch
+        {
+            return CollectorSupport.NotReported;
+        }
+    }
+
+    private static string ReadBitLocker()
+    {
+        try
+        {
+            var rows = Wmi.Query(
+                "root\\CIMV2\\Security\\MicrosoftVolumeEncryption",
+                "SELECT * FROM Win32_EncryptableVolume");
+            if (rows.Count == 0)
+            {
+                return CollectorSupport.NotReported;
+            }
+
+            var systemVolume = rows.FirstOrDefault(r =>
+                string.Equals(r.String("DriveLetter"), "C:", StringComparison.OrdinalIgnoreCase))
+                ?? rows[0];
+
+            return systemVolume.UInt32("ProtectionStatus") switch
+            {
+                0 => "Off",
+                1 => "On",
+                2 => "Unknown",
+                _ => CollectorSupport.NotReported,
+            };
+        }
+        catch
+        {
+            return CollectorSupport.NotReported;
+        }
+    }
+
+    private static string ReadUac()
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System");
+            var value = key?.GetValue("EnableLUA");
+            return value switch
+            {
+                int number => number == 1 ? "On" : "Off",
+                _ => CollectorSupport.NotReported,
+            };
+        }
+        catch
+        {
+            return CollectorSupport.NotReported;
+        }
+    }
+
+    private static string? YesNo(bool? value) => value switch
+    {
+        true => "Yes",
+        false => "No",
+        _ => null,
+    };
+
+    private static string DecodeProductState(uint? state)
+    {
+        if (state is null)
+        {
+            return CollectorSupport.NotReported;
+        }
+
+        var value = state.Value;
+        var enabled = ((value >> 12) & 0x10) != 0;
+        var upToDate = ((value >> 4) & 0x10) != 0;
+        return enabled
+            ? upToDate ? "On, up to date" : "On, may be out of date"
+            : "Off";
+    }
+}

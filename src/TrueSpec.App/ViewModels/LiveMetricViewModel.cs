@@ -6,27 +6,21 @@ using Avalonia.Media;
 namespace TrueSpec.App.ViewModels;
 
 /// <summary>
-/// One sparkline cell. Values are replaced as an array on every refresh so the
-/// Sparkline control redraws immediately.
+/// One sparkline cell. Only real sensor samples are appended; a missing sensor
+/// shows "Not available" and leaves the history empty.
 /// </summary>
 public sealed class LiveMetricViewModel : ViewModelBase
 {
     private const int MaxSamples = 40;
 
-    private readonly double _min;
-    private readonly double _max;
     private readonly List<double> _samples = new();
-    private readonly Random _random = new();
 
-    private double _current;
+    private double? _current;
 
-    public LiveMetricViewModel(string name, string unit, double min, double max, double seed)
+    public LiveMetricViewModel(string name, string unit)
     {
         Name = name;
         Unit = unit;
-        _min = min;
-        _max = max;
-        _current = seed;
 
         var color = name switch
         {
@@ -46,25 +40,25 @@ public sealed class LiveMetricViewModel : ViewModelBase
 
     public IBrush Fill { get; }
 
-    public string CurrentText => string.Format(CultureInfo.InvariantCulture, "{0:0.#} {1}", _current, Unit);
+    public bool HasValue => _current is not null;
+
+    public string CurrentText => _current is { } value
+        ? string.Format(CultureInfo.InvariantCulture, "{0:0.#} {1}", value, Unit)
+        : "Not available";
 
     public IReadOnlyList<double> Values { get; private set; } = Array.Empty<double>();
 
-    public void Seed()
+    public void AddSample(double? value)
     {
-        for (var i = 0; i < 24; i++)
+        if (value is null || double.IsNaN(value.Value))
         {
-            _current = NextValue(_current);
-            _samples.Add(_current);
+            _current = null;
+            Publish();
+            return;
         }
 
-        Publish();
-    }
-
-    public void AddRandomSample()
-    {
-        _current = NextValue(_current);
-        _samples.Add(_current);
+        _current = value.Value;
+        _samples.Add(value.Value);
         if (_samples.Count > MaxSamples)
         {
             _samples.RemoveAt(0);
@@ -73,17 +67,11 @@ public sealed class LiveMetricViewModel : ViewModelBase
         Publish();
     }
 
-    private double NextValue(double current)
-    {
-        var span = _max - _min;
-        var drift = (_random.NextDouble() - 0.5d) * span * 0.22d;
-        return Math.Clamp(current + drift, _min, _max);
-    }
-
     private void Publish()
     {
         Values = _samples.ToArray();
         OnPropertyChanged(nameof(Values));
         OnPropertyChanged(nameof(CurrentText));
+        OnPropertyChanged(nameof(HasValue));
     }
 }

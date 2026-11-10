@@ -8,10 +8,14 @@ using Avalonia;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TrueSpec.App.Services;
 using TrueSpec.App.ViewModels;
 using TrueSpec.Core;
+using TrueSpec.Core.Collectors;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Reports;
+using TrueSpec.Core.Scoring;
+using TrueSpec.Core.Sensors;
 
 namespace TrueSpec.App.ViewModels;
 
@@ -21,41 +25,65 @@ namespace TrueSpec.App.ViewModels;
 /// </summary>
 public partial class MainViewModel : ViewModelBase
 {
-    private readonly SystemSnapshot _snapshot;
+    private readonly MachineScanService _scanService;
+    private readonly ISensorMonitor _sensorMonitor;
+    private readonly IBuyerCheckEvaluator _buyerCheckEvaluator;
     private readonly Dictionary<string, ViewModelBase> _pageCache =
         new(StringComparer.OrdinalIgnoreCase);
 
+    private SystemSnapshot _snapshot;
+    private BuyerCheckContext _buyerContext = new();
+
     public MainViewModel()
-        : this(MachineScanService.CreateDefaultStub().ScanAsync().GetAwaiter().GetResult())
+        : this(
+            CollectorRegistry.CreateCollectors(),
+            CollectorRegistry.CreateSensorMonitor(),
+            new BuyerCheckEvaluator())
     {
     }
 
-    public MainViewModel(SystemSnapshot snapshot)
+    public MainViewModel(
+        IEnumerable<ICollector> collectors,
+        ISensorMonitor sensorMonitor,
+        IBuyerCheckEvaluator buyerCheckEvaluator)
+        : this(MachineScanService.Create(collectors), sensorMonitor, buyerCheckEvaluator)
     {
-        _snapshot = snapshot;
-        NavItems = new ObservableCollection<NavItemViewModel>(NavItemViewModel.CreateDefault());
-        Overview = new OverviewViewModel(snapshot, OpenComponent, ShowBuyerCheckCommand, ExportReportCommand);
+    }
 
-        LastScanText = $"Last scan {snapshot.CapturedAt:HH:mm:ss}";
+    public MainViewModel(
+        MachineScanService scanService,
+        ISensorMonitor sensorMonitor,
+        IBuyerCheckEvaluator buyerCheckEvaluator)
+    {
+        _scanService = scanService;
+        _sensorMonitor = sensorMonitor;
+        _buyerCheckEvaluator = buyerCheckEvaluator;
+        _snapshot = scanService.ScanAsync().GetAwaiter().GetResult();
+
+        NavItems = new ObservableCollection<NavItemViewModel>(NavItemViewModel.CreateDefault());
+        Overview = CreateOverview();
+
+        LastScanText = $"Last scan {_snapshot.CapturedAt:HH:mm:ss}";
         SelectedNavItem = NavItems.FirstOrDefault();
         CurrentPage = Overview;
+        StatusMessage = "Real scan complete. Live sensors use LibreHardwareMonitor when available.";
     }
 
     public ObservableCollection<NavItemViewModel> NavItems { get; }
 
-    public OverviewViewModel Overview { get; }
+    public OverviewViewModel Overview { get; private set; }
 
-    public string VersionText => "TrueSpec 0.1.0 (P0)";
+    public string VersionText => "TrueSpec 1.0.0 (P1-P3)";
 
-    public bool IsElevated => false;
+    public bool IsElevated => Environment.IsPrivilegedProcess;
 
     public string AdminText => IsElevated ? "Admin: elevated" : "Admin: standard user";
 
     public bool UpdateAvailable => false;
 
-    public string UpdateText => UpdateAvailable ? "Update available" : "Up to date";
+    public string UpdateText => UpdateAvailable ? "Update available" : "No update check";
 
-    public string LastScanText { get; }
+    public string LastScanText { get; private set; }
 
     public string ThemeToggleText => IsDarkTheme ? "Switch to light" : "Switch to dark";
 
@@ -77,7 +105,7 @@ public partial class MainViewModel : ViewModelBase
     public partial double RailWidth { get; set; } = 200d;
 
     [ObservableProperty]
-    public partial string StatusMessage { get; set; } = "P0 foundation: sample data, no hardware access yet.";
+    public partial string StatusMessage { get; set; } = "Starting a real hardware scan.";
 
     partial void OnSelectedNavItemChanged(NavItemViewModel? value)
     {
@@ -115,17 +143,49 @@ public partial class MainViewModel : ViewModelBase
     private void ShowBuyerCheck()
     {
         SelectedNavItem = null;
-        CurrentPage = GetOrCreate("buyer", () => new NewLaptopCheckViewModel(_snapshot, ExportReportCommand));
+        CurrentPage = GetOrCreate(
+            "buyer",
+            () => new NewLaptopCheckViewModel(
+                _snapshot,
+                ExportJsonCommand,
+                _buyerCheckEvaluator,
+                OnBuyerChecksChanged));
     }
 
     [RelayCommand]
-    private void Refresh()
+    private async Task RefreshAsync()
     {
-        StatusMessage = $"Scan refreshed at {DateTime.Now:HH:mm:ss} (sample data).";
+        StatusMessage = "Scanning hardware...";
+        try
+        {
+            var snapshot = await _scanService.ScanAsync(_buyerContext);
+            _snapshot = snapshot;
+            _buyerContext = new BuyerCheckContext();
+            _pageCache.Clear();
+
+            var previous = Overview;
+            Overview = CreateOverview();
+            previous.Dispose();
+
+            LastScanText = $"Last scan {snapshot.CapturedAt:HH:mm:ss}";
+            OnPropertyChanged(nameof(LastScanText));
+            SelectedNavItem = NavItems.FirstOrDefault();
+            CurrentPage = Overview;
+            StatusMessage = "Hardware scan refreshed from real collectors.";
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"Refresh failed: {exception.Message}";
+        }
     }
 
     [RelayCommand]
-    private async Task ExportReportAsync()
+    private Task ExportJsonAsync() => ExportAsync(ReportFormat.Json);
+
+    [RelayCommand]
+    private Task ExportHtmlAsync() => ExportAsync(ReportFormat.Html);
+
+    private async Task ExportAsync(ReportFormat format)
     {
         try
         {
@@ -138,9 +198,13 @@ public partial class MainViewModel : ViewModelBase
             var folder = Path.Combine(documents, "TrueSpec");
             Directory.CreateDirectory(folder);
 
-            var path = Path.Combine(folder, $"TrueSpec-report-{DateTime.Now:yyyyMMdd-HHmmss}.json");
+            var extension = format == ReportFormat.Html ? "html" : "json";
+            var path = Path.Combine(folder, $"TrueSpec-report-{DateTime.Now:yyyyMMdd-HHmmss}.{extension}");
             await using var stream = File.Create(path);
-            await new JsonReportExporter().ExportAsync(ReportModel.FromSnapshot(_snapshot), stream);
+            IReportExporter exporter = format == ReportFormat.Html
+                ? new HtmlReportExporter()
+                : new JsonReportExporter();
+            await exporter.ExportAsync(ReportModel.FromSnapshot(_snapshot), stream);
 
             StatusMessage = $"Report exported to {path}";
         }
@@ -150,13 +214,28 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    private OverviewViewModel CreateOverview() => new(
+        _snapshot,
+        OpenComponent,
+        ShowBuyerCheckCommand,
+        ExportJsonCommand,
+        _sensorMonitor);
+
+    private void OnBuyerChecksChanged(BuyerCheckResult checks, string? advertisedRam)
+    {
+        _snapshot = _snapshot with { BuyerChecks = checks };
+        _buyerContext = new BuyerCheckContext(
+            string.IsNullOrWhiteSpace(advertisedRam) ? null : advertisedRam.Trim());
+        _pageCache.Remove("report");
+    }
+
     private void NavigateTo(string key)
     {
         CurrentPage = key.ToLowerInvariant() switch
         {
             "overview" => Overview,
             "tests" => GetOrCreate("tests", () => new TestsViewModel()),
-            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportReportCommand)),
+            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
             _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key)),
         };

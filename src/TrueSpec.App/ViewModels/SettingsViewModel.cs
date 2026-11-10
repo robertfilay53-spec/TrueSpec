@@ -5,7 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace TrueSpec.App.ViewModels;
 
-/// <summary>Settings page. Only the theme toggle is wired in P0.</summary>
+/// <summary>Settings page. Only the theme toggle and status text are wired in this build.</summary>
 public sealed partial class SettingsViewModel : ViewModelBase
 {
     private readonly MainViewModel _main;

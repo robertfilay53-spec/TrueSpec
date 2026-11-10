@@ -37,12 +37,13 @@
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
                     <StackPanel Spacing="4" VerticalAlignment="Center">
                         <TextBlock Text="Live sensor refresh rate" Classes="h3" />
-                        <TextBlock Text="How often the live strip refreshes when real sensors arrive in P4."
+                        <TextBlock Text="Live sensors refresh every 2 seconds in this build."
                                    Classes="muted"
                                    FontSize="11" />
                     </StackPanel>
                     <ComboBox Grid.Column="1"
                               Width="170"
+                              IsEnabled="False"
                               ItemsSource="{Binding RefreshRateOptions}"
                               SelectedItem="{Binding RefreshRate}" />
                 </Grid>
@@ -52,10 +53,12 @@
                 <StackPanel Spacing="12">
                     <TextBlock Text="Startup" Classes="h3" />
                     <CheckBox Content="Start TrueSpec when Windows starts"
+                              IsEnabled="False"
                               IsChecked="{Binding StartWithWindows, Mode=TwoWay}" />
                     <CheckBox Content="Check for updates on startup"
+                              IsEnabled="False"
                               IsChecked="{Binding CheckForUpdatesOnStartup, Mode=TwoWay}" />
-                    <TextBlock Text="Update checks only read the public GitHub releases page. Nothing is installed without your consent."
+                    <TextBlock Text="Startup registration and update checks are not implemented yet. Nothing is installed without your consent."
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap" />
@@ -72,6 +75,7 @@
                     </StackPanel>
                     <ComboBox Grid.Column="1"
                               Width="170"
+                              IsEnabled="False"
                               ItemsSource="{Binding UpdateChannelOptions}"
                               SelectedItem="{Binding UpdateChannel}" />
                 </Grid>
@@ -96,7 +100,7 @@
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="4">
                     <TextBlock Text="Privacy" Classes="h3" />
-                    <TextBlock Text="TrueSpec has no telemetry, no account, and no network calls in P0. Scans stay on this machine."
+                    <TextBlock Text="TrueSpec has no telemetry, no account, and no network calls. Scans stay on this machine."
                                Classes="muted"
                                TextWrapping="Wrap" />
                 </StackPanel>

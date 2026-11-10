@@ -24,7 +24,7 @@
                              Fill="{DynamicResource WatchBrush}"
                              VerticalAlignment="Center" />
                     <TextBlock Grid.Column="1"
-                               Text="Test launchers arrive in P8. This page shows the planned set so the navigation shell is complete."
+                               Text="CPU and disk tests run real local measurements. Tests that are not implemented stay disabled and show no result."
                                Classes="muted"
                                TextWrapping="Wrap" />
                 </Grid>
@@ -41,6 +41,11 @@
                                                Classes="muted"
                                                TextWrapping="Wrap"
                                                MaxWidth="620" />
+                                    <TextBlock Text="{Binding ResultText}"
+                                               Classes="muted"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="620" />
                                 </StackPanel>
                                 <Border Grid.Column="1"
                                         Background="{DynamicResource CardBackgroundAlt}"
@@ -54,7 +59,8 @@
                                 <Button Grid.Column="2"
                                         Classes="secondary"
                                         Content="Run test"
-                                        IsEnabled="False"
+                                        Command="{Binding RunCommand}"
+                                        IsEnabled="{Binding CanRun}"
                                         VerticalAlignment="Center" />
                             </Grid>
                         </Border>

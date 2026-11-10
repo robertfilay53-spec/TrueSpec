@@ -12,7 +12,7 @@
             <StackPanel Spacing="6">
                 <TextBlock Text="REPORT" Classes="eyebrow" />
                 <TextBlock Text="Export the truth" Classes="h1" />
-                <TextBlock Text="One data model, three outputs. Everything is generated on this machine."
+                <TextBlock Text="One data model with JSON and HTML outputs. Everything is generated on this machine."
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
@@ -43,11 +43,18 @@
                         <TextBlock Text="{Binding GeneratedText}" Classes="muted" FontSize="11" />
                     </StackPanel>
 
-                    <Button Grid.Column="2"
-                            Classes="primary"
-                            Content="Export JSON"
-                            Command="{Binding ExportCommand}"
-                            VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="2" Spacing="8" VerticalAlignment="Center" Width="150">
+                        <Button Classes="primary"
+                                Content="Export JSON"
+                                Command="{Binding ExportJsonCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center" />
+                        <Button Classes="secondary"
+                                Content="Export HTML"
+                                Command="{Binding ExportHtmlCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center" />
+                    </StackPanel>
                 </Grid>
             </Border>
 
@@ -56,21 +63,21 @@
                     <StackPanel Spacing="5">
                         <TextBlock Text="JSON" Classes="h3" />
                         <TextBlock Text="Machine readable data for scripts and support." Classes="muted" TextWrapping="Wrap" />
-                        <TextBlock Text="Available in P0" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Text="Available" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="1" Classes="card" Padding="16">
                     <StackPanel Spacing="5">
                         <TextBlock Text="HTML" Classes="h3" />
                         <TextBlock Text="A clean page you can open in any browser." Classes="muted" TextWrapping="Wrap" />
-                        <TextBlock Text="Planned for P7" Foreground="{DynamicResource NotMeasurableBrush}" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Text="Available" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="2" Classes="card" Padding="16">
                     <StackPanel Spacing="5">
                         <TextBlock Text="PDF" Classes="h3" />
                         <TextBlock Text="A shareable document for a seller or a shop." Classes="muted" TextWrapping="Wrap" />
-                        <TextBlock Text="Planned for P7" Foreground="{DynamicResource NotMeasurableBrush}" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Text="Not implemented in this build" Foreground="{DynamicResource NotMeasurableBrush}" FontSize="11" FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -104,7 +111,7 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="The JSON export is written to your Documents/TrueSpec folder. No upload, no cloud."
+            <TextBlock Text="JSON and HTML exports are written to your Documents/TrueSpec folder. No upload, no cloud."
                        Classes="muted"
                        FontSize="11" />
         </StackPanel>

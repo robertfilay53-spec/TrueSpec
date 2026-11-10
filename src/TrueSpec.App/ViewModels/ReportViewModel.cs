@@ -2,16 +2,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
 using TrueSpec.Core.Models;
-using TrueSpec.Core.Reports;
 
 namespace TrueSpec.App.ViewModels;
 
-/// <summary>Report page: one model, three planned outputs, JSON works in P0.</summary>
+/// <summary>Report page: JSON and HTML exports share the same report model.</summary>
 public sealed class ReportViewModel : ViewModelBase
 {
-    public ReportViewModel(SystemSnapshot snapshot, ICommand exportCommand)
+    public ReportViewModel(
+        SystemSnapshot snapshot,
+        ICommand exportJsonCommand,
+        ICommand exportHtmlCommand)
     {
-        ExportCommand = exportCommand;
+        ExportJsonCommand = exportJsonCommand;
+        ExportHtmlCommand = exportHtmlCommand;
         MachineName = snapshot.MachineName;
         OperatingSystem = snapshot.OperatingSystem;
         GeneratedText = $"Snapshot captured {snapshot.CapturedAt:yyyy-MM-dd HH:mm:ss}";
@@ -46,14 +49,9 @@ public sealed class ReportViewModel : ViewModelBase
 
     public IReadOnlyList<ReportComponentRow> Components { get; }
 
-    public IReadOnlyList<ReportFormat> Formats { get; } = new[]
-    {
-        ReportFormat.Json,
-        ReportFormat.Html,
-        ReportFormat.Pdf,
-    };
+    public ICommand ExportJsonCommand { get; }
 
-    public ICommand ExportCommand { get; }
+    public ICommand ExportHtmlCommand { get; }
 }
 
 public sealed record ReportComponentRow(string Name, string Headline, string HealthText, HealthStatus Status);

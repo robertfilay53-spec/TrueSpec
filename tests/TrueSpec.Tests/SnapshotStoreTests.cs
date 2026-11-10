@@ -1,4 +1,3 @@
-using TrueSpec.Core;
 using TrueSpec.Core.Storage;
 
 namespace TrueSpec.Tests;
@@ -13,7 +12,7 @@ public class SnapshotStoreTests
 
         try
         {
-            var snapshot = await MachineScanService.CreateDefaultStub().ScanAsync();
+            var snapshot = TestSnapshots.Healthy();
             var store = new SqliteSnapshotStore(databasePath);
 
             await store.InitializeAsync();

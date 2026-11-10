@@ -1,5 +1,11 @@
 namespace TrueSpec.Core.Models;
 
+/// <summary>
+/// Values the buyer supplies from the seller listing. They are clearly not
+/// hardware readings and are only used for passport-style comparisons.
+/// </summary>
+public sealed record BuyerCheckContext(string? AdvertisedRam = null);
+
 public enum BuyerCheckState
 {
     Pass,

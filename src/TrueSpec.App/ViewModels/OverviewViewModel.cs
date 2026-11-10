@@ -2,24 +2,32 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using TrueSpec.Core.Health;
 using TrueSpec.Core.Models;
+using TrueSpec.Core.Sensors;
 
 namespace TrueSpec.App.ViewModels;
 
 /// <summary>The Overview page: hero, component cards and the live strip.</summary>
-public sealed partial class OverviewViewModel : ViewModelBase
+public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
 {
     private readonly DispatcherTimer _timer;
+    private readonly ISensorMonitor _sensorMonitor;
+    private readonly IReadOnlyList<SpecValue> _cpuSpecs;
+    private bool _refreshing;
 
     public OverviewViewModel(
         SystemSnapshot snapshot,
         Action<string> openComponent,
         ICommand newLaptopCheckCommand,
-        ICommand exportCommand)
+        ICommand exportCommand,
+        ISensorMonitor sensorMonitor)
     {
+        _sensorMonitor = sensorMonitor;
         MachineName = snapshot.MachineName;
         OperatingSystem = snapshot.OperatingSystem;
         Score = snapshot.Score.OverallScore;
@@ -30,33 +38,23 @@ public sealed partial class OverviewViewModel : ViewModelBase
         NewLaptopCheckCommand = newLaptopCheckCommand;
         ExportCommand = exportCommand;
 
+        _cpuSpecs = snapshot.Find("cpu")?.Specs ?? Array.Empty<SpecValue>();
         KeyStats = BuildKeyStats(snapshot);
         Cards = new ObservableCollection<ComponentCardViewModel>(
             snapshot.Components.Select(c => new ComponentCardViewModel(c, openComponent)));
         LiveMetrics = new ObservableCollection<LiveMetricViewModel>
         {
-            new("CPU temp", "C", 42d, 58d, 47d),
-            new("GPU temp", "C", 47d, 60d, 52d),
-            new("CPU usage", "%", 5d, 35d, 12d),
-            new("Battery drain", "W", 5d, 8d, 6.4d),
+            new("CPU temp", "C"),
+            new("GPU temp", "C"),
+            new("CPU usage", "%"),
+            new("Battery drain", "W"),
         };
-
-        foreach (var metric in LiveMetrics)
-        {
-            metric.Seed();
-        }
+        StatusMessage = sensorMonitor.StatusText;
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        _timer.Tick += (_, _) =>
-        {
-            foreach (var metric in LiveMetrics)
-            {
-                metric.AddRandomSample();
-            }
-
-            StatusMessage = $"Live sensors updated {DateTime.Now:HH:mm:ss}";
-        };
+        _timer.Tick += async (_, _) => await RefreshSensorsAsync();
         _timer.Start();
+        _ = RefreshSensorsAsync();
     }
 
     public string MachineName { get; }
@@ -84,25 +82,77 @@ public sealed partial class OverviewViewModel : ViewModelBase
     public ICommand ExportCommand { get; }
 
     [ObservableProperty]
-    public partial string StatusMessage { get; set; } = "Live strip updates every 2 seconds.";
+    public partial string StatusMessage { get; set; }
 
-    private static IReadOnlyList<KeyStatViewModel> BuildKeyStats(SystemSnapshot snapshot)
+    public void Dispose()
     {
-        var cpu = snapshot.Find("cpu");
+        _timer.Stop();
+    }
+
+    private async Task RefreshSensorsAsync()
+    {
+        if (_refreshing)
+        {
+            return;
+        }
+
+        _refreshing = true;
+        try
+        {
+            var snapshot = await _sensorMonitor.ReadAsync();
+            StatusMessage = snapshot.IsAvailable
+                ? $"Live sensors updated {DateTime.Now:HH:mm:ss}"
+                : snapshot.StatusText;
+
+            UpdateMetric("CPU temp", snapshot.CpuTemperature()?.Value);
+            UpdateMetric("GPU temp", snapshot.GpuTemperature()?.Value);
+            UpdateMetric("CPU usage", snapshot.CpuLoad()?.Value);
+            UpdateMetric("Battery drain", snapshot.BatteryPower()?.Value);
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"Live sensor read failed: {exception.Message}";
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    private void UpdateMetric(string name, double? value)
+    {
+        var metric = LiveMetrics.FirstOrDefault(m =>
+            string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
+        metric?.AddSample(value);
+    }
+
+    private IReadOnlyList<KeyStatViewModel> BuildKeyStats(SystemSnapshot snapshot)
+    {
         var ram = snapshot.Find("ram");
         var storage = snapshot.Find("storage");
         var battery = snapshot.Find("battery");
 
-        var cpuTemp = SpecValueOf(cpu, "Package temperature") ?? "Not reported";
-        var ramSize = SpecValueOf(ram, "Total memory") ?? "Not reported";
+        var cpuTempSpec = _cpuSpecs.FirstOrDefault(s =>
+            string.Equals(s.Label, "Package temperature", StringComparison.OrdinalIgnoreCase));
+        var cpuTemp = cpuTempSpec?.Value ?? "Not reported by hardware";
+        var cpuTempStatus = cpuTempSpec is not null && SpecText.TryParseLeadingNumber(cpuTemp, out var temp)
+            ? temp switch
+            {
+                < 80d => HealthStatus.Healthy,
+                < 90d => HealthStatus.Watch,
+                _ => HealthStatus.Problem,
+            }
+            : HealthStatus.NotMeasurable;
+
+        var ramSize = SpecValueOf(ram, "Total memory") ?? "Not reported by hardware";
         var diskHealth = storage?.HealthText ?? "Not measurable";
         var batteryHealth = battery?.HealthText ?? "Not measurable";
 
         return new[]
         {
-            new KeyStatViewModel("CPU temperature", cpuTemp, "LibreHardwareMonitor", HealthStatus.Healthy),
-            new KeyStatViewModel("Memory", ramSize, "WMI Win32_PhysicalMemory", HealthStatus.NotMeasurable),
-            new KeyStatViewModel("Disk health", diskHealth, "NVMe SMART", storage?.Status ?? HealthStatus.NotMeasurable),
+            new KeyStatViewModel("CPU temperature", cpuTemp, cpuTempSpec?.Source ?? "LibreHardwareMonitor", cpuTempStatus),
+            new KeyStatViewModel("Memory", ramSize, "CIM Win32_PhysicalMemory", HealthStatus.NotMeasurable),
+            new KeyStatViewModel("Disk health", diskHealth, "SMART / NVMe reliability counters", storage?.Status ?? HealthStatus.NotMeasurable),
             new KeyStatViewModel("Battery health", batteryHealth, "Battery firmware", battery?.Status ?? HealthStatus.NotMeasurable),
         };
     }

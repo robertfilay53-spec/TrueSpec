@@ -176,7 +176,7 @@
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel>
                             <TextBlock Text="Live sensors" Classes="h3" />
-                            <TextBlock Text="Sample data refreshes every 2 seconds. Real sensors arrive in P4."
+                            <TextBlock Text="Live sensors refresh every 2 seconds. Values appear only when LibreHardwareMonitor reports them."
                                        Classes="muted"
                                        FontSize="11" />
                         </StackPanel>
@@ -213,7 +213,14 @@
                                                             Values="{Binding Values}"
                                                             Stroke="{Binding Stroke}"
                                                             Fill="{Binding Fill}"
-                                                            StrokeThickness="2" />
+                                                            StrokeThickness="2"
+                                                            IsVisible="{Binding HasValue}" />
+                                        <TextBlock Text="No sensor reading"
+                                                   Classes="muted"
+                                                   FontSize="11"
+                                                   Height="52"
+                                                   VerticalAlignment="Center"
+                                                   IsVisible="{Binding !HasValue}" />
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -222,7 +229,7 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="All readings are sample data in P0. No telemetry, no network calls."
+            <TextBlock Text="Every reading keeps its source. No telemetry, no network calls."
                        Classes="muted"
                        FontSize="11"
                        HorizontalAlignment="Center"

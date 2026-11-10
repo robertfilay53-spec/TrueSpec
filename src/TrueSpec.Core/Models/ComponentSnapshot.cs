@@ -29,6 +29,29 @@ public sealed record ComponentSnapshot(
         string iconKey,
         string headline,
         IReadOnlyList<SpecValue> specs,
-        string whatThisMeans) =>
-        new(id, name, category, iconKey, headline, null, specs, whatThisMeans, DateTimeOffset.Now);
+        string whatThisMeans,
+        DateTimeOffset? capturedAt = null) =>
+        new(id, name, category, iconKey, headline, null, specs, whatThisMeans, capturedAt ?? DateTimeOffset.Now);
+
+    /// <summary>
+    /// A component that could not be read. It carries a reason, never a number.
+    /// </summary>
+    public static ComponentSnapshot NotAvailable(
+        string id,
+        string name,
+        string category,
+        string iconKey,
+        string reason) => new(
+        id,
+        name,
+        category,
+        iconKey,
+        "Not available",
+        null,
+        new[]
+        {
+            new SpecValue("Status", reason, "Platform / collector check"),
+        },
+        "This reading is not available. TrueSpec does not invent a value when the hardware or Windows does not report one.",
+        DateTimeOffset.Now);
 }

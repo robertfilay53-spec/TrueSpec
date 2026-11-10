@@ -8,30 +8,30 @@ The product rule is simple: every number is either **measured** (with its source
 
 ## Status
 
-P0 foundation is complete. The application shell, theme, navigation, scoring skeleton, snapshot store skeleton, report model, and stub collectors are in place. Every reading you see today is realistic sample data. Real CIM/WMI hardware access starts in P1.
+Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.
 
-Planned phases:
+Implemented in this build:
 
-| Phase | Scope |
+| Area | Scope |
 |---|---|
-| P0 | Foundation: Avalonia shell, MVVM, theme, scoring and report skeletons, CI, public repo |
-| P1 | Real CIM/WMI collectors |
-| P2 | Storage: SMART, wear, TBW, power-on hours |
-| P3 | Battery: capacities, cycles, health |
-| P4 | Live sensors via LibreHardwareMonitor |
-| P5 | Network, display, peripherals |
-| P6 | Scoring and buyer checks on real data |
-| P7 | PDF and HTML report export |
-| P8 | Built-in tests |
-| P9 | Installer and release |
+| Collectors | System, CPU, RAM, Storage, Battery, GPU, Display, Network, Motherboard, Security, Drivers |
+| Storage | NVMe reliability counters, SATA SMART passthrough, wear, power-on hours, errors |
+| Battery | Design/full charge capacity, cycles, health bands, charge and discharge rate |
+| Live sensors | LibreHardwareMonitor temperatures, fans, voltages, power, load and clocks |
+| Scoring | Measured health only; unmeasurable components are excluded, never faked |
+| Buyer checks | SSD wear, battery cycles, power-on hours, advertised RAM, BIOS date, Windows install date, critical errors, signed drivers |
+| Reports | JSON and self-contained HTML, with source labels on every reading |
+| Tests | Real CPU single-thread and local sequential disk read benchmarks |
+
+Windows runtime validation requires a Windows machine with the relevant hardware. The project builds on Linux for UI development, but non-Windows builds intentionally show unavailable collectors.
 
 ## What it will show
 
 - **Overview:** overall health score, plain-English verdict, key stats, component cards, live sparklines.
 - **New Laptop Check:** buyer mode with a PASS, WARNING or FAIL banner and a checklist that tells you what to ask the seller.
 - **Detail pages:** System, CPU, RAM, Storage, Battery, GPU, Display, Network, Motherboard, Security.
-- **Report:** one data model, JSON today, HTML and PDF planned.
-- **Settings:** dark and light theme, refresh rate, startup, update channel. English only in v1.
+- **Report:** one data model with working JSON and HTML exports. PDF is not implemented.
+- **Settings:** dark and light theme. Live sensors refresh every 2 seconds. English only in v1.
 
 ## Privacy
 
@@ -62,8 +62,9 @@ The Windows build is the shipping target. Running the app on Linux is useful for
 ```
 TrueSpec.sln
 src/
-  TrueSpec.App/    Avalonia UI, MVVM shell, views, theme, controls
-  TrueSpec.Core/   collectors, models, scoring, snapshots, reports
+  TrueSpec.App/                  Avalonia UI, MVVM shell, views, theme, controls
+  TrueSpec.Core/                 models, scoring, health rules, buyer checks, reports, benchmarks
+  TrueSpec.Collectors.Windows/   CIM/WMI, SMART, event log and LibreHardwareMonitor collectors
 tests/
   TrueSpec.Tests/  xUnit tests for the core
 .github/

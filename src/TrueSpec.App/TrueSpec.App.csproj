@@ -1,8 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework Condition="'$(OS)' == 'Windows_NT'">net10.0-windows</TargetFramework>
+    <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <DefineConstants Condition="'$(OS)' == 'Windows_NT'">$(DefineConstants);TRUESPEC_WINDOWS</DefineConstants>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
@@ -25,5 +27,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TrueSpec.Core\TrueSpec.Core.csproj" />
+    <ProjectReference Condition="'$(OS)' == 'Windows_NT'" Include="..\TrueSpec.Collectors.Windows\TrueSpec.Collectors.Windows.csproj" />
   </ItemGroup>
 </Project>

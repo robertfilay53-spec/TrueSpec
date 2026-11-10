@@ -11,7 +11,7 @@ public sealed record SnapshotSummary(
 
 /// <summary>
 /// Local history storage. Every scan saves a snapshot so later versions can
-/// chart degradation and raise alerts. P0 is a working SQLite skeleton.
+/// chart degradation and raise alerts. The default implementation uses SQLite.
 /// </summary>
 public interface ISnapshotStore
 {
