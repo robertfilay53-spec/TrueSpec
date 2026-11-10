@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using TrueSpec.App.Services;
 using TrueSpec.App.ViewModels;
 using TrueSpec.App.Views;
 
@@ -15,12 +16,14 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        StartupLog.Append("App: starting");
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow
             {
                 DataContext = new MainViewModel(),
             };
+            StartupLog.Append("App: MainWindow created");
         }
 
         base.OnFrameworkInitializationCompleted();

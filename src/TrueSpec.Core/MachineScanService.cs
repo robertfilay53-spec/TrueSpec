@@ -1,9 +1,23 @@
 namespace TrueSpec.Core;
 
+using System.Diagnostics;
 using TrueSpec.Core.Collectors;
 using TrueSpec.Core.Health;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Scoring;
+
+/// <summary>
+/// Timeout budget for one scan. A collector that exceeds its per-collector
+/// budget is reported as not available; the overall budget bounds the whole
+/// scan even when a collector ignores its cancellation token, because the
+/// wait is a timeout race rather than a bare await.
+/// </summary>
+public sealed record ScanTimeouts(TimeSpan PerCollector, TimeSpan Overall)
+{
+    public static ScanTimeouts Default { get; } = new(
+        TimeSpan.FromSeconds(10),
+        TimeSpan.FromSeconds(30));
+}
 
 /// <summary>
 /// Runs every collector, applies the measured health rules, then feeds the
@@ -38,23 +52,67 @@ public sealed class MachineScanService
     public Task<SystemSnapshot> ScanAsync(CancellationToken cancellationToken = default) =>
         ScanAsync(null, cancellationToken);
 
+    /// <summary>
+    /// Runs every collector with a timeout budget. A collector that exceeds its
+    /// per-collector budget, or a scan that exceeds its overall budget, reports
+    /// the affected components as not available — never a fake value. The scan
+    /// always completes within about the overall budget, even when a collector
+    /// ignores its cancellation token, because each wait is a timeout race.
+    /// The optional log sink receives milestone lines; it is never allowed to
+    /// throw into the scan. A caller-cancelled scan still throws
+    /// <see cref="OperationCanceledException"/>; a budget timeout does not.
+    /// </summary>
     public async Task<SystemSnapshot> ScanAsync(
         BuyerCheckContext? buyerContext,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        ScanTimeouts? timeouts = null,
+        Action<string>? log = null)
     {
+        var budget = SanitizeTimeouts(timeouts ?? ScanTimeouts.Default);
+        var stopwatch = Stopwatch.StartNew();
+        Log(log, "Scan started");
+
+        using var overallCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        overallCts.CancelAfter(budget.Overall);
+        var overallToken = overallCts.Token;
+
         var components = new List<ComponentSnapshot>();
         foreach (var collector in _collectors)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            if (overallToken.IsCancellationRequested)
+            {
+                Log(log, $"Collector {collector.Id} skipped: overall scan timeout reached");
+                components.Add(ComponentSnapshot.NotAvailable(
+                    collector.Id,
+                    collector.Name,
+                    collector.Category,
+                    collector.Id,
+                    "Scan timed out before this collector ran."));
+                continue;
+            }
+
+            var collectorStopwatch = Stopwatch.StartNew();
+            Log(log, $"Collector {collector.Id} started");
+
             ComponentSnapshot component;
             try
             {
-                component = await collector.CollectAsync(cancellationToken);
+                component = await CollectWithTimeoutAsync(collector, overallToken, budget.PerCollector, log);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (OperationCanceledException)
             {
-                throw;
+                component = ComponentSnapshot.NotAvailable(
+                    collector.Id,
+                    collector.Name,
+                    collector.Category,
+                    collector.Id,
+                    "Scan timed out while collecting this component.");
             }
             catch (Exception exception)
             {
@@ -66,6 +124,8 @@ public sealed class MachineScanService
                     $"Collector failed: {exception.Message}");
             }
 
+            collectorStopwatch.Stop();
+            Log(log, $"Collector {collector.Id} finished in {collectorStopwatch.ElapsedMilliseconds} ms");
             components.Add(ComponentHealthRules.Apply(component));
         }
 
@@ -81,6 +141,9 @@ public sealed class MachineScanService
                 string.Equals(s.Label, "Windows edition", StringComparison.OrdinalIgnoreCase))
             ?.Value ?? "Not reported";
 
+        stopwatch.Stop();
+        Log(log, $"Scan complete in {stopwatch.ElapsedMilliseconds} ms ({components.Count} components)");
+
         return new SystemSnapshot(
             Guid.NewGuid(),
             DateTimeOffset.Now,
@@ -89,5 +152,63 @@ public sealed class MachineScanService
             components,
             score,
             buyerChecks);
+    }
+
+    private static ScanTimeouts SanitizeTimeouts(ScanTimeouts timeouts)
+    {
+        var perCollector = timeouts.PerCollector <= TimeSpan.Zero
+            ? ScanTimeouts.Default.PerCollector
+            : timeouts.PerCollector;
+        var overall = timeouts.Overall <= TimeSpan.Zero
+            ? ScanTimeouts.Default.Overall
+            : timeouts.Overall;
+        return new ScanTimeouts(perCollector, overall);
+    }
+
+    private static async Task<ComponentSnapshot> CollectWithTimeoutAsync(
+        ICollector collector,
+        CancellationToken overallToken,
+        TimeSpan perCollectorTimeout,
+        Action<string>? log)
+    {
+        var collectTask = collector.CollectAsync(overallToken);
+        var timeoutTask = Task.Delay(perCollectorTimeout, overallToken);
+        var completed = await Task.WhenAny(collectTask, timeoutTask);
+        if (completed == collectTask)
+        {
+            return await collectTask;
+        }
+
+        if (overallToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(overallToken);
+        }
+
+        // Per-collector timeout: the collector keeps running in the background.
+        // Observe any later fault so it can never surface as unobserved.
+        _ = collectTask.ContinueWith(
+            task => _ = task.Exception,
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted,
+            TaskScheduler.Default);
+        Log(log, $"Collector {collector.Id} timed out after {perCollectorTimeout.TotalSeconds:0.#} s");
+        return ComponentSnapshot.NotAvailable(
+            collector.Id,
+            collector.Name,
+            collector.Category,
+            collector.Id,
+            $"Collector timed out after {perCollectorTimeout.TotalSeconds:0.#} seconds. TrueSpec does not invent a value when the hardware does not report one.");
+    }
+
+    private static void Log(Action<string>? log, string message)
+    {
+        try
+        {
+            log?.Invoke(message);
+        }
+        catch
+        {
+            // Logging must never break a scan.
+        }
     }
 }

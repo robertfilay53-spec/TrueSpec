@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Styling;
@@ -34,9 +35,12 @@ public partial class MainViewModel : ViewModelBase
     private readonly ISensorMonitor _sensorMonitor;
     private readonly IBuyerCheckEvaluator _buyerCheckEvaluator;
     private readonly AppSettingsStore _settingsStore;
-    private readonly ISnapshotStore? _snapshotStore;
+    private ISnapshotStore? _snapshotStore;
     private readonly Dictionary<string, ViewModelBase> _pageCache =
         new(StringComparer.OrdinalIgnoreCase);
+
+    private bool _initialScanStarted;
+    private bool _scanRunning;
 
     private SystemSnapshot _snapshot;
     private BuyerCheckContext _buyerContext = new();
@@ -71,19 +75,99 @@ public partial class MainViewModel : ViewModelBase
         _settings = _settingsStore.Load();
         IsDarkTheme = _settings.IsDarkTheme;
 
-        _snapshotStore = CreateSnapshotStore();
-
-        _snapshot = scanService.ScanAsync().GetAwaiter().GetResult();
-        _ = SaveSnapshotAsync(_snapshot);
+        // Loading state only: the constructor must never run a scan or block.
+        // The window has to appear immediately. The real scan starts after
+        // the window is shown (MainWindow calls BeginInitialScan on Opened)
+        // and rebuilds the UI when it completes.
+        _snapshot = CreateLoadingSnapshot();
 
         NavItems = new ObservableCollection<NavItemViewModel>(NavItemViewModel.CreateDefault());
         Overview = CreateOverview();
 
-        LastScanText = $"Last scan {_snapshot.CapturedAt:HH:mm:ss}";
+        LastScanText = "Scanning hardware...";
         SelectedNavItem = NavItems.FirstOrDefault();
         CurrentPage = Overview;
-        StatusMessage = "Real scan complete. Live sensors use LibreHardwareMonitor when available.";
+        StatusMessage = "Scanning hardware...";
     }
+
+    /// <summary>
+    /// Starts the first hardware scan. Called by MainWindow once the window is
+    /// shown. Safe to call more than once; only the first call starts a scan.
+    /// Never throws: every failure is reported through the status message.
+    /// </summary>
+    public void BeginInitialScan()
+    {
+        if (_initialScanStarted)
+        {
+            return;
+        }
+
+        _initialScanStarted = true;
+        _ = InitializeAsync();
+    }
+
+    private async Task InitializeAsync()
+    {
+        StartupLog.Append("MainViewModel: initial scan starting");
+        _scanRunning = true;
+        try
+        {
+            _snapshotStore = await CreateSnapshotStoreAsync();
+            var snapshot = await _scanService.ScanAsync(
+                _buyerContext,
+                CancellationToken.None,
+                ScanTimeouts.Default,
+                StartupLog.Append);
+            ApplySnapshot(snapshot, "Real scan complete. Live sensors use LibreHardwareMonitor when available.");
+            _ = SaveSnapshotAsync(snapshot);
+            StartupLog.Append("MainViewModel: initial scan complete");
+        }
+        catch (Exception exception)
+        {
+            StartupLog.Append($"MainViewModel: initial scan failed: {exception.Message}");
+            StatusMessage = $"Scan failed: {exception.Message}";
+        }
+        finally
+        {
+            _scanRunning = false;
+        }
+    }
+
+    /// <summary>
+    /// Applies a finished scan to the shell: rebuilds the overview and clears
+    /// cached pages so every page reads the new snapshot. Shared by the
+    /// initial load and by Refresh.
+    /// </summary>
+    private void ApplySnapshot(SystemSnapshot snapshot, string statusMessage)
+    {
+        _snapshot = snapshot;
+        _buyerContext = new BuyerCheckContext();
+        _pageCache.Clear();
+
+        var previous = Overview;
+        Overview = CreateOverview();
+        previous.Dispose();
+
+        LastScanText = $"Last scan {snapshot.CapturedAt:HH:mm:ss}";
+        OnPropertyChanged(nameof(LastScanText));
+        SelectedNavItem = NavItems.FirstOrDefault();
+        CurrentPage = Overview;
+        StatusMessage = statusMessage;
+    }
+
+    /// <summary>
+    /// An empty snapshot for the loading state: no components, no score, all
+    /// buyer checks not applicable. The overview renders it as "Not reported
+    /// by hardware" until the real scan replaces it.
+    /// </summary>
+    private SystemSnapshot CreateLoadingSnapshot() => new(
+        Guid.NewGuid(),
+        DateTimeOffset.Now,
+        Environment.MachineName,
+        "Not reported",
+        Array.Empty<ComponentSnapshot>(),
+        ScoreResult.Empty,
+        _buyerCheckEvaluator.Evaluate(Array.Empty<ComponentSnapshot>(), null));
 
     public ObservableCollection<NavItemViewModel> NavItems { get; }
 
@@ -192,28 +276,31 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private async Task RefreshAsync()
     {
+        if (_scanRunning)
+        {
+            StatusMessage = "A scan is already running.";
+            return;
+        }
+
+        _scanRunning = true;
         StatusMessage = "Scanning hardware...";
         try
         {
-            var snapshot = await _scanService.ScanAsync(_buyerContext);
-            _snapshot = snapshot;
-            _buyerContext = new BuyerCheckContext();
-            _pageCache.Clear();
+            var snapshot = await _scanService.ScanAsync(
+                _buyerContext,
+                CancellationToken.None,
+                ScanTimeouts.Default,
+                StartupLog.Append);
+            ApplySnapshot(snapshot, "Hardware scan refreshed from real collectors.");
             _ = SaveSnapshotAsync(snapshot);
-
-            var previous = Overview;
-            Overview = CreateOverview();
-            previous.Dispose();
-
-            LastScanText = $"Last scan {snapshot.CapturedAt:HH:mm:ss}";
-            OnPropertyChanged(nameof(LastScanText));
-            SelectedNavItem = NavItems.FirstOrDefault();
-            CurrentPage = Overview;
-            StatusMessage = "Hardware scan refreshed from real collectors.";
         }
         catch (Exception exception)
         {
             StatusMessage = $"Refresh failed: {exception.Message}";
+        }
+        finally
+        {
+            _scanRunning = false;
         }
     }
 
@@ -281,13 +368,13 @@ public partial class MainViewModel : ViewModelBase
         return PathSafety.DefaultExportFolder();
     }
 
-    private static ISnapshotStore? CreateSnapshotStore()
+    private static async Task<ISnapshotStore?> CreateSnapshotStoreAsync()
     {
         try
         {
             var databasePath = Path.Combine(PathSafety.DefaultAppDataFolder(), "history.db");
             var store = new SqliteSnapshotStore(databasePath);
-            store.InitializeAsync().GetAwaiter().GetResult();
+            await store.InitializeAsync();
             return store;
         }
         catch

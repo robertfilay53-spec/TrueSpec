@@ -78,6 +78,43 @@ public class CollectorAndScanTests
             Assert.False(string.IsNullOrWhiteSpace(spec.Source)));
     }
 
+    [Fact]
+    public async Task HungCollector_DoesNotBlockScanPastOverallTimeout()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var service = MachineScanService.Create(new ICollector[]
+        {
+            new HangingCollector(),
+            new FixedCollector(TestSnapshots.System(now)),
+        });
+        var timeouts = new ScanTimeouts(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(500));
+
+        var started = DateTimeOffset.UtcNow;
+        var snapshot = await service.ScanAsync(null, CancellationToken.None, timeouts, null);
+        var elapsed = DateTimeOffset.UtcNow - started;
+
+        Assert.True(elapsed < TimeSpan.FromSeconds(10), $"Scan took {elapsed}, expected it to finish near the overall timeout");
+        Assert.Equal(2, snapshot.Components.Count);
+        var hung = snapshot.Find("hanging")!;
+        Assert.Equal("Not available", hung.Headline);
+        Assert.Null(hung.HealthPercent);
+        Assert.NotNull(snapshot.Find("system"));
+    }
+
+    [Fact]
+    public async Task SlowCollector_TimesOutAndYieldsNotAvailable()
+    {
+        var service = MachineScanService.Create(new ICollector[] { new SlowCollector() });
+        var timeouts = new ScanTimeouts(TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(30));
+
+        var snapshot = await service.ScanAsync(null, CancellationToken.None, timeouts, null);
+
+        var slow = snapshot.Find("slow")!;
+        Assert.Equal("Not available", slow.Headline);
+        Assert.Null(slow.HealthPercent);
+        Assert.Contains(slow.Specs, spec => spec.Label == "Status");
+    }
+
     private sealed class FixedCollector : ICollector
     {
         private readonly ComponentSnapshot _component;
@@ -103,6 +140,51 @@ public class CollectorAndScanTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(_component);
+        }
+    }
+
+    /// <summary>
+    /// Never completes and ignores cancellation, like a hung WMI query.
+    /// </summary>
+    private sealed class HangingCollector : ICollector
+    {
+        public string Id => "hanging";
+
+        public string Name => "Hanging";
+
+        public string Category => "Test";
+
+        public string IconKey => "system";
+
+        public TimeSpan RefreshInterval => TimeSpan.FromSeconds(2);
+
+        public bool RequiresAdministrator => false;
+
+        public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default) =>
+            new TaskCompletionSource<ComponentSnapshot>().Task;
+    }
+
+    /// <summary>
+    /// Takes 5 seconds and ignores cancellation, slower than the test budget.
+    /// </summary>
+    private sealed class SlowCollector : ICollector
+    {
+        public string Id => "slow";
+
+        public string Name => "Slow";
+
+        public string Category => "Test";
+
+        public string IconKey => "system";
+
+        public TimeSpan RefreshInterval => TimeSpan.FromSeconds(2);
+
+        public bool RequiresAdministrator => false;
+
+        public async Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            return TestSnapshots.System(DateTimeOffset.UtcNow);
         }
     }
 }
