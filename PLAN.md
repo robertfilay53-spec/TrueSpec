@@ -137,6 +137,15 @@ Buyer mode is the core idea: it checks the machine against "sold as new" expecta
 - **P10 — QA:** Ziggy reviews every phase. Real-hardware testing needs a Windows machine (the VM cannot test real sensors) — Jawad's laptop is the test machine, or a test laptop if he has one.
 - **P11+ — v2:** portable version, history/alerts, advertised-vs-actual, fake-part detection, benchmarks, stress test, warranty lookup, price estimate, phone companion.
 
+## P4 — A-to-Z hardening and feature completion (Nov 10, 2026, DONE)
+
+The P1–P3 work landed compressed (collectors, scoring, buyer checks, reports, benchmarks all shipped together), so P4 was re-scoped from "Sensors" to a full end-to-end hardening and completion pass:
+
+- **Security:** PathSafety validation on every export path (absolute, normalized, no traversal); parameterized SQLite only (injection payloads treated as data, tested); external tools allowlisted to netsh read-only queries, no shell, timeouts enforced; no network calls, no telemetry (verified by grep); SECURITY.md with the threat model; `dotnet list package --vulnerable` clean (no vulnerable packages, including transitive); no secrets in the repo.
+- **Features completed:** GPU collector (VRAM, driver, temperature) and Network collector (speed, driver, MAC) verified real; Motherboard/BIOS collector verified complete; live monitoring confirmed off the UI thread; CSV export added (RFC 4180, formula-injection neutralised); snapshot comparison added (score delta, per-component health deltas, changed specs, added/removed); settings page now works (theme applies immediately, refresh interval 1-30s retunes the live timer, export folder picked with the native folder dialog and persisted); buyer check gained a printable HTML checklist (@media print); score ring gained a per-component breakdown (health, weight, points contributed).
+- **Quality:** Release build 0 warnings, 0 errors; tests added for every new feature and security fix (SecurityTests, ExportTests, ComparisonTests, SettingsTests); README gained build/test/install sections and a dependency-audit step; Inno Setup script `installer/TrueSpec.iss` authored (build on Windows only; needs a branded .ico before the first release build).
+- **Known limits (unchanged):** tests compile but cannot RUN on the Linux VM (vstest testhost never connects — environment limit, runs on Windows CI); the installer script is not compiled on Linux; no branded app icon yet.
+
 ## Monetization (decided: open source, core free forever)
 
 - Core free forever under MIT. Later options after traction: GitHub Sponsors, donations, optional hosted report-sharing. No income promised, no paywalled features in the repo.

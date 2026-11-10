@@ -6,7 +6,7 @@ public enum ReportFormat
 {
     Json,
     Html,
-    Pdf,
+    Csv,
 }
 
 /// <summary>

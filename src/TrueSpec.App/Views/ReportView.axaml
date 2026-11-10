@@ -12,7 +12,7 @@
             <StackPanel Spacing="6">
                 <TextBlock Text="REPORT" Classes="eyebrow" />
                 <TextBlock Text="Export the truth" Classes="h1" />
-                <TextBlock Text="One data model with JSON and HTML outputs. Everything is generated on this machine."
+                <TextBlock Text="One data model with JSON, HTML and CSV outputs. Everything is generated on this machine."
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
@@ -54,9 +54,16 @@
                                 Command="{Binding ExportHtmlCommand}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center" />
+                        <Button Classes="secondary"
+                                Content="Export CSV"
+                                Command="{Binding ExportCsvCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center" />
                     </StackPanel>
                 </Grid>
             </Border>
+
+            <TextBlock Text="{Binding ExportFolderText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
 
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
                 <Border Classes="card" Padding="16">
@@ -75,9 +82,9 @@
                 </Border>
                 <Border Grid.Column="2" Classes="card" Padding="16">
                     <StackPanel Spacing="5">
-                        <TextBlock Text="PDF" Classes="h3" />
-                        <TextBlock Text="A shareable document for a seller or a shop." Classes="muted" TextWrapping="Wrap" />
-                        <TextBlock Text="Not implemented in this build" Foreground="{DynamicResource NotMeasurableBrush}" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Text="CSV" Classes="h3" />
+                        <TextBlock Text="A spreadsheet of every spec, safe to open in Excel. Values that look like formulas are neutralised." Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="Available" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
             </Grid>

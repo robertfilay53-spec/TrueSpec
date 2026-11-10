@@ -28,10 +28,14 @@
 
             <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Text="Checklist" Classes="h2" VerticalAlignment="Center" />
-                <Button Grid.Column="1"
-                        Classes="secondary"
-                        Content="Export Report"
-                        Command="{Binding ExportCommand}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                    <Button Classes="primary"
+                            Content="Print checklist"
+                            Command="{Binding ExportChecklistCommand}" />
+                    <Button Classes="secondary"
+                            Content="Export Report"
+                            Command="{Binding ExportCommand}" />
+                </StackPanel>
             </Grid>
 
             <Border Classes="card" Padding="16">

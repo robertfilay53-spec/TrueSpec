@@ -1,0 +1,129 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TrueSpec.App.ViewModels"
+             xmlns:storage="using:TrueSpec.Core.Storage"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="TrueSpec.App.Views.ComparisonView"
+             x:DataType="vm:ComparisonViewModel">
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="18">
+            <StackPanel Spacing="6">
+                <TextBlock Text="COMPARE" Classes="eyebrow" />
+                <TextBlock Text="Two snapshots, side by side" Classes="h1" />
+                <TextBlock Text="Pick any two saved scans. TrueSpec shows the score change, every component that moved, and every specification that changed. Nothing is invented: a component that was not measurable in either scan says so."
+                           Classes="muted"
+                           TextWrapping="Wrap"
+                           MaxWidth="720" />
+            </StackPanel>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="14">
+                    <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="14">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Before" Classes="h3" />
+                            <ComboBox ItemsSource="{Binding History}"
+                                      SelectedItem="{Binding SelectedBefore}"
+                                      HorizontalAlignment="Stretch"
+                                      PlaceholderText="Pick an earlier snapshot">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="storage:SnapshotSummary">
+                                        <TextBlock Text="{Binding CapturedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm} - Score {1}'}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="6">
+                            <TextBlock Text="After" Classes="h3" />
+                            <ComboBox ItemsSource="{Binding History}"
+                                      SelectedItem="{Binding SelectedAfter}"
+                                      HorizontalAlignment="Stretch"
+                                      PlaceholderText="Pick a later snapshot">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="storage:SnapshotSummary">
+                                        <TextBlock Text="{Binding CapturedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm} - Score {1}'}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Classes="primary"
+                                Content="Compare"
+                                Command="{Binding CompareCommand}"
+                                VerticalAlignment="Bottom" />
+                    </Grid>
+                    <TextBlock Text="{Binding StatusMessage}" Classes="muted" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18" IsVisible="{Binding HasComparison}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Result" Classes="h3" />
+                    <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" FontWeight="SemiBold" />
+
+                    <ItemsControl ItemsSource="{Binding Rows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ComparisonRowViewModel">
+                                <Border BorderBrush="{DynamicResource AppBorder}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="0,10">
+                                    <StackPanel Spacing="4">
+                                        <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="12">
+                                            <TextBlock Text="{Binding ComponentName}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Text="{Binding HealthBefore}" Classes="muted" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="&#8594;" Classes="muted" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="3"
+                                                       Text="{Binding HealthAfter}"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding DeltaStatus, Converter={StaticResource StatusBrush}}"
+                                                       VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                            <TextBlock Text="{Binding DeltaText}"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding DeltaStatus, Converter={StaticResource StatusBrush}}" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding ChangedSpecs}"
+                                                       Classes="muted"
+                                                       FontSize="11"
+                                                       TextWrapping="Wrap" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <StackPanel Spacing="4" IsVisible="{Binding AddedComponents.Count}">
+                        <TextBlock Text="Added components" FontWeight="SemiBold" FontSize="11" Classes="muted" />
+                        <ItemsControl ItemsSource="{Binding AddedComponents}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontSize="12" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4" IsVisible="{Binding RemovedComponents.Count}">
+                        <TextBlock Text="Removed components" FontWeight="SemiBold" FontSize="11" Classes="muted" />
+                        <ItemsControl ItemsSource="{Binding RemovedComponents}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontSize="12" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="Snapshots are saved locally after every scan. History never leaves this machine."
+                       Classes="muted"
+                       FontSize="11" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

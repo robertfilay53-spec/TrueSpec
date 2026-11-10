@@ -25,7 +25,8 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         Action<string> openComponent,
         ICommand newLaptopCheckCommand,
         ICommand exportCommand,
-        ISensorMonitor sensorMonitor)
+        ISensorMonitor sensorMonitor,
+        TimeSpan? refreshInterval = null)
     {
         _sensorMonitor = sensorMonitor;
         MachineName = snapshot.MachineName;
@@ -35,6 +36,14 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         VerdictText = snapshot.Score.Verdict.ToDisplayText();
         VerdictStatus = snapshot.Score.Verdict.ToHealthStatus();
         ScoreExplanation = snapshot.Score.Explanation;
+        ScoreBreakdown = snapshot.Score.Components
+            .Select(c => new ScoreBreakdownRow(
+                c.Component,
+                $"{c.HealthPercent:0.#}%",
+                $"Weight {c.Weight:0.#}",
+                $"+{c.Contribution:0.#} pts",
+                HealthStatusExtensions.FromHealth(c.HealthPercent)))
+            .ToList();
         NewLaptopCheckCommand = newLaptopCheckCommand;
         ExportCommand = exportCommand;
 
@@ -51,10 +60,31 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         };
         StatusMessage = sensorMonitor.StatusText;
 
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _timer = new DispatcherTimer { Interval = refreshInterval ?? TimeSpan.FromSeconds(2) };
+        RefreshText = BuildRefreshText(_timer.Interval);
         _timer.Tick += async (_, _) => await RefreshSensorsAsync();
         _timer.Start();
         _ = RefreshSensorsAsync();
+    }
+
+    /// <summary>
+    /// Called by the shell when the user changes the refresh interval in
+    /// settings. The timer is updated live; the sensor read itself already
+    /// runs off the UI thread (Task.Run inside the monitor).
+    /// </summary>
+    public void SetRefreshInterval(TimeSpan interval)
+    {
+        var clamped = TimeSpan.FromSeconds(Math.Clamp(interval.TotalSeconds, 1, 30));
+        _timer.Interval = clamped;
+        RefreshText = BuildRefreshText(clamped);
+        OnPropertyChanged(nameof(RefreshText));
+    }
+
+    private static string BuildRefreshText(TimeSpan interval)
+    {
+        var seconds = interval.TotalSeconds;
+        var label = seconds == 1 ? "1 second" : $"{seconds:0} seconds";
+        return $"Live sensors refresh every {label}. Values appear only when LibreHardwareMonitor reports them.";
     }
 
     public string MachineName { get; }
@@ -71,6 +101,9 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
 
     public string ScoreExplanation { get; }
 
+    /// <summary>Per-component score breakdown: health, weight and points contributed.</summary>
+    public IReadOnlyList<ScoreBreakdownRow> ScoreBreakdown { get; }
+
     public IReadOnlyList<KeyStatViewModel> KeyStats { get; }
 
     public ObservableCollection<ComponentCardViewModel> Cards { get; }
@@ -83,6 +116,9 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     public partial string StatusMessage { get; set; }
+
+    [ObservableProperty]
+    public partial string RefreshText { get; set; } = string.Empty;
 
     public void Dispose()
     {
@@ -163,6 +199,13 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
 }
 
 public sealed record KeyStatViewModel(string Label, string Value, string Source, HealthStatus Status);
+
+public sealed record ScoreBreakdownRow(
+    string Component,
+    string HealthText,
+    string WeightText,
+    string ContributionText,
+    HealthStatus Status);
 
 public sealed class ComponentCardViewModel : ViewModelBase
 {

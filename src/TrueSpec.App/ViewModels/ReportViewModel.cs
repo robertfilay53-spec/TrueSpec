@@ -11,10 +11,14 @@ public sealed class ReportViewModel : ViewModelBase
     public ReportViewModel(
         SystemSnapshot snapshot,
         ICommand exportJsonCommand,
-        ICommand exportHtmlCommand)
+        ICommand exportHtmlCommand,
+        ICommand exportCsvCommand,
+        string exportFolder)
     {
         ExportJsonCommand = exportJsonCommand;
         ExportHtmlCommand = exportHtmlCommand;
+        ExportCsvCommand = exportCsvCommand;
+        ExportFolderText = $"Exports are written to {exportFolder}. No upload, no cloud.";
         MachineName = snapshot.MachineName;
         OperatingSystem = snapshot.OperatingSystem;
         GeneratedText = $"Snapshot captured {snapshot.CapturedAt:yyyy-MM-dd HH:mm:ss}";
@@ -52,6 +56,10 @@ public sealed class ReportViewModel : ViewModelBase
     public ICommand ExportJsonCommand { get; }
 
     public ICommand ExportHtmlCommand { get; }
+
+    public ICommand ExportCsvCommand { get; }
+
+    public string ExportFolderText { get; }
 }
 
 public sealed record ReportComponentRow(string Name, string Headline, string HealthText, HealthStatus Status);

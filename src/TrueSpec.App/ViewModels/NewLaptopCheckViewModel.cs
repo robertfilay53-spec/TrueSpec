@@ -21,6 +21,7 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
     public NewLaptopCheckViewModel(
         SystemSnapshot snapshot,
         ICommand exportCommand,
+        ICommand? exportChecklistCommand = null,
         IBuyerCheckEvaluator? evaluator = null,
         Action<BuyerCheckResult, string?>? onChecksChanged = null)
     {
@@ -28,6 +29,7 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
         _evaluator = evaluator ?? new BuyerCheckEvaluator();
         _onChecksChanged = onChecksChanged;
         ExportCommand = exportCommand;
+        ExportChecklistCommand = exportChecklistCommand;
         MachineName = snapshot.MachineName;
         _result = snapshot.BuyerChecks;
         Checks = new ObservableCollection<BuyerCheckRowViewModel>(
@@ -46,6 +48,9 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
     public ObservableCollection<BuyerCheckRowViewModel> Checks { get; private set; }
 
     public ICommand ExportCommand { get; }
+
+    /// <summary>Exports the printable buyer checklist. Null when the shell did not wire it.</summary>
+    public ICommand? ExportChecklistCommand { get; }
 
     [ObservableProperty]
     public partial string AdvertisedRam { get; set; } = string.Empty;

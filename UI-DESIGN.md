@@ -64,9 +64,10 @@
 
 ## Screens list (v1 build order)
 
-1. Overview (hero + cards + live strip)
-2. New Laptop Check (buyer mode)
+1. Overview (hero + score breakdown + cards + live strip)
+2. New Laptop Check (buyer mode, printable checklist)
 3. System, CPU, RAM, Storage, Battery, GPU, Display, Network, Motherboard, Security
 4. Tests (RAM test, disk benchmark, battery estimate, WiFi speed test)
-5. Report (export PDF/HTML/JSON, preview)
-6. Settings (theme, refresh rate, startup, update channel, language locked to English in v1)
+5. Report (export JSON/HTML/CSV, preview, export folder shown)
+6. Compare (two snapshots side by side: score change, health deltas, changed specs)
+7. Settings (theme, refresh rate 1-30s, export folder, language locked to English in v1). No startup registration and no update channel: an offline app does not promise network features.

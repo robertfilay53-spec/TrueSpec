@@ -20,42 +20,72 @@ Implemented in this build:
 | Live sensors | LibreHardwareMonitor temperatures, fans, voltages, power, load and clocks |
 | Scoring | Measured health only; unmeasurable components are excluded, never faked |
 | Buyer checks | SSD wear, battery cycles, power-on hours, advertised RAM, BIOS date, Windows install date, critical errors, signed drivers |
-| Reports | JSON and self-contained HTML, with source labels on every reading |
+| Reports | JSON, self-contained HTML and CSV, with source labels on every reading |
+| Compare | Compare any two saved snapshots side by side: score change, per-component health deltas, changed specs |
+| History | Every scan is saved to a local SQLite history, so comparisons work across visits |
+| Settings | Theme, live sensor refresh rate (1-30s), export folder, all saved and applied immediately |
+| Security | Offline by design, no telemetry, parameterized SQLite, allowlisted external tools only |
 | Tests | Real CPU single-thread and local sequential disk read benchmarks |
 
 Windows runtime validation requires a Windows machine with the relevant hardware. The project builds on Linux for UI development, but non-Windows builds intentionally show unavailable collectors.
 
 ## What it will show
 
-- **Overview:** overall health score, plain-English verdict, key stats, component cards, live sparklines.
-- **New Laptop Check:** buyer mode with a PASS, WARNING or FAIL banner and a checklist that tells you what to ask the seller.
+- **Overview:** overall health score with a per-component breakdown (health, weight, points contributed), plain-English verdict, key stats, component cards, live sparklines.
+- **New Laptop Check:** buyer mode with a PASS, WARNING or FAIL banner and a checklist that tells you what to ask the seller. The checklist exports as a printable HTML page (File > Print, or Ctrl+P).
 - **Detail pages:** System, CPU, RAM, Storage, Battery, GPU, Display, Network, Motherboard, Security.
-- **Report:** one data model with working JSON and HTML exports. PDF is not implemented.
-- **Settings:** dark and light theme. Live sensors refresh every 2 seconds. English only in v1.
+- **Report:** one data model with working JSON, HTML and CSV exports. CSV values are safe to open in Excel: values that look like formulas are neutralised.
+- **Compare:** pick any two saved scans and see the score change, every component that moved, and every specification that changed.
+- **Settings:** dark and light theme, live sensor refresh rate (1-30 seconds), report export folder. Every change saves immediately. English only in v1.
 
 ## Privacy
 
 - 100% offline. No telemetry, no account, and no network calls in the app.
 - Scans and reports stay on your machine.
-- Update checks, when added, only read the public GitHub releases page and never install without consent.
+- There is no update check and no startup registration. See [SECURITY.md](SECURITY.md) for the threat model.
 
-## Build
+## Build, test and install
 
-Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/). Avalonia builds on Linux, Windows and macOS, which keeps CI and local development fast.
+Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/). Avalonia builds on Linux, Windows and macOS, which keeps CI and local development fast. The Windows build is the shipping target; running the app on Linux is useful for UI work only (collectors report Not Available there).
 
 ```bash
 git clone https://github.com/robertfilay53-spec/TrueSpec.git
 cd TrueSpec
 
 dotnet restore TrueSpec.sln
-dotnet build TrueSpec.sln
-dotnet test TrueSpec.sln
+dotnet build TrueSpec.sln -c Release
+dotnet test TrueSpec.sln -c Release
 
 # Run the desktop app
-dotnet run --project src/TrueSpec.App
+dotnet run --project src/TrueSpec.App -c Release
 ```
 
-The Windows build is the shipping target. Running the app on Linux is useful for UI work.
+### Install on Windows (from a release build)
+
+1. Build the app in Release mode on Windows:
+   ```powershell
+   dotnet publish src/TrueSpec.App/TrueSpec.App.csproj -c Release -r win-x64 --self-contained -o publish
+   ```
+2. Build the installer with [Inno Setup 6](https://jrsoftware.org/isdl.php):
+   ```
+   iscc installer\TrueSpec.iss
+   ```
+   This produces `installer\Output\TrueSpecSetup-<version>.exe`. The script only installs the published files, creates a Start Menu shortcut and an optional desktop shortcut, and never writes to the registry beyond the standard uninstall entry. It does not require administrator rights; run it elevated only if you want every sensor (some SMART and driver data needs elevation).
+3. Run the installer. Reports and snapshot history are stored under `Documents\TrueSpec` (or the folder you pick in Settings), and settings under `%APPDATA%\TrueSpec`.
+
+### Tests
+
+Tests are xUnit in `tests/TrueSpec.Tests`. They cover scoring, buyer checks, collectors, report exporters (JSON/HTML/CSV), the snapshot store, snapshot comparison, settings sanitization and the security validators. They run on Windows CI. On Linux, `dotnet test` compiles but the test host cannot connect in this environment (a VM limit, not a code failure); the build step above is the local check.
+
+### Dependency audit
+
+Before each release, check for known vulnerabilities in every package:
+
+```bash
+dotnet list package --vulnerable
+```
+
+Fix or pin anything it reports. The app has no network calls and no telemetry, so the dependency surface is the main thing to watch. See [SECURITY.md](SECURITY.md).
 
 ## Project layout
 
@@ -63,10 +93,13 @@ The Windows build is the shipping target. Running the app on Linux is useful for
 TrueSpec.sln
 src/
   TrueSpec.App/                  Avalonia UI, MVVM shell, views, theme, controls
-  TrueSpec.Core/                 models, scoring, health rules, buyer checks, reports, benchmarks
+  TrueSpec.Core/                 models, scoring, health rules, buyer checks, reports, benchmarks,
+                                 settings, snapshot comparison, security validators
   TrueSpec.Collectors.Windows/   CIM/WMI, SMART, event log and LibreHardwareMonitor collectors
 tests/
   TrueSpec.Tests/  xUnit tests for the core
+installer/
+  TrueSpec.iss     Inno Setup installer script (build on Windows only)
 .github/
   workflows/       CI: build and test on Ubuntu and Windows
 ```

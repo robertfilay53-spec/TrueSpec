@@ -63,6 +63,11 @@ public sealed class HtmlReportExporter : IReportExporter
               th, td { border-color: #2a2e33; }
               .tag.grey { background: #2a2e33; }
             }
+            @media print {
+              body { background: #fff; }
+              .card { border-color: #ccc; }
+              main { padding: 0; max-width: none; }
+            }
             """);
         builder.AppendLine("</style>");
         builder.AppendLine("</head>");

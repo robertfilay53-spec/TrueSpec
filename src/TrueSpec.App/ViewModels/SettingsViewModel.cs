@@ -1,18 +1,32 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TrueSpec.Core.Security;
+using TrueSpec.Core.Settings;
 
 namespace TrueSpec.App.ViewModels;
 
-/// <summary>Settings page. Only the theme toggle and status text are wired in this build.</summary>
+/// <summary>
+/// Settings page. Every control works and persists: theme applies
+/// immediately, the refresh interval retunes the live sensor timer, and the
+/// export folder is where reports actually land. There is no update check
+/// and no startup registration: an offline app does not promise network
+/// features, and nothing is installed without consent.
+/// </summary>
 public sealed partial class SettingsViewModel : ViewModelBase
 {
     private readonly MainViewModel _main;
+    private AppSettings _settings;
 
     public SettingsViewModel(MainViewModel main)
     {
         _main = main;
+        _settings = main.Settings;
+        RefreshIntervalSeconds = _settings.RefreshIntervalSeconds;
+        ExportFolder = _settings.ExportFolder;
         _main.PropertyChanged += OnMainPropertyChanged;
     }
 
@@ -29,41 +43,91 @@ public sealed partial class SettingsViewModel : ViewModelBase
             _main.IsDarkTheme = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(ThemeText));
+            Save();
         }
     }
 
     public string ThemeText => IsDarkTheme ? "Dark (default)" : "Light";
 
-    public IReadOnlyList<string> RefreshRateOptions { get; } = new[]
+    public IReadOnlyList<int> RefreshRateOptions { get; } = new[]
     {
-        "1 second",
-        "2 seconds",
-        "5 seconds",
-        "10 seconds",
-    };
-
-    public IReadOnlyList<string> UpdateChannelOptions { get; } = new[]
-    {
-        "Stable",
-        "Preview",
+        1, 2, 5, 10, 30,
     };
 
     [ObservableProperty]
-    public partial string RefreshRate { get; set; } = "2 seconds";
+    public partial int RefreshIntervalSeconds { get; set; } = AppSettings.DefaultRefreshSeconds;
 
-    [ObservableProperty]
-    public partial string UpdateChannel { get; set; } = "Stable";
+    partial void OnRefreshIntervalSecondsChanged(int value)
+    {
+        Save();
+    }
 
+    /// <summary>Empty means the default Documents/TrueSpec folder.</summary>
     [ObservableProperty]
-    public partial bool StartWithWindows { get; set; }
+    public partial string ExportFolder { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial bool CheckForUpdatesOnStartup { get; set; }
+    public string ExportFolderText => string.IsNullOrWhiteSpace(ExportFolder)
+        ? PathSafety.DefaultExportFolder() + " (default)"
+        : ExportFolder;
 
     public string LanguageText => "English (locked in v1)";
 
+    /// <summary>
+    /// Set by the view: opens the native folder picker and returns the
+    /// chosen path, or null when the user cancels. The view model never
+    /// touches the windowing system itself.
+    /// </summary>
+    public Func<Task<string?>>? FolderPicker { get; set; }
+
     [RelayCommand]
     private void ToggleTheme() => IsDarkTheme = !IsDarkTheme;
+
+    [RelayCommand]
+    private async Task PickExportFolderAsync()
+    {
+        if (FolderPicker is null)
+        {
+            return;
+        }
+
+        var picked = await FolderPicker();
+        if (picked is null)
+        {
+            return;
+        }
+
+        var validated = PathSafety.ValidateExportFolder(picked);
+        if (validated is null)
+        {
+            return;
+        }
+
+        ExportFolder = validated;
+        OnPropertyChanged(nameof(ExportFolderText));
+        Save();
+    }
+
+    [RelayCommand]
+    private void ResetExportFolder()
+    {
+        ExportFolder = string.Empty;
+        OnPropertyChanged(nameof(ExportFolderText));
+        Save();
+    }
+
+    private void Save()
+    {
+        _settings = new AppSettings
+        {
+            IsDarkTheme = IsDarkTheme,
+            RefreshIntervalSeconds = RefreshIntervalSeconds,
+            ExportFolder = ExportFolder,
+        }.Sanitized();
+
+        RefreshIntervalSeconds = _settings.RefreshIntervalSeconds;
+        ExportFolder = _settings.ExportFolder;
+        _main.ApplySettings(_settings);
+    }
 
     private void OnMainPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

@@ -19,6 +19,12 @@ public interface ISnapshotStore
 
     Task SaveAsync(SystemSnapshot snapshot, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Loads one full snapshot by id for the comparison view. Returns null
+    /// when the id is not in the store.
+    /// </summary>
+    Task<SystemSnapshot?> GetSnapshotAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<SnapshotSummary>> GetHistoryAsync(
         int limit = 50,
         CancellationToken cancellationToken = default);

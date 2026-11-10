@@ -90,14 +90,47 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task<SystemSnapshot?> GetSnapshotAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT payload_json
+            FROM snapshots
+            WHERE id = $id;
+            """;
+        command.Parameters.AddWithValue("$id", id.ToString("D"));
+
+        var payload = (string?)await command.ExecuteScalarAsync(cancellationToken);
+        if (payload is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<SystemSnapshot>(payload, JsonOptions);
+        }
+        catch (JsonException)
+        {
+            // A snapshot written by an older or corrupt build is skipped
+            // instead of crashing the comparison view.
+            return null;
+        }
+    }
+
     public async Task<IReadOnlyList<SnapshotSummary>> GetHistoryAsync(
         int limit = 50,
         CancellationToken cancellationToken = default)
     {
-        if (limit <= 0)
-        {
-            return Array.Empty<SnapshotSummary>();
-        }
+        // Clamp the limit: a caller must never be able to ask the store to
+        // read an unbounded number of rows.
+        limit = Math.Clamp(limit, 1, 500);
 
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);

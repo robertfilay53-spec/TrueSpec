@@ -20,6 +20,7 @@ public sealed record NavItemViewModel(string Key, string Label, string IconData)
         Create("security", "Security"),
         Create("tests", "Tests"),
         Create("report", "Report"),
+        Create("compare", "Compare"),
         Create("settings", "Settings"),
     };
 

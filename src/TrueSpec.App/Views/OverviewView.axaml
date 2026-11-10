@@ -49,6 +49,28 @@
                                        MaxWidth="560" />
                         </StackPanel>
 
+                        <ItemsControl ItemsSource="{Binding ScoreBreakdown}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ScoreBreakdownRow">
+                                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="14">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <Ellipse Width="7" Height="7"
+                                                     Fill="{Binding Status, Converter={StaticResource StatusBrush}}"
+                                                     VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Component}" FontSize="12" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="{Binding HealthText}" FontSize="12" Classes="muted" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="2" Text="{Binding WeightText}" FontSize="12" Classes="muted" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="3" Text="{Binding ContributionText}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="Score = weighted average of measurable components. A component without a real health number does not count."
+                                   Classes="muted"
+                                   FontSize="11"
+                                   TextWrapping="Wrap" />
+
                         <ItemsControl ItemsSource="{Binding KeyStats}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -176,7 +198,7 @@
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel>
                             <TextBlock Text="Live sensors" Classes="h3" />
-                            <TextBlock Text="Live sensors refresh every 2 seconds. Values appear only when LibreHardwareMonitor reports them."
+                            <TextBlock Text="{Binding RefreshText}"
                                        Classes="muted"
                                        FontSize="11" />
                         </StackPanel>
