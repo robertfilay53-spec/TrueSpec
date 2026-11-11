@@ -122,7 +122,10 @@ public class ReverseEngineeringAuditTests
             var good = Snapshot("M");
             await store.SaveAsync(good);
 
-            await using var connection = new SqliteConnection($"Data Source={path}");
+            // Pooling=false, like the store itself: a pooled connection
+            // keeps the database file locked on Windows, so the cleanup
+            // File.Delete below would throw IOException.
+            await using var connection = new SqliteConnection($"Data Source={path};Pooling=false");
             await connection.OpenAsync();
             async Task Exec(string sql)
             {
