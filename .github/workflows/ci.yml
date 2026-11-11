@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # One step builds and tests: `dotnet test` restores and builds first.
+      # There is no bare `dotnet restore` or `dotnet build` here on purpose:
+      # the test project is multi-targeted (net10.0;net10.0-windows) because
+      # the app targets net10.0-windows on Windows and net10.0 elsewhere,
+      # and a bare restore would try the wrong framework on Windows and fail
+      # with NU1201. Each runner tests the framework that matches its OS.
+      - name: Test
+        run: dotnet test TrueSpec.sln --configuration Release --verbosity normal -f ${{ matrix.os == 'windows-latest' && 'net10.0-windows' || 'net10.0' }}
