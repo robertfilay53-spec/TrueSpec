@@ -1,6 +1,7 @@
 using System.Text;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Reports;
+using TrueSpec.Core.Security;
 
 namespace TrueSpec.Tests;
 
@@ -123,5 +124,47 @@ public class ExportTests
 
         Assert.DoesNotContain("<script>alert(1)</script>", html);
         Assert.Contains("&lt;script&gt;", html);
+    }
+
+    [Fact]
+    public async Task PdfExport_EndToEnd_WritesValidPdfWithSafeFileName()
+    {
+        // Regression test for the v1.0.1 defect: the Report page's PDF card
+        // said "Available" and the dispatcher mapped Pdf to
+        // PdfReportExporter, but PathSafety's allowed-extension list rejected
+        // "pdf", so Export PDF failed with "Unsupported report extension
+        // 'pdf'." and no file was produced. This test drives the exact path
+        // the app uses — factory resolve, safe file name, then the writer —
+        // and asserts a real PDF comes out.
+        var (extension, exporter) = ReportExporterFactory.Resolve(ReportFormat.Pdf);
+        Assert.Equal("pdf", extension);
+        Assert.IsType<PdfReportExporter>(exporter);
+
+        var fileName = PathSafety.SafeReportFileName("TrueSpec-report", extension, new DateTime(2026, 11, 10, 12, 30, 0));
+        Assert.EndsWith(".pdf", fileName, StringComparison.Ordinal);
+
+        using var stream = new MemoryStream();
+        await exporter.ExportAsync(ReportModel.FromSnapshot(TestSnapshots.Healthy()), stream);
+
+        var text = Encoding.ASCII.GetString(stream.ToArray());
+        Assert.StartsWith("%PDF-1.4", text, StringComparison.Ordinal);
+        Assert.Contains("%%EOF", text, StringComparison.Ordinal);
+        Assert.Contains("Test Laptop", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(ReportFormat.Json)]
+    [InlineData(ReportFormat.Html)]
+    [InlineData(ReportFormat.Csv)]
+    [InlineData(ReportFormat.Pdf)]
+    public void EveryReportFormat_ProducesASafeFileName(ReportFormat format)
+    {
+        // Guards the same defect for every format the UI offers: if a
+        // format is ever added to the dispatcher without its extension being
+        // allowed by PathSafety, this test fails instead of the app failing
+        // at export time.
+        var (extension, _) = ReportExporterFactory.Resolve(format);
+        var fileName = PathSafety.SafeReportFileName("TrueSpec-report", extension, new DateTime(2026, 11, 10, 12, 30, 0));
+        Assert.EndsWith("." + extension, fileName, StringComparison.Ordinal);
     }
 }

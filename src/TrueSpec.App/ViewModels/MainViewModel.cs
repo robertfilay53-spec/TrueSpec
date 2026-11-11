@@ -393,13 +393,7 @@ public partial class MainViewModel : ViewModelBase
             var folder = EffectiveExportFolder();
             Directory.CreateDirectory(folder);
 
-            var (extension, exporter) = format switch
-            {
-                ReportFormat.Html => ("html", (IReportExporter)new HtmlReportExporter()),
-                ReportFormat.Csv => ("csv", new CsvReportExporter()),
-                ReportFormat.Pdf => ("pdf", new PdfReportExporter()),
-                _ => ("json", new JsonReportExporter()),
-            };
+            var (extension, exporter) = ReportExporterFactory.Resolve(format);
 
             var path = Path.Combine(folder, PathSafety.SafeReportFileName("TrueSpec-report", extension, DateTime.Now));
             await using var stream = File.Create(path);

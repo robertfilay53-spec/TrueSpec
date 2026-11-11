@@ -38,12 +38,14 @@
     <ProjectReference Include="..\..\src\TrueSpec.Collectors.Windows\TrueSpec.Collectors.Windows.csproj" Condition="'$(TargetFramework)' == 'net10.0-windows'" />
   </ItemGroup>
 
-  <!-- ScoreAgreementTests drives the App's ViewModels, so it only compiles
-       on the Windows leg. Excluding the file (rather than #if-ing it) keeps
-       the test readable and the exclusion visible in the project file. -->
+  <!-- ScoreAgreementTests and NavigationTests drive the App's ViewModels,
+       so they only compile on the Windows leg. Excluding the files (rather
+       than #if-ing them) keeps the tests readable and the exclusion visible
+       in the project file. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <Compile Remove="ScoreAgreementTests.cs" />
     <Compile Remove="StartupCollectorTests.cs" />
+    <Compile Remove="NavigationTests.cs" />
   </ItemGroup>
 
 </Project>

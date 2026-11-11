@@ -20,10 +20,15 @@ public sealed record NavItemViewModel(string Key, string Label, string IconData)
         Create("security", "Security"),
         Create("drivers", "Drivers"),
         Create("startup", "Startup"),
+        // History sits here, inside the ~16 items the left rail shows at the
+        // default 1280x800 window, on purpose: it was second-to-last and the
+        // rail overflows past ~16 items, so History rendered below the fold
+        // and was effectively unreachable in v1.0.1 even though it was
+        // registered. Keep it above that fold line.
+        Create("history", "History"),
         Create("tests", "Tests"),
         Create("report", "Report"),
         Create("compare", "Compare"),
-        Create("history", "History"),
         Create("settings", "Settings"),
     };
 

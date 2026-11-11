@@ -141,7 +141,7 @@ public static class PathSafety
     /// Builds a safe file name for a report export. Strips directory
     /// separators and invalid characters, and never lets a caller inject a
     /// path through the file name. Only the report formats the app actually
-    /// produces (csv, json, html) are allowed as extensions: a report file
+    /// produces (csv, json, html, pdf) are allowed as extensions: a report file
     /// must never end in an executable extension.
     /// </summary>
     public static string SafeReportFileName(string prefix, string extension, DateTime timestamp)
@@ -178,7 +178,7 @@ public static class PathSafety
         return $"{cleanPrefix}-{timestamp:yyyyMMdd-HHmmss}.{cleanExtension}";
     }
 
-    private static readonly string[] AllowedReportExtensions = { "csv", "json", "html" };
+    private static readonly string[] AllowedReportExtensions = { "csv", "json", "html", "pdf" };
 
     private static readonly char[] WindowsInvalidFileNameChars = { '<', '>', ':', '"', '|', '?', '*' };
 
