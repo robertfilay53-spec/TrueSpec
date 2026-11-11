@@ -51,7 +51,10 @@ public class SnapshotStoreTests
             // A row with an unparseable id and a row with an unparseable
             // date, as a damaged database could contain. History must still
             // return the good snapshot instead of throwing.
-            await using (var connection = new SqliteConnection($"Data Source={databasePath}"))
+            // Pooling is off so this connection releases the file on Dispose:
+            // a pooled connection would keep snapshots.db locked and the
+            // cleanup in the finally block would fail on Windows.
+            await using (var connection = new SqliteConnection($"Data Source={databasePath};Pooling=false"))
             {
                 await connection.OpenAsync();
                 await using var command = connection.CreateCommand();

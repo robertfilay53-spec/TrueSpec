@@ -30,10 +30,16 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
             Directory.CreateDirectory(directory);
         }
 
+        // Pooling is off on purpose: the store opens a short-lived
+        // connection per operation, so pooling buys nothing — and a pooled
+        // connection keeps the database file locked after Dispose, which
+        // blocks deleting/moving the file on Windows (the file lock is held
+        // until the pool is cleared or the process exits).
         _connectionString = new SqliteConnectionStringBuilder
         {
             DataSource = fullPath,
             Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = false,
         }.ToString();
     }
 
