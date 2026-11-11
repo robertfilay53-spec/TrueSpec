@@ -22,6 +22,14 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      # Gate the release on the test suite: a release must never ship from a
+      # commit whose tests fail, even if CI was skipped or bypassed.
+      # -f net10.0-windows: the test project is multi-targeted and the app
+      # targets net10.0-windows on Windows; a bare `dotnet test` would fail
+      # with NU1201 on the net10.0 leg.
+      - name: Test
+        run: dotnet test TrueSpec.sln --configuration Release --verbosity normal -f net10.0-windows
+
       - name: Publish portable exe
         run: dotnet publish src/TrueSpec.App/TrueSpec.App.csproj -p:PublishProfile=win-x64 -o publish
 
@@ -31,10 +39,21 @@ jobs:
       - name: Compile installer
         run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\TrueSpec.iss'
 
+      # The zip name follows the release tag (v1.0.1 -> TrueSpec-1.0.1-...),
+      # so a re-run for a new version never uploads a misnamed asset.
+      # The installer name comes from installer/TrueSpec.iss AppVersion,
+      # which must be bumped to the same version in the release commit.
       - name: Zip portable exe
-        run: Compress-Archive -Path publish\TrueSpec.App.exe -DestinationPath TrueSpec-1.0.0-portable.zip -CompressionLevel Optimal
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.tag }}" -replace '^v', ''
+          Compress-Archive -Path publish\TrueSpec.App.exe -DestinationPath "TrueSpec-$version-portable.zip" -CompressionLevel Optimal
 
       - name: Upload assets to release
+        shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ inputs.tag }} installer\Output\TrueSpecSetup-1.0.0.exe TrueSpec-1.0.0-portable.zip --clobber
+        run: |
+          $version = "${{ inputs.tag }}" -replace '^v', ''
+          $installer = Get-Item installer\Output\TrueSpecSetup-*.exe | Select-Object -First 1
+          gh release upload ${{ inputs.tag }} $installer.FullName "TrueSpec-$version-portable.zip" --clobber
