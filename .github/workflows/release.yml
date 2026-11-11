@@ -1,0 +1,40 @@
+name: Build release assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to attach assets to"
+        required: true
+        default: "v1.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publish portable exe
+        run: dotnet publish src/TrueSpec.App/TrueSpec.App.csproj -p:PublishProfile=win-x64 -o publish
+
+      - name: Install Inno Setup
+        run: choco install innosetup --yes
+
+      - name: Compile installer
+        run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\TrueSpec.iss'
+
+      - name: Zip portable exe
+        run: Compress-Archive -Path publish\TrueSpec.App.exe -DestinationPath TrueSpec-1.0.0-portable.zip -CompressionLevel Optimal
+
+      - name: Upload assets to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ inputs.tag }} installer\Output\TrueSpecSetup-1.0.0.exe TrueSpec-1.0.0-portable.zip --clobber
