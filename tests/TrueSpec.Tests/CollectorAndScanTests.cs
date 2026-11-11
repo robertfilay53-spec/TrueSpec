@@ -178,13 +178,22 @@ public class CollectorAndScanTests
             _component = component;
         }
 
-        public string Id => "fixed";
+        // A real collector reports the Id (and Name/Category/IconKey) of the
+        // component it produces, so report the wrapped component's values.
+        // This matters because MachineScanService synthesizes the
+        // NotAvailable fallback for a skipped collector keyed by
+        // collector.Id: if the Id here did not match the component's Id,
+        // a collector skipped by the overall timeout would appear under a
+        // different Id than the component it would have produced, and a
+        // slow machine could make Find("system") fail even though the scan
+        // behaved correctly (see HungCollector test).
+        public string Id => _component.Id;
 
-        public string Name => "Fixed";
+        public string Name => _component.Name;
 
-        public string Category => "Test";
+        public string Category => _component.Category;
 
-        public string IconKey => "system";
+        public string IconKey => _component.IconKey;
 
         public TimeSpan RefreshInterval => TimeSpan.FromSeconds(2);
 
