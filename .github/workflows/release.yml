@@ -29,7 +29,7 @@ jobs:
         run: choco install innosetup --yes
 
       - name: Compile installer
-        run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\TrueSpec.iss'
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\TrueSpec.iss'
 
       - name: Zip portable exe
         run: Compress-Archive -Path publish\TrueSpec.App.exe -DestinationPath TrueSpec-1.0.0-portable.zip -CompressionLevel Optimal
