@@ -185,6 +185,18 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         }
 
         var age = DateTimeOffset.UtcNow - biosDate;
+
+        // A BIOS dated in the future is impossible data (bad clock or a
+        // misread firmware date), not a recent BIOS: it must not pass.
+        // One day of tolerance covers clock skew.
+        if (age.TotalDays < -1d)
+        {
+            return new BuyerCheck(id, title,
+                $"The BIOS date is {biosDate:yyyy-MM-dd}, which is in the future, so it cannot be trusted.",
+                BuyerCheckState.NotApplicable,
+                "Ask the seller to check the machine clock and the BIOS date.");
+        }
+
         return age.TotalDays switch
         {
             <= 730 => new BuyerCheck(id, title,
@@ -217,6 +229,17 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         }
 
         var age = DateTimeOffset.UtcNow - installDate;
+
+        // A Windows install dated in the future is impossible data, not a
+        // fresh install: it must not pass. One day covers clock skew.
+        if (age.TotalDays < -1d)
+        {
+            return new BuyerCheck(id, title,
+                $"Windows was installed on {installDate:yyyy-MM-dd}, which is in the future, so it cannot be trusted.",
+                BuyerCheckState.NotApplicable,
+                "Ask the seller to check the machine clock and when Windows was installed.");
+        }
+
         return age.TotalDays switch
         {
             <= 60 => new BuyerCheck(id, title,

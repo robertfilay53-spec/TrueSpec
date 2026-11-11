@@ -66,6 +66,10 @@ public sealed partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     public partial string ExportFolder { get; set; } = string.Empty;
 
+    /// <summary>Explains a rejected folder pick; empty when nothing went wrong.</summary>
+    [ObservableProperty]
+    public partial string FolderMessage { get; set; } = string.Empty;
+
     public string ExportFolderText => string.IsNullOrWhiteSpace(ExportFolder)
         ? PathSafety.DefaultExportFolder() + " (default)"
         : ExportFolder;
@@ -99,10 +103,14 @@ public sealed partial class SettingsViewModel : ViewModelBase
         var validated = PathSafety.ValidateExportFolder(picked);
         if (validated is null)
         {
+            // A picked folder the validator rejects (a drive root or a
+            // system folder) used to do nothing at all, with no message.
+            FolderMessage = "That folder can't be used for exports (drive root or system folder). Pick another folder.";
             return;
         }
 
         ExportFolder = validated;
+        FolderMessage = string.Empty;
         OnPropertyChanged(nameof(ExportFolderText));
         Save();
     }
@@ -111,6 +119,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private void ResetExportFolder()
     {
         ExportFolder = string.Empty;
+        FolderMessage = string.Empty;
         OnPropertyChanged(nameof(ExportFolderText));
         Save();
     }

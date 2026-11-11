@@ -94,7 +94,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         else
         {
             Score = snapshot.Score.OverallScore;
-            ScoreText = snapshot.Score.HasMeasurableComponents ? $"{Score:0}" : "--";
+            ScoreText = snapshot.Score.HasMeasurableComponents ? $"{Score:0.#}" : "--";
             VerdictText = snapshot.Score.Verdict.ToDisplayText();
             VerdictStatus = snapshot.Score.Verdict.ToHealthStatus();
             ScoreExplanation = snapshot.Score.Explanation;

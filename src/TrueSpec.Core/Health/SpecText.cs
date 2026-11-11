@@ -62,13 +62,40 @@ public static class SpecText
         }
 
         var token = text.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries)[0];
-        token = token.TrimEnd('%').Replace(",", string.Empty, StringComparison.Ordinal);
+        token = token.TrimEnd('%');
+        token = NormalizeDecimalComma(token);
 
         return double.TryParse(
             token,
             NumberStyles.Float,
             CultureInfo.InvariantCulture,
             out value);
+    }
+
+    /// <summary>
+    /// A number token may use a decimal comma ("12,5") instead of a decimal
+    /// point. A single comma followed by one or two digits is a decimal
+    /// comma; anything else with commas is a thousands separator ("1,000")
+    /// and the commas are dropped. Without this, "12,5%" parsed as 125
+    /// and a buyer-typed "16,5 GB" parsed as 165 GB.
+    /// </summary>
+    internal static string NormalizeDecimalComma(string token)
+    {
+        if (!token.Contains(',') ||
+            token.Contains('.'))
+        {
+            return token.Replace(",", string.Empty, StringComparison.Ordinal);
+        }
+
+        var comma = token.IndexOf(',');
+        if (comma == token.LastIndexOf(',') &&
+            token.Length - comma - 1 is >= 1 and <= 2 &&
+            token[(comma + 1)..].All(char.IsDigit))
+        {
+            return token[..comma] + "." + token[(comma + 1)..];
+        }
+
+        return token.Replace(",", string.Empty, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -86,16 +113,16 @@ public static class SpecText
             return false;
         }
 
-        var clean = text.Trim().Replace(",", string.Empty, StringComparison.Ordinal);
+        var clean = text.Trim();
 
         var split = 0;
-        while (split < clean.Length && (char.IsDigit(clean[split]) || clean[split] == '.'))
+        while (split < clean.Length && (char.IsDigit(clean[split]) || clean[split] == '.' || clean[split] == ','))
         {
             split++;
         }
 
         if (split == 0 ||
-            !double.TryParse(clean[..split], NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ||
+            !double.TryParse(NormalizeDecimalComma(clean[..split]), NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ||
             number < 0d)
         {
             return false;

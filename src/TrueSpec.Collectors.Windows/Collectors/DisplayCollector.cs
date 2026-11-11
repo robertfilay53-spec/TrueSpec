@@ -86,9 +86,14 @@ public sealed class DisplayCollector : ICollector
             var prefix = string.Create(CultureInfo.InvariantCulture, $"Monitor {i + 1}");
             specs.Add(CollectorSupport.Spec($"{prefix} - Panel model", Decode(extra.UInt16Array("ProductCodeID")), "EDID WmiMonitorID"));
             specs.Add(CollectorSupport.Spec($"{prefix} - Panel serial", Decode(extra.UInt16Array("SerialNumberID")), "EDID WmiMonitorID"));
+            // Same rule as the first monitor: a missing/zero week means
+            // "year only", never "week 0", which is not a real date.
+            var extraWeek = extra.UInt16("WeekOfManufacture");
             specs.Add(CollectorSupport.Spec($"{prefix} - Manufacture date",
                 extra.UInt16("YearOfManufacture") is { } extraYear && extraYear > 0
-                    ? string.Create(CultureInfo.InvariantCulture, $"{extraYear} week {extra.UInt16("WeekOfManufacture") ?? 0}")
+                    ? extraWeek is null or 0
+                        ? string.Create(CultureInfo.InvariantCulture, $"{extraYear}")
+                        : string.Create(CultureInfo.InvariantCulture, $"{extraYear} week {extraWeek.Value}")
                     : null,
                 "EDID WmiMonitorID manufacture week/year"));
         }

@@ -38,7 +38,12 @@ public sealed class ScoringEngine : IScoringEngine
         ArgumentNullException.ThrowIfNull(components);
 
         var measured = components
-            .Where(c => c.HealthPercent is not null && !double.IsNaN(c.HealthPercent.Value))
+            // NaN and Infinity are not measurements: a deserialized or
+            // corrupt snapshot must never score a component at 100% (the
+            // old code clamped Infinity to 100 and counted it).
+            .Where(c => c.HealthPercent is not null
+                && !double.IsNaN(c.HealthPercent.Value)
+                && !double.IsInfinity(c.HealthPercent.Value))
             .Select(c => new
             {
                 Component = c,
@@ -46,6 +51,18 @@ public sealed class ScoringEngine : IScoringEngine
                 Weight = _weights.TryGetValue(c.Category, out var weight) ? weight : 0d,
             })
             .Where(x => x.Weight > 0d)
+            // One weight per category: two components in the same category
+            // (for example two drives) must not double-count that
+            // category's weight. The worst health in the category is the
+            // honest one for a buyer: a dying second drive is not averaged
+            // away by a healthy first one.
+            .GroupBy(x => x.Component.Category, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new
+            {
+                Component = g.First().Component,
+                Health = g.Min(x => x.Health),
+                Weight = g.First().Weight,
+            })
             .ToList();
 
         var measuredWeight = measured.Sum(x => x.Weight);

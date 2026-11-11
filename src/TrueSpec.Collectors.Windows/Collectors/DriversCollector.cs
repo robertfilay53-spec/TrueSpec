@@ -41,6 +41,7 @@ public sealed class DriversCollector : ICollector
 
         var now = DateTimeOffset.UtcNow;
         var unsigned = drivers.Count(r => r.Bool("IsSigned") is false);
+        var unknown = drivers.Count(r => r.Bool("IsSigned") is null);
         var dated = drivers
             .Select(r => new { Row = r, Date = r.Date("DriverDate") })
             .Where(x => x.Date is not null)
@@ -48,9 +49,12 @@ public sealed class DriversCollector : ICollector
         var old = dated.Count(x => (now - x.Date!.Value).TotalDays > 365d * 5d);
         var oldest = dated.OrderBy(x => x.Date!.Value).FirstOrDefault();
 
+        // "All signed" is only true when every signature is known and
+        // signed: drivers with an unknown signature state must not be
+        // counted as signed.
         var headline = string.Create(
             CultureInfo.InvariantCulture,
-            $"{drivers.Count} drivers - {(unsigned == 0 ? "all signed" : $"{unsigned} unsigned")}");
+            $"{drivers.Count} drivers - {(unsigned == 0 && unknown == 0 ? "all signed" : unsigned > 0 ? $"{unsigned} unsigned" : $"{unknown} with unknown signature")}");
 
         var specs = new List<SpecValue>
         {
@@ -67,13 +71,24 @@ public sealed class DriversCollector : ICollector
             }, "CIM Win32_PnPSignedDriver.DriverDate older than 5 years"),
         };
 
+        // Two drivers can share a DeviceName; duplicate spec labels
+        // collapse in the comparison view, so number repeats.
+        var usedLabels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var item in dated
                      .Where(x => (now - x.Date!.Value).TotalDays > 365d * 5d)
                      .OrderBy(x => x.Date!.Value)
                      .Take(10))
         {
+            var label = $"Old driver - {item.Row.String("DeviceName") ?? "device"}";
+            var numbered = label;
+            var n = 2;
+            while (!usedLabels.Add(numbered))
+            {
+                numbered = $"{label} #{n++}";
+            }
+
             specs.Add(CollectorSupport.Spec(
-                $"Old driver - {item.Row.String("DeviceName") ?? "device"}",
+                numbered,
                 string.Create(CultureInfo.InvariantCulture, $"{item.Date:yyyy-MM-dd} / {item.Row.String("DriverVersion") ?? "version not reported"}"),
                 "CIM Win32_PnPSignedDriver"));
         }

@@ -12,7 +12,7 @@ public sealed record SensorReading(
     double? Value,
     string Source)
 {
-    public bool HasValue => Value is not null && !double.IsNaN(Value.Value);
+    public bool HasValue => Value is not null && !double.IsNaN(Value.Value) && !double.IsInfinity(Value.Value);
 
     public string DisplayText => HasValue
         ? FormattableString.Invariant($"{Value:0.#} {Unit}")

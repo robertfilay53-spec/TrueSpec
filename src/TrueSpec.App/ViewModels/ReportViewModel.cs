@@ -38,7 +38,7 @@ public sealed class ReportViewModel : ViewModelBase
         }
         else
         {
-            ScoreText = snapshot.Score.HasMeasurableComponents ? $"{snapshot.Score.OverallScore:0}" : "--";
+            ScoreText = snapshot.Score.HasMeasurableComponents ? $"{snapshot.Score.OverallScore:0.#}" : "--";
             VerdictText = snapshot.Score.Verdict.ToDisplayText();
             VerdictStatus = snapshot.Score.Verdict.ToHealthStatus();
             ScoreExplanation = snapshot.Score.Explanation;

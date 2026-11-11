@@ -1,6 +1,7 @@
 namespace TrueSpec.Collectors.Windows.Collectors;
 
 using Microsoft.Win32;
+using TrueSpec.Core.Diagnostics;
 using TrueSpec.Collectors.Windows.Wmi;
 using TrueSpec.Core.Collectors;
 using TrueSpec.Core.Models;
@@ -215,18 +216,11 @@ public sealed class SecurityCollector : ICollector
         _ => null,
     };
 
-    private static string DecodeProductState(uint? state)
-    {
-        if (state is null)
-        {
-            return CollectorSupport.NotReported;
-        }
-
-        var value = state.Value;
-        var enabled = ((value >> 12) & 0x10) != 0;
-        var upToDate = ((value >> 4) & 0x10) != 0;
-        return enabled
-            ? upToDate ? "On, up to date" : "On, may be out of date"
-            : "Off";
-    }
+    // The WSC productState bitmask is decoded in Core
+    // (TrueSpec.Core.Diagnostics.WindowsSecurityProductState) so the
+    // bit layout is covered by tests: bits 12-15 are the product state
+    // (0 off, 1 on, 2 snoozed) and bits 4-7 are the definition status
+    // (0 up to date, 1 out of date).
+    private static string DecodeProductState(uint? state) =>
+        WindowsSecurityProductState.DecodeProductState(state);
 }

@@ -38,13 +38,20 @@ public class HardwareMathTests
     [InlineData(10d, 90d)]
     [InlineData(100d, 0d)]
     [InlineData(120d, 0d)]
-    [InlineData(-5d, 100d)]
     public void StorageHealth_IsTheRemainderOfMeasuredWear(double wear, double expected)
     {
         var health = HardwareMath.StorageHealthPercent(wear);
 
         Assert.NotNull(health);
         Assert.Equal(expected, health.Value, 3);
+    }
+
+    [Fact]
+    public void StorageHealth_ReturnsNullForNegativeWear()
+    {
+        // Negative wear is impossible sensor data, not a healthy drive:
+        // it used to clamp to 100% health.
+        Assert.Null(HardwareMath.StorageHealthPercent(-5d));
     }
 
     [Theory]

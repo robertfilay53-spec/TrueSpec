@@ -119,13 +119,18 @@ public partial class MainViewModel : ViewModelBase
                 ScanTimeouts.Default,
                 StartupLog.Append);
             ApplySnapshot(snapshot, "Real scan complete. Live sensors use LibreHardwareMonitor when available.", resetNavigation: true);
-            _ = SaveSnapshotAsync(snapshot);
+            await SaveSnapshotAsync(snapshot);
             StartupLog.Append("MainViewModel: initial scan complete");
         }
         catch (Exception exception)
         {
             StartupLog.Append($"MainViewModel: initial scan failed: {exception.Message}");
             StatusMessage = $"Scan failed: {exception.Message}";
+            // The hero must stop saying "Scanning...": the loading
+            // snapshot is a finished (empty) scan, not a running one.
+            Overview.UpdateSnapshot(_snapshot, isScanning: false);
+            LastScanText = "No scan yet";
+            OnPropertyChanged(nameof(LastScanText));
         }
         finally
         {
@@ -292,7 +297,12 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ToggleTheme() => IsDarkTheme = !IsDarkTheme;
+    private void ToggleTheme()
+    {
+        IsDarkTheme = !IsDarkTheme;
+        _settings = _settings with { IsDarkTheme = IsDarkTheme };
+        _settingsStore.Save(_settings);
+    }
 
     [RelayCommand]
     private void ToggleRail() => IsRailExpanded = !IsRailExpanded;
@@ -334,7 +344,7 @@ public partial class MainViewModel : ViewModelBase
             // page rebuilt from the new snapshot does not read "scanning".
             _scanRunning = false;
             ApplySnapshot(snapshot, "Hardware scan refreshed from real collectors.", resetNavigation: false);
-            _ = SaveSnapshotAsync(snapshot);
+            await SaveSnapshotAsync(snapshot);
         }
         catch (Exception exception)
         {
@@ -455,7 +465,14 @@ public partial class MainViewModel : ViewModelBase
 
     private void OnBuyerChecksChanged(BuyerCheckResult checks, string? advertisedRam)
     {
-        _snapshot = _snapshot with { BuyerChecks = checks };
+        // The verdict is a function of the score AND the buyer checks
+        // (CombineVerdict caps it): re-derive it, or a check that flips
+        // to Fail here would leave a stale "New" verdict on screen.
+        _snapshot = _snapshot with
+        {
+            BuyerChecks = checks,
+            Score = _snapshot.Score with { Verdict = ScoringEngine.CombineVerdict(_snapshot.Score, checks) },
+        };
         _buyerContext = new BuyerCheckContext(
             string.IsNullOrWhiteSpace(advertisedRam) ? null : advertisedRam.Trim());
         Overview.UpdateSnapshot(_snapshot, isScanning: false);

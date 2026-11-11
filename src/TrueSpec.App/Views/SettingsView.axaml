@@ -68,6 +68,10 @@
                                 Content="Reset to default"
                                 Command="{Binding ResetExportFolderCommand}" />
                     </StackPanel>
+                    <TextBlock Text="{Binding FolderMessage}"
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
                     <TextBlock Text="JSON, HTML, CSV reports and the printable buyer checklist are saved here. Nothing is uploaded."
                                Classes="muted"
                                FontSize="11"

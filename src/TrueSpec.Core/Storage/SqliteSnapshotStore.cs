@@ -156,21 +156,51 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
         while (await reader.ReadAsync(cancellationToken))
         {
             // A corrupt row must not hide the whole history: skip rows whose
-            // id or date cannot be parsed instead of throwing.
-            if (!Guid.TryParse(reader.GetString(0), out var id) ||
-                !DateTimeOffset.TryParse(reader.GetString(1), CultureInfo.InvariantCulture, DateTimeStyles.None, out var capturedAt))
+            // id, date or score cannot be read as a real value instead of
+            // throwing. The score column is REAL-affinity, so a text value
+            // like "not-a-number" would otherwise read back as a fake 0.0
+            // through GetDouble, and an out-of-range score is not a score
+            // this app ever writes (the engine clamps to 0-100).
+            try
+            {
+                if (!Guid.TryParse(reader.GetString(0), out var id) ||
+                    !DateTimeOffset.TryParse(reader.GetString(1), CultureInfo.InvariantCulture, DateTimeStyles.None, out var capturedAt))
+                {
+                    continue;
+                }
+
+                var score = ReadScore(reader.GetValue(3));
+                if (score is null)
+                {
+                    continue;
+                }
+
+                results.Add(new SnapshotSummary(
+                    id,
+                    capturedAt,
+                    reader.GetString(2),
+                    score.Value,
+                    reader.GetString(4)));
+            }
+            catch (Exception ex) when (ex is InvalidCastException or FormatException or IndexOutOfRangeException or InvalidOperationException)
             {
                 continue;
             }
-
-            results.Add(new SnapshotSummary(
-                id,
-                capturedAt,
-                reader.GetString(2),
-                reader.GetDouble(3),
-                reader.GetString(4)));
         }
 
         return results;
     }
+
+    private static double? ReadScore(object value) => value switch
+    {
+        double score => double.IsFinite(score) && score is >= 0d and <= 100d ? score : null,
+        float score => double.IsFinite(score) && score is >= 0f and <= 100f ? score : null,
+        long score => score is >= 0L and <= 100L ? score : null,
+        int score => score is >= 0 and <= 100 ? score : null,
+        string text => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+            && double.IsFinite(parsed) && parsed is >= 0d and <= 100d
+                ? parsed
+                : null,
+        _ => null,
+    };
 }

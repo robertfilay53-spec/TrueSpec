@@ -108,10 +108,10 @@ public sealed class CpuCollector : ICollector
     }
 
     private static string FormatMhz(uint? mhz) =>
-        mhz is null ? CollectorSupport.NotReported : string.Create(CultureInfo.InvariantCulture, $"{mhz.Value} MHz");
+        CollectorSupport.NonZero(mhz) is { } value ? string.Create(CultureInfo.InvariantCulture, $"{value} MHz") : CollectorSupport.NotReported;
 
     private static string FormatKb(uint? kb) =>
-        kb is null ? CollectorSupport.NotReported : string.Create(CultureInfo.InvariantCulture, $"{kb.Value} KB");
+        CollectorSupport.NonZero(kb) is { } value ? string.Create(CultureInfo.InvariantCulture, $"{value} KB") : CollectorSupport.NotReported;
 
     private static string FormatSensor(SensorReading? reading, string unit, int decimals) =>
         reading is { HasValue: true }

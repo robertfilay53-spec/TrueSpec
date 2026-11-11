@@ -47,7 +47,8 @@ public sealed class RamCollector : ICollector
             type = CollectorSupport.MemoryType(first.UInt32("MemoryType"));
         }
 
-        var speed = first.UInt32("ConfiguredClockSpeed") ?? first.UInt32("Speed");
+        var speed = CollectorSupport.NonZero(first.UInt32("ConfiguredClockSpeed"))
+            ?? CollectorSupport.NonZero(first.UInt32("Speed"));
         var slots = array?.UInt32("MemoryDevices");
         var slotsText = slots is null
             ? CollectorSupport.NotReported
@@ -55,7 +56,7 @@ public sealed class RamCollector : ICollector
 
         var headline = string.Join(" ", new[]
         {
-            CollectorSupport.FormatBytesBinary((ulong)totalBytes),
+            CollectorSupport.FormatBytesBinary(totalBytes <= 0 ? null : (ulong)totalBytes),
             type == CollectorSupport.NotReported ? null : type,
             // "DDR5 5200 MT/s": never "-5200", which reads as a negative number.
             speed is null ? null : string.Create(CultureInfo.InvariantCulture, $"{speed.Value} MT/s"),
@@ -63,10 +64,10 @@ public sealed class RamCollector : ICollector
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec("Total memory", CollectorSupport.FormatBytesBinary((ulong)totalBytes), "CIM Win32_PhysicalMemory capacity sum"),
+            CollectorSupport.Spec("Total memory", CollectorSupport.FormatBytesBinary(totalBytes <= 0 ? null : (ulong)totalBytes), "CIM Win32_PhysicalMemory capacity sum"),
             CollectorSupport.Spec("Type", type, "CIM Win32_PhysicalMemory"),
             CollectorSupport.Spec("Speed", speed is null ? null : string.Create(CultureInfo.InvariantCulture, $"{speed.Value} MT/s"), "CIM Win32_PhysicalMemory"),
-            CollectorSupport.Spec("Configured speed", first.UInt32("ConfiguredClockSpeed") is { } configured
+            CollectorSupport.Spec("Configured speed", CollectorSupport.NonZero(first.UInt32("ConfiguredClockSpeed")) is { } configured
                 ? string.Create(CultureInfo.InvariantCulture, $"{configured} MT/s")
                 : null, "CIM Win32_PhysicalMemory"),
             CollectorSupport.Spec("Form factor", CollectorSupport.FormFactor(first.UInt16("FormFactor")), "CIM Win32_PhysicalMemory"),
@@ -95,7 +96,7 @@ public sealed class RamCollector : ICollector
             specs.Add(CollectorSupport.Spec($"{prefix} - Manufacturer", stick.String("Manufacturer"), "CIM Win32_PhysicalMemory"));
             specs.Add(CollectorSupport.Spec($"{prefix} - Part number", stick.String("PartNumber"), "CIM Win32_PhysicalMemory"));
             specs.Add(CollectorSupport.Spec($"{prefix} - Serial number", stick.String("SerialNumber"), "CIM Win32_PhysicalMemory"));
-            specs.Add(CollectorSupport.Spec($"{prefix} - Capacity", CollectorSupport.FormatBytesBinary(stick.UInt64("Capacity")), "CIM Win32_PhysicalMemory"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - Capacity", CollectorSupport.FormatBytesBinary(CollectorSupport.NonZero(stick.UInt64("Capacity"))), "CIM Win32_PhysicalMemory"));
             specs.Add(CollectorSupport.Spec($"{prefix} - Slot", stick.String("DeviceLocator") ?? stick.String("BankLabel"), "CIM Win32_PhysicalMemory"));
         }
 

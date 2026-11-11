@@ -140,7 +140,16 @@ public sealed class MachineScanService
 
         var system = components.FirstOrDefault(c =>
             string.Equals(c.Id, "system", StringComparison.OrdinalIgnoreCase));
-        var machineName = system?.Headline ?? Environment.MachineName;
+        // A failed system collector reports the headline "Not available":
+        // that is a missing reading, never the machine's name. Fall back
+        // to the OS machine name instead of stamping "Not available" on
+        // the Overview hero, the report and the history list.
+        var machineName = system?.Headline;
+        if (string.IsNullOrWhiteSpace(machineName) ||
+            string.Equals(machineName, "Not available", StringComparison.OrdinalIgnoreCase))
+        {
+            machineName = Environment.MachineName;
+        }
         var operatingSystem = system?.Specs
             .FirstOrDefault(s =>
                 string.Equals(s.Label, "Operating system", StringComparison.OrdinalIgnoreCase) ||

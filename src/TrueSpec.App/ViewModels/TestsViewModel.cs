@@ -26,19 +26,19 @@ public sealed class TestsViewModel : ViewModelBase
                 benchmarks.RunDiskSequentialReadAsync),
             new TestItemViewModel(
                 "Quick memory test",
-                "Launches the Windows Memory Diagnostic and explains the required reboot.",
+                "Not in this build: the Windows Memory Diagnostic needs a reboot, so run it from Windows yourself for now.",
                 null),
             new TestItemViewModel(
                 "Battery runtime estimate",
-                "Estimates real runtime from current capacity, wear and discharge rate.",
+                "Not in this build: no runtime estimate is shown until this test is implemented.",
                 null),
             new TestItemViewModel(
                 "Wi-Fi speed test",
-                "Optional internet test. Off by default because the app is offline first.",
+                "Not in this build: an internet speed test would need the network, and this app is offline first.",
                 null),
             new TestItemViewModel(
                 "Stress test",
-                "Loads the CPU and GPU while watching temperatures for throttling.",
+                "Not in this build: no load test runs until this test is implemented.",
                 null),
         };
     }

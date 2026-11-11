@@ -18,6 +18,7 @@ public sealed record NavItemViewModel(string Key, string Label, string IconData)
         Create("network", "Network"),
         Create("motherboard", "Motherboard"),
         Create("security", "Security"),
+        Create("drivers", "Drivers"),
         Create("tests", "Tests"),
         Create("report", "Report"),
         Create("compare", "Compare"),

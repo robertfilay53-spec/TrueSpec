@@ -88,7 +88,6 @@ public sealed class LibreHardwareMonitorSensorMonitor : ISensorMonitor, IDisposa
 
     private void Initialize()
     {
-        _initialized = true;
         try
         {
             _computer = new Computer
@@ -104,10 +103,14 @@ public sealed class LibreHardwareMonitorSensorMonitor : ISensorMonitor, IDisposa
                 IsNetworkEnabled = true,
             };
             _computer.Open();
+            _initialized = true;
             _status = "LibreHardwareMonitor opened.";
         }
         catch (Exception exception)
         {
+            // Stay uninitialized so the next read retries the open: a
+            // transient failure at startup (driver busy, first-run race)
+            // used to leave live sensors dead for the whole session.
             _computer = null;
             _available = false;
             _status = $"LibreHardwareMonitor could not open: {exception.Message}";
@@ -142,7 +145,7 @@ public sealed class LibreHardwareMonitorSensorMonitor : ISensorMonitor, IDisposa
                 sensor.Name,
                 kind.Value,
                 UnitFor(kind.Value),
-                value is null || float.IsNaN(value.Value) ? null : value.Value,
+                value is null || float.IsNaN(value.Value) || float.IsInfinity(value.Value) ? null : value.Value,
                 "LibreHardwareMonitor"));
         }
 

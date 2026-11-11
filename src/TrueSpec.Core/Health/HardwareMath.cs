@@ -62,6 +62,8 @@ public static class HardwareMath
     /// <summary>
     /// SSD health from the manufacturer wear counter. Wear is "percentage used",
     /// so health is the remainder. Counters above 100% used are clamped to 0.
+    /// A negative wear value is impossible sensor data (a broken counter, not
+    /// a healthy drive), so it returns null instead of clamping to 100%.
     /// </summary>
     public static double? StorageHealthPercent(double? wearPercent)
     {
@@ -70,7 +72,12 @@ public static class HardwareMath
             return null;
         }
 
-        var wear = Math.Max(0d, wearPercent.Value);
+        if (wearPercent.Value < 0d)
+        {
+            return null;
+        }
+
+        var wear = wearPercent.Value;
         return Math.Clamp(100d - wear, 0d, 100d);
     }
 }

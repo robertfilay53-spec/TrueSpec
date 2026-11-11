@@ -328,7 +328,7 @@ public sealed class NetworkCollector : ICollector
             Ipv4Addresses: ipv4.Length == 0 ? null : string.Join(", ", ipv4),
             Gateways: gateways.Length == 0 ? null : string.Join(", ", gateways),
             DnsServers: dns.Length == 0 ? null : string.Join(", ", dns),
-            SpeedBitsPerSecond: nic.Speed >= 0 ? nic.Speed : null,
+            SpeedBitsPerSecond: nic.Speed > 0 ? nic.Speed : null,
             Status: nic.OperationalStatus.ToString(),
             IsWireless: isWireless,
             IsWired: isWired,
@@ -361,7 +361,7 @@ public sealed class NetworkCollector : ICollector
     }
 
     internal static string FormatBitsPerSecond(long? bitsPerSecond) =>
-        bitsPerSecond is null
+        bitsPerSecond is null or <= 0
             ? CollectorSupport.NotReported
             : string.Create(CultureInfo.InvariantCulture, $"{bitsPerSecond.Value / 1_000_000d:0.#} Mbps");
 

@@ -136,6 +136,15 @@ public static class ComponentHealthRules
         }
 
         var ageDays = (now - driverDate.Value).TotalDays;
+
+        // A driver dated well in the future is impossible data (bad clock
+        // or a misread firmware date), not a brand-new driver: it must not
+        // score 100%. One day of tolerance covers clock skew.
+        if (ageDays < -1d)
+        {
+            return null;
+        }
+
         return ageDays switch
         {
             <= 365d => 100d,

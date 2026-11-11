@@ -115,7 +115,7 @@ public sealed class StorageCollector : ICollector
             Add("Serial number", drive.SerialNumber, "CIM MSFT_PhysicalDisk");
             Add("Firmware", drive.FirmwareVersion, "CIM MSFT_PhysicalDisk");
             Add("Interface", string.Join(" ", new[] { bus, media }.Where(v => v != CollectorSupport.NotReported)), "CIM MSFT_PhysicalDisk");
-            Add("Capacity", CollectorSupport.FormatBytes(drive.Size), "CIM MSFT_PhysicalDisk.Size");
+            Add("Capacity", CollectorSupport.FormatBytes(CollectorSupport.NonZero(drive.Size)), "CIM MSFT_PhysicalDisk.Size");
             Add("Health word", CollectorSupport.DiskHealth(drive.HealthStatus), "CIM MSFT_PhysicalDisk.HealthStatus");
             Add("Operational status", Join(drive.OperationalStatus), "CIM MSFT_PhysicalDisk.OperationalStatus");
             Add("Wear level", FormatPercent(drive.Wear), drive.WearSource);

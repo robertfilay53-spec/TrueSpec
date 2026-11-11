@@ -68,35 +68,37 @@ public static class PathSafety
             return null;
         }
 
-        var windowsFolder = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-        if (!string.IsNullOrEmpty(windowsFolder) &&
-            fullPath.StartsWith(windowsFolder, StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        var systemFolder = Environment.GetFolderPath(Environment.SpecialFolder.System);
-        if (!string.IsNullOrEmpty(systemFolder) &&
-            fullPath.StartsWith(systemFolder, StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-        if (!string.IsNullOrEmpty(programFiles) &&
-            fullPath.StartsWith(programFiles, StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-        if (!string.IsNullOrEmpty(programFilesX86) &&
-            fullPath.StartsWith(programFilesX86, StringComparison.OrdinalIgnoreCase))
+        // The prefix check needs a separator boundary: "C:\WindowsUpdate"
+        // is not inside "C:\Windows", and "C:\Program FilesXYZ" is not
+        // inside "C:\Program Files" - a bare StartsWith would reject both
+        // safe folders.
+        if (IsWithin(Environment.GetFolderPath(Environment.SpecialFolder.Windows), fullPath) ||
+            IsWithin(Environment.GetFolderPath(Environment.SpecialFolder.System), fullPath) ||
+            IsWithin(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), fullPath) ||
+            IsWithin(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), fullPath))
         {
             return null;
         }
 
         return fullPath;
+    }
+
+    /// <summary>
+    /// True when <paramref name="fullPath"/> is the folder itself or a
+    /// descendant of it. A sibling whose name merely starts with the folder
+    /// name ("C:\WindowsUpdate" vs "C:\Windows") is not within it.
+    /// </summary>
+    private static bool IsWithin(string? folder, string fullPath)
+    {
+        if (string.IsNullOrEmpty(folder))
+        {
+            return false;
+        }
+
+        var trimmed = folder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return string.Equals(fullPath, trimmed, StringComparison.OrdinalIgnoreCase) ||
+               fullPath.StartsWith(trimmed + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+               fullPath.StartsWith(trimmed + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -149,9 +151,13 @@ public static class PathSafety
 
         // Strip both separators on every platform: a backslash is a valid
         // file name character on Linux but a path separator on Windows, and
-        // this file name is used on Windows.
+        // this file name is used on Windows. Also strip every character
+        // Windows forbids in a file name (< > : " | ? * and controls):
+        // Path.GetInvalidFileNameChars on Linux does not include them, so
+        // a machine-name prefix containing ':' would otherwise produce a
+        // file name Windows cannot create.
         var cleanPrefix = new string(prefix
-            .Where(c => !InvalidFileNameChars.Contains(c) && c != '/' && c != '\\')
+            .Where(c => !InvalidFileNameChars.Contains(c) && !WindowsInvalidFileNameChars.Contains(c) && c != '/' && c != '\\' && !char.IsControl(c))
             .ToArray());
         // A ".." in the prefix is a traversal attempt, never a label.
         while (cleanPrefix.Contains("..", StringComparison.Ordinal))
@@ -173,6 +179,8 @@ public static class PathSafety
     }
 
     private static readonly string[] AllowedReportExtensions = { "csv", "json", "html" };
+
+    private static readonly char[] WindowsInvalidFileNameChars = { '<', '>', ':', '"', '|', '?', '*' };
 
     /// <summary>
     /// The default folder for reports and local data: Documents/TrueSpec for

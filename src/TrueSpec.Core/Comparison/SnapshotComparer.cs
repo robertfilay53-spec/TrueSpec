@@ -76,7 +76,7 @@ public static class SnapshotComparer
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
         var changes = new List<ComponentChange>();
-        foreach (var afterComponent in after.Components)
+        foreach (var afterComponent in afterById.Values)
         {
             if (!beforeById.TryGetValue(afterComponent.Id, out var beforeComponent))
             {
@@ -110,11 +110,11 @@ public static class SnapshotComparer
             }
         }
 
-        var added = after.Components
+        var added = afterById.Values
             .Where(c => !beforeById.ContainsKey(c.Id))
             .Select(c => c.Name)
             .ToList();
-        var removed = before.Components
+        var removed = beforeById.Values
             .Where(c => !afterById.ContainsKey(c.Id))
             .Select(c => c.Name)
             .ToList();

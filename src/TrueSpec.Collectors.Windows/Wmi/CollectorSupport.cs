@@ -71,6 +71,16 @@ internal static class CollectorSupport
         return string.Create(CultureInfo.InvariantCulture, $"{value} bytes");
     }
 
+    /// <summary>
+    /// WMI reports 0 for "unknown" on many numeric fields (clock speed,
+    /// cache size, drive size, link speed). A 0 in those places is not a
+    /// measurement: map it to null so the value shows as "Not reported
+    /// by hardware" instead of "0 MHz" / "0 bytes" / "0 Mbps".
+    /// </summary>
+    public static uint? NonZero(uint? value) => value is > 0 ? value : null;
+
+    public static ulong? NonZero(ulong? value) => value is > 0 ? value : null;
+
     public static string FormatMegaBitsPerSecond(ulong? bitsPerSecond)
     {
         if (bitsPerSecond is null)
