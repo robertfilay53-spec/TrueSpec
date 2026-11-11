@@ -12,7 +12,7 @@ namespace TrueSpec.Tests;
 public class ExportTests
 {
     [Fact]
-    public async Task CsvExporter_WritesHeaderAndOneRowPerSpec()
+    public async Task CsvExporter_WritesFullReportWithOneRowPerSpec()
     {
         var snapshot = TestSnapshots.Healthy();
         var report = ReportModel.FromSnapshot(snapshot);
@@ -23,10 +23,24 @@ public class ExportTests
         var text = Encoding.UTF8.GetString(stream.ToArray());
         var lines = text.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
 
-        Assert.Equal("Component,Spec,Value,Source,Health", lines[0]);
-        Assert.Contains("CPU,Package temperature,55 C,LibreHardwareMonitor,", text);
-        Assert.Contains("RAM,Total memory,16 GB,CIM Win32_PhysicalMemory,", text);
-        Assert.Equal(snapshot.Components.SelectMany(c => c.Specs).Count() + 1, lines.Length);
+        // The CSV is the full report, not a specs-only table: header, then
+        // the score rows, the machine rows, one row per buyer check, then
+        // one row per specification. (An earlier version of this test
+        // expected a specs-only "Component,Spec,Value,Source,Health" table,
+        // but the exporter has always written the full report — see
+        // CsvReportExporter — and a Health column would be empty for every
+        // spec row, because health is per component, not per spec.)
+        Assert.Equal("Section,Item,Value,Source", lines[0]);
+        Assert.Contains("Score,Overall score,", text);
+        Assert.Contains("Score,Verdict,", text);
+        Assert.Contains("CPU,Package temperature,55 C,LibreHardwareMonitor", text);
+        Assert.Contains("RAM,Total memory,16 GB,CIM Win32_PhysicalMemory", text);
+        var expectedLines = 1 // header
+            + 3 // score rows: overall score, verdict, measured weight
+            + 4 // machine rows: name, OS, snapshot captured, report generated
+            + snapshot.BuyerChecks.Checks.Count
+            + snapshot.Components.SelectMany(c => c.Specs).Count();
+        Assert.Equal(expectedLines, lines.Length);
     }
 
     [Fact]
@@ -48,9 +62,12 @@ public class ExportTests
         var text = Encoding.UTF8.GetString(stream.ToArray());
 
         // The value must not start a cell with '='. The exporter prefixes a
-        // tab, which Excel renders as harmless text.
+        // tab, which Excel renders as harmless text; RFC 4180 quoting then
+        // wraps the tab-prefixed value in quotes, so the neutralised cell
+        // reads "\t=2+5" (tab included, inside quotes).
         Assert.DoesNotContain(",=2+5,", text);
-        Assert.Contains("CPU,Package temperature,\t=2+5,LibreHardwareMonitor,", text);
+        Assert.DoesNotContain("\"=2+5\"", text);
+        Assert.Contains("CPU,Package temperature,\"\t=2+5\",LibreHardwareMonitor", text);
     }
 
     [Fact]
@@ -84,7 +101,10 @@ public class ExportTests
 
         Assert.Contains("@media print", html);
         Assert.Contains("Test Laptop", html);
-        Assert.Contains("Buyer checklist", html);
+        // The heading is rendered in all caps as the document kicker
+        // ("TRUESPEC BUYER CHECKLIST") and in the page title, so the
+        // match is case-insensitive.
+        Assert.Contains("Buyer checklist", html, StringComparison.OrdinalIgnoreCase);
         foreach (var check in snapshot.BuyerChecks.Checks)
         {
             Assert.Contains(check.Title, html);

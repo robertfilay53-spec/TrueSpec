@@ -2,11 +2,15 @@
 
   <PropertyGroup>
     <!-- Multi-targeted because the app targets net10.0-windows on Windows
-         and net10.0 elsewhere: a net10.0-only test project cannot reference
-         a net10.0-windows app (NU1201), so each OS tests the framework that
-         matches it (dotnet test -f net10.0-windows on Windows,
-         -f net10.0 on Linux/macOS). EnableWindowsTargeting lets the
-         net10.0-windows leg restore and build on Linux. -->
+         and net10.0 elsewhere. A net10.0 project cannot reference a
+         net10.0-windows app (NU1201), and restore evaluates every TFM even
+         with -f, so the App reference is conditioned to the
+         net10.0-windows leg only, and the tests that drive the App's
+         ViewModels (ScoreAgreementTests) are excluded from the net10.0
+         leg. Each OS then tests the framework that matches it (dotnet
+         test -f net10.0-windows on Windows, -f net10.0 on Linux/macOS).
+         EnableWindowsTargeting lets the net10.0-windows leg restore and
+         build on Linux. -->
     <TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -27,7 +31,17 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\TrueSpec.Core\TrueSpec.Core.csproj" />
-    <ProjectReference Include="..\..\src\TrueSpec.App\TrueSpec.App.csproj" />
+    <!-- Windows leg only: on Windows the app targets net10.0-windows, and
+         an unconditional reference makes restore evaluate the net10.0 leg
+         against it (NU1201). The net10.0 leg tests Core only. -->
+    <ProjectReference Include="..\..\src\TrueSpec.App\TrueSpec.App.csproj" Condition="'$(TargetFramework)' == 'net10.0-windows'" />
+  </ItemGroup>
+
+  <!-- ScoreAgreementTests drives the App's ViewModels, so it only compiles
+       on the Windows leg. Excluding the file (rather than #if-ing it) keeps
+       the test readable and the exclusion visible in the project file. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <Compile Remove="ScoreAgreementTests.cs" />
   </ItemGroup>
 
 </Project>

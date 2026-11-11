@@ -45,7 +45,11 @@ public class CollectorAndScanTests
     {
         var snapshot = await MachineScanService.CreateDefault().ScanAsync();
 
-        Assert.Equal(4, snapshot.Components.Count);
+        // The default scan runs the whole honest-fallback catalogue: one
+        // "Not available" component per dashboard screen (11 since P1-P3).
+        // An earlier version of this test expected 4, which never matched
+        // the catalogue and never ran before CI.
+        Assert.Equal(UnavailableCollectorCatalog.CreateAll().Count, snapshot.Components.Count);
         Assert.All(snapshot.Components, component => Assert.Null(component.HealthPercent));
         Assert.False(snapshot.Score.HasMeasurableComponents);
         Assert.Equal(0d, snapshot.Score.OverallScore);

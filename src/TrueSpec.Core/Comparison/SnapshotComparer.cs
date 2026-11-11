@@ -59,6 +59,13 @@ public static class SnapshotComparer
         ArgumentNullException.ThrowIfNull(before);
         ArgumentNullException.ThrowIfNull(after);
 
+        // Comparing two different machines is meaningless: a spec that
+        // differs between them is not a change, it is a different computer.
+        if (!string.Equals(before.MachineName, after.MachineName, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Snapshots must be from the same machine to compare.", nameof(after));
+        }
+
         // A duplicate component id or spec label must never crash the
         // comparison: keep the first entry for a key and carry on.
         var beforeById = before.Components
@@ -81,7 +88,16 @@ public static class SnapshotComparer
                 ? Math.Round(afterComponent.HealthPercent.Value - beforeComponent.HealthPercent.Value, 1)
                 : (double?)null;
 
-            var healthChanged = delta is not null && Math.Abs(delta.Value) > 0.05;
+            // A health value that did not move is not a delta: report null
+            // so a spec-only change does not look like a zero health change.
+            // (The 0.05 threshold is the same one that decides whether a
+            // component counts as health-changed below.)
+            if (delta is not null && Math.Abs(delta.Value) <= 0.05)
+            {
+                delta = null;
+            }
+
+            var healthChanged = delta is not null;
             if (healthChanged || changedSpecs.Count > 0)
             {
                 changes.Add(new ComponentChange(
