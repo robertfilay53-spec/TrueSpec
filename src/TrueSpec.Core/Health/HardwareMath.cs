@@ -60,6 +60,19 @@ public static class HardwareMath
     };
 
     /// <summary>
+    /// The short band name without its range, for sentences that already
+    /// carry the measured percentage ("dropped from Normal (85.0%) to Worn
+    /// (78.0%)"). The ranges live in <see cref="BatteryBandText"/>.
+    /// </summary>
+    public static string BatteryBandName(double? healthPercent) => BatteryBand(healthPercent) switch
+    {
+        BatteryHealthBand.Normal => "Normal",
+        BatteryHealthBand.Worn => "Worn",
+        BatteryHealthBand.Replace => "Replace",
+        _ => "Not measurable",
+    };
+
+    /// <summary>
     /// SSD health from the manufacturer wear counter. Wear is "percentage used",
     /// so health is the remainder. Counters above 100% used are clamped to 0.
     /// A negative wear value is impossible sensor data (a broken counter, not

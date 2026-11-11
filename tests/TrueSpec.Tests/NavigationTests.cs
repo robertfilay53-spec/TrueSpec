@@ -41,6 +41,29 @@ public class NavigationTests
     }
 
     [Fact]
+    public void Navigation_ContainsUpdatesPage()
+    {
+        var items = NavItemViewModel.CreateDefault();
+        var updates = items.FirstOrDefault(i => i.Key == "updates");
+
+        Assert.NotNull(updates);
+        Assert.Equal("Updates", updates.Label);
+    }
+
+    [Fact]
+    public void Navigation_UpdatesRoutesToComponentDetail()
+    {
+        var main = new MainViewModel(
+            MachineScanService.CreateDefault(),
+            new UnavailableSensorMonitor(),
+            new BuyerCheckEvaluator());
+
+        main.SelectedNavItem = main.NavItems.First(i => i.Key == "updates");
+
+        Assert.IsType<ComponentDetailViewModel>(main.CurrentPage);
+    }
+
+    [Fact]
     public void Navigation_HistoryRoutesToHistoryPage()
     {
         var main = new MainViewModel(

@@ -41,6 +41,12 @@ public sealed partial class HistoryViewModel : ViewModelBase
     public partial bool HasHistory { get; set; }
 
     [ObservableProperty]
+    public partial string? BatteryAlertText { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasBatteryAlert { get; set; }
+
+    [ObservableProperty]
     public partial IReadOnlyList<double>? ScoreValues { get; set; }
 
     [ObservableProperty]
@@ -76,6 +82,8 @@ public sealed partial class HistoryViewModel : ViewModelBase
             }
 
             SummaryText = trend.Summary;
+            BatteryAlertText = trend.BatteryAlert;
+            HasBatteryAlert = trend.BatteryAlert is not null;
             ScoreValues = MeasuredValues(trend.ScorePoints);
             BatteryHealthValues = MeasuredValues(trend.BatteryHealthPoints);
             StorageWearValues = MeasuredValues(trend.StorageWearPoints);

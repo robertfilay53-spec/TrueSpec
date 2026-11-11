@@ -1,6 +1,7 @@
 namespace TrueSpec.Core.History;
 
 using System.Globalization;
+using TrueSpec.Core.Health;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Storage;
 
@@ -28,7 +29,8 @@ public sealed record HistoryTrend(
     double? ScoreDelta,
     double? BatteryHealthDelta,
     double? StorageWearDelta,
-    string Summary)
+    string Summary,
+    string? BatteryAlert)
 {
     public static HistoryTrend Empty { get; } = new(
         0,
@@ -42,7 +44,8 @@ public sealed record HistoryTrend(
         null,
         null,
         null,
-        "No scans saved yet. Run a scan and come back: every scan is saved to local history, and the trend appears once there are two scans to compare.");
+        "No scans saved yet. Run a scan and come back: every scan is saved to local history, and the trend appears once there are two scans to compare.",
+        null);
 }
 
 /// <summary>
@@ -103,8 +106,79 @@ public static class HistoryTrendAnalyzer
             scoreDelta,
             batteryDelta,
             wearDelta,
-            BuildSummary(ordered, scorePoints, batteryHealthPoints, storageWearPoints, scoreDelta, batteryDelta, wearDelta));
+            BuildSummary(ordered, scorePoints, batteryHealthPoints, storageWearPoints, scoreDelta, batteryDelta, wearDelta),
+            BatteryHealthAlert(batteryHealthPoints));
     }
+
+    /// <summary>
+    /// Battery-health alerts from the trend data. Two rules, both aligned
+    /// with the battery bands in <see cref="HardwareMath"/> (Normal 80-100%,
+    /// Worn 60-79%, Replace below 60%):
+    /// <list type="bullet">
+    /// <item>
+    /// <description>Band drop: the latest measured health sits in a worse
+    /// band than the first measured health, so the battery crossed a band
+    /// boundary downward.</description>
+    /// </item>
+    /// <item>
+    /// <description>Fast fall: the latest measured health is more than 5
+    /// points below the previous measured health. Normal scan-to-scan
+    /// variation is under a point, so a drop over 5 points in one interval
+    /// means the battery fell faster than the previous scans' pace.
+    /// </description>
+    /// </item>
+    /// </list>
+    /// Returns null when there is nothing to say: fewer than two measured
+    /// values, no band change, and no fast fall. A battery that was already
+    /// in the Replace band on the first scan does not alert here; the Battery
+    /// page already names that band. Gaps (scans that did not report health)
+    /// are skipped, never treated as zero.
+    /// </summary>
+    public static string? BatteryHealthAlert(IReadOnlyList<TrendPoint> batteryHealthPoints)
+    {
+        ArgumentNullException.ThrowIfNull(batteryHealthPoints);
+
+        var measured = batteryHealthPoints
+            .Where(p => p.Value is not null)
+            .Select(p => p.Value!.Value)
+            .ToList();
+        if (measured.Count < 2)
+        {
+            return null;
+        }
+
+        var first = measured[0];
+        var previous = measured[^2];
+        var latest = measured[^1];
+
+        var parts = new List<string>();
+        var firstBand = HardwareMath.BatteryBand(first);
+        var latestBand = HardwareMath.BatteryBand(latest);
+        if (BandRank(latestBand) > BandRank(firstBand))
+        {
+            parts.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"Battery health dropped from {HardwareMath.BatteryBandName(first)} ({first:0.#}%) to {HardwareMath.BatteryBandName(latest)} ({latest:0.#}%) since the first saved scan."));
+        }
+
+        var fall = previous - latest;
+        if (fall > 5d)
+        {
+            parts.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"Battery health fell {fall:0.#} points between the last two scans that reported it ({previous:0.#}% to {latest:0.#}%)."));
+        }
+
+        return parts.Count == 0 ? null : string.Join(" ", parts);
+    }
+
+    private static int BandRank(BatteryHealthBand band) => band switch
+    {
+        BatteryHealthBand.Normal => 0,
+        BatteryHealthBand.Worn => 1,
+        BatteryHealthBand.Replace => 2,
+        _ => -1,
+    };
 
     /// <summary>
     /// Loads saved snapshots for one machine from the history store and

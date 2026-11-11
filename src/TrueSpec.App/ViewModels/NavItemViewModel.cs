@@ -19,6 +19,7 @@ public sealed record NavItemViewModel(string Key, string Label, string IconData)
         Create("motherboard", "Motherboard"),
         Create("security", "Security"),
         Create("drivers", "Drivers"),
+        Create("updates", "Updates"),
         Create("startup", "Startup"),
         // History sits here, inside the ~16 items the left rail shows at the
         // default 1280x800 window, on purpose: it was second-to-last and the

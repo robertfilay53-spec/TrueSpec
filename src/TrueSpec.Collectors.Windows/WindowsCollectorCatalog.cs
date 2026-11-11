@@ -26,6 +26,7 @@ public static class WindowsCollectorCatalog
         new MotherboardCollector(),
         new SecurityCollector(),
         new DriversCollector(),
+        new UpdatesCollector(),
         new StartupCollector(),
     };
 

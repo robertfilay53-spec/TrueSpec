@@ -45,6 +45,8 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <Compile Remove="ScoreAgreementTests.cs" />
     <Compile Remove="StartupCollectorTests.cs" />
+    <Compile Remove="UpdatesCollectorTests.cs" />
+    <Compile Remove="StorageCollectorTests.cs" />
     <Compile Remove="NavigationTests.cs" />
   </ItemGroup>
 

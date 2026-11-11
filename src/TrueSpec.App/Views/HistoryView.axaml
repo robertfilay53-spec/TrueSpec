@@ -26,6 +26,13 @@
                 </StackPanel>
             </Border>
 
+            <Border Classes="card" Padding="18" IsVisible="{Binding HasBatteryAlert}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="BATTERY HEALTH ALERT" Classes="eyebrow" />
+                    <TextBlock Text="{Binding BatteryAlertText}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12" IsVisible="{Binding HasHistory}">
                 <Border Classes="card" Padding="16">
                     <StackPanel Spacing="8">

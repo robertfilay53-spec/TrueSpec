@@ -144,6 +144,8 @@ public sealed class StorageCollector : ICollector
         var headline = string.Join(" - ", new[] { primary.Model ?? "Storage", primaryWear }
             .Where(v => !string.IsNullOrWhiteSpace(v)));
 
+        AddVolumes(specs);
+
         return Task.FromResult(ComponentSnapshot.NotMeasurable(
             Id,
             Name,
@@ -152,6 +154,68 @@ public sealed class StorageCollector : ICollector
             string.IsNullOrWhiteSpace(headline) ? "Storage" : headline,
             specs,
             "SSD wear is the manufacturer's real endurance counter, not a failure date. A drive can keep working beyond 100% used. A truly new laptop shows 0% wear, no SMART warnings and close to zero power-on hours."));
+    }
+
+    /// <summary>
+    /// Logical volumes (drive letters) from Win32_LogicalDisk: the logical
+    /// view of the same storage the physical-disk specs above report, so
+    /// they live on this page rather than in a separate component. A WMI
+    /// failure returns no rows and is reported as no volumes, never as a
+    /// failed collector: the physical-disk reading above is the headline.
+    /// Labels never collide with "Wear level" / "Power-on hours", which the
+    /// storage health rule matches by exact label.
+    /// </summary>
+    private static void AddVolumes(List<SpecValue> specs)
+    {
+        var rows = Wmi.Query(
+            "root\\cimv2",
+            "SELECT DeviceID, DriveType, Size, FreeSpace, FileSystem FROM Win32_LogicalDisk");
+
+        var volumes = rows
+            .Select(row => StorageVolumeParser.Build(
+                row.String("DeviceID"),
+                row.UInt32("DriveType"),
+                row.UInt64("Size"),
+                row.UInt64("FreeSpace"),
+                row.String("FileSystem")))
+            .Where(volume => volume is not null)
+            .Select(volume => volume!)
+            // C: first, then the remaining letters in order.
+            .OrderBy(volume => volume.DriveLetter.StartsWith("C", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(volume => volume.DriveLetter, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (volumes.Count == 0)
+        {
+            specs.Add(CollectorSupport.Spec(
+                "Volumes",
+                null,
+                "CIM Win32_LogicalDisk (no local fixed disks reported)"));
+            return;
+        }
+
+        foreach (var volume in volumes)
+        {
+            var letter = volume.DriveLetter;
+            specs.Add(CollectorSupport.Spec(
+                $"Volume {letter} - Total space",
+                CollectorSupport.FormatBytes(volume.TotalBytes),
+                "CIM Win32_LogicalDisk.Size"));
+            specs.Add(CollectorSupport.Spec(
+                $"Volume {letter} - Free space",
+                CollectorSupport.FormatBytes(volume.FreeBytes),
+                "CIM Win32_LogicalDisk.FreeSpace"));
+            specs.Add(CollectorSupport.Spec(
+                $"Volume {letter} - Free space (%)",
+                volume.FreePercent is null
+                    ? null
+                    : string.Create(CultureInfo.InvariantCulture, $"{volume.FreePercent.Value:0.0}%"),
+                "Free space / total space (Win32_LogicalDisk)"));
+            specs.Add(CollectorSupport.Spec(
+                $"Volume {letter} - Filesystem",
+                volume.FileSystem,
+                "CIM Win32_LogicalDisk.FileSystem"));
+        }
     }
 
     private static string? FormatPercent(double? value) =>

@@ -77,33 +77,133 @@ buyer does not recognise is worth asking the seller about.
 - Tests: `StartupProgramParserTests` (Core, runs everywhere) and
   `StartupCollectorTests` (Windows leg only, reads the real registry).
 
-## v1.1 — next
+## v1.1 — shipped in this release
 
-- **Storage volume breakdown.** The Storage component reports
-  physical disks (health, wear, power-on hours) but not volumes:
-  per-drive-letter total/free space and filesystem, from
-  Win32_LogicalDisk (read-only, standard user). The open design
-  question is whether volumes belong on the Storage page or get
-  their own component; that decision, not the data, is why this is
-  v1.1 and not v1.0.1.
-- **Windows Update status.** Drivers are already covered (signed /
-  old driver inventory). What is missing is patch state: last
-  successful update install from the Windows Update registry results
-  and the installed-hotfix list (Win32_QuickFixEngineering), both
-  read-only. Needs care before it ships: on WSUS / managed machines
-  the "last success" time can be misleading, and the UI must say
-  when the machine is managed instead of implying it is unpatched.
-- **Battery-health alerts.** A small extension of the History work:
-  when a new scan's battery health drops below a band (or falls
-  faster than the previous scans), say so on the History page. The
-  trend data already exists; only the band rule and wording are new.
+### 1. Storage volume breakdown (on the Storage page)
+
+The Storage component reported physical disks (health, wear, power-on
+hours) but not volumes. It now also reports per-drive-letter total/free
+space and filesystem from Win32_LogicalDisk (read-only, standard user).
+
+- Core: `TrueSpec.Core/Collectors/StorageVolumes.cs`
+  (`StorageVolume` + `StorageVolumeParser`). The parser is the contract:
+  only local fixed disks (DriveType 3) build a volume; network drives,
+  CD-ROM and RAM disks are dropped. Free percent is derived from the two
+  measured byte counts; a missing or zero size, or free larger than total
+  (impossible data), returns null and renders as "Not reported by
+  hardware", never a zero.
+- Windows: `StorageCollector.AddVolumes`, called after the per-drive spec
+  loop. One spec group per volume, C: first then alphabetical: `Volume
+  {letter} - Total space`, `Volume {letter} - Free space`, `Volume
+  {letter} - Free space (%)` (one decimal), `Volume {letter} -
+  Filesystem`. No local volumes at all renders a single `Volumes` spec
+  as "Not reported by hardware". A WMI failure returns no rows and
+  degrades to that fallback, never a failed collector. The headline and
+  the storage health rule are untouched: the rule matches `Wear level`
+  by exact label, and no volume label collides with it.
+- Tests: `StorageVolumeParserTests` (Core, runs everywhere) and
+  `StorageCollectorTests` (Windows leg only, runs the real collector
+  and asserts a `Volume C:` spec exists).
+
+**Design decision (the open question this release answers): volumes
+belong on the Storage page, not in their own component.** Three reasons,
+all from the existing structure. First, volumes are the logical view of
+the same storage subsystem the Storage page already reports — in
+domain terms they are entities inside the Storage bounded context, not
+a second context, and the buyer question is the same ("is this drive
+nearly full?"). Second, a separate component would add a 19th nav item
+while the left rail only fits ~16 items at the default 1280x800 window;
+History already had to be moved to stay visible in v1.0.1, and growing
+the rail risks the same below-the-fold defect. Third, Win32_LogicalDisk
+is readable by a standard user, like the rest of the Storage
+collector's degraded paths, so no new elevation requirement appears.
+
+### 2. Windows Update status (new Updates component)
+
+Drivers were already covered (signed / old driver inventory). Patch
+state was missing; it is now a component of its own: last successful
+update install and check from the Windows Update registry results, plus
+the installed-hotfix list (Win32_QuickFixEngineering), both read-only.
+The Windows Update Agent COM API (IUpdateSession) is deliberately not
+used (see "Rejected").
+
+- Core: `TrueSpec.Core/Collectors/WindowsUpdateStatus.cs`
+  (`InstalledHotfix` + `WindowsUpdateStatus` + `WindowsUpdateStatusParser`).
+  The parser is the contract: `LastSuccessTime` parses from the
+  registry's "yyyy-MM-dd HH:mm:ss" local-time format (anything
+  unparseable is null); hotfix dates parse from the locale-formatted
+  `InstalledOn` string (unparseable stays null, the hotfix still lists,
+  sorted after dated ones); `OrderHotfixes` is newest first, capped at
+  10 shown (the full count is reported separately, so the cap never
+  looks like the total); `DaysSince` returns null for a missing or
+  future date (a future date is a bad clock, not "updated tomorrow").
+  `Headline` builds the component headline from what is actually
+  known, in four forms: count and date known ("42 updates installed -
+  last update 2026-11-05"), count known and date unknown, count unknown
+  and date known ("Last update 2026-11-05"), neither known ("Last
+  update not reported"). The headline never contradicts a spec on the
+  same page.
+- Windows: `TrueSpec.Collectors.Windows/Collectors/UpdatesCollector.cs`.
+  Registry reads are read-only (`writable: false`, 64-bit view) and
+  each value is wrapped so a denied, missing or malformed key means
+  unreadable, never an exception out of the collector. The component is
+  NotMeasurable, so the score is unchanged. Managed machines: a WSUS
+  server configured by policy (`WUServer`) means the organization
+  controls updates, and the UI says so — the "Update management" spec
+  reads "Managed - updates controlled by your organization (WSUS:
+  ...)", and the page text explains the last-success time is the last
+  install the organization allowed, not proof every patch is installed.
+  The component reports NotAvailable only when the install time AND
+  the check time are both null AND the hotfix query returned no rows
+  AND no WSUS server is configured. TrueSpec never installs updates
+  or changes update settings.
+- App: new nav item "Updates" after "Drivers" (History moves to index
+  14, still inside the 0-15 visible region); the component also appears
+  in the honest fallback catalogue on non-Windows machines.
+- Tests: `WindowsUpdateStatusParserTests` (Core, runs everywhere,
+  including all four headline forms) and `UpdatesCollectorTests`
+  (Windows leg only, reads the real registry and WMI; no dates or
+  counts asserted, they depend on the machine). `NavigationTests` pins
+  the Updates page and its routing to the component detail view.
+
+### 3. Battery-health alerts (on the History page)
+
+A small extension of the History work: when a new scan's battery health
+drops below a band, or falls faster than the previous scans, the History
+page says so in an alert card above the trend sparklines. The trend
+data already existed; only the band rule and wording are new.
+
+- Core: `HistoryTrendAnalyzer.BatteryHealthAlert` in
+  `TrueSpec.Core/History/HistoryTrends.cs`, surfaced as
+  `HistoryTrend.BatteryAlert` (null = no alert). Two rules, both aligned
+  with the battery bands already in `HardwareMath` (Normal 80-100%,
+  Worn 60-79%, Replace below 60%) — no second scale is invented:
+  **band drop**: the latest measured health sits in a worse band than
+  the first measured health ("Battery health dropped from Normal
+  (85%) to Worn (78%) since the first saved scan."); **fast fall**:
+  the latest measured health is more than 5 points below the previous
+  measured health ("Battery health fell 8 points between the last two
+  scans that reported it (78% to 70%)."). Normal scan-to-scan variation
+  is under a point, so a drop over 5 points in one interval means the
+  battery fell faster than the previous scans' pace. Both rules can
+  fire in one alert string. Fewer than two measured values, no band
+  change, and no fast fall means no alert; a battery already in the
+  Replace band on the first scan does not alert here (the Battery page
+  already names that band). Gaps are skipped, never treated as zero.
+- App: `HistoryViewModel` exposes `BatteryAlertText` /
+  `HasBatteryAlert`, derived from the trend (the ViewModel holds no
+  second copy of the rule); `HistoryView` shows one alert card, visible
+  only when an alert exists, reusing the existing card style.
+- Tests: `BatteryHealthAlertTests` (Core, runs everywhere: steady
+  health, both band drops, fast fall within one band, single scan,
+  gaps, already-Replace, the 80% / 5-point boundaries).
 
 ## v1.2 — later
 
 - **Driver age summary on the History page.** Driver dates are
   already collected; trending the oldest-driver date across scans
-  shows whether a machine is being maintained. Low value until the
-  Windows Update status above lands, so it waits behind it.
+  shows whether a machine is being maintained. Its prerequisite (the
+  Windows Update status above) shipped in v1.1, so it is unblocked.
 - **Export the history table as CSV.** The History page's table is
   the only view without an export. Small, but only useful once
   people actually accumulate months of scans.

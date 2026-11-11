@@ -18,15 +18,15 @@ Implemented in this build:
 
 | Area | Scope |
 |---|---|
-| Collectors | System, CPU, RAM, Storage, Battery, GPU, Display, Network, Motherboard, Security, Drivers |
-| Storage | NVMe reliability counters, SATA SMART passthrough, wear, power-on hours, errors |
+| Collectors | System, CPU, RAM, Storage, Battery, GPU, Display, Network, Motherboard, Security, Drivers, Startup, Windows Update |
+| Storage | NVMe reliability counters, SATA SMART passthrough, wear, power-on hours, errors, volume breakdown (per-drive-letter total/free space, filesystem) |
 | Battery | Design/full charge capacity, cycles, health bands, charge and discharge rate |
 | Live sensors | LibreHardwareMonitor temperatures, fans, voltages, power, load and clocks |
 | Scoring | Measured health only; unmeasurable components are excluded, never faked |
 | Buyer checks | SSD wear, battery cycles, power-on hours, advertised RAM, BIOS date, Windows install date, critical errors, signed drivers |
-| Reports | JSON, self-contained HTML and CSV, with source labels on every reading |
+| Reports | JSON, self-contained HTML, CSV and PDF, with source labels on every reading |
 | Compare | Compare any two saved snapshots side by side: score change, per-component health deltas, changed specs |
-| History | Every scan is saved to a local SQLite history, so comparisons work across visits |
+| History | Every scan is saved to a local SQLite history, so comparisons work across visits; battery-health alerts when health drops a band or falls fast |
 | Settings | Theme, live sensor refresh rate (1-30s), export folder, all saved and applied immediately |
 | Security | Offline by design, no telemetry, parameterized SQLite, allowlisted external tools only |
 | Tests | Real CPU single-thread and local sequential disk read benchmarks |
@@ -37,7 +37,7 @@ Windows runtime validation requires a Windows machine with the relevant hardware
 
 - **Overview:** overall health score with a per-component breakdown (health, weight, points contributed), plain-English verdict, key stats, component cards, live sparklines.
 - **New Laptop Check:** buyer mode with a PASS, WARNING or FAIL banner and a checklist that tells you what to ask the seller. The checklist exports as a printable HTML page via the "Print checklist" button (open the file in a browser and print from there).
-- **Detail pages:** System, CPU, RAM, Storage, Battery, GPU, Display, Network, Motherboard, Security, Drivers.
+- **Detail pages:** System, CPU, RAM, Storage, Battery, GPU, Display, Network, Motherboard, Security, Drivers, Startup, Windows Update.
 - **Report:** one data model with working JSON, HTML and CSV exports. CSV values are safe to open in Excel: values that look like formulas are neutralised.
 - **Compare:** pick any two saved scans and see the score change, every component that moved, and every specification that changed.
 - **Settings:** dark and light theme, live sensor refresh rate (1-30 seconds), report export folder. Every change saves immediately. English only in v1.

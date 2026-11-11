@@ -61,6 +61,7 @@ public static class UnavailableCollectorCatalog
         Create("motherboard", "Motherboard", "Motherboard", "motherboard", reason),
         Create("security", "Security", "Security", "security", reason),
         Create("drivers", "Drivers", "Security", "drivers", reason),
+        Create("updates", "Windows Update", "Security", "updates", reason),
         Create("startup", "Startup", "System", "startup", reason),
     };
 
