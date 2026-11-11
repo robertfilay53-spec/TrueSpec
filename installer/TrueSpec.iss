@@ -16,13 +16,13 @@
 ; sensor (some SMART and driver data needs elevation).
 ; This script is authored and reviewed by hand. It cannot be compiled on
 ; Linux (Inno Setup is Windows-only), so validate it with `iscc` on Windows
-; before cutting a release. There is no SetupIconFile yet: v1.0.0 shipped
-; with the default icon. Add a branded truespec.ico under
-; src\TrueSpec.App\Assets\ and point the script at it for the next release.
+; before cutting a release. The branded icon lives at
+; src\TrueSpec.App\Assets\truespec-logo.ico and is referenced below
+; via SetupIconFile.
 
 #define AppName "TrueSpec"
-#define AppVersion "1.0.0"
-#define AppPublisher "TrueSpec"
+#define AppVersion "1.0.1"
+#define AppPublisher "Rana Jawad"
 #define AppURL "https://github.com/robertfilay53-spec/TrueSpec"
 #define AppExeName "TrueSpec.App.exe"
 
@@ -31,9 +31,11 @@ AppId={{E5369813-E6BB-49E1-A25F-6AF3B4251361}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
+AppCopyright=Copyright (C) 2026 Rana Jawad
 AppPublisherURL={#AppURL}
 AppSupportURL={#AppURL}
 AppUpdatesURL={#AppURL}
+SetupIconFile=..\src\TrueSpec.App\Assets\truespec-logo.ico
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes

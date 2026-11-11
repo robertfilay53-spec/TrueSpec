@@ -1,6 +1,10 @@
+<img src="src/TrueSpec.App/Assets/truespec-logo.png" alt="TrueSpec logo" width="180" />
+
 # TrueSpec
 
 **One screen. The whole truth about a laptop or PC.**
+
+*Developed by Rana Jawad*
 
 TrueSpec is an open source Windows desktop tool for laptop and PC buyers. Open it and one screen shows every component, its real specs, its measured health, and an overall score. It is built for the question every buyer asks: _is this machine really new, and is it healthy?_
 
