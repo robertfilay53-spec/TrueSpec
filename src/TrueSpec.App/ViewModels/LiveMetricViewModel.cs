@@ -50,7 +50,7 @@ public sealed class LiveMetricViewModel : ViewModelBase
 
     public void AddSample(double? value)
     {
-        if (value is null || double.IsNaN(value.Value))
+        if (value is null || double.IsNaN(value.Value) || double.IsInfinity(value.Value))
         {
             _current = null;
             Publish();

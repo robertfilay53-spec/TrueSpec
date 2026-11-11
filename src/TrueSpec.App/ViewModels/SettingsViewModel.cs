@@ -115,6 +115,16 @@ public sealed partial class SettingsViewModel : ViewModelBase
         Save();
     }
 
+    /// <summary>
+    /// Unsubscribes from the shell. The shell calls this when it drops a
+    /// cached settings page (for example on refresh): without it, every
+    /// dropped page stays alive through the event subscription.
+    /// </summary>
+    public void Detach()
+    {
+        _main.PropertyChanged -= OnMainPropertyChanged;
+    }
+
     private void Save()
     {
         _settings = new AppSettings

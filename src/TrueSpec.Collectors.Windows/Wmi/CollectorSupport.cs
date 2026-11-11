@@ -39,6 +39,38 @@ internal static class CollectorSupport
         return string.Create(CultureInfo.InvariantCulture, $"{value} bytes");
     }
 
+    /// <summary>
+    /// Binary (1024-based) sizes for RAM and video memory: those are sold
+    /// and reported in GiB, so a 16 GiB stick shows "16.0 GB", not "17.2 GB".
+    /// Disk sizes stay decimal (see <see cref="FormatBytes"/>) because drives
+    /// are sold in decimal GB.
+    /// </summary>
+    public static string FormatBytesBinary(ulong? bytes)
+    {
+        if (bytes is null)
+        {
+            return NotReported;
+        }
+
+        var value = bytes.Value;
+        if (value >= 1UL << 40)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"{value / 1_099_511_627_776d:0.00} TB");
+        }
+
+        if (value >= 1UL << 30)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"{value / 1_073_741_824d:0.0} GB");
+        }
+
+        if (value >= 1UL << 20)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"{value / 1_048_576d:0.0} MB");
+        }
+
+        return string.Create(CultureInfo.InvariantCulture, $"{value} bytes");
+    }
+
     public static string FormatMegaBitsPerSecond(ulong? bitsPerSecond)
     {
         if (bitsPerSecond is null)

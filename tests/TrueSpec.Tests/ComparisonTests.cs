@@ -25,6 +25,21 @@ public class ComparisonTests
     }
 
     [Fact]
+    public void Compare_DuplicateComponentIds_DoesNotThrow()
+    {
+        var snapshot = TestSnapshots.Healthy();
+        var duplicated = snapshot with
+        {
+            Components = snapshot.Components.Concat(new[] { TestSnapshots.Ram("16 GB") }).ToList(),
+        };
+
+        var result = SnapshotComparer.Compare(snapshot, duplicated);
+
+        Assert.Equal(0, result.ScoreDelta, 3);
+        Assert.Empty(result.ChangedComponents);
+    }
+
+    [Fact]
     public void Compare_WorseCpuHealth_ReportsNegativeDeltaAndChangedComponent()
     {
         var before = TestSnapshots.Healthy();

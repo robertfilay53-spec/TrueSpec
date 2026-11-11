@@ -23,7 +23,8 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
         ICommand exportCommand,
         ICommand? exportChecklistCommand = null,
         IBuyerCheckEvaluator? evaluator = null,
-        Action<BuyerCheckResult, string?>? onChecksChanged = null)
+        Action<BuyerCheckResult, string?>? onChecksChanged = null,
+        string? advertisedRam = null)
     {
         _snapshot = snapshot;
         _evaluator = evaluator ?? new BuyerCheckEvaluator();
@@ -35,6 +36,15 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
         Checks = new ObservableCollection<BuyerCheckRowViewModel>(
             _result.Checks.Select(c => new BuyerCheckRowViewModel(c)));
         Summary = BuildSummary(_result);
+
+        // Restore the advertised size the shell kept (for example after a
+        // refresh rebuilt this page): the text box must not come back empty.
+        // Setting the property re-evaluates the checks with the same context,
+        // so the result is identical to the one the scan already computed.
+        if (!string.IsNullOrWhiteSpace(advertisedRam))
+        {
+            AdvertisedRam = advertisedRam;
+        }
     }
 
     public string MachineName { get; }

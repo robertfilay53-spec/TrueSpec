@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <!-- Single source of truth for the displayed version: MainViewModel
+         reads this from the assembly, so a release bump touches this one
+         place (plus installer/TrueSpec.iss AppVersion and the git tag). -->
+    <Version>1.0.0</Version>
     <TargetFramework Condition="'$(OS)' == 'Windows_NT'">net10.0-windows</TargetFramework>
     <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFramework>
     <Nullable>enable</Nullable>

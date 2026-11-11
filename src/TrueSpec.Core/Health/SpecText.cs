@@ -70,4 +70,54 @@ public static class SpecText
             CultureInfo.InvariantCulture,
             out value);
     }
+
+    /// <summary>
+    /// Parses a memory size such as "16 GB", "16.0 GiB", "16384 MB" or "16GB"
+    /// into bytes. Units are binary (1 GB = 1 GiB = 1024^3 bytes) because RAM
+    /// is sold and displayed that way; a bare number is read as GB. Returns
+    /// false when the text cannot be understood, so the caller can say so
+    /// instead of guessing.
+    /// </summary>
+    public static bool TryParseMemorySizeBytes(string? text, out ulong bytes)
+    {
+        bytes = 0;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        var clean = text.Trim().Replace(",", string.Empty, StringComparison.Ordinal);
+
+        var split = 0;
+        while (split < clean.Length && (char.IsDigit(clean[split]) || clean[split] == '.'))
+        {
+            split++;
+        }
+
+        if (split == 0 ||
+            !double.TryParse(clean[..split], NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ||
+            number < 0d)
+        {
+            return false;
+        }
+
+        var unit = clean[split..].Trim().ToUpperInvariant();
+        var multiplier = unit switch
+        {
+            "" or "G" or "GB" or "GIB" => 1UL << 30,
+            "T" or "TB" or "TIB" => 1UL << 40,
+            "M" or "MB" or "MIB" => 1UL << 20,
+            "K" or "KB" or "KIB" => 1UL << 10,
+            "B" or "BYTE" or "BYTES" => 1UL,
+            _ => 0UL,
+        };
+
+        if (multiplier == 0UL || number > (double)ulong.MaxValue / multiplier)
+        {
+            return false;
+        }
+
+        bytes = (ulong)(number * multiplier);
+        return true;
+    }
 }

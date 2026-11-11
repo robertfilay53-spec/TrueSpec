@@ -50,7 +50,10 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
             new("CPU temp", "C"),
             new("GPU temp", "C"),
             new("CPU usage", "%"),
-            new("Battery drain", "W"),
+            // "Battery power", not "Battery drain": LibreHardwareMonitor
+            // reports a signed power flow, negative while the battery is
+            // charging, so "drain" would be wrong half the time.
+            new("Battery power", "W"),
         };
 
         UpdateSnapshot(snapshot, isScanning);
@@ -202,7 +205,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
             UpdateMetric("CPU temp", snapshot.CpuTemperature()?.Value);
             UpdateMetric("GPU temp", snapshot.GpuTemperature()?.Value);
             UpdateMetric("CPU usage", snapshot.CpuLoad()?.Value);
-            UpdateMetric("Battery drain", snapshot.BatteryPower()?.Value);
+            UpdateMetric("Battery power", snapshot.BatteryPower()?.Value);
         }
         catch (Exception exception)
         {

@@ -1,7 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- Multi-targeted because the app targets net10.0-windows on Windows
+         and net10.0 elsewhere: a net10.0-only test project cannot reference
+         a net10.0-windows app (NU1201), so each OS tests the framework that
+         matches it (dotnet test -f net10.0-windows on Windows,
+         -f net10.0 on Linux/macOS). EnableWindowsTargeting lets the
+         net10.0-windows leg restore and build on Linux. -->
+    <TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>

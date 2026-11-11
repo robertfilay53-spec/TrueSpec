@@ -1,5 +1,6 @@
 namespace TrueSpec.Core.Reports;
 
+using System.Globalization;
 using System.Net;
 using System.Text;
 using TrueSpec.Core.Models;
@@ -129,7 +130,7 @@ public sealed class HtmlReportExporter : IReportExporter
 
     private static string ScoreText(SystemSnapshot snapshot) =>
         snapshot.Score.HasMeasurableComponents
-            ? snapshot.Score.OverallScore.ToString("0.#")
+            ? snapshot.Score.OverallScore.ToString("0.#", CultureInfo.InvariantCulture)
             : "Not available";
 
     private static string StatusClass(HealthStatus status) => status switch

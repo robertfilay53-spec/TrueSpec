@@ -59,8 +59,14 @@ public static class SnapshotComparer
         ArgumentNullException.ThrowIfNull(before);
         ArgumentNullException.ThrowIfNull(after);
 
-        var beforeById = before.Components.ToDictionary(c => c.Id, StringComparer.OrdinalIgnoreCase);
-        var afterById = after.Components.ToDictionary(c => c.Id, StringComparer.OrdinalIgnoreCase);
+        // A duplicate component id or spec label must never crash the
+        // comparison: keep the first entry for a key and carry on.
+        var beforeById = before.Components
+            .GroupBy(c => c.Id, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var afterById = after.Components
+            .GroupBy(c => c.Id, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
         var changes = new List<ComponentChange>();
         foreach (var afterComponent in after.Components)
@@ -108,7 +114,9 @@ public static class SnapshotComparer
 
     private static IReadOnlyList<SpecChange> ChangedSpecs(ComponentSnapshot before, ComponentSnapshot after)
     {
-        var beforeSpecs = before.Specs.ToDictionary(s => s.Label, StringComparer.OrdinalIgnoreCase);
+        var beforeSpecs = before.Specs
+            .GroupBy(s => s.Label, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var changes = new List<SpecChange>();
 
         foreach (var spec in after.Specs)

@@ -16,9 +16,9 @@
 ; sensor (some SMART and driver data needs elevation).
 ; This script is authored and reviewed by hand. It cannot be compiled on
 ; Linux (Inno Setup is Windows-only), so validate it with `iscc` on Windows
-; before cutting a release. There is no SetupIconFile yet: add a branded
-; truespec.ico under src\TrueSpec.App\Assets\ and point the script at it
-; before the first release build.
+; before cutting a release. There is no SetupIconFile yet: v1.0.0 shipped
+; with the default icon. Add a branded truespec.ico under
+; src\TrueSpec.App\Assets\ and point the script at it for the next release.
 
 #define AppName "TrueSpec"
 #define AppVersion "1.0.0"
@@ -61,7 +61,7 @@ UninstallDisplayName={#AppName} {#AppVersion}
 ; an uninstall there is nothing to restart into, and the default (yes)
 ; would try to relaunch the just-deleted app.
 CloseApplications=yes
-CloseApplicationsFilter=*.exe
+CloseApplicationsFilter=TrueSpec.App.exe
 RestartApplications=no
 
 [Languages]

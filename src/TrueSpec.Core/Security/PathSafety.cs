@@ -66,6 +66,13 @@ public static class PathSafety
             return null;
         }
 
+        var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        if (!string.IsNullOrEmpty(programFilesX86) &&
+            fullPath.StartsWith(programFilesX86, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
         return fullPath;
     }
 

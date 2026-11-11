@@ -43,12 +43,17 @@ public sealed class NetworkCollector : ICollector
         var adapters = Wmi.Query(
             "root\\cimv2",
             "SELECT * FROM Win32_NetworkAdapter WHERE PhysicalAdapter = TRUE");
+        // A missing key must never crash the scan: two rows with no Index or
+        // DeviceID would both map to "" and ToDictionary would throw. Keep
+        // the first row for a key and carry on.
         var configurations = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_NetworkAdapterConfiguration")
-            .ToDictionary(r => r.String("Index") ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+            .GroupBy(r => r.String("Index") ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var drivers = Wmi.Query(
                 "root\\cimv2",
                 "SELECT DeviceID, DriverVersion, DriverDate, Manufacturer FROM Win32_PnPSignedDriver")
-            .ToDictionary(r => r.String("DeviceID") ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+            .GroupBy(r => r.String("DeviceID") ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
         var wifi = adapters.FirstOrDefault(IsWifi);
         var ethernet = adapters.FirstOrDefault(IsEthernet);

@@ -35,8 +35,8 @@ treats every hardware reading as untrusted input until validated.
 - Writes reports (JSON, HTML, CSV) and the printable buyer checklist only to
   the export folder the user picked, or to `Documents\TrueSpec` by default.
   Export folders are validated by `PathSafety`: the path must be absolute,
-  must not be a drive root or a Windows system folder, and must not escape
-  through `..` segments.
+  must not be a drive root, a Windows system folder, or a Program Files
+  folder, and must not escape through `..` segments.
 - Saves settings as JSON under `%LocalApplicationData%\TrueSpec\settings.json`.
   A missing or corrupt file falls back to defaults; every loaded value is
   sanitized (refresh interval clamped to 1-30 seconds, export folder
@@ -45,10 +45,10 @@ treats every hardware reading as untrusted input until validated.
 ## What the app does NOT do
 
 - **No network calls.** There is no `HttpClient`, no socket, no telemetry, no
-  analytics, no update check, and no account. Verified by grep in CI review
-  and by the fact that the app has no network permission in its manifest.
-  The "Check for updates" concept was removed from settings because an
-  offline app must not promise a network feature.
+  analytics, no update check, and no account. Verified by grep in CI review.
+  The app manifest requests `asInvoker` only and declares no network
+  capability. The "Check for updates" concept was removed from settings
+  because an offline app must not promise a network feature.
 - **No WMIC.** WMIC was removed in Windows 11 25H2. All Windows reads use
   CIM/WMI only.
 - **No fake numbers.** Anything without a real sensor shows

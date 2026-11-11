@@ -93,10 +93,12 @@ public class InstallerScriptTests
     }
 
     [Fact]
-    public void CloseApplicationsFilter_CoversExe()
+    public void CloseApplicationsFilter_NamesTheAppExe()
     {
+        // The filter must name the app's own exe, not every exe: a broad
+        // "*.exe" filter lets Restart Manager consider unrelated apps.
         var filter = SetupDirective(ReadScript(), "CloseApplicationsFilter");
-        Assert.Contains("*.exe", filter, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("TrueSpec.App.exe", filter, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

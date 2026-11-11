@@ -61,6 +61,13 @@ public class BuyerCheckEvaluatorTests
     [InlineData("16 GB", "16 GB", BuyerCheckState.Pass)]
     [InlineData("16 GB", "32 GB", BuyerCheckState.Fail)]
     [InlineData("16 GB", "16GB", BuyerCheckState.Pass)]
+    [InlineData("16.0 GB", "16 GB", BuyerCheckState.Pass)]
+    [InlineData("16.0 GB", "16GB", BuyerCheckState.Pass)]
+    [InlineData("16 GB", "16.0 GB", BuyerCheckState.Pass)]
+    [InlineData("16 GiB", "16 GB", BuyerCheckState.Pass)]
+    [InlineData("8 GB", "16 GB", BuyerCheckState.Fail)]
+    [InlineData("16.0 GB", "15 GB", BuyerCheckState.Fail)]
+    [InlineData("16.0 GB", "15.9 GB", BuyerCheckState.Pass)]
     public void AdvertisedRamComparison_FlagsMismatch(
         string actual,
         string advertised,
@@ -72,5 +79,25 @@ public class BuyerCheckEvaluatorTests
 
         var check = Assert.Single(result.Checks, c => c.Id == "ram-size");
         Assert.Equal(expected, check.State);
+    }
+
+    [Fact]
+    public void DuplicateComponentIds_DoNotCrashTheScan()
+    {
+        var result = new BuyerCheckEvaluator().Evaluate(
+            new[] { TestSnapshots.Ram("16 GB"), TestSnapshots.Ram("16 GB") },
+            new BuyerCheckContext("16 GB"));
+
+        Assert.Equal(BuyerCheckState.Pass, result.Checks.Single(c => c.Id == "ram-size").State);
+    }
+
+    [Fact]
+    public void UnparseableAdvertisedRam_IsNotApplicableNotAFail()
+    {
+        var result = new BuyerCheckEvaluator().Evaluate(
+            new[] { TestSnapshots.Ram("16.0 GB") },
+            new BuyerCheckContext("lots"));
+
+        Assert.Equal(BuyerCheckState.NotApplicable, result.Checks.Single(c => c.Id == "ram-size").State);
     }
 }

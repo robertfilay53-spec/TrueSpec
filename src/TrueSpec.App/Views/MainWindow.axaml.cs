@@ -1,10 +1,12 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using TrueSpec.App.Services;
 using TrueSpec.App.ViewModels;
+using TrueSpec.Core.Security;
 
 namespace TrueSpec.App.Views;
 
@@ -17,8 +19,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _statePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "TrueSpec",
+            PathSafety.DefaultAppDataFolder(),
             "window-state.json");
 
         Opened += (_, _) => RestoreWindowState();
@@ -44,11 +45,22 @@ public partial class MainWindow : Window
 
             if (state.Width >= MinWidth && state.Height >= MinHeight)
             {
-                Width = state.Width;
-                Height = state.Height;
+                // Clamp to the largest screen: a saved size from a bigger
+                // monitor must not open a window wider than this display.
+                var maxWidth = Screens.All.Max(s => (double)s.WorkingArea.Width);
+                var maxHeight = Screens.All.Max(s => (double)s.WorkingArea.Height);
+                Width = Math.Min(state.Width, Math.Max(MinWidth, maxWidth));
+                Height = Math.Min(state.Height, Math.Max(MinHeight, maxHeight));
             }
 
-            Position = new PixelPoint(state.X, state.Y);
+            // Only restore the position when it lands on a visible monitor.
+            // Unplugging the second monitor a window was saved on used to
+            // restore it off-screen, with no way to reach it.
+            var position = new PixelPoint(state.X, state.Y);
+            if (Screens.All.Any(s => s.WorkingArea.Contains(position)))
+            {
+                Position = position;
+            }
         }
         catch
         {

@@ -64,14 +64,18 @@ public sealed class BatteryCollector : ICollector
 
         var currentCharge = battery?.UInt16("EstimatedChargeRemaining");
         var runtime = battery?.UInt32("EstimatedRunTime");
-        if (runtime is 71582788)
+        // Win32_Battery reports 0x04444444 when the runtime is unknown.
+        const uint UnknownRuntimeSentinel = 71582788;
+        if (runtime is UnknownRuntimeSentinel)
         {
             runtime = null;
         }
 
         var headline = string.Join(" - ", new[]
         {
-            FormatCapacity(design),
+            // A missing design capacity is skipped, never printed as
+            // "Not reported by hardware - 85.5% health".
+            design is null ? null : FormatCapacity(design),
             health is null ? "Health not reported" : string.Create(CultureInfo.InvariantCulture, $"{health.Value:0.#}% health"),
         }.Where(v => !string.IsNullOrWhiteSpace(v)));
 

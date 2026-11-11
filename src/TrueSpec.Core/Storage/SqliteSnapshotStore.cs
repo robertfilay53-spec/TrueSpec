@@ -116,7 +116,7 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
         {
             return JsonSerializer.Deserialize<SystemSnapshot>(payload, JsonOptions);
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
         {
             // A snapshot written by an older or corrupt build is skipped
             // instead of crashing the comparison view.
@@ -149,9 +149,17 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
+            // A corrupt row must not hide the whole history: skip rows whose
+            // id or date cannot be parsed instead of throwing.
+            if (!Guid.TryParse(reader.GetString(0), out var id) ||
+                !DateTimeOffset.TryParse(reader.GetString(1), CultureInfo.InvariantCulture, DateTimeStyles.None, out var capturedAt))
+            {
+                continue;
+            }
+
             results.Add(new SnapshotSummary(
-                Guid.Parse(reader.GetString(0)),
-                DateTimeOffset.Parse(reader.GetString(1), CultureInfo.InvariantCulture),
+                id,
+                capturedAt,
                 reader.GetString(2),
                 reader.GetDouble(3),
                 reader.GetString(4)));

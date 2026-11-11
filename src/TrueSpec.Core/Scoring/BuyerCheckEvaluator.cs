@@ -20,7 +20,11 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
     {
         ArgumentNullException.ThrowIfNull(components);
 
-        var byId = components.ToDictionary(c => c.Id, StringComparer.OrdinalIgnoreCase);
+        var byId = components
+            // A duplicate collector id must never crash the whole scan:
+            // keep the first component for an id and carry on.
+            .GroupBy(c => c.Id, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var checks = new List<BuyerCheck>
         {
             CheckSsdWear(byId),
@@ -140,7 +144,22 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
                 "Type the RAM size from the seller listing to enable this check.");
         }
 
-        return string.Equals(NormalizeSize(actual), NormalizeSize(advertised), StringComparison.OrdinalIgnoreCase)
+        // Compare numbers, not strings: a 16 GiB machine shows "16.0 GB"
+        // and a listing that says "16 GB" is the same machine, while the
+        // old string compare failed it ("16.0GB" != "16GB"). A 1% tolerance
+        // absorbs rounding ("15.9 GB" still matches 16 GiB); a real
+        // mismatch still fails.
+        if (!SpecText.TryParseMemorySizeBytes(actual, out var actualBytes) ||
+            !SpecText.TryParseMemorySizeBytes(advertised, out var advertisedBytes))
+        {
+            return new BuyerCheck(id, title,
+                $"Installed memory is {actual} but the listing size ({advertised}) could not be understood.",
+                BuyerCheckState.NotApplicable,
+                "Type the RAM size from the seller listing as a number and a unit, for example \"16 GB\".");
+        }
+
+        var difference = Math.Abs((double)actualBytes - advertisedBytes);
+        return difference <= 0.01d * actualBytes
             ? new BuyerCheck(id, title,
                 $"Installed memory is {actual} and the listing says {advertised}.",
                 BuyerCheckState.Pass,
@@ -306,9 +325,4 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
             ? component.Specs.FirstOrDefault(s =>
                 string.Equals(s.Label, label, StringComparison.OrdinalIgnoreCase))?.Value
             : null;
-
-    private static string NormalizeSize(string text) =>
-        text.Replace(" ", string.Empty, StringComparison.Ordinal)
-            .Replace("GB", "GB", StringComparison.OrdinalIgnoreCase)
-            .ToUpperInvariant();
 }

@@ -118,7 +118,7 @@ public partial class MainViewModel : ViewModelBase
                 CancellationToken.None,
                 ScanTimeouts.Default,
                 StartupLog.Append);
-            ApplySnapshot(snapshot, "Real scan complete. Live sensors use LibreHardwareMonitor when available.");
+            ApplySnapshot(snapshot, "Real scan complete. Live sensors use LibreHardwareMonitor when available.", resetNavigation: true);
             _ = SaveSnapshotAsync(snapshot);
             StartupLog.Append("MainViewModel: initial scan complete");
         }
@@ -141,18 +141,44 @@ public partial class MainViewModel : ViewModelBase
     /// one that gets the new score, so Overview, Report and the exports can
     /// never disagree about the score or the verdict.
     /// </summary>
-    private void ApplySnapshot(SystemSnapshot snapshot, string statusMessage)
+    private void ApplySnapshot(SystemSnapshot snapshot, string statusMessage, bool resetNavigation)
     {
         _snapshot = snapshot;
-        _buyerContext = new BuyerCheckContext();
+        // The buyer context is deliberately preserved: the advertised RAM the
+        // user typed must survive a refresh, otherwise the RAM check silently
+        // goes NotApplicable on the second refresh.
+        foreach (var page in _pageCache.Values)
+        {
+            if (page is SettingsViewModel settings)
+            {
+                settings.Detach();
+            }
+        }
+
         _pageCache.Clear();
 
         Overview.UpdateSnapshot(snapshot, isScanning: false);
 
         LastScanText = $"Last scan {snapshot.CapturedAt:HH:mm:ss}";
         OnPropertyChanged(nameof(LastScanText));
-        SelectedNavItem = NavItems.FirstOrDefault();
-        CurrentPage = Overview;
+        if (resetNavigation)
+        {
+            SelectedNavItem = NavItems.FirstOrDefault();
+            CurrentPage = Overview;
+        }
+        else if (SelectedNavItem is { } selected)
+        {
+            // Stay on the same page, rebuilt from the new snapshot, instead
+            // of yanking the user back to Overview on every refresh.
+            NavigateTo(selected.Key);
+        }
+        else
+        {
+            // Transient page (buyer check / component detail): fall back to Overview.
+            SelectedNavItem = NavItems.FirstOrDefault();
+            CurrentPage = Overview;
+        }
+
         StatusMessage = statusMessage;
     }
 
@@ -180,7 +206,18 @@ public partial class MainViewModel : ViewModelBase
 
     public string ExportFolder => EffectiveExportFolder();
 
-    public string VersionText => "TrueSpec 1.0.0 (v1)";
+    public string VersionText
+    {
+        get
+        {
+            // Read from the assembly, not a literal: the version is set once
+            // in TrueSpec.App.csproj (<Version>) and stays correct on v1.0.1.
+            var version = typeof(MainViewModel).Assembly.GetName().Version;
+            return version is null
+                ? "TrueSpec 1.0.0 (v1)"
+                : $"TrueSpec {version.Major}.{version.Minor}.{version.Build} (v{version.Major})";
+        }
+    }
 
     public bool IsElevated => Environment.IsPrivilegedProcess;
 
@@ -271,7 +308,8 @@ public partial class MainViewModel : ViewModelBase
                 ExportJsonCommand,
                 ExportChecklistCommand,
                 _buyerCheckEvaluator,
-                OnBuyerChecksChanged));
+                OnBuyerChecksChanged,
+                _buyerContext.AdvertisedRam));
     }
 
     [RelayCommand]
@@ -292,7 +330,10 @@ public partial class MainViewModel : ViewModelBase
                 CancellationToken.None,
                 ScanTimeouts.Default,
                 StartupLog.Append);
-            ApplySnapshot(snapshot, "Hardware scan refreshed from real collectors.");
+            // The scan is done: clear the flag before ApplySnapshot, so a
+            // page rebuilt from the new snapshot does not read "scanning".
+            _scanRunning = false;
+            ApplySnapshot(snapshot, "Hardware scan refreshed from real collectors.", resetNavigation: false);
             _ = SaveSnapshotAsync(snapshot);
         }
         catch (Exception exception)

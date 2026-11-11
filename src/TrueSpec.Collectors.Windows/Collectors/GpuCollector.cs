@@ -59,11 +59,17 @@ public sealed class GpuCollector : ICollector
             _ => CollectorSupport.NotReported,
         };
 
+        // AdapterRAM is a uint32: cards with more than 4 GB of VRAM report
+        // 0xFFFFFFFF (4294967295), which would display as a wrong "4.3 GB".
+        // 0 means no dedicated memory is reported. Both are unknown, never 0.
+        var adapterRam = adapter.UInt64("AdapterRAM");
+        var dedicatedMemory = adapterRam is null or 0UL or 0xFFFFFFFFUL ? null : adapterRam;
+
         var specs = new List<SpecValue>
         {
             CollectorSupport.Spec("Model", adapter.String("Name"), "CIM Win32_VideoController"),
             CollectorSupport.Spec("Vendor", adapter.String("AdapterCompatibility"), "CIM Win32_VideoController"),
-            CollectorSupport.Spec("Dedicated memory", CollectorSupport.FormatBytes(adapter.UInt64("AdapterRAM")), "CIM Win32_VideoController.AdapterRAM"),
+            CollectorSupport.Spec("Dedicated memory", CollectorSupport.FormatBytesBinary(dedicatedMemory), "CIM Win32_VideoController.AdapterRAM"),
             CollectorSupport.Spec("Driver version", adapter.String("DriverVersion"), "CIM Win32_VideoController"),
             CollectorSupport.Spec("Driver date", adapter.DateText("DriverDate"), "CIM Win32_VideoController.DriverDate"),
             CollectorSupport.Spec("Video processor", adapter.String("VideoProcessor"), "CIM Win32_VideoController"),

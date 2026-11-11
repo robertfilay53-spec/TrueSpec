@@ -11,17 +11,36 @@ namespace TrueSpec.App.Services;
 /// </summary>
 public static class StartupLog
 {
+    // One lock for every writer: scan threads append concurrently, and
+    // File.AppendAllText without a lock can interleave or lose lines.
+    private static readonly object Gate = new();
+
+    // The log is a diagnostic aid, not an archive: past this size it is
+    // restarted with a rotation note instead of growing without bound.
+    private const long MaxBytes = 256 * 1024;
+
     public static string LogPath => Path.Combine(PathSafety.DefaultAppDataFolder(), "startup.log");
 
     public static void Append(string message)
     {
         try
         {
-            var folder = PathSafety.DefaultAppDataFolder();
-            Directory.CreateDirectory(folder);
-            File.AppendAllText(
-                Path.Combine(folder, "startup.log"),
-                $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff} {message}{Environment.NewLine}");
+            lock (Gate)
+            {
+                var folder = PathSafety.DefaultAppDataFolder();
+                Directory.CreateDirectory(folder);
+                var path = Path.Combine(folder, "startup.log");
+                if (File.Exists(path) && new FileInfo(path).Length > MaxBytes)
+                {
+                    File.WriteAllText(
+                        path,
+                        $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff} Startup log rotated (over 256 KB).{Environment.NewLine}");
+                }
+
+                File.AppendAllText(
+                    path,
+                    $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff} {message}{Environment.NewLine}");
+            }
         }
         catch
         {

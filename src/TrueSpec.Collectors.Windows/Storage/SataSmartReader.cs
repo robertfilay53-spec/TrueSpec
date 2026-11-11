@@ -151,7 +151,8 @@ internal static class SataSmartReader
         double? wear = null;
         if (attributes.TryGetValue(231, out var lifeLeft))
         {
-            if (lifeLeft[0] is > 0 and <= 100)
+            // 0 means the life is exhausted: wear is 100%, not unknown.
+            if (lifeLeft[0] <= 100)
             {
                 wear = 100d - lifeLeft[0];
             }

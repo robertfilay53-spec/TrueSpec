@@ -4,7 +4,7 @@
 
 TrueSpec is an open source Windows desktop tool for laptop and PC buyers. Open it and one screen shows every component, its real specs, its measured health, and an overall score. It is built for the question every buyer asks: _is this machine really new, and is it healthy?_
 
-The product rule is simple: every number is either **measured** (with its source named), **estimated** (clearly labeled ESTIMATE), or shown as **Not reported by hardware**. TrueSpec never invents a precise number. That honesty is the product.
+The product rule is simple: every number is either **measured** (with its source named) or shown as **Not reported by hardware**. TrueSpec never invents a precise number. That honesty is the product.
 
 ## Status
 
@@ -32,8 +32,8 @@ Windows runtime validation requires a Windows machine with the relevant hardware
 ## What it will show
 
 - **Overview:** overall health score with a per-component breakdown (health, weight, points contributed), plain-English verdict, key stats, component cards, live sparklines.
-- **New Laptop Check:** buyer mode with a PASS, WARNING or FAIL banner and a checklist that tells you what to ask the seller. The checklist exports as a printable HTML page (File > Print, or Ctrl+P).
-- **Detail pages:** System, CPU, RAM, Storage, Battery, GPU, Display, Network, Motherboard, Security.
+- **New Laptop Check:** buyer mode with a PASS, WARNING or FAIL banner and a checklist that tells you what to ask the seller. The checklist exports as a printable HTML page via the "Print checklist" button (open the file in a browser and print from there).
+- **Detail pages:** System, CPU, RAM, Storage, Battery, GPU, Display, Network, Motherboard, Security, Drivers.
 - **Report:** one data model with working JSON, HTML and CSV exports. CSV values are safe to open in Excel: values that look like formulas are neutralised.
 - **Compare:** pick any two saved scans and see the score change, every component that moved, and every specification that changed.
 - **Settings:** dark and light theme, live sensor refresh rate (1-30 seconds), report export folder. Every change saves immediately. English only in v1.
@@ -52,9 +52,17 @@ Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/). Avalonia builds on L
 git clone https://github.com/robertfilay53-spec/TrueSpec.git
 cd TrueSpec
 
-dotnet restore TrueSpec.sln
-dotnet build TrueSpec.sln -c Release
-dotnet test TrueSpec.sln -c Release
+# Build the app (also builds Core and, on Windows, the collectors)
+dotnet build src/TrueSpec.App -c Release
+
+# Run the tests. The test project is multi-targeted (net10.0 and
+# net10.0-windows) because the app targets net10.0-windows on Windows and
+# net10.0 elsewhere; run the framework that matches the OS, or restore
+# fails with NU1201 on Windows.
+# Windows:
+dotnet test TrueSpec.sln -c Release -f net10.0-windows
+# Linux / macOS:
+dotnet test TrueSpec.sln -c Release -f net10.0
 
 # Run the desktop app
 dotnet run --project src/TrueSpec.App -c Release
@@ -72,11 +80,11 @@ dotnet run --project src/TrueSpec.App -c Release
    iscc installer\TrueSpec.iss
    ```
    This produces `installer\Output\TrueSpecSetup-<version>.exe`. The script only installs the published files, creates a Start Menu shortcut and an optional desktop shortcut, and never writes to the registry beyond the standard uninstall entry. It does not require administrator rights; run it elevated only if you want every sensor (some SMART and driver data needs elevation).
-3. Run the installer. Reports and snapshot history are stored under `Documents\TrueSpec` (or the folder you pick in Settings), and settings under `%APPDATA%\TrueSpec`.
+3. Run the installer. Reports are stored under `Documents\TrueSpec` (or the folder you pick in Settings); settings, snapshot history and the startup log live under `%LocalAppData%\TrueSpec`. Requires Windows 10 version 1809 or later, or Windows 11, x64.
 
 ### Tests
 
-Tests are xUnit in `tests/TrueSpec.Tests`. They cover scoring, buyer checks, collectors, report exporters (JSON/HTML/CSV), the snapshot store, snapshot comparison, settings sanitization and the security validators. They run on Windows CI. On Linux, `dotnet test` compiles but the test host cannot connect in this environment (a VM limit, not a code failure); the build step above is the local check.
+Tests are xUnit in `tests/TrueSpec.Tests`. They cover scoring, buyer checks, collectors, report exporters (JSON/HTML/CSV), the snapshot store, snapshot comparison, settings sanitization and the security validators. They run in CI on Ubuntu and Windows. On Linux, `dotnet test` compiles but the test host cannot connect in this environment (a VM limit, not a code failure); the build step above is the local check.
 
 ### Dependency audit
 

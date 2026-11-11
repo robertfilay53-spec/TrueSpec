@@ -180,8 +180,7 @@ public sealed class StorageCollector : ICollector
         {
             var letter = partition.String("DriveLetter");
             var isSystem = string.Equals(letter, "C", StringComparison.OrdinalIgnoreCase) ||
-                           string.Equals(letter, "C:", StringComparison.OrdinalIgnoreCase) ||
-                           letter == ((char)67).ToString();
+                           string.Equals(letter, "C:", StringComparison.OrdinalIgnoreCase);
             if (isSystem)
             {
                 return partition.Int32("DiskNumber");

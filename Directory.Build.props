@@ -1,0 +1,7 @@
+<Project>
+  <!-- The release bar is zero warnings: a warning is a build failure in CI
+       and locally, so a new warning can never slip into a release. -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>

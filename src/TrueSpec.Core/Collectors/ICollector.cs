@@ -9,7 +9,7 @@ using TrueSpec.Core.Models;
 /// </summary>
 public interface ICollector
 {
-    /// <summary>Stable machine id, for example "storage.nvme".</summary>
+    /// <summary>Stable machine id, for example "storage".</summary>
     string Id { get; }
 
     /// <summary>Human readable name shown in the UI.</summary>

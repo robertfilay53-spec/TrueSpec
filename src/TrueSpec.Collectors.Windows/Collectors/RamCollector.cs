@@ -55,14 +55,15 @@ public sealed class RamCollector : ICollector
 
         var headline = string.Join(" ", new[]
         {
-            CollectorSupport.FormatBytes((ulong)totalBytes),
+            CollectorSupport.FormatBytesBinary((ulong)totalBytes),
             type == CollectorSupport.NotReported ? null : type,
-            speed is null ? null : string.Create(CultureInfo.InvariantCulture, $"-{speed.Value}"),
+            // "DDR5 5200 MT/s": never "-5200", which reads as a negative number.
+            speed is null ? null : string.Create(CultureInfo.InvariantCulture, $"{speed.Value} MT/s"),
         }.Where(v => !string.IsNullOrWhiteSpace(v)));
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec("Total memory", CollectorSupport.FormatBytes((ulong)totalBytes), "CIM Win32_PhysicalMemory capacity sum"),
+            CollectorSupport.Spec("Total memory", CollectorSupport.FormatBytesBinary((ulong)totalBytes), "CIM Win32_PhysicalMemory capacity sum"),
             CollectorSupport.Spec("Type", type, "CIM Win32_PhysicalMemory"),
             CollectorSupport.Spec("Speed", speed is null ? null : string.Create(CultureInfo.InvariantCulture, $"{speed.Value} MT/s"), "CIM Win32_PhysicalMemory"),
             CollectorSupport.Spec("Configured speed", first.UInt32("ConfiguredClockSpeed") is { } configured
@@ -72,7 +73,7 @@ public sealed class RamCollector : ICollector
             CollectorSupport.Spec("Slots used", slotsText, "CIM Win32_PhysicalMemoryArray.MemoryDevices"),
             CollectorSupport.Spec("Memory errors", memoryErrors is null
                 ? null
-                : memoryErrors.Value.ToString(CultureInfo.InvariantCulture), "Windows Event Log (WHEA-Logger)"),
+                : memoryErrors.Value.ToString(CultureInfo.InvariantCulture), "Windows Event Log (WHEA-Logger memory events, MemoryDiagnostic)"),
             CollectorSupport.Spec("Memory test", "Not run", "Windows Memory Diagnostic"),
             CollectorSupport.Spec("Life remaining", "Not reported by hardware", "No RAM life sensor exists"),
         };
@@ -83,7 +84,7 @@ public sealed class RamCollector : ICollector
         {
             specs.Add(CollectorSupport.Spec(
                 "Total memory reported by Windows",
-                CollectorSupport.FormatBytes(osTotal),
+                CollectorSupport.FormatBytesBinary(osTotal),
                 "CIM Win32_ComputerSystem.TotalPhysicalMemory"));
         }
 
@@ -94,7 +95,7 @@ public sealed class RamCollector : ICollector
             specs.Add(CollectorSupport.Spec($"{prefix} - Manufacturer", stick.String("Manufacturer"), "CIM Win32_PhysicalMemory"));
             specs.Add(CollectorSupport.Spec($"{prefix} - Part number", stick.String("PartNumber"), "CIM Win32_PhysicalMemory"));
             specs.Add(CollectorSupport.Spec($"{prefix} - Serial number", stick.String("SerialNumber"), "CIM Win32_PhysicalMemory"));
-            specs.Add(CollectorSupport.Spec($"{prefix} - Capacity", CollectorSupport.FormatBytes(stick.UInt64("Capacity")), "CIM Win32_PhysicalMemory"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - Capacity", CollectorSupport.FormatBytesBinary(stick.UInt64("Capacity")), "CIM Win32_PhysicalMemory"));
             specs.Add(CollectorSupport.Spec($"{prefix} - Slot", stick.String("DeviceLocator") ?? stick.String("BankLabel"), "CIM Win32_PhysicalMemory"));
         }
 

@@ -110,7 +110,12 @@ public sealed class BenchmarkService : IBenchmarkService
             sum += state ^ (ulong)i;
         }
 
-        return checked((long)sum);
+        // The checksum only exists so the JIT cannot eliminate the loop.
+        // It must wrap (unchecked): the sum of 20M full-width xorshift
+        // values exceeds long.MaxValue after the first iteration, so a
+        // checked cast throws OverflowException and the benchmark could
+        // never succeed. A wrapped checksum still proves the work ran.
+        return unchecked((long)sum);
     }
 
     private static BenchmarkResult MeasureDisk(CancellationToken cancellationToken)
