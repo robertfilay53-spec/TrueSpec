@@ -366,6 +366,9 @@ public partial class MainViewModel : ViewModelBase
     private Task ExportCsvAsync() => ExportAsync(ReportFormat.Csv);
 
     [RelayCommand]
+    private Task ExportPdfAsync() => ExportAsync(ReportFormat.Pdf);
+
+    [RelayCommand]
     private async Task ExportChecklistAsync()
     {
         try
@@ -394,6 +397,7 @@ public partial class MainViewModel : ViewModelBase
             {
                 ReportFormat.Html => ("html", (IReportExporter)new HtmlReportExporter()),
                 ReportFormat.Csv => ("csv", new CsvReportExporter()),
+                ReportFormat.Pdf => ("pdf", new PdfReportExporter()),
                 _ => ("json", new JsonReportExporter()),
             };
 
@@ -485,8 +489,9 @@ public partial class MainViewModel : ViewModelBase
         {
             "overview" => Overview,
             "tests" => GetOrCreate("tests", () => new TestsViewModel()),
-            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: _scanRunning)),
+            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: _scanRunning, exportPdfCommand: ExportPdfCommand)),
             "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot)),
+            "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
             _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key)),
         };

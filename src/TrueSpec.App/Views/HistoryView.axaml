@@ -1,0 +1,108 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TrueSpec.App.ViewModels"
+             xmlns:controls="using:TrueSpec.App.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="TrueSpec.App.Views.HistoryView"
+             x:DataType="vm:HistoryViewModel">
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="18">
+            <StackPanel Spacing="6">
+                <TextBlock Text="HISTORY" Classes="eyebrow" />
+                <TextBlock Text="How this machine changes over time" Classes="h1" />
+                <TextBlock Text="Every scan is saved to a local database on this machine. TrueSpec trends the overall score, battery health and storage wear across those scans. A value a scan did not report is a gap, never a zero."
+                           Classes="muted"
+                           TextWrapping="Wrap"
+                           MaxWidth="720" />
+            </StackPanel>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding StatusMessage}" Classes="muted" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" IsVisible="{Binding HasHistory}" />
+                </StackPanel>
+            </Border>
+
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12" IsVisible="{Binding HasHistory}">
+                <Border Classes="card" Padding="16">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Overall score" Classes="h3" />
+                        <controls:Sparkline Height="52"
+                                            Values="{Binding ScoreValues}"
+                                            StrokeThickness="2" />
+                        <TextBlock Text="{Binding ScoreRangeText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Classes="card" Padding="16">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Battery health" Classes="h3" />
+                        <controls:Sparkline Height="52"
+                                            Values="{Binding BatteryHealthValues}"
+                                            StrokeThickness="2" />
+                        <TextBlock Text="{Binding BatteryRangeText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Classes="card" Padding="16">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Storage wear" Classes="h3" />
+                        <controls:Sparkline Height="52"
+                                            Values="{Binding StorageWearValues}"
+                                            StrokeThickness="2" />
+                        <TextBlock Text="{Binding WearRangeText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Classes="card" Padding="18" IsVisible="{Binding HasHistory}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Saved scans" Classes="h3" />
+                    <TextBlock Text="Oldest first. A dash means that scan did not report the value."
+                               Classes="muted"
+                               FontSize="11" />
+                    <ItemsControl ItemsSource="{Binding Rows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:HistoryRowViewModel">
+                                <Border BorderBrush="{DynamicResource AppBorder}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="0,9">
+                                    <Grid ColumnDefinitions="150,70,110,80,110,*" ColumnSpacing="10">
+                                        <TextBlock Text="{Binding CapturedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                                                   Classes="muted"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding ScoreText}"
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding BatteryHealthText}"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="3"
+                                                   Text="{Binding BatteryCyclesText}"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="4"
+                                                   Text="{Binding StorageWearText}"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="5"
+                                                   Text="{Binding StorageHoursText}"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Grid ColumnDefinitions="150,70,110,80,110,*" ColumnSpacing="10">
+                        <TextBlock Text="Scanned" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="1" Text="Score" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="2" Text="Battery health" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="3" Text="Cycles" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="4" Text="Storage wear" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="5" Text="Power-on hours" Classes="muted" FontSize="11" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

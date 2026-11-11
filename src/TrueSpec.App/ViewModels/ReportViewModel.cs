@@ -20,11 +20,13 @@ public sealed class ReportViewModel : ViewModelBase
         ICommand exportHtmlCommand,
         ICommand exportCsvCommand,
         string exportFolder,
-        bool isScanning = false)
+        bool isScanning = false,
+        ICommand? exportPdfCommand = null)
     {
         ExportJsonCommand = exportJsonCommand;
         ExportHtmlCommand = exportHtmlCommand;
         ExportCsvCommand = exportCsvCommand;
+        ExportPdfCommand = exportPdfCommand;
         ExportFolderText = $"Exports are written to {exportFolder}. No upload, no cloud.";
         MachineName = snapshot.MachineName;
         OperatingSystem = snapshot.OperatingSystem;
@@ -79,6 +81,11 @@ public sealed class ReportViewModel : ViewModelBase
     public ICommand ExportHtmlCommand { get; }
 
     public ICommand ExportCsvCommand { get; }
+
+    /// <summary>Null on older callers: the PDF button hides itself.</summary>
+    public ICommand? ExportPdfCommand { get; }
+
+    public bool HasPdfExport => ExportPdfCommand is not null;
 
     public string ExportFolderText { get; }
 }

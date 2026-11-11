@@ -12,7 +12,7 @@
             <StackPanel Spacing="6">
                 <TextBlock Text="REPORT" Classes="eyebrow" />
                 <TextBlock Text="Export the truth" Classes="h1" />
-                <TextBlock Text="One data model with JSON, HTML and CSV outputs. Everything is generated on this machine."
+                <TextBlock Text="One data model with JSON, HTML, CSV and PDF outputs. Everything is generated on this machine."
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
@@ -60,13 +60,19 @@
                                 Command="{Binding ExportCsvCommand}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center" />
+                        <Button Classes="secondary"
+                                Content="Export PDF"
+                                Command="{Binding ExportPdfCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                IsVisible="{Binding HasPdfExport}" />
                     </StackPanel>
                 </Grid>
             </Border>
 
             <TextBlock Text="{Binding ExportFolderText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
 
-            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+            <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
                 <Border Classes="card" Padding="16">
                     <StackPanel Spacing="5">
                         <TextBlock Text="JSON" Classes="h3" />
@@ -85,6 +91,13 @@
                     <StackPanel Spacing="5">
                         <TextBlock Text="CSV" Classes="h3" />
                         <TextBlock Text="A spreadsheet of every spec, safe to open in Excel. Values that look like formulas are neutralised." Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="Available" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="3" Classes="card" Padding="16">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="PDF" Classes="h3" />
+                        <TextBlock Text="A printable report to hand to a seller or keep with the receipt. Built on this machine, no extra software." Classes="muted" TextWrapping="Wrap" />
                         <TextBlock Text="Available" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
@@ -119,7 +132,7 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="JSON and HTML exports are written to your Documents/TrueSpec folder. No upload, no cloud."
+            <TextBlock Text="JSON, HTML, CSV and PDF exports are written to your Documents/TrueSpec folder. No upload, no cloud."
                        Classes="muted"
                        FontSize="11" />
         </StackPanel>

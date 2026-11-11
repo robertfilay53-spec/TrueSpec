@@ -19,9 +19,11 @@ public sealed record NavItemViewModel(string Key, string Label, string IconData)
         Create("motherboard", "Motherboard"),
         Create("security", "Security"),
         Create("drivers", "Drivers"),
+        Create("startup", "Startup"),
         Create("tests", "Tests"),
         Create("report", "Report"),
         Create("compare", "Compare"),
+        Create("history", "History"),
         Create("settings", "Settings"),
     };
 
