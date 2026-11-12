@@ -420,4 +420,97 @@ public class BuyerCheckEvaluatorTests
         Assert.Equal(BuyerCheckState.NotApplicable, result.Checks.Single(c => c.Id == BuyerCheckResult.LoadTestCheckId).State);
         Assert.Equal(BuyerCheckState.Pass, result.OverallState);
     }
+
+    // ---- v1.4.1 (F8): honest check-count split, BIOS date from motherboard ----
+
+    [Fact]
+    public void LaptopShape_OneFailedNineNotApplicable_ReportsTheRealSplitNotZeroOfTen()
+    {
+        // The v1.4.0 laptop test: battery cycles 42 failed, every other
+        // reading was missing, and the headline said "0 of 10 checks
+        // passed", hiding that almost nothing was measured at all.
+        var result = new BuyerCheckEvaluator().Evaluate(
+            new[] { TestSnapshots.Battery(42) });
+
+        Assert.Equal(10, result.Checks.Count);
+        Assert.Equal(BuyerCheckState.Fail, result.Checks.Single(c => c.Id == "battery-cycles").State);
+        Assert.Equal(9, result.Checks.Count(c => c.State == BuyerCheckState.NotApplicable));
+        Assert.Equal(0, result.Checks.Count(c => c.State == BuyerCheckState.Pass));
+        Assert.Equal("1 failed, 9 not applicable, 0 passed", result.SummaryText);
+    }
+
+    [Fact]
+    public void HealthyMachine_SummaryTextIsAllPassed()
+    {
+        var snapshot = TestSnapshots.Healthy();
+
+        Assert.Equal("10 passed", snapshot.BuyerChecks.SummaryText);
+    }
+
+    [Fact]
+    public void BiosDate_OnMotherboardOnly_UsesTheCollectedDateInsteadOfNotAvailable()
+    {
+        // v1.4.0 laptop: the system collector timed out, but the
+        // motherboard collector had already read BIOS date 2025-09-06.
+        // The check must use that date, not report "not available".
+        var motherboard = MotherboardWithBiosDate("2025-09-06");
+
+        var result = new BuyerCheckEvaluator().Evaluate(new[] { motherboard });
+
+        var check = result.Checks.Single(c => c.Id == "bios-date");
+        Assert.NotEqual(BuyerCheckState.NotApplicable, check.State);
+        Assert.Contains("2025-09-06", check.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BiosDate_SystemValueNotReported_FallsBackToMotherboard()
+    {
+        // Same failure mode, one step closer to the hardware: the system
+        // component exists but its BIOS date spec is the literal
+        // "Not reported by hardware", which is not a parseable date.
+        var system = new ComponentSnapshot(
+            "system",
+            "System",
+            "System",
+            "system",
+            "Test Laptop",
+            null,
+            new[]
+            {
+                new SpecValue("BIOS date", "Not reported by hardware", "CIM Win32_BIOS"),
+            },
+            "System information comes from Windows.",
+            DateTimeOffset.UtcNow);
+
+        var result = new BuyerCheckEvaluator().Evaluate(new[] { system, MotherboardWithBiosDate("2025-09-06") });
+
+        var check = result.Checks.Single(c => c.Id == "bios-date");
+        Assert.NotEqual(BuyerCheckState.NotApplicable, check.State);
+        Assert.Contains("2025-09-06", check.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BiosDate_PrefersTheSystemValueWhenBothComponentsReportOne()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var system = TestSnapshots.System(now);
+        var systemBiosDate = now.AddDays(-20).ToString("yyyy-MM-dd");
+
+        var result = new BuyerCheckEvaluator().Evaluate(new[] { system, MotherboardWithBiosDate("2025-09-06") });
+
+        var check = result.Checks.Single(c => c.Id == "bios-date");
+        Assert.Equal(BuyerCheckState.Pass, check.State);
+        Assert.Contains(systemBiosDate, check.Detail, StringComparison.Ordinal);
+    }
+
+    private static ComponentSnapshot MotherboardWithBiosDate(string biosDate) => new(
+        "motherboard",
+        "Motherboard",
+        "Motherboard",
+        "motherboard",
+        "Test board",
+        null,
+        new[] { new SpecValue("BIOS date", biosDate, "CIM Win32_BIOS") },
+        "Board and BIOS identity.",
+        DateTimeOffset.UtcNow);
 }

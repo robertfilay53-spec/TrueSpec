@@ -120,11 +120,8 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
         _onChecksChanged?.Invoke(_result, value);
     }
 
-    private static string BuildSummary(BuyerCheckResult result)
-    {
-        var passed = result.Checks.Count(c => c.IsPass);
-        return $"{passed} of {result.Checks.Count} checks passed.";
-    }
+    private static string BuildSummary(BuyerCheckResult result) =>
+        $"{result.SummaryText}.";
 }
 
 public sealed class BuyerCheckRowViewModel

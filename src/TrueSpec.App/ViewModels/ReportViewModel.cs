@@ -47,8 +47,7 @@ public sealed class ReportViewModel : ViewModelBase
         }
         BuyerBanner = snapshot.BuyerChecks.BannerText;
 
-        var passed = snapshot.BuyerChecks.Checks.Count(c => c.IsPass);
-        BuyerSummary = $"{passed} of {snapshot.BuyerChecks.Checks.Count} buyer checks passed.";
+        BuyerSummary = $"{snapshot.BuyerChecks.SummaryText}.";
 
         Components = snapshot.Components
             .Select(c => new ReportComponentRow(c.Name, c.Headline, c.HealthText, c.Status))

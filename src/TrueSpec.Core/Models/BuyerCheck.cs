@@ -87,6 +87,43 @@ public sealed record BuyerCheckResult(IReadOnlyList<BuyerCheck> Checks)
         }
     }
 
+    /// <summary>
+    /// The honest headline: the real split of the checks. A machine with
+    /// one failed check and nine readings that never arrived says
+    /// "1 failed, 9 not applicable, 0 passed", never "0 of 10 passed":
+    /// the old wording hid the fact that almost nothing was measured.
+    /// The passed count is always shown, even when it is zero.
+    /// </summary>
+    public string SummaryText
+    {
+        get
+        {
+            var passed = Checks.Count(c => c.State == BuyerCheckState.Pass);
+            var failed = Checks.Count(c => c.State == BuyerCheckState.Fail);
+            var warnings = Checks.Count(c => c.State == BuyerCheckState.Warning);
+            var notApplicable = Checks.Count(c => c.State == BuyerCheckState.NotApplicable);
+
+            var parts = new List<string>();
+            if (failed > 0)
+            {
+                parts.Add($"{failed} failed");
+            }
+
+            if (warnings > 0)
+            {
+                parts.Add(warnings == 1 ? "1 warning" : $"{warnings} warnings");
+            }
+
+            if (notApplicable > 0)
+            {
+                parts.Add($"{notApplicable} not applicable");
+            }
+
+            parts.Add($"{passed} passed");
+            return string.Join(", ", parts);
+        }
+    }
+
     public string BannerText
     {
         get

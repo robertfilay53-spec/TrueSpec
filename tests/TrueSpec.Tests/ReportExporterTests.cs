@@ -33,6 +33,36 @@ public class ReportExporterTests
     }
 
     [Fact]
+    public async Task JsonExporter_IncludesTheHonestBuyerCheckSplit()
+    {
+        var snapshot = TestSnapshots.Healthy();
+        var exporter = new JsonReportExporter();
+
+        await using var stream = new MemoryStream();
+        await exporter.ExportAsync(ReportModel.FromSnapshot(snapshot), stream);
+
+        stream.Position = 0;
+        using var document = await JsonDocument.ParseAsync(stream);
+        var buyerChecks = document.RootElement.GetProperty("buyerChecks");
+
+        Assert.Equal("10 passed", buyerChecks.GetProperty("summaryText").GetString());
+    }
+
+    [Fact]
+    public async Task HtmlExporter_ShowsTheHonestBuyerCheckSplit()
+    {
+        var snapshot = TestSnapshots.Healthy();
+        var exporter = new HtmlReportExporter();
+
+        await using var stream = new MemoryStream();
+        await exporter.ExportAsync(ReportModel.FromSnapshot(snapshot), stream);
+
+        var html = Encoding.UTF8.GetString(stream.ToArray());
+        Assert.Contains("10 passed", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("10 of 10 checks passed", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task HtmlExporter_WritesAStandalonePageWithSources()
     {
         var snapshot = TestSnapshots.Healthy();
