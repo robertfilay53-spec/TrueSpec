@@ -214,21 +214,26 @@ public class ScanThreadPoolTests
     }
 
     [Fact]
-    public async Task Scan_KeepsSequentialOrderAfterOffload()
+    public async Task Scan_ReturnsComponentsInRegistrationOrderDespiteParallelCollection()
     {
-        var order = new List<string>();
-        var collectors = new[] { "one", "two", "three" }.Select(id => new OrderCollector(id, order)).ToArray();
+        // F2 runs collectors in parallel, so the order their CollectAsync
+        // methods are *invoked* in is no longer guaranteed; what the scan
+        // guarantees is that the returned components come back in
+        // registration order. (This replaces
+        // Scan_KeepsSequentialOrderAfterOffload, which asserted invocation
+        // order — a property the sequential scan had and the parallel scan
+        // intentionally drops.)
+        var collectors = new[] { "one", "two", "three" }.Select(id => new OrderCollector(id)).ToArray();
         var service = MachineScanService.Create(collectors);
 
-        await service.ScanAsync();
+        var snapshot = await service.ScanAsync();
 
-        Assert.Equal(new[] { "one", "two", "three" }, order);
+        Assert.Equal(new[] { "one", "two", "three" }, snapshot.Components.Select(c => c.Id));
     }
 
     private sealed class OrderCollector : ICollector
     {
-        private readonly List<string> _order;
-        public OrderCollector(string id, List<string> order) { Id = id; _order = order; }
+        public OrderCollector(string id) { Id = id; }
         public string Id { get; }
         public string Name => Id;
         public string Category => "Test";
@@ -236,11 +241,17 @@ public class ScanThreadPoolTests
         public TimeSpan RefreshInterval => TimeSpan.FromSeconds(2);
         public bool RequiresAdministrator => false;
 
-        public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
-        {
-            _order.Add(Id);
-            return Task.FromResult(TestSnapshots.System(DateTimeOffset.UtcNow));
-        }
+        public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(new ComponentSnapshot(
+                Id,
+                Id,
+                "Test",
+                "system",
+                Id,
+                null,
+                Array.Empty<SpecValue>(),
+                string.Empty,
+                DateTimeOffset.UtcNow));
     }
 }
 

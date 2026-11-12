@@ -11,4 +11,13 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.14" />
   </ItemGroup>
 
+  <!-- Tests cover the default-export-folder resolution (Downloads when it
+       exists, Documents/TrueSpec otherwise) through the internal seam in
+       PathSafety, so the test assembly can see internals. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>TrueSpec.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>

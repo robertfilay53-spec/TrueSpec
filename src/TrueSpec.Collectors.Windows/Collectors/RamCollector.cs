@@ -39,7 +39,7 @@ public sealed class RamCollector : ICollector
         var computer = Wmi.Query("root\\cimv2", "SELECT TotalPhysicalMemory FROM Win32_ComputerSystem").FirstOrDefault();
         var memoryErrors = WindowsEventLog.CountMemoryErrors(TimeSpan.FromDays(30));
 
-        var totalBytes = sticks.Sum(s => (decimal)(s.UInt64("Capacity") ?? 0UL));
+        var totalBytes = sticks.Sum(s => (decimal)(CollectorSupport.NonZeroNonMax(s.UInt64("Capacity")) ?? 0UL));
         var first = sticks[0];
         var type = CollectorSupport.MemoryType(first.UInt16("SMBIOSMemoryType"));
         if (type == CollectorSupport.NotReported)
@@ -47,16 +47,17 @@ public sealed class RamCollector : ICollector
             type = CollectorSupport.MemoryType(first.UInt32("MemoryType"));
         }
 
-        var speed = CollectorSupport.NonZero(first.UInt32("ConfiguredClockSpeed"))
-            ?? CollectorSupport.NonZero(first.UInt32("Speed"));
-        var slots = array?.UInt32("MemoryDevices");
+        var speed = CollectorSupport.NonZeroNonMax(first.UInt32("ConfiguredClockSpeed"))
+            ?? CollectorSupport.NonZeroNonMax(first.UInt32("Speed"));
+        var slots = CollectorSupport.NonZeroNonMax(array?.UInt32("MemoryDevices"));
         var slotsText = slots is null
             ? CollectorSupport.NotReported
             : string.Create(CultureInfo.InvariantCulture, $"{sticks.Count} of {slots.Value}");
 
+        var totalText = totalBytes <= 0 ? null : CollectorSupport.FormatBytesBinary((ulong)totalBytes);
         var headline = string.Join(" ", new[]
         {
-            CollectorSupport.FormatBytesBinary(totalBytes <= 0 ? null : (ulong)totalBytes),
+            totalText,
             type == CollectorSupport.NotReported ? null : type,
             // "DDR5 5200 MT/s": never "-5200", which reads as a negative number.
             speed is null ? null : string.Create(CultureInfo.InvariantCulture, $"{speed.Value} MT/s"),
@@ -67,7 +68,7 @@ public sealed class RamCollector : ICollector
             CollectorSupport.Spec(SpecLabels.TotalMemory, CollectorSupport.FormatBytesBinary(totalBytes <= 0 ? null : (ulong)totalBytes), "CIM Win32_PhysicalMemory capacity sum"),
             CollectorSupport.Spec(SpecLabels.Type, type, "CIM Win32_PhysicalMemory"),
             CollectorSupport.Spec(SpecLabels.Speed, speed is null ? null : string.Create(CultureInfo.InvariantCulture, $"{speed.Value} MT/s"), "CIM Win32_PhysicalMemory"),
-            CollectorSupport.Spec(SpecLabels.ConfiguredSpeed, CollectorSupport.NonZero(first.UInt32("ConfiguredClockSpeed")) is { } configured
+            CollectorSupport.Spec(SpecLabels.ConfiguredSpeed, CollectorSupport.NonZeroNonMax(first.UInt32("ConfiguredClockSpeed")) is { } configured
                 ? string.Create(CultureInfo.InvariantCulture, $"{configured} MT/s")
                 : null, "CIM Win32_PhysicalMemory"),
             CollectorSupport.Spec(SpecLabels.FormFactor, CollectorSupport.FormFactor(first.UInt16("FormFactor")), "CIM Win32_PhysicalMemory"),
@@ -96,7 +97,7 @@ public sealed class RamCollector : ICollector
             specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.Manufacturer}", stick.String("Manufacturer"), "CIM Win32_PhysicalMemory"));
             specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.PartNumber}", stick.String("PartNumber"), "CIM Win32_PhysicalMemory"));
             specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.SerialNumber}", stick.String("SerialNumber"), "CIM Win32_PhysicalMemory"));
-            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.Capacity}", CollectorSupport.FormatBytesBinary(CollectorSupport.NonZero(stick.UInt64("Capacity"))), "CIM Win32_PhysicalMemory"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.Capacity}", CollectorSupport.FormatBytesBinary(CollectorSupport.NonZeroNonMax(stick.UInt64("Capacity"))), "CIM Win32_PhysicalMemory"));
             specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.Slot}", stick.String("DeviceLocator") ?? stick.String("BankLabel"), "CIM Win32_PhysicalMemory"));
         }
 

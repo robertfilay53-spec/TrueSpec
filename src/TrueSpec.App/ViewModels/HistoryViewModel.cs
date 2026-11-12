@@ -36,8 +36,9 @@ public sealed partial class HistoryViewModel : ViewModelBase
     private string? _sensorLogPath;
     private bool _sensorLoggingEnabled;
     private double? _cpuTemperatureThresholdC;
+    private readonly TimeZoneInfo _displayTimeZone;
 
-    public HistoryViewModel(ISnapshotStore? store, SystemSnapshot current, ICommand? exportHistoryCsvCommand = null, string? sensorLogPath = null, bool sensorLoggingEnabled = true, double? cpuTemperatureThresholdC = null)
+    public HistoryViewModel(ISnapshotStore? store, SystemSnapshot current, ICommand? exportHistoryCsvCommand = null, string? sensorLogPath = null, bool sensorLoggingEnabled = true, double? cpuTemperatureThresholdC = null, TimeZoneInfo? displayTimeZone = null)
     {
         _store = store;
         _current = current;
@@ -45,6 +46,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
         _sensorLogPath = sensorLogPath;
         _sensorLoggingEnabled = sensorLoggingEnabled;
         _cpuTemperatureThresholdC = cpuTemperatureThresholdC;
+        _displayTimeZone = displayTimeZone ?? TimeZoneInfo.Local;
         SensorLogThresholdC = cpuTemperatureThresholdC;
         MachineSubtitleText = $"How {current.MachineName} changes over time";
         _ = LoadAsync();
@@ -147,10 +149,37 @@ public sealed partial class HistoryViewModel : ViewModelBase
                 points = points.Skip(points.Count - MaxLogChartPoints).ToList();
             }
 
+            // The chart cannot draw a line from fewer than two measured
+            // points (SensorLogChart renders nothing then), so fewer than
+            // two readings is an empty state, not a blank chart that looks
+            // broken. Zero readings means the hardware never reported a CPU
+            // temperature sensor during the whole log: say so plainly, and
+            // that it is expected on machines whose sensor is not exposed.
+            // Gaps are never filled or interpolated; a partial gap keeps
+            // the existing gap rendering below.
+            var measuredCount = points.Count(p => p.Value is not null);
+            if (measuredCount == 0)
+            {
+                SensorLogStatusText = $"No temperature readings were recorded in {series.RowCount} samples: this machine's hardware does not report a CPU temperature sensor. This is expected on machines whose sensor is not exposed, so there is no CPU temperature chart to show.";
+                return;
+            }
+
+            if (measuredCount == 1)
+            {
+                SensorLogStatusText = $"Only one temperature reading was recorded in {series.RowCount} samples, so there is not enough data to draw a chart.";
+                return;
+            }
+
             CpuTemperatureLogValues = points.Select(p => p.Value).ToList();
             HasSensorLog = true;
-            var first = series.FirstAt?.ToString("HH:mm", CultureInfo.InvariantCulture) ?? "?";
-            var last = series.LastAt?.ToString("HH:mm", CultureInfo.InvariantCulture) ?? "?";
+            // Sample timestamps are stored as UTC in sensor-log.csv; the
+            // displayed range is local time.
+            var first = series.FirstAt is { } firstAt
+                ? SensorLogTime.FormatLocalTime(firstAt, _displayTimeZone)
+                : "?";
+            var last = series.LastAt is { } lastAt
+                ? SensorLogTime.FormatLocalTime(lastAt, _displayTimeZone)
+                : "?";
             var gapText = series.GapCount == 0
                 ? "no gaps"
                 : series.GapCount == 1

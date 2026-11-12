@@ -81,6 +81,61 @@ public class PdfReportExporterTests
     }
 
     [Fact]
+    public async Task PdfExporter_NewLaptopCheckSection_GivesEachCheckItsOwnRowAndShowsTheSplit()
+    {
+        var snapshot = TestSnapshots.Healthy();
+        var exporter = new PdfReportExporter();
+
+        await using var stream = new MemoryStream();
+        await exporter.ExportAsync(ReportModel.FromSnapshot(snapshot), stream);
+
+        var text = Encoding.ASCII.GetString(stream.ToArray());
+
+        // The honest split, not "0 of 10" / "10 of 10 checks passed".
+        Assert.Contains("(10 passed)", text, StringComparison.Ordinal);
+        // Each check is its own row: a bold title line with the result,
+        // then the detail as a separate line, never glued into one
+        // run-together "Title: State - Detail" line.
+        Assert.Contains("(SSD wear is 0% [Pass]) Tj", text, StringComparison.Ordinal);
+        Assert.Contains("(The drive reports 0% wear and no SMART warnings.) Tj", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("SSD wear is 0%: Pass -", text, StringComparison.Ordinal);
+        AssertXrefOffsetsAreValid(stream.ToArray(), text);
+    }
+
+    [Theory]
+    [InlineData("Not reported")]
+    [InlineData("Not reported by hardware")]
+    public async Task PdfExporter_OmitsOperatingSystemLineWhenItWasNotReported(string operatingSystem)
+    {
+        // v1.4.0 laptop PDF header: "RANAJAWADLAPTOP / Not reported" — a
+        // header field with no value. The line is omitted instead.
+        var snapshot = TestSnapshots.Healthy() with { OperatingSystem = operatingSystem };
+        var exporter = new PdfReportExporter();
+
+        await using var stream = new MemoryStream();
+        await exporter.ExportAsync(ReportModel.FromSnapshot(snapshot), stream);
+
+        var text = Encoding.ASCII.GetString(stream.ToArray());
+        Assert.DoesNotContain($"({operatingSystem})", text, StringComparison.Ordinal);
+        Assert.Contains("Test Laptop", text, StringComparison.Ordinal);
+        AssertXrefOffsetsAreValid(stream.ToArray(), text);
+    }
+
+    [Fact]
+    public async Task PdfExporter_ShowsOperatingSystemLineWhenItWasReported()
+    {
+        var snapshot = TestSnapshots.Healthy();
+        var exporter = new PdfReportExporter();
+
+        await using var stream = new MemoryStream();
+        await exporter.ExportAsync(ReportModel.FromSnapshot(snapshot), stream);
+
+        var text = Encoding.ASCII.GetString(stream.ToArray());
+        Assert.Contains("(Windows 11 Pro)", text, StringComparison.Ordinal);
+        AssertXrefOffsetsAreValid(stream.ToArray(), text);
+    }
+
+    [Fact]
     public void Escape_HandlesParenthesesBackslashAndControlCharacters()
     {
         Assert.Equal("a \\(b\\) c", PdfReportExporter.Escape("a (b) c"));

@@ -171,6 +171,82 @@ public class CollectorAndScanTests
         Assert.Contains(slow.Specs, spec => spec.Label == "Status");
     }
 
+    [Fact]
+    public async Task SlowCollectors_DoNotBlockOtherCollectors()
+    {
+        // The v1.4.0 laptop failure, in miniature: run sequentially, three
+        // 5-second collectors would eat the whole overall budget and the
+        // collectors behind them would never run. In parallel the scan
+        // finishes in about one per-collector budget and every collector
+        // still reports — the slow ones as NotAvailable, the fast ones with
+        // their real results.
+        var now = DateTimeOffset.UtcNow;
+        var service = MachineScanService.Create(new ICollector[]
+        {
+            new SlowCollector(),
+            new SlowCollector(),
+            new SlowCollector(),
+            new FixedCollector(TestSnapshots.System(now)),
+            new FixedCollector(TestSnapshots.Ram("16 GB")),
+        });
+        var timeouts = new ScanTimeouts(TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(30));
+
+        var started = DateTimeOffset.UtcNow;
+        var snapshot = await service.ScanAsync(null, CancellationToken.None, timeouts, null);
+        var elapsed = DateTimeOffset.UtcNow - started;
+
+        Assert.True(elapsed < TimeSpan.FromSeconds(3), $"Scan took {elapsed}, expected about one per-collector budget, not the sum of the slow collectors");
+        Assert.Equal(5, snapshot.Components.Count);
+        Assert.All(snapshot.Components.Where(c => c.Id == "slow"), slow =>
+        {
+            Assert.Equal("Not available", slow.Headline);
+            Assert.Null(slow.HealthPercent);
+        });
+        Assert.Equal("Test Laptop", snapshot.Find("system")!.Headline);
+        Assert.Equal("16 GB", snapshot.Find("ram")!.Headline);
+    }
+
+    [Fact]
+    public async Task HungCollectors_DoNotBlockOthersAndEveryCollectorReports()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var service = MachineScanService.Create(new ICollector[]
+        {
+            new HangingCollector(),
+            new HangingCollector(),
+            new FixedCollector(TestSnapshots.System(now)),
+        });
+        var timeouts = new ScanTimeouts(TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(30));
+
+        var started = DateTimeOffset.UtcNow;
+        var snapshot = await service.ScanAsync(null, CancellationToken.None, timeouts, null);
+        var elapsed = DateTimeOffset.UtcNow - started;
+
+        Assert.True(elapsed < TimeSpan.FromSeconds(3), $"Scan took {elapsed}");
+        Assert.Equal(3, snapshot.Components.Count);
+        Assert.All(snapshot.Components.Where(c => c.Id == "hanging"), hung =>
+        {
+            Assert.Equal("Not available", hung.Headline);
+            Assert.Null(hung.HealthPercent);
+        });
+        Assert.Equal("Test Laptop", snapshot.Find("system")!.Headline);
+    }
+
+    [Fact]
+    public async Task CallerCancelledScan_ThrowsOperationCanceledException()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var service = MachineScanService.Create(new ICollector[]
+        {
+            new FixedCollector(TestSnapshots.System(now)),
+        });
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            service.ScanAsync(null, cancelled.Token, ScanTimeouts.Default, null));
+    }
+
     private sealed class FixedCollector : ICollector
     {
         private readonly ComponentSnapshot _component;

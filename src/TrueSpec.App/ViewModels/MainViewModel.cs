@@ -39,6 +39,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly ThresholdAlertEvaluator _alertEvaluator;
     private readonly IBuyerCheckEvaluator _buyerCheckEvaluator;
     private readonly AppSettingsStore _settingsStore;
+    private readonly IExportFileOpener _fileOpener;
     private ISnapshotStore? _snapshotStore;
     private readonly Dictionary<string, ViewModelBase> _pageCache =
         new(StringComparer.OrdinalIgnoreCase);
@@ -70,12 +71,39 @@ public partial class MainViewModel : ViewModelBase
         MachineScanService scanService,
         ISensorMonitor sensorMonitor,
         IBuyerCheckEvaluator buyerCheckEvaluator)
+        : this(scanService, sensorMonitor, buyerCheckEvaluator, new AppSettingsStore(), new ShellExportFileOpener())
+    {
+    }
+
+    /// <summary>
+    /// Test seam: the same shell, but with the settings store and the file
+    /// opener supplied by the test, so an export test can point the export
+    /// folder at a temp directory and record "Open folder" / "Open file"
+    /// without launching Explorer.
+    /// </summary>
+    internal MainViewModel(
+        IEnumerable<ICollector> collectors,
+        ISensorMonitor sensorMonitor,
+        IBuyerCheckEvaluator buyerCheckEvaluator,
+        AppSettingsStore settingsStore,
+        IExportFileOpener fileOpener)
+        : this(MachineScanService.Create(collectors), sensorMonitor, buyerCheckEvaluator, settingsStore, fileOpener)
+    {
+    }
+
+    private MainViewModel(
+        MachineScanService scanService,
+        ISensorMonitor sensorMonitor,
+        IBuyerCheckEvaluator buyerCheckEvaluator,
+        AppSettingsStore settingsStore,
+        IExportFileOpener fileOpener)
     {
         _scanService = scanService;
         _sensorMonitor = sensorMonitor;
         _buyerCheckEvaluator = buyerCheckEvaluator;
 
-        _settingsStore = new AppSettingsStore();
+        _settingsStore = settingsStore;
+        _fileOpener = fileOpener;
         _settings = _settingsStore.Load();
         IsDarkTheme = _settings.IsDarkTheme;
 
@@ -229,6 +257,26 @@ public partial class MainViewModel : ViewModelBase
     public bool HistoryAvailable => _snapshotStore is not null;
 
     public string ExportFolder => EffectiveExportFolder();
+
+    /// <summary>
+    /// The file the last successful export wrote, or null when no export
+    /// has completed (or the confirmation was dismissed). The shell banner
+    /// in MainWindow binds to this: a successful export used to be a
+    /// status-bar line only, which the v1.4.0 laptop test proved the user
+    /// never sees — he reported export as broken when the files were in
+    /// fact written. The banner stays until dismissed and shows the exact
+    /// path, with "Open folder" and "Open file" actions.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? ExportConfirmationPath { get; set; }
+
+    /// <summary>Human-readable confirmation line, for example "Report exported to C:\Users\...\Downloads\TrueSpec-report-....pdf".</summary>
+    [ObservableProperty]
+    public partial string ExportConfirmationText { get; set; } = string.Empty;
+
+    public bool HasExportConfirmation => ExportConfirmationPath is not null;
+
+    partial void OnExportConfirmationPathChanged(string? value) => OnPropertyChanged(nameof(HasExportConfirmation));
 
     public string VersionText
     {
@@ -439,7 +487,7 @@ public partial class MainViewModel : ViewModelBase
             var path = Path.Combine(folder, PathSafety.SafeReportFileName("TrueSpec-history", "csv", DateTime.Now));
             await using var stream = File.Create(path);
             await new HistoryCsvExporter().ExportAsync(trend, stream);
-            StatusMessage = $"History exported to {path}";
+            ShowExportConfirmation(path, "History");
             if (history is not null)
             {
                 history.StatusMessage = StatusMessage;
@@ -465,7 +513,7 @@ public partial class MainViewModel : ViewModelBase
             var path = Path.Combine(folder, PathSafety.SafeReportFileName("TrueSpec-checklist", "html", DateTime.Now));
             await using var stream = File.Create(path);
             await new ChecklistHtmlExporter().ExportAsync(_snapshot, stream);
-            StatusMessage = $"Buyer checklist exported to {path}";
+            ShowExportConfirmation(path, "Buyer checklist");
         }
         catch (Exception exception)
         {
@@ -486,12 +534,83 @@ public partial class MainViewModel : ViewModelBase
             await using var stream = File.Create(path);
             await exporter.ExportAsync(ReportModel.FromSnapshot(_snapshot), stream);
 
-            StatusMessage = $"Report exported to {path}";
+            ShowExportConfirmation(path, "Report");
         }
         catch (Exception exception)
         {
             StatusMessage = $"Export failed: {exception.Message}";
         }
+    }
+
+    /// <summary>
+    /// Raises the unmissable export confirmation: the banner in the shell
+    /// (visible from every page, including Report and History) shows the
+    /// exact saved path until the user dismisses it, and the status bar
+    /// keeps the same line. Called after every successful export; a failed
+    /// export raises no confirmation, only the failure status.
+    /// </summary>
+    private void ShowExportConfirmation(string path, string label)
+    {
+        ExportConfirmationPath = path;
+        ExportConfirmationText = $"{label} exported to {path}";
+        StatusMessage = ExportConfirmationText;
+    }
+
+    [RelayCommand]
+    private void OpenExportFolder()
+    {
+        if (ExportConfirmationPath is null)
+        {
+            return;
+        }
+
+        var folder = Path.GetDirectoryName(Path.GetFullPath(ExportConfirmationPath));
+        if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+        {
+            StatusMessage = "Export folder could not be opened: the folder no longer exists.";
+            return;
+        }
+
+        if (!_fileOpener.OpenFolder(folder))
+        {
+            StatusMessage = $"Could not open {folder}. The file is still saved there.";
+        }
+    }
+
+    [RelayCommand]
+    private void OpenExportedFile()
+    {
+        if (ExportConfirmationPath is null)
+        {
+            return;
+        }
+
+        // Only ever open a file this app just wrote into the export folder:
+        // a confirmation path pointing anywhere else is not opened, even if
+        // it exists.
+        if (!File.Exists(ExportConfirmationPath) || !IsDirectlyInExportFolder(ExportConfirmationPath))
+        {
+            StatusMessage = "Exported file could not be opened: the file is no longer in the export folder.";
+            return;
+        }
+
+        if (!_fileOpener.OpenFile(ExportConfirmationPath))
+        {
+            StatusMessage = $"Could not open {ExportConfirmationPath}. The file is still saved in the export folder.";
+        }
+    }
+
+    [RelayCommand]
+    private void DismissExportConfirmation()
+    {
+        ExportConfirmationPath = null;
+        ExportConfirmationText = string.Empty;
+    }
+
+    private bool IsDirectlyInExportFolder(string path)
+    {
+        var folder = Path.GetDirectoryName(Path.GetFullPath(path));
+        return string.Equals(folder, Path.GetFullPath(EffectiveExportFolder()), StringComparison.OrdinalIgnoreCase);
     }
 
     private string EffectiveExportFolder()
@@ -549,7 +668,8 @@ public partial class MainViewModel : ViewModelBase
         isScanning,
         _sensorLogWriter,
         _alertEvaluator,
-        _settings);
+        _settings,
+        IsElevated);
 
     /// <summary>
     /// The load test finished on the Tests page. The result is saved into

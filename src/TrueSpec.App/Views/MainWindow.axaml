@@ -19,9 +19,9 @@
         <vm:MainViewModel />
     </Design.DataContext>
 
-    <Grid ColumnDefinitions="Auto,*" RowDefinitions="*,Auto">
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="*,Auto,Auto">
         <!-- Left rail -->
-        <Border Grid.Column="0" Grid.RowSpan="2"
+        <Border Grid.Column="0" Grid.RowSpan="3"
                 Width="{Binding RailWidth}"
                 Background="{DynamicResource CardBackground}"
                 BorderBrush="{DynamicResource AppBorder}"
@@ -105,8 +105,34 @@
                         HorizontalContentAlignment="Stretch"
                         VerticalContentAlignment="Stretch" />
 
-        <!-- Status bar -->
+        <!-- Export confirmation banner: a successful export used to be a
+             status-bar line only, which the v1.4.0 laptop test proved the
+             user never sees — he reported export as broken when the files
+             were in fact written. This banner sits above the status bar on
+             every page, shows the exact saved path, never auto-dismisses,
+             and offers Open folder / Open file. -->
         <Border Grid.Column="1" Grid.Row="1"
+                IsVisible="{Binding HasExportConfirmation}"
+                Background="{DynamicResource HeroGlow}"
+                BorderBrush="{DynamicResource HealthyBrush}"
+                BorderThickness="0,1,0,1"
+                Padding="18,10">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
+                <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="Export saved" FontWeight="SemiBold" Foreground="{DynamicResource HealthyBrush}" />
+                    <TextBlock Text="{Binding ExportConfirmationText}" TextWrapping="Wrap" FontSize="12" />
+                </StackPanel>
+                <Button Grid.Column="1" Classes="secondary" Content="Open folder"
+                        Command="{Binding OpenExportFolderCommand}" VerticalAlignment="Center" />
+                <Button Grid.Column="2" Classes="secondary" Content="Open file"
+                        Command="{Binding OpenExportedFileCommand}" VerticalAlignment="Center" />
+                <Button Grid.Column="3" Classes="ghost" Content="Dismiss"
+                        Command="{Binding DismissExportConfirmationCommand}" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <!-- Status bar -->
+        <Border Grid.Column="1" Grid.Row="2"
                 Background="{DynamicResource StatusBarBackground}"
                 BorderBrush="{DynamicResource AppBorder}"
                 BorderThickness="0,1,0,0"

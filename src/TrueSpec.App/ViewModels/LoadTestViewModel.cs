@@ -94,6 +94,14 @@ public sealed partial class LoadTestViewModel : ViewModelBase
     [ObservableProperty]
     public partial string ResultPercentText { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The rated maximum clock the test was judged against, shown on its
+    /// own line: it is a known WMI value even when no clock was measured
+    /// under load, so it must never be hidden behind the held-% line.
+    /// </summary>
+    [ObservableProperty]
+    public partial string ResultRatedMaxText { get; set; } = string.Empty;
+
     /// <summary>U5: one line per reported fan ("CPU Fan #1: idle 1,200 RPM, under load 2,400 RPM (peak 82 C)"). Empty when no fan sensor reported.</summary>
     [ObservableProperty]
     public partial IReadOnlyList<string> FanHealthLines { get; set; } = Array.Empty<string>();
@@ -120,6 +128,26 @@ public sealed partial class LoadTestViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(CanCancel));
     }
+
+    /// <summary>
+    /// The rated-max line of the result card, on its own: the rated max is
+    /// a known value from WMI even when the test measured no clock, so it
+    /// is shown whenever it is known and never folded into the held-% line.
+    /// </summary>
+    public static string RatedMaxText(LoadTestResult result) =>
+        result.RatedMaxMHz is { } rated
+            ? string.Create(CultureInfo.InvariantCulture, $"Rated max clock: {rated:0} MHz")
+            : "Rated max clock: not reported by hardware";
+
+    /// <summary>
+    /// The held-% line of the result card: only the measured percentage.
+    /// When no clock was measured the line says so on its own, while the
+    /// rated max above it still shows the known value.
+    /// </summary>
+    public static string HeldPercentText(LoadTestResult result) =>
+        result.ClockHeldPercent is { } percent
+            ? string.Create(CultureInfo.InvariantCulture, $"Held {percent:0}% of rated clock")
+            : "Held % of rated clock: not reported by hardware";
 
     [RelayCommand]
     private async Task StartAsync()
@@ -164,9 +192,8 @@ public sealed partial class LoadTestViewModel : ViewModelBase
             ResultClockText = result.AvgClockMHz is { } clock
                 ? string.Create(CultureInfo.InvariantCulture, $"Average clock (last {LoadTestAnalyzer.VerdictWindowSeconds(result.Samples)} s): {clock:0} MHz")
                 : "Average clock: not reported by hardware";
-            ResultPercentText = result.RatedMaxMHz is { } rated && result.ClockHeldPercent is { } percent
-                ? string.Create(CultureInfo.InvariantCulture, $"Held {percent:0}% of rated {rated:0} MHz max")
-                : "Rated clock: not reported by hardware";
+            ResultRatedMaxText = RatedMaxText(result);
+            ResultPercentText = HeldPercentText(result);
             // U5 fan health, measured from the same samples: the rows are
             // the per-fan idle/load speeds, the findings are the measured
             // faults (if any), and the summary is the honest empty state

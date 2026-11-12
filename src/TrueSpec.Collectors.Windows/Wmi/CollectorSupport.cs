@@ -93,6 +93,58 @@ internal static class CollectorSupport
 
     public static ulong? NonZero(ulong? value) => value is > 0 ? value : null;
 
+    /// <summary>
+    /// Unsigned WMI fields also use all-bits-set (0xFFFFFFFF /
+    /// 0xFFFFFFFFFFFFFFFF) for "no reading". That value is not a
+    /// measurement either: map it to null so it shows as "Not reported
+    /// by hardware" instead of "4294967295 mWh" / "4294967295 MHz".
+    /// </summary>
+    public static uint? NonMax(uint? value) => value is uint.MaxValue ? null : value;
+
+    public static ulong? NonMax(ulong? value) => value is ulong.MaxValue ? null : value;
+
+    /// <summary>0 or all-bits-set: neither is a measurement.</summary>
+    public static uint? NonZeroNonMax(uint? value) => value is > 0 and < uint.MaxValue ? value : null;
+
+    public static ulong? NonZeroNonMax(ulong? value) => value is > 0 and < ulong.MaxValue ? value : null;
+
+    /// <summary>
+    /// Win32_Battery capacities: 0 and 0xFFFFFFFF both mean the firmware
+    /// did not report a capacity.
+    /// </summary>
+    public static uint? BatteryCapacity(uint? value) => NonZeroNonMax(value);
+
+    /// <summary>
+    /// Win32_Battery.EstimatedChargeRemaining is a percentage (0-100).
+    /// Anything above 100, including the 0xFFFF "unknown" marker, is not
+    /// a reading.
+    /// </summary>
+    public static ushort? BatteryChargePercent(ushort? value) => value is <= 100 ? value : null;
+
+    /// <summary>
+    /// Win32_Battery.EstimatedRunTime: 0xFFFFFFFF means unknown, and
+    /// 0x04444444 (71582788) is the value firmware reports when the
+    /// runtime is unknown.
+    /// </summary>
+    public static uint? BatteryRuntimeMinutes(uint? value) => value switch
+    {
+        null or uint.MaxValue or 71582788 => null,
+        _ => value,
+    };
+
+    /// <summary>
+    /// BatteryCycleCount: 0 is a real count (a new battery); 0xFFFFFFFF
+    /// is the "no reading" marker.
+    /// </summary>
+    public static uint? BatteryCycleCount(uint? value) => NonMax(value);
+
+    /// <summary>
+    /// A drive temperature in Celsius from the reliability counter: 0
+    /// means the drive exposes no sensor, 0xFFFFFFFF is the "no reading"
+    /// marker, and anything above 150 C is impossible sensor data.
+    /// </summary>
+    public static uint? DriveTemperatureCelsius(uint? value) => value is > 0 and <= 150 ? value : null;
+
     public static string FormatMegaBitsPerSecond(ulong? bitsPerSecond)
     {
         if (bitsPerSecond is null)
@@ -101,6 +153,55 @@ internal static class CollectorSupport
         }
 
         return string.Create(CultureInfo.InvariantCulture, $"{bitsPerSecond.Value / 1_000_000d:0.#} Mbps");
+    }
+
+    /// <summary>
+    /// The driver-stale threshold shared by every component (U12 rule):
+    /// a driver older than this many years is flagged in its age value.
+    /// </summary>
+    public const int DriverStaleAgeYears = 2;
+
+    /// <summary>
+    /// Plain-text age of a driver from its driver date ("yyyy-MM-dd" as
+    /// written by WmiRow.DateText), for example "Driver from 2024
+    /// (2 years old)". A driver older than <see cref="DriverStaleAgeYears"/>
+    /// years is flagged in the same value. A missing, unparseable or future
+    /// date never produces a negative age: a future date reads as 0 years
+    /// old. Shared by the Wi-Fi, Ethernet and GPU collectors so the same
+    /// rule (and the same wording) applies to every driver.
+    /// </summary>
+    public static string FormatDriverAge(string? driverDate, DateTimeOffset asOf)
+    {
+        if (string.IsNullOrWhiteSpace(driverDate) ||
+            !DateTimeOffset.TryParse(
+                driverDate,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var date))
+        {
+            return NotReported;
+        }
+
+        var years = asOf.Year - date.Year;
+        if (asOf.Month < date.Month || (asOf.Month == date.Month && asOf.Day < date.Day))
+        {
+            years--;
+        }
+
+        if (years < 0)
+        {
+            years = 0;
+        }
+
+        // The stale flag sits inside the same parentheses as the age, so
+        // the value reads as one sentence: "Driver from 2020 (6 years old,
+        // older than 2 years)".
+        var stale = years > DriverStaleAgeYears
+            ? string.Create(CultureInfo.InvariantCulture, $", older than {DriverStaleAgeYears} years")
+            : string.Empty;
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"Driver from {date.Year} ({years} year{(years == 1 ? string.Empty : "s")} old{stale})");
     }
 
     public static string FormatPercent(double? value) =>
@@ -152,6 +253,40 @@ internal static class CollectorSupport
         _ => NotReported,
     };
 
+    /// <summary>
+    /// MSFT_PhysicalDisk.OperationalStatus, the documented CIM codes
+    /// (2 = OK). Unknown codes show as "Not reported by hardware", never
+    /// as a bare number.
+    /// </summary>
+    public static string OperationalStatus(uint? status) => status switch
+    {
+        0 => "Unknown",
+        1 => "Other",
+        2 => "OK",
+        3 => "Degraded",
+        4 => "Stressed",
+        5 => "Predictive Failure",
+        6 => "Error",
+        7 => "Non-Recoverable Error",
+        8 => "Starting",
+        9 => "Stopping",
+        10 => "Stopped",
+        11 => "In Service",
+        12 => "No Contact",
+        13 => "Lost Communication",
+        14 => "Aborted",
+        15 => "Dormant",
+        16 => "Supporting Entity in Error",
+        17 => "Completed",
+        18 => "Power Mode",
+        _ => NotReported,
+    };
+
+    /// <summary>
+    /// Win32_Battery Chemistry codes. Note 7 is Zinc air and 8 is Lithium
+    /// polymer: an earlier table had them swapped and carried a bogus 9,
+    /// which is not a documented code.
+    /// </summary>
     public static string BatteryChemistry(uint? chemistry) => chemistry switch
     {
         1 => "Other",
@@ -160,12 +295,18 @@ internal static class CollectorSupport
         4 => "Nickel cadmium",
         5 => "Nickel metal hydride",
         6 => "Lithium ion",
-        7 => "Lithium polymer",
-        8 => "Zinc air",
-        9 => "Lithium ion",
+        7 => "Zinc air",
+        8 => "Lithium polymer",
         _ => NotReported,
     };
 
+    /// <summary>
+    /// BatteryStaticData reports Chemistry as a number, so a numeric
+    /// string here is a raw enum code, not a name: decode it, never print
+    /// the number (a ThinkPad reported "5269836", an unmapped vendor
+    /// value). A real name ("Li-ion", "NiMH") is normalised to the
+    /// canonical name; an unrecognised name is shown as reported.
+    /// </summary>
     public static string BatteryChemistry(string? chemistry)
     {
         if (string.IsNullOrWhiteSpace(chemistry))
@@ -173,7 +314,28 @@ internal static class CollectorSupport
             return NotReported;
         }
 
-        return chemistry.Trim();
+        var text = chemistry.Trim();
+        if (uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var code))
+        {
+            return BatteryChemistry(code);
+        }
+
+        var compact = text
+            .Replace(" ", string.Empty, StringComparison.Ordinal)
+            .Replace("-", string.Empty, StringComparison.Ordinal)
+            .ToLowerInvariant();
+        return compact switch
+        {
+            "other" => "Other",
+            "unknown" => "Unknown",
+            "leadacid" => "Lead acid",
+            "nickelcadmium" or "nicd" => "Nickel cadmium",
+            "nickelmetalhydride" or "nimh" => "Nickel metal hydride",
+            "lithiumion" or "liion" => "Lithium ion",
+            "zincair" => "Zinc air",
+            "lithiumpolymer" or "lipolymer" or "lipoly" => "Lithium polymer",
+            _ => text,
+        };
     }
 
     public static string ChassisType(ushort? chassis) => chassis switch
@@ -205,23 +367,38 @@ internal static class CollectorSupport
         _ => NotReported,
     };
 
+    /// <summary>
+    /// Win32_PhysicalMemory FormFactor, the SMBIOS memory form-factor
+    /// codes. An earlier table was off by one (12 read "RIMM", 13 read
+    /// "SODIMM"); the correct codes are 11 = RIMM and 12 = SODIMM, which
+    /// is what a ThinkPad T480 reports.
+    /// </summary>
     public static string FormFactor(uint? formFactor) => formFactor switch
     {
+        0 => "Unknown",
         1 => "Other",
-        2 => "Unknown",
-        3 => "SIMM",
-        4 => "SIP",
-        5 => "Chip",
-        6 => "DIP",
-        7 => "ZIP",
-        8 => "Proprietary card",
-        9 => "DIMM",
-        10 => "TSOP",
-        11 => "Row of chips",
-        12 => "RIMM",
-        13 => "SODIMM",
-        14 => "SRIMM",
-        15 => "FB-DIMM",
+        2 => "SIP",
+        3 => "DIP",
+        4 => "ZIP",
+        5 => "SOJ",
+        6 => "Proprietary",
+        7 => "SIMM",
+        8 => "DIMM",
+        9 => "TSOP",
+        10 => "PGA",
+        11 => "RIMM",
+        12 => "SODIMM",
+        13 => "SRIMM",
+        14 => "SMD",
+        15 => "SSMP",
+        16 => "QFP",
+        17 => "TQFP",
+        18 => "SOIC",
+        19 => "LCC",
+        20 => "PLCC",
+        21 => "BGA",
+        22 => "FPBGA",
+        23 => "LGA",
         _ => NotReported,
     };
 

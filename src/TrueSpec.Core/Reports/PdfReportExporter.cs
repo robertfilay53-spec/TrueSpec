@@ -53,30 +53,47 @@ public sealed class PdfReportExporter : IReportExporter
         {
             new("TrueSpec report", Bold: true, Size: 16),
             new(snapshot.MachineName, Bold: true, Size: 12),
-            new(report.OperatingSystem, Bold: false, Size: 10),
-            new(string.Create(
-                CultureInfo.InvariantCulture,
-                $"Generated {report.GeneratedAt:yyyy-MM-dd HH:mm:ss} from a snapshot captured {snapshot.CapturedAt:yyyy-MM-dd HH:mm:ss}."),
-                Bold: false, Size: 10),
-            PdfLine.Blank,
-            new(string.Create(
-                CultureInfo.InvariantCulture,
-                $"Score: {(snapshot.Score.HasMeasurableComponents ? snapshot.Score.OverallScore.ToString("0.#", CultureInfo.InvariantCulture) : "Not available")} / 100"),
-                Bold: true, Size: 12),
-            new($"Verdict: {snapshot.Score.Verdict.ToDisplayText()}", Bold: true, Size: 10),
-            new(snapshot.Score.Explanation, Bold: false, Size: 10),
-            PdfLine.Blank,
-            new("New Laptop Check", Bold: true, Size: 12),
-            new(snapshot.BuyerChecks.BannerText, Bold: false, Size: 10),
         };
+
+        // The operating-system line is only useful when the scan actually
+        // read one. A timed-out system collector leaves the literal
+        // "Not reported" here, which reads as a stray value after the
+        // machine name, so the line is omitted instead of shown empty.
+        if (HasReportedValue(report.OperatingSystem))
+        {
+            lines.Add(new(report.OperatingSystem, Bold: false, Size: 10));
+        }
+
+        lines.Add(new(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Generated {report.GeneratedAt:yyyy-MM-dd HH:mm:ss} from a snapshot captured {snapshot.CapturedAt:yyyy-MM-dd HH:mm:ss}."),
+            Bold: false, Size: 10));
+        lines.Add(PdfLine.Blank);
+        lines.Add(new(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Score: {(snapshot.Score.HasMeasurableComponents ? snapshot.Score.OverallScore.ToString("0.#", CultureInfo.InvariantCulture) : "Not available")} / 100"),
+            Bold: true, Size: 12));
+        lines.Add(new($"Verdict: {snapshot.Score.Verdict.ToDisplayText()}", Bold: true, Size: 10));
+        lines.Add(new(snapshot.Score.Explanation, Bold: false, Size: 10));
+        lines.Add(PdfLine.Blank);
+        lines.Add(new("New Laptop Check", Bold: true, Size: 12));
+        lines.Add(new(snapshot.BuyerChecks.BannerText, Bold: false, Size: 10));
+        lines.Add(new(snapshot.BuyerChecks.SummaryText, Bold: false, Size: 10));
+        lines.Add(PdfLine.Blank);
+
+        // One row per check: a bold title line with the result, then the
+        // detail on its own line, then a blank separator. The old
+        // single-line form wrapped into a run-together wall with no
+        // visible boundary between checks.
         foreach (var check in snapshot.BuyerChecks.Checks)
         {
             lines.Add(new(
-                string.Create(CultureInfo.InvariantCulture, $"{check.Title}: {check.StateText} - {check.Detail}"),
-                Bold: false, Size: 10));
+                string.Create(CultureInfo.InvariantCulture, $"{check.Title} [{check.StateText}]"),
+                Bold: true, Size: 10));
+            lines.Add(new(check.Detail, Bold: false, Size: 10));
+            lines.Add(PdfLine.Blank);
         }
 
-        lines.Add(PdfLine.Blank);
         lines.Add(new("Components", Bold: true, Size: 12));
         foreach (var component in snapshot.Components)
         {
@@ -103,6 +120,15 @@ public sealed class PdfReportExporter : IReportExporter
             Bold: false, Size: 10));
         return lines;
     }
+
+    /// <summary>
+    /// True when a header value is a real reading: the literal "Not
+    /// reported" fallbacks are missing data, not a value to print.
+    /// </summary>
+    private static bool HasReportedValue(string value) =>
+        !string.IsNullOrWhiteSpace(value) &&
+        !string.Equals(value.Trim(), "Not reported", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(value.Trim(), "Not reported by hardware", StringComparison.OrdinalIgnoreCase);
 
     private static List<List<PdfLine>> Paginate(List<PdfLine> lines)
     {

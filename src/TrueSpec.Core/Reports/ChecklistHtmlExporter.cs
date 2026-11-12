@@ -79,8 +79,7 @@ public sealed class ChecklistHtmlExporter
         };
         builder.AppendLine($"<div class=\"banner {bannerClass}\">{Encode(snapshot.BuyerChecks.BannerText)}</div>");
 
-        var passed = snapshot.BuyerChecks.Checks.Count(c => c.IsPass);
-        builder.AppendLine($"<p><strong>{passed} of {snapshot.BuyerChecks.Checks.Count} checks passed.</strong> Tick each row as you verify it with the seller.</p>");
+        builder.AppendLine($"<p><strong>{Encode(snapshot.BuyerChecks.SummaryText)}.</strong> Tick each row as you verify it with the seller.</p>");
 
         builder.AppendLine("<table><thead><tr><th></th><th>Check</th><th>Result</th><th>Detail</th><th>What to ask the seller</th></tr></thead><tbody>");
         foreach (var check in snapshot.BuyerChecks.Checks)

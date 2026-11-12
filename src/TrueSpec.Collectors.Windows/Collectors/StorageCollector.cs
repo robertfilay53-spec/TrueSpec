@@ -71,7 +71,7 @@ public sealed class StorageCollector : ICollector
                     busType,
                     Wmi.UInt(disk, "MediaType"),
                     Wmi.UInt(disk, "HealthStatus"),
-                    Join(Wmi.Value(disk, "OperationalStatus")),
+                    OperationalStatusText(Wmi.Value(disk, "OperationalStatus")),
                     reliability,
                     sata));
             }
@@ -115,9 +115,9 @@ public sealed class StorageCollector : ICollector
             Add(SpecLabels.SerialNumber, drive.SerialNumber, "CIM MSFT_PhysicalDisk");
             Add(SpecLabels.Firmware, drive.FirmwareVersion, "CIM MSFT_PhysicalDisk");
             Add(SpecLabels.Interface, string.Join(" ", new[] { bus, media }.Where(v => v != CollectorSupport.NotReported)), "CIM MSFT_PhysicalDisk");
-            Add(SpecLabels.Capacity, CollectorSupport.FormatBytes(CollectorSupport.NonZero(drive.Size)), "CIM MSFT_PhysicalDisk.Size");
+            Add(SpecLabels.Capacity, CollectorSupport.FormatBytes(CollectorSupport.NonZeroNonMax(drive.Size)), "CIM MSFT_PhysicalDisk.Size");
             Add(SpecLabels.HealthWord, CollectorSupport.DiskHealth(drive.HealthStatus), "CIM MSFT_PhysicalDisk.HealthStatus");
-            Add(SpecLabels.OperationalStatus, Join(drive.OperationalStatus), "CIM MSFT_PhysicalDisk.OperationalStatus");
+            Add(SpecLabels.OperationalStatus, drive.OperationalStatus, "CIM MSFT_PhysicalDisk.OperationalStatus");
             Add(SpecLabels.WearLevel, FormatPercent(drive.Wear), drive.WearSource);
             Add(SpecLabels.PowerOnHours, drive.PowerOnHours?.ToString(CultureInfo.InvariantCulture), drive.PowerOnHoursSource);
             Add(SpecLabels.PowerCycles, drive.PowerCycles?.ToString(CultureInfo.InvariantCulture), drive.PowerCyclesSource);
@@ -221,20 +221,42 @@ public sealed class StorageCollector : ICollector
     private static string? FormatPercent(double? value) =>
         value is null ? null : string.Create(CultureInfo.InvariantCulture, $"{value.Value:0.#}%");
 
-    private static string Join(object? value)
+    /// <summary>
+    /// MSFT_PhysicalDisk.OperationalStatus is an array of raw enum codes
+    /// (2 = OK). Each code is decoded to its documented name, duplicates
+    /// are collapsed, and an unmapped code is dropped: the result is never
+    /// a bare number like "2".
+    /// </summary>
+    private static string OperationalStatusText(object? value)
     {
-        if (value is Array array)
+        var raw = value switch
         {
-            var parts = array.Cast<object?>()
-                .Select(v => Convert.ToString(v, CultureInfo.InvariantCulture))
-                .Where(v => !string.IsNullOrWhiteSpace(v))
-                .Select(v => v!)
-                .ToArray();
-            return parts.Length == 0 ? CollectorSupport.NotReported : string.Join(", ", parts);
+            null => Array.Empty<object?>(),
+            Array array => array.Cast<object?>().ToArray(),
+            _ => new[] { value },
+        };
+
+        var names = new List<string>();
+        foreach (var item in raw)
+        {
+            uint? code = null;
+            try
+            {
+                code = item is null ? null : Convert.ToUInt32(item, CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                code = null;
+            }
+
+            var name = CollectorSupport.OperationalStatus(code);
+            if (name != CollectorSupport.NotReported && !names.Contains(name, StringComparer.Ordinal))
+            {
+                names.Add(name);
+            }
         }
 
-        var text = value is null ? null : Convert.ToString(value, CultureInfo.InvariantCulture);
-        return string.IsNullOrWhiteSpace(text) ? CollectorSupport.NotReported : text;
+        return names.Count == 0 ? CollectorSupport.NotReported : string.Join(", ", names);
     }
 
     private static int? ReadSystemDiskNumber()
@@ -281,24 +303,26 @@ public sealed class StorageCollector : ICollector
     }
 
     private static ReliabilityData FromInstance(ManagementBaseObject counter) => new(
-        Wmi.ULong(counter, "Wear"),
-        Wmi.ULong(counter, "PowerOnHours"),
-        Wmi.UInt(counter, "Temperature"),
-        Wmi.ULong(counter, "ReadErrorsTotal"),
-        Wmi.ULong(counter, "WriteErrorsTotal"),
+        CollectorSupport.NonMax(Wmi.ULong(counter, "Wear")),
+        CollectorSupport.NonMax(Wmi.ULong(counter, "PowerOnHours")),
+        CollectorSupport.DriveTemperatureCelsius(Wmi.UInt(counter, "Temperature")),
+        CollectorSupport.NonMax(Wmi.ULong(counter, "ReadErrorsTotal")),
+        CollectorSupport.NonMax(Wmi.ULong(counter, "WriteErrorsTotal")),
         CombineUncorrected(
-            Wmi.ULong(counter, "ReadErrorsUncorrected"),
-            Wmi.ULong(counter, "WriteErrorsUncorrected")),
-        Wmi.UInt(counter, "StartStopCycleCount"));
+            CollectorSupport.NonMax(Wmi.ULong(counter, "ReadErrorsUncorrected")),
+            CollectorSupport.NonMax(Wmi.ULong(counter, "WriteErrorsUncorrected"))),
+        CollectorSupport.NonMax(Wmi.UInt(counter, "StartStopCycleCount")));
 
     private static ReliabilityData FromRow(WmiRow row) => new(
-        row.UInt64("Wear"),
-        row.UInt64("PowerOnHours"),
-        row.UInt32("Temperature"),
-        row.UInt64("ReadErrorsTotal"),
-        row.UInt64("WriteErrorsTotal"),
-        CombineUncorrected(row.UInt64("ReadErrorsUncorrected"), row.UInt64("WriteErrorsUncorrected")),
-        row.UInt32("StartStopCycleCount"));
+        CollectorSupport.NonMax(row.UInt64("Wear")),
+        CollectorSupport.NonMax(row.UInt64("PowerOnHours")),
+        CollectorSupport.DriveTemperatureCelsius(row.UInt32("Temperature")),
+        CollectorSupport.NonMax(row.UInt64("ReadErrorsTotal")),
+        CollectorSupport.NonMax(row.UInt64("WriteErrorsTotal")),
+        CombineUncorrected(
+            CollectorSupport.NonMax(row.UInt64("ReadErrorsUncorrected")),
+            CollectorSupport.NonMax(row.UInt64("WriteErrorsUncorrected"))),
+        CollectorSupport.NonMax(row.UInt32("StartStopCycleCount")));
 
     private static ulong? CombineUncorrected(ulong? read, ulong? write)
     {

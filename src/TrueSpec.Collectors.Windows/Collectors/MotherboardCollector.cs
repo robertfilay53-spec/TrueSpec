@@ -25,7 +25,13 @@ public sealed class MotherboardCollector : ICollector
         cancellationToken.ThrowIfCancellationRequested();
 
         var board = Wmi.Query("root\\cimv2", "SELECT Manufacturer, Product, Version, SerialNumber FROM Win32_BaseBoard").FirstOrDefault();
-        var bios = Wmi.Query("root\\cimv2", "SELECT ReleaseDate, SMBIOSBIOSVersion, SerialNumber FROM Win32_BIOS").FirstOrDefault();
+        // Manufacturer and Version must be in the SELECT: WmiRow only
+        // carries the properties the query asked for, so reading them
+        // without selecting them always returned null and the BIOS vendor
+        // showed "Not reported by hardware" even though the same
+        // Win32_BIOS read had the version and date (a ThinkPad reports
+        // "LENOVO" here).
+        var bios = Wmi.Query("root\\cimv2", "SELECT Manufacturer, ReleaseDate, SMBIOSBIOSVersion, Version, SerialNumber FROM Win32_BIOS").FirstOrDefault();
         var enclosure = Wmi.Query("root\\cimv2", "SELECT ChassisTypes, SerialNumber FROM Win32_SystemEnclosure").FirstOrDefault();
         var computer = Wmi.Query("root\\cimv2", "SELECT SystemFamily FROM Win32_ComputerSystem").FirstOrDefault();
 

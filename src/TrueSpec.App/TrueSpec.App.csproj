@@ -4,7 +4,7 @@
     <!-- Single source of truth for the displayed version: MainViewModel
          reads this from the assembly, so a release bump touches this one
          place (plus installer/TrueSpec.iss AppVersion and the git tag). -->
-    <Version>1.4.0</Version>
+    <Version>1.4.1</Version>
     <TargetFramework Condition="'$(OS)' == 'Windows_NT'">net10.0-windows</TargetFramework>
     <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -16,6 +16,15 @@
   <ItemGroup>
     <Folder Include="Models\" />
     <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <!-- Tests drive the shell through the internal MainViewModel test
+       constructor (temp settings store, recording file opener), so the
+       test assembly can see internals. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>TrueSpec.Tests</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>
