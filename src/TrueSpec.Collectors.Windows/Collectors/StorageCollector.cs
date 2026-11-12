@@ -103,10 +103,10 @@ public sealed class StorageCollector : ICollector
         {
             var drive = ordered[i];
             var prefix = i == 0 ? null : string.Create(CultureInfo.InvariantCulture, $"Drive {i + 1}");
-            void Add(string label, string? value, string source)
+            void Add(string label, string? value, string source, double? numericValue = null, string? numericUnit = null)
             {
                 var fullLabel = prefix is null ? label : $"{prefix} - {label}";
-                specs.Add(CollectorSupport.Spec(fullLabel, value, source));
+                specs.Add(CollectorSupport.Spec(fullLabel, value, source, numericValue: numericValue, numericUnit: numericUnit));
             }
 
             var bus = CollectorSupport.BusType(drive.BusType);
@@ -114,28 +114,28 @@ public sealed class StorageCollector : ICollector
             Add(SpecLabels.Model, drive.Model, "CIM MSFT_PhysicalDisk");
             Add(SpecLabels.SerialNumber, drive.SerialNumber, "CIM MSFT_PhysicalDisk");
             Add(SpecLabels.Firmware, drive.FirmwareVersion, "CIM MSFT_PhysicalDisk");
-            Add(SpecLabels.Interface, string.Join(" ", new[] { bus, media }.Where(v => v != CollectorSupport.NotReported)), "CIM MSFT_PhysicalDisk");
-            Add(SpecLabels.Capacity, CollectorSupport.FormatBytes(CollectorSupport.NonZeroNonMax(drive.Size)), "CIM MSFT_PhysicalDisk.Size");
+            Add(SpecLabels.Interface, string.Join(" ", new[] { bus, media }.Where(v => v != SpecLabels.NotReportedByHardware)), "CIM MSFT_PhysicalDisk");
+            Add(SpecLabels.Capacity, CollectorSupport.FormatBytes(CollectorSupport.NonZeroNonMax(drive.Size)), "CIM MSFT_PhysicalDisk.Size", numericValue: (double?)CollectorSupport.NonZeroNonMax(drive.Size), numericUnit: "bytes");
             Add(SpecLabels.HealthWord, CollectorSupport.DiskHealth(drive.HealthStatus), "CIM MSFT_PhysicalDisk.HealthStatus");
             Add(SpecLabels.OperationalStatus, drive.OperationalStatus, "CIM MSFT_PhysicalDisk.OperationalStatus");
-            Add(SpecLabels.WearLevel, FormatPercent(drive.Wear), drive.WearSource);
-            Add(SpecLabels.PowerOnHours, drive.PowerOnHours?.ToString(CultureInfo.InvariantCulture), drive.PowerOnHoursSource);
-            Add(SpecLabels.PowerCycles, drive.PowerCycles?.ToString(CultureInfo.InvariantCulture), drive.PowerCyclesSource);
+            Add(SpecLabels.WearLevel, FormatPercent(drive.Wear), drive.WearSource, numericValue: drive.Wear, numericUnit: "%");
+            Add(SpecLabels.PowerOnHours, drive.PowerOnHours?.ToString(CultureInfo.InvariantCulture), drive.PowerOnHoursSource, numericValue: (double?)drive.PowerOnHours, numericUnit: "hours");
+            Add(SpecLabels.PowerCycles, drive.PowerCycles?.ToString(CultureInfo.InvariantCulture), drive.PowerCyclesSource, numericValue: (double?)drive.PowerCycles, numericUnit: "cycles");
             Add(SpecLabels.Temperature, drive.Temperature is null
                 ? null
-                : string.Create(CultureInfo.InvariantCulture, $"{drive.Temperature.Value:0} C"), drive.TemperatureSource);
-            Add(SpecLabels.ReadErrors, drive.ReadErrors?.ToString(CultureInfo.InvariantCulture), "Get-StorageReliabilityCounter");
-            Add(SpecLabels.WriteErrors, drive.WriteErrors?.ToString(CultureInfo.InvariantCulture), "Get-StorageReliabilityCounter");
-            Add(SpecLabels.UncorrectedErrors, drive.UncorrectedErrors?.ToString(CultureInfo.InvariantCulture), drive.UncorrectedSource);
+                : string.Create(CultureInfo.InvariantCulture, $"{drive.Temperature.Value:0} C"), drive.TemperatureSource, numericValue: (double?)drive.Temperature, numericUnit: "C");
+            Add(SpecLabels.ReadErrors, drive.ReadErrors?.ToString(CultureInfo.InvariantCulture), "Get-StorageReliabilityCounter", numericValue: (double?)drive.ReadErrors, numericUnit: "errors");
+            Add(SpecLabels.WriteErrors, drive.WriteErrors?.ToString(CultureInfo.InvariantCulture), "Get-StorageReliabilityCounter", numericValue: (double?)drive.WriteErrors, numericUnit: "errors");
+            Add(SpecLabels.UncorrectedErrors, drive.UncorrectedErrors?.ToString(CultureInfo.InvariantCulture), drive.UncorrectedSource, numericValue: (double?)drive.UncorrectedErrors, numericUnit: "errors");
             Add(SpecLabels.DataWritten, drive.DataWritten is null
                 ? null
-                : CollectorSupport.FormatBytes(drive.DataWritten), "SATA SMART attribute 241 (total LBAs written)");
+                : CollectorSupport.FormatBytes(drive.DataWritten), "SATA SMART attribute 241 (total LBAs written)", numericValue: (double?)drive.DataWritten, numericUnit: "bytes");
             Add(SpecLabels.DataRead, drive.DataRead is null
                 ? null
-                : CollectorSupport.FormatBytes(drive.DataRead), "SATA SMART attribute 242 (total LBAs read)");
+                : CollectorSupport.FormatBytes(drive.DataRead), "SATA SMART attribute 242 (total LBAs read)", numericValue: (double?)drive.DataRead, numericUnit: "bytes");
             Add(SpecLabels.SMARTWarnings, drive.SmartWarnings, "SMART health, reallocated and pending sector counters");
-            Add(SpecLabels.RatedEndurance, "Not reported by hardware", "Drive endurance rating is not exposed by the drive");
-            Add(SpecLabels.TRIM, "Not reported by hardware", "Windows does not expose TRIM state through MSFT_PhysicalDisk");
+            Add(SpecLabels.RatedEndurance, SpecLabels.NotReportedByHardware, "Drive endurance rating is not exposed by the drive");
+            Add(SpecLabels.TRIM, SpecLabels.NotReportedByHardware, "Windows does not expose TRIM state through MSFT_PhysicalDisk");
         }
 
         var primaryWear = primary.Wear is null
@@ -200,17 +200,23 @@ public sealed class StorageCollector : ICollector
             specs.Add(CollectorSupport.Spec(
                 $"Volume {letter} - {SpecLabels.TotalSpace}",
                 CollectorSupport.FormatBytes(volume.TotalBytes),
-                "CIM Win32_LogicalDisk.Size"));
+                "CIM Win32_LogicalDisk.Size",
+                numericValue: (double?)volume.TotalBytes,
+                numericUnit: "bytes"));
             specs.Add(CollectorSupport.Spec(
                 $"Volume {letter} - {SpecLabels.FreeSpace}",
                 CollectorSupport.FormatBytes(volume.FreeBytes),
-                "CIM Win32_LogicalDisk.FreeSpace"));
+                "CIM Win32_LogicalDisk.FreeSpace",
+                numericValue: (double?)volume.FreeBytes,
+                numericUnit: "bytes"));
             specs.Add(CollectorSupport.Spec(
                 $"Volume {letter} - {SpecLabels.FreeSpacePercent}",
                 volume.FreePercent is null
                     ? null
                     : string.Create(CultureInfo.InvariantCulture, $"{volume.FreePercent.Value:0.0}%"),
-                "Free space / total space (Win32_LogicalDisk)"));
+                "Free space / total space (Win32_LogicalDisk)",
+                numericValue: volume.FreePercent,
+                numericUnit: "%"));
             specs.Add(CollectorSupport.Spec(
                 $"Volume {letter} - {SpecLabels.Filesystem}",
                 volume.FileSystem,
@@ -250,13 +256,13 @@ public sealed class StorageCollector : ICollector
             }
 
             var name = CollectorSupport.OperationalStatus(code);
-            if (name != CollectorSupport.NotReported && !names.Contains(name, StringComparer.Ordinal))
+            if (name != SpecLabels.NotReportedByHardware && !names.Contains(name, StringComparer.Ordinal))
             {
                 names.Add(name);
             }
         }
 
-        return names.Count == 0 ? CollectorSupport.NotReported : string.Join(", ", names);
+        return names.Count == 0 ? SpecLabels.NotReportedByHardware : string.Join(", ", names);
     }
 
     private static int? ReadSystemDiskNumber()
@@ -416,7 +422,7 @@ public sealed class StorageCollector : ICollector
                               Sata?.PendingSectors is not null;
                 if (!hasData)
                 {
-                    return CollectorSupport.NotReported;
+                    return SpecLabels.NotReportedByHardware;
                 }
 
                 var warning = string.Equals(health, "Warning", StringComparison.OrdinalIgnoreCase) ||

@@ -124,7 +124,7 @@ public sealed class HtmlReportExporter : IReportExporter
             builder.AppendLine("</section>");
         }
 
-        builder.AppendLine("<footer>TrueSpec is offline. This report was generated on this machine and was not uploaded anywhere. Unmeasurable values say \"Not reported by hardware\" or \"Not available\" instead of showing a fake number.</footer>");
+        builder.AppendLine($"<footer>TrueSpec is offline. This report was generated on this machine and was not uploaded anywhere. Unmeasurable values say \"{SpecLabels.NotReportedByHardware}\" or \"Not available\" instead of showing a fake number.</footer>");
         builder.AppendLine("</main></body></html>");
         return builder.ToString();
     }

@@ -1,5 +1,7 @@
 namespace TrueSpec.Core.Diagnostics;
 
+using TrueSpec.Core.Models;
+
 /// <summary>
 /// Decodes the Windows Security Center <c>productState</c> bitmask from
 /// <c>root\SecurityCenter2 AntiVirusProduct</c> into plain English.
@@ -19,13 +21,11 @@ namespace TrueSpec.Core.Diagnostics;
 /// </summary>
 public static class WindowsSecurityProductState
 {
-    public const string NotReported = "Not reported by hardware";
-
     public static string DecodeProductState(uint? state)
     {
         if (state is null)
         {
-            return NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var value = state.Value;
@@ -42,7 +42,7 @@ public static class WindowsSecurityProductState
                 1 => "On, may be out of date",
                 _ => "On, update status unknown",
             },
-            _ => NotReported,
+            _ => SpecLabels.NotReportedByHardware,
         };
     }
 }

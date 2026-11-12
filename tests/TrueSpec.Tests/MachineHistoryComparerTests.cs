@@ -77,7 +77,7 @@ public class MachineHistoryComparerTests
         // latest scan, gaps included.
         var before = MachineSnapshot("Alpha Laptop", FirstScan, 90d, "90.0%", "2%", "2020-01-15", "2026-01-05 09:00");
         var after = TestSnapshots.HistorySnapshot(
-            0d, "Not reported by hardware", "11", "5%", "150", SecondScan, "Alpha Laptop",
+            0d, SpecLabels.NotReportedByHardware, "11", "5%", "150", SecondScan, "Alpha Laptop",
             measurableScore: false);
 
         var summary = MachineHistoryComparer.Summarize(new[] { before, after });

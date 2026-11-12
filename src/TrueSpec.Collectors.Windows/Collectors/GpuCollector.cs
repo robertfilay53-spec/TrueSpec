@@ -57,7 +57,7 @@ public sealed class GpuCollector : ICollector
         {
             >= 90d => "Yes",
             not null => "No",
-            _ => CollectorSupport.NotReported,
+            _ => SpecLabels.NotReportedByHardware,
         };
 
         // AdapterRAM is a uint32: cards with more than 4 GB of VRAM report
@@ -71,20 +71,20 @@ public sealed class GpuCollector : ICollector
         {
             CollectorSupport.Spec(SpecLabels.Model, adapter.String("Name"), "CIM Win32_VideoController"),
             CollectorSupport.Spec(SpecLabels.Vendor, adapter.String("AdapterCompatibility"), "CIM Win32_VideoController"),
-            CollectorSupport.Spec(SpecLabels.DedicatedMemory, CollectorSupport.FormatBytesBinary(dedicatedMemory), "CIM Win32_VideoController.AdapterRAM"),
+            CollectorSupport.Spec(SpecLabels.DedicatedMemory, CollectorSupport.FormatBytesBinary(dedicatedMemory), "CIM Win32_VideoController.AdapterRAM", numericValue: (double?)dedicatedMemory, numericUnit: "bytes"),
             CollectorSupport.Spec(SpecLabels.DriverVersion, adapter.String("DriverVersion"), "CIM Win32_VideoController"),
             CollectorSupport.Spec(SpecLabels.DriverDate, adapter.DateText("DriverDate"), "CIM Win32_VideoController.DriverDate"),
             CollectorSupport.Spec(SpecLabels.GPUDriverAge, CollectorSupport.FormatDriverAge(adapter.DateText("DriverDate"), DateTimeOffset.UtcNow), "CIM Win32_VideoController.DriverDate"),
             CollectorSupport.Spec(SpecLabels.VideoProcessor, adapter.String("VideoProcessor"), "CIM Win32_VideoController"),
             CollectorSupport.Spec(SpecLabels.CurrentMode, FormatCurrentMode(adapter.UInt32("CurrentHorizontalResolution"), adapter.UInt32("CurrentVerticalResolution"), adapter.UInt32("CurrentBitsPerPixel"), adapter.String("VideoModeDescription")), "CIM Win32_VideoController"),
-            CollectorSupport.Spec(SpecLabels.DirectXSupport, "Not reported by hardware", "WMI does not expose the DirectX feature level"),
-            CollectorSupport.Spec(SpecLabels.GPUTemperature, FormatSensor(temperature, "C", 1), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.DirectXSupport, SpecLabels.NotReportedByHardware, "WMI does not expose the DirectX feature level"),
+            CollectorSupport.Spec(SpecLabels.GPUTemperature, FormatSensor(temperature, "C", 1), "LibreHardwareMonitor", numericValue: temperature is { HasValue: true } ? temperature.Value : null, numericUnit: "C"),
             CollectorSupport.Spec(SpecLabels.ThermalThrottleFlag, throttle, "LibreHardwareMonitor temperature threshold (90 C)"),
-            CollectorSupport.Spec(SpecLabels.GPULoad, FormatSensor(load, "%", 1), "LibreHardwareMonitor"),
-            CollectorSupport.Spec(SpecLabels.GPUPower, FormatSensor(power, "W", 1), "LibreHardwareMonitor"),
-            CollectorSupport.Spec(SpecLabels.GPUFan, FormatSensor(fan, "RPM", 0), "LibreHardwareMonitor"),
-            CollectorSupport.Spec(SpecLabels.GPUVoltage, FormatSensor(voltage, "V", 3), "LibreHardwareMonitor"),
-            CollectorSupport.Spec(SpecLabels.GPUClock, FormatSensor(clock, "MHz", 0), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.GPULoad, FormatSensor(load, "%", 1), "LibreHardwareMonitor", numericValue: load is { HasValue: true } ? load.Value : null, numericUnit: "%"),
+            CollectorSupport.Spec(SpecLabels.GPUPower, FormatSensor(power, "W", 1), "LibreHardwareMonitor", numericValue: power is { HasValue: true } ? power.Value : null, numericUnit: "W"),
+            CollectorSupport.Spec(SpecLabels.GPUFan, FormatSensor(fan, "RPM", 0), "LibreHardwareMonitor", numericValue: fan is { HasValue: true } ? fan.Value : null, numericUnit: "RPM"),
+            CollectorSupport.Spec(SpecLabels.GPUVoltage, FormatSensor(voltage, "V", 3), "LibreHardwareMonitor", numericValue: voltage is { HasValue: true } ? voltage.Value : null, numericUnit: "V"),
+            CollectorSupport.Spec(SpecLabels.GPUClock, FormatSensor(clock, "MHz", 0), "LibreHardwareMonitor", numericValue: clock is { HasValue: true } ? clock.Value : null, numericUnit: "MHz"),
         };
 
         for (var i = 1; i < adapters.Count; i++)
@@ -149,7 +149,7 @@ public sealed class GpuCollector : ICollector
     {
         if (string.IsNullOrWhiteSpace(description))
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var parts = description.Trim().Split(new[] { 'x', 'X' }, StringSplitOptions.TrimEntries);
@@ -158,7 +158,7 @@ public sealed class GpuCollector : ICollector
             !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var height) ||
             width is 0 or uint.MaxValue || height is 0 or uint.MaxValue)
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var resolution = string.Create(CultureInfo.InvariantCulture, $"{width} x {height}");
@@ -194,5 +194,5 @@ public sealed class GpuCollector : ICollector
     private static string FormatSensor(SensorReading? reading, string unit, int decimals) =>
         reading is { HasValue: true }
             ? CollectorSupport.FormatNumber(reading.Value, unit, decimals)
-            : CollectorSupport.NotReported;
+            : SpecLabels.NotReportedByHardware;
 }

@@ -292,7 +292,7 @@ public static class HistoryTrendAnalyzer
 
     // The trend reads the spec values the collectors wrote, by the exact
     // labels they use. A label that is missing, or a value that does not
-    // parse as a number (for example "Not reported by hardware"), is a gap
+    // parse as a number (for example SpecLabels.NotReportedByHardware), is a gap
     // in the trend, never a zero.
 
     private static double? ReadBatteryHealth(SystemSnapshot snapshot) =>

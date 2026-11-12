@@ -55,7 +55,7 @@ public sealed class BatteryCollector : ICollector
         // up: on a ThinkPad the static value is garbage while the
         // Win32_Battery code is the real chemistry.
         var chemistry = CollectorSupport.BatteryChemistry(staticData?.String("Chemistry"));
-        if (chemistry == CollectorSupport.NotReported)
+        if (chemistry == SpecLabels.NotReportedByHardware)
         {
             chemistry = CollectorSupport.BatteryChemistry(battery?.UInt32("Chemistry"));
         }
@@ -66,38 +66,38 @@ public sealed class BatteryCollector : ICollector
         var headline = string.Join(" - ", new[]
         {
             // A missing design capacity is skipped, never printed as
-            // "Not reported by hardware - 85.5% health".
+            // "<Not reported by hardware> - 85.5% health".
             design is null ? null : FormatCapacity(design),
             health is null ? "Health not reported" : string.Create(CultureInfo.InvariantCulture, $"{health.Value:0.#}% health"),
         }.Where(v => !string.IsNullOrWhiteSpace(v)));
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec(SpecLabels.DesignCapacity, FormatCapacity(design), "CIM root\\WMI BatteryStaticData.DesignedCapacity"),
-            CollectorSupport.Spec(SpecLabels.FullChargeCapacity, FormatCapacity(full), "CIM root\\WMI BatteryFullChargedCapacity.FullChargedCapacity"),
-            CollectorSupport.Spec(SpecLabels.Health, health is null ? null : string.Create(CultureInfo.InvariantCulture, $"{health.Value:0.0}%"), "Full charge capacity / design capacity"),
-            CollectorSupport.Spec(SpecLabels.Wear, wear is null ? null : string.Create(CultureInfo.InvariantCulture, $"{wear.Value:0.0}%"), "100 - health"),
+            CollectorSupport.Spec(SpecLabels.DesignCapacity, FormatCapacity(design), "CIM root\\WMI BatteryStaticData.DesignedCapacity", numericValue: (double?)design, numericUnit: "mWh"),
+            CollectorSupport.Spec(SpecLabels.FullChargeCapacity, FormatCapacity(full), "CIM root\\WMI BatteryFullChargedCapacity.FullChargedCapacity", numericValue: (double?)full, numericUnit: "mWh"),
+            CollectorSupport.Spec(SpecLabels.Health, health is null ? null : string.Create(CultureInfo.InvariantCulture, $"{health.Value:0.0}%"), "Full charge capacity / design capacity", numericValue: health, numericUnit: "%"),
+            CollectorSupport.Spec(SpecLabels.Wear, wear is null ? null : string.Create(CultureInfo.InvariantCulture, $"{wear.Value:0.0}%"), "100 - health", numericValue: wear, numericUnit: "%"),
             CollectorSupport.Spec(SpecLabels.HealthBand, HardwareMath.BatteryBandText(health), "Battery health bands (80/60)"),
-            CollectorSupport.Spec(SpecLabels.CycleCount, cycles?.ToString(CultureInfo.InvariantCulture), "CIM root\\WMI BatteryCycleCount"),
+            CollectorSupport.Spec(SpecLabels.CycleCount, cycles?.ToString(CultureInfo.InvariantCulture), "CIM root\\WMI BatteryCycleCount", numericValue: (double?)cycles, numericUnit: "cycles"),
             CollectorSupport.Spec(SpecLabels.Chemistry, chemistry, "CIM BatteryStaticData / Win32_Battery"),
             CollectorSupport.Spec(SpecLabels.Manufacturer, staticData?.String("ManufactureName"), "CIM root\\WMI BatteryStaticData"),
             CollectorSupport.Spec(SpecLabels.DeviceName, staticData?.String("DeviceName"), "CIM root\\WMI BatteryStaticData"),
             CollectorSupport.Spec(SpecLabels.SerialNumber, staticData?.String("SerialNumber"), "CIM root\\WMI BatteryStaticData"),
             CollectorSupport.Spec(SpecLabels.CurrentCharge, currentCharge is null
                 ? null
-                : string.Create(CultureInfo.InvariantCulture, $"{currentCharge.Value}%"), "CIM Win32_Battery.EstimatedChargeRemaining"),
+                : string.Create(CultureInfo.InvariantCulture, $"{currentCharge.Value}%"), "CIM Win32_Battery.EstimatedChargeRemaining", numericValue: (double?)currentCharge, numericUnit: "%"),
             CollectorSupport.Spec(SpecLabels.Voltage, CollectorSupport.NonZeroNonMax(status?.UInt32("Voltage")) is { } millivolts
                 ? string.Create(CultureInfo.InvariantCulture, $"{millivolts / 1000d:0.000} V")
-                : null, "CIM root\\WMI BatteryStatus.Voltage"),
+                : null, "CIM root\\WMI BatteryStatus.Voltage", numericValue: CollectorSupport.NonZeroNonMax(status?.UInt32("Voltage")) is { } mv ? mv / 1000d : null, numericUnit: "V"),
             CollectorSupport.Spec(SpecLabels.ChargeRate, CollectorSupport.NonZeroNonMax(status?.UInt32("ChargeRate")) is { } chargeRate
                 ? string.Create(CultureInfo.InvariantCulture, $"{chargeRate / 1000d:0.0} W")
-                : null, "CIM root\\WMI BatteryStatus.ChargeRate"),
+                : null, "CIM root\\WMI BatteryStatus.ChargeRate", numericValue: CollectorSupport.NonZeroNonMax(status?.UInt32("ChargeRate")) is { } cr ? cr / 1000d : null, numericUnit: "W"),
             CollectorSupport.Spec(SpecLabels.DischargeRate, CollectorSupport.NonZeroNonMax(status?.UInt32("DischargeRate")) is { } dischargeRate
                 ? string.Create(CultureInfo.InvariantCulture, $"{dischargeRate / 1000d:0.0} W")
-                : null, "CIM root\\WMI BatteryStatus.DischargeRate"),
+                : null, "CIM root\\WMI BatteryStatus.DischargeRate", numericValue: CollectorSupport.NonZeroNonMax(status?.UInt32("DischargeRate")) is { } dr ? dr / 1000d : null, numericUnit: "W"),
             CollectorSupport.Spec(SpecLabels.EstimatedRuntime, runtime is null
                 ? null
-                : FormatRuntime(runtime.Value), "CIM Win32_Battery.EstimatedRunTime"),
+                : FormatRuntime(runtime.Value), "CIM Win32_Battery.EstimatedRunTime", numericValue: (double?)runtime, numericUnit: "minutes"),
         };
 
         return Task.FromResult(ComponentSnapshot.NotMeasurable(
@@ -112,7 +112,7 @@ public sealed class BatteryCollector : ICollector
 
     private static string FormatCapacity(uint? milliwattHours) =>
         milliwattHours is null
-            ? CollectorSupport.NotReported
+            ? SpecLabels.NotReportedByHardware
             : string.Create(CultureInfo.InvariantCulture, $"{milliwattHours.Value:N0} mWh");
 
     private static string FormatRuntime(uint minutes) =>

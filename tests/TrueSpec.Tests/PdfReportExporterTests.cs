@@ -41,7 +41,7 @@ public class PdfReportExporterTests
         await exporter.ExportAsync(ReportModel.FromSnapshot(snapshot), stream);
 
         var text = Encoding.ASCII.GetString(stream.ToArray());
-        Assert.Contains("Not reported by hardware", text, StringComparison.Ordinal);
+        Assert.Contains(SpecLabels.NotReportedByHardware, text, StringComparison.Ordinal);
         Assert.Contains("Not available", text, StringComparison.Ordinal);
     }
 
@@ -104,7 +104,7 @@ public class PdfReportExporterTests
 
     [Theory]
     [InlineData("Not reported")]
-    [InlineData("Not reported by hardware")]
+    [InlineData(SpecLabels.NotReportedByHardware)]
     public async Task PdfExporter_OmitsOperatingSystemLineWhenItWasNotReported(string operatingSystem)
     {
         // v1.4.0 laptop PDF header: "RANAJAWADLAPTOP / Not reported" — a

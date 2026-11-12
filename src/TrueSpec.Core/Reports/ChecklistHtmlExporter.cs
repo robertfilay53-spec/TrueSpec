@@ -103,7 +103,7 @@ public sealed class ChecklistHtmlExporter
         builder.AppendLine("</tbody></table>");
 
         builder.AppendLine("<h2>Before you pay</h2>");
-        builder.AppendLine("<p>Ask the seller to run TrueSpec on the machine in front of you and compare the live score with this checklist. If any row says FAIL, walk away or renegotiate. TrueSpec never invents a number: anything it could not measure says \"Not reported by hardware\".</p>");
+        builder.AppendLine($"<p>Ask the seller to run TrueSpec on the machine in front of you and compare the live score with this checklist. If any row says FAIL, walk away or renegotiate. TrueSpec never invents a number: anything it could not measure says \"{SpecLabels.NotReportedByHardware}\".</p>");
 
         builder.AppendLine("<footer>Generated locally by TrueSpec. This checklist was not uploaded anywhere.</footer>");
         builder.AppendLine("</main></body></html>");

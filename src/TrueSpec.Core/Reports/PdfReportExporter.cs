@@ -116,7 +116,7 @@ public sealed class PdfReportExporter : IReportExporter
 
         lines.Add(new(
             "TrueSpec is offline. This report was generated on this machine and was not uploaded anywhere. " +
-            "Unmeasurable values say \"Not reported by hardware\" or \"Not available\" instead of showing a fake number.",
+            $"Unmeasurable values say \"{SpecLabels.NotReportedByHardware}\" or \"Not available\" instead of showing a fake number.",
             Bold: false, Size: 10));
         return lines;
     }
@@ -128,7 +128,7 @@ public sealed class PdfReportExporter : IReportExporter
     private static bool HasReportedValue(string value) =>
         !string.IsNullOrWhiteSpace(value) &&
         !string.Equals(value.Trim(), "Not reported", StringComparison.OrdinalIgnoreCase) &&
-        !string.Equals(value.Trim(), "Not reported by hardware", StringComparison.OrdinalIgnoreCase);
+        !string.Equals(value.Trim(), SpecLabels.NotReportedByHardware, StringComparison.OrdinalIgnoreCase);
 
     private static List<List<PdfLine>> Paginate(List<PdfLine> lines)
     {

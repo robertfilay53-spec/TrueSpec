@@ -352,7 +352,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
 
         var cpuTempSpec = _cpuSpecs.FirstOrDefault(s =>
             string.Equals(s.Label, "Package temperature", StringComparison.OrdinalIgnoreCase));
-        var cpuTemp = cpuTempSpec?.Value ?? "Not reported by hardware";
+        var cpuTemp = cpuTempSpec?.Value ?? SpecLabels.NotReportedByHardware;
         var cpuTempStatus = cpuTempSpec is not null && SpecText.TryParseLeadingNumber(cpuTemp, out var temp)
             ? temp switch
             {
@@ -362,7 +362,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
             }
             : HealthStatus.NotMeasurable;
 
-        var ramSize = SpecValueOf(ram, "Total memory") ?? "Not reported by hardware";
+        var ramSize = SpecValueOf(ram, "Total memory") ?? SpecLabels.NotReportedByHardware;
         var diskHealth = storage?.HealthText ?? "Not measurable";
         var batteryHealth = battery?.HealthText ?? "Not measurable";
 

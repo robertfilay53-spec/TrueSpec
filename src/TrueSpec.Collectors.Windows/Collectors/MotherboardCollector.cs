@@ -28,7 +28,7 @@ public sealed class MotherboardCollector : ICollector
         // Manufacturer and Version must be in the SELECT: WmiRow only
         // carries the properties the query asked for, so reading them
         // without selecting them always returned null and the BIOS vendor
-        // showed "Not reported by hardware" even though the same
+        // showed SpecLabels.NotReportedByHardware even though the same
         // Win32_BIOS read had the version and date (a ThinkPad reports
         // "LENOVO" here).
         var bios = Wmi.Query("root\\cimv2", "SELECT Manufacturer, ReleaseDate, SMBIOSBIOSVersion, Version, SerialNumber FROM Win32_BIOS").FirstOrDefault();
@@ -53,7 +53,7 @@ public sealed class MotherboardCollector : ICollector
         var chassisTypes = enclosure?.UInt16Array("ChassisTypes");
         var chassis = chassisTypes is { Length: > 0 }
             ? CollectorSupport.ChassisType(chassisTypes[0])
-            : CollectorSupport.NotReported;
+            : SpecLabels.NotReportedByHardware;
 
         var specs = new List<SpecValue>
         {
@@ -67,10 +67,10 @@ public sealed class MotherboardCollector : ICollector
             CollectorSupport.Spec(SpecLabels.BIOSVendor, bios?.String("Manufacturer"), "CIM Win32_BIOS"),
             CollectorSupport.Spec(SpecLabels.BIOSVersion, bios?.String("SMBIOSBIOSVersion") ?? bios?.String("Version"), "CIM Win32_BIOS"),
             CollectorSupport.Spec(SpecLabels.BIOSDate, bios?.DateText("ReleaseDate"), "CIM Win32_BIOS.ReleaseDate"),
-            CollectorSupport.Spec(SpecLabels.PCIeSlots, "Not reported by hardware", "Laptop and many desktop boards do not expose slot count through CIM"),
-            CollectorSupport.Spec(SpecLabels.M2Slots, "Not reported by hardware", "M.2 slot count is not exposed by CIM"),
-            CollectorSupport.Spec(SpecLabels.RAMSlots, "Not reported by hardware", "See the RAM page for the real slots-used reading"),
-            CollectorSupport.Spec(SpecLabels.LifeRemaining, "Not reported by hardware", "No motherboard life sensor exists"),
+            CollectorSupport.Spec(SpecLabels.PCIeSlots, SpecLabels.NotReportedByHardware, "Laptop and many desktop boards do not expose slot count through CIM"),
+            CollectorSupport.Spec(SpecLabels.M2Slots, SpecLabels.NotReportedByHardware, "M.2 slot count is not exposed by CIM"),
+            CollectorSupport.Spec(SpecLabels.RAMSlots, SpecLabels.NotReportedByHardware, "See the RAM page for the real slots-used reading"),
+            CollectorSupport.Spec(SpecLabels.LifeRemaining, SpecLabels.NotReportedByHardware, "No motherboard life sensor exists"),
         };
 
         return Task.FromResult(ComponentSnapshot.NotMeasurable(

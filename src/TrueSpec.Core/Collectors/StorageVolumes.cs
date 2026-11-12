@@ -59,7 +59,7 @@ public static class StorageVolumeParser
     /// anything that is not a local fixed disk, or for a row with no drive
     /// letter: a letter is the identity of a volume. A local disk whose size
     /// Windows does not report still builds, with nulls that render as
-    /// "Not reported by hardware".
+    /// SpecLabels.NotReportedByHardware.
     /// </summary>
     public static StorageVolume? Build(
         string? deviceId,

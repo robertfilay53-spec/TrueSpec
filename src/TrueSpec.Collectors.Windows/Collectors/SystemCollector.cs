@@ -54,17 +54,17 @@ public sealed class SystemCollector : ICollector
         var chassisTypes = enclosure?.UInt16Array("ChassisTypes");
         var chassis = chassisTypes is { Length: > 0 }
             ? CollectorSupport.ChassisType(chassisTypes[0])
-            : CollectorSupport.NotReported;
+            : SpecLabels.NotReportedByHardware;
 
         var boot = os?.Date("LastBootUpTime");
         var uptime = boot is null
-            ? CollectorSupport.NotReported
+            ? SpecLabels.NotReportedByHardware
             : FormatUptime(DateTimeOffset.Now - boot.Value);
 
-        var installDate = os?.DateText("InstallDate") ?? CollectorSupport.NotReported;
-        var biosDate = bios?.DateText("ReleaseDate") ?? CollectorSupport.NotReported;
+        var installDate = os?.DateText("InstallDate") ?? SpecLabels.NotReportedByHardware;
+        var biosDate = bios?.DateText("ReleaseDate") ?? SpecLabels.NotReportedByHardware;
 
-        var smbios = CollectorSupport.NotReported;
+        var smbios = SpecLabels.NotReportedByHardware;
         if (bios?.UInt32("SMBIOSMajorVersion") is { } major)
         {
             var minor = bios?.UInt32("SMBIOSMinorVersion");
@@ -120,10 +120,10 @@ public sealed class SystemCollector : ICollector
             CollectorSupport.Spec(SpecLabels.UnknownDriverSignature, FormatCount(drivers.Unknown), "CIM Win32_PnPSignedDriver.IsSigned"),
             CollectorSupport.Spec(SpecLabels.SignedDriversOnly, drivers.Unknown switch
             {
-                > 0 => CollectorSupport.NotReported,
+                > 0 => SpecLabels.NotReportedByHardware,
                 0 when drivers.Unsigned == 0 => "Yes",
                 0 => "No",
-                _ => CollectorSupport.NotReported,
+                _ => SpecLabels.NotReportedByHardware,
             }, "CIM Win32_PnPSignedDriver.IsSigned"),
         };
 
@@ -141,14 +141,14 @@ public sealed class SystemCollector : ICollector
     {
         if (os is null)
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var version = os.String("Version");
         var build = os.String("BuildNumber");
         if (string.IsNullOrWhiteSpace(version) && string.IsNullOrWhiteSpace(build))
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         return string.Join(" ", new[] { version, build is null ? null : $"build {build}" }
@@ -159,7 +159,7 @@ public sealed class SystemCollector : ICollector
     {
         if (uptime < TimeSpan.Zero)
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         return uptime.Days > 0
@@ -168,13 +168,13 @@ public sealed class SystemCollector : ICollector
     }
 
     private static string FormatCount(int? value) =>
-        value is null ? CollectorSupport.NotReported : value.Value.ToString(CultureInfo.InvariantCulture);
+        value is null ? SpecLabels.NotReportedByHardware : value.Value.ToString(CultureInfo.InvariantCulture);
 
     private static string DeviceGuardText(WmiRow? deviceGuard)
     {
         if (deviceGuard is null)
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         return deviceGuard.UInt32("VirtualizationBasedSecurityStatus") switch
@@ -182,7 +182,7 @@ public sealed class SystemCollector : ICollector
             0 => "Off",
             1 => "Enabled, not running",
             2 => "Running",
-            _ => CollectorSupport.NotReported,
+            _ => SpecLabels.NotReportedByHardware,
         };
     }
 
@@ -226,13 +226,13 @@ public sealed class SystemCollector : ICollector
             return value switch
             {
                 int number => number == 1 ? "On" : "Off",
-                null => CollectorSupport.NotReported,
-                _ => CollectorSupport.NotReported,
+                null => SpecLabels.NotReportedByHardware,
+                _ => SpecLabels.NotReportedByHardware,
             };
         }
         catch
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
     }
 
@@ -245,7 +245,7 @@ public sealed class SystemCollector : ICollector
                 "SELECT DriveLetter, ProtectionStatus FROM Win32_EncryptableVolume");
             if (rows.Count == 0)
             {
-                return CollectorSupport.NotReported;
+                return SpecLabels.NotReportedByHardware;
             }
 
             var systemVolume = rows.FirstOrDefault(r =>
@@ -257,12 +257,12 @@ public sealed class SystemCollector : ICollector
                 0 => "Off",
                 1 => "On",
                 2 => "Unknown",
-                _ => CollectorSupport.NotReported,
+                _ => SpecLabels.NotReportedByHardware,
             };
         }
         catch
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
     }
 

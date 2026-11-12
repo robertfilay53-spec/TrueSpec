@@ -35,11 +35,6 @@ public static class AdminElevationNotice
     // Keep in sync with CpuCollector, GpuCollector and StorageCollector.
     private static readonly string[] AdminGatedComponentIds = ["cpu", "gpu", "storage"];
 
-    // The same value as CollectorSupport.NotReported (Windows collectors)
-    // and WindowsSecurityProductState.NotReported: Core owns no shared
-    // constant for it, so the literal is repeated here on purpose.
-    private const string NotReported = "Not reported by hardware";
-
     /// <summary>
     /// The full notice text for this snapshot, or null when no notice
     /// applies (elevated process, no admin-gated gaps, or no real Windows
@@ -108,5 +103,5 @@ public static class AdminElevationNotice
     private static bool SpecIsSilent(ComponentSnapshot component, string label) =>
         component.Specs.Any(spec =>
             string.Equals(spec.Label, label, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(spec.Value, NotReported, StringComparison.Ordinal));
+            string.Equals(spec.Value, SpecLabels.NotReportedByHardware, StringComparison.Ordinal));
 }

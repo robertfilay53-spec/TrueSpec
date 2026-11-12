@@ -134,7 +134,7 @@ public sealed class SecurityCollector : ICollector
     {
         if (deviceGuard is null)
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         return deviceGuard.UInt32("VirtualizationBasedSecurityStatus") switch
@@ -142,7 +142,7 @@ public sealed class SecurityCollector : ICollector
             0 => "Off",
             1 => "Enabled, not running",
             2 => "Running",
-            _ => CollectorSupport.NotReported,
+            _ => SpecLabels.NotReportedByHardware,
         };
     }
 
@@ -156,12 +156,12 @@ public sealed class SecurityCollector : ICollector
             return value switch
             {
                 int number => number == 1 ? "On" : "Off",
-                _ => CollectorSupport.NotReported,
+                _ => SpecLabels.NotReportedByHardware,
             };
         }
         catch
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
     }
 
@@ -174,7 +174,7 @@ public sealed class SecurityCollector : ICollector
                 "SELECT DriveLetter, ProtectionStatus FROM Win32_EncryptableVolume");
             if (rows.Count == 0)
             {
-                return CollectorSupport.NotReported;
+                return SpecLabels.NotReportedByHardware;
             }
 
             var systemVolume = rows.FirstOrDefault(r =>
@@ -186,12 +186,12 @@ public sealed class SecurityCollector : ICollector
                 0 => "Off",
                 1 => "On",
                 2 => "Unknown",
-                _ => CollectorSupport.NotReported,
+                _ => SpecLabels.NotReportedByHardware,
             };
         }
         catch
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
     }
 
@@ -205,12 +205,12 @@ public sealed class SecurityCollector : ICollector
             return value switch
             {
                 int number => number == 1 ? "On" : "Off",
-                _ => CollectorSupport.NotReported,
+                _ => SpecLabels.NotReportedByHardware,
             };
         }
         catch
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
     }
 

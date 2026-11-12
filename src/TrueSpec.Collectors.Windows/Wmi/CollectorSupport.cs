@@ -5,8 +5,6 @@ using TrueSpec.Core.Models;
 
 internal static class CollectorSupport
 {
-    public const string NotReported = "Not reported by hardware";
-
     // A WMI string can be arbitrarily long (a hostile or corrupt driver
     // description, a pasted blob). Values are capped at the boundary so a
     // single runaway string cannot bloat the snapshot, the history database
@@ -19,17 +17,33 @@ internal static class CollectorSupport
             ? value
             : value[..(MaxSpecValueLength - 3)] + "...";
 
-    public static SpecValue Spec(string label, string? value, string source, bool estimate = false) => new(
-        label,
-        string.IsNullOrWhiteSpace(value) ? NotReported : TruncateValue(value.Trim()),
-        source,
-        estimate);
+    /// <summary>
+    /// One spec row. <paramref name="numericValue"/> is the typed measurement
+    /// behind the display string (with <paramref name="numericUnit"/> naming
+    /// its unit), when the value is a number: analyzers read it through
+    /// <see cref="TrueSpec.Core.Health.SpecText.Number"/> instead of
+    /// re-parsing the display text. A value the hardware did not report
+    /// never carries a typed number, even if the caller passes one.
+    /// </summary>
+    public static SpecValue Spec(string label, string? value, string source, bool estimate = false, double? numericValue = null, string? numericUnit = null)
+    {
+        var text = string.IsNullOrWhiteSpace(value)
+            ? SpecLabels.NotReportedByHardware
+            : TruncateValue(value.Trim());
+        if (string.Equals(text, SpecLabels.NotReportedByHardware, StringComparison.Ordinal))
+        {
+            numericValue = null;
+            numericUnit = null;
+        }
+
+        return new(label, text, source, estimate, numericValue, numericUnit);
+    }
 
     public static string FormatBytes(ulong? bytes)
     {
         if (bytes is null)
         {
-            return NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var value = bytes.Value;
@@ -61,7 +75,7 @@ internal static class CollectorSupport
     {
         if (bytes is null)
         {
-            return NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var value = bytes.Value;
@@ -149,7 +163,7 @@ internal static class CollectorSupport
     {
         if (bitsPerSecond is null)
         {
-            return NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         return string.Create(CultureInfo.InvariantCulture, $"{bitsPerSecond.Value / 1_000_000d:0.#} Mbps");
@@ -179,7 +193,7 @@ internal static class CollectorSupport
                 DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
                 out var date))
         {
-            return NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var years = asOf.Year - date.Year;
@@ -205,11 +219,11 @@ internal static class CollectorSupport
     }
 
     public static string FormatPercent(double? value) =>
-        value is null ? NotReported : string.Create(CultureInfo.InvariantCulture, $"{value.Value:0.#}%");
+        value is null ? SpecLabels.NotReportedByHardware : string.Create(CultureInfo.InvariantCulture, $"{value.Value:0.#}%");
 
     public static string FormatNumber(double? value, string unit, int decimals = 0) =>
         value is null
-            ? NotReported
+            ? SpecLabels.NotReportedByHardware
             : string.Create(CultureInfo.InvariantCulture, $"{value.Value.ToString($"F{decimals}", CultureInfo.InvariantCulture)} {unit}");
 
     public static string BusType(uint? busType) => busType switch
@@ -233,7 +247,7 @@ internal static class CollectorSupport
         17 => "NVMe",
         18 => "SCM",
         19 => "UFS",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     public static string MediaType(uint? mediaType) => mediaType switch
@@ -241,7 +255,7 @@ internal static class CollectorSupport
         3 => "HDD",
         4 => "SSD",
         5 => "SCM",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     public static string DiskHealth(uint? health) => health switch
@@ -250,12 +264,12 @@ internal static class CollectorSupport
         1 => "Warning",
         2 => "Unhealthy",
         5 => "Unknown",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     /// <summary>
     /// MSFT_PhysicalDisk.OperationalStatus, the documented CIM codes
-    /// (2 = OK). Unknown codes show as "Not reported by hardware", never
+    /// (2 = OK). Unknown codes show as SpecLabels.NotReportedByHardware, never
     /// as a bare number.
     /// </summary>
     public static string OperationalStatus(uint? status) => status switch
@@ -279,7 +293,7 @@ internal static class CollectorSupport
         16 => "Supporting Entity in Error",
         17 => "Completed",
         18 => "Power Mode",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     /// <summary>
@@ -297,7 +311,7 @@ internal static class CollectorSupport
         6 => "Lithium ion",
         7 => "Zinc air",
         8 => "Lithium polymer",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     /// <summary>
@@ -311,7 +325,7 @@ internal static class CollectorSupport
     {
         if (string.IsNullOrWhiteSpace(chemistry))
         {
-            return NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var text = chemistry.Trim();
@@ -364,7 +378,7 @@ internal static class CollectorSupport
         30 => "Tablet",
         31 => "Convertible",
         32 => "Detachable",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     /// <summary>
@@ -399,7 +413,7 @@ internal static class CollectorSupport
         21 => "BGA",
         22 => "FPBGA",
         23 => "LGA",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     public static string MemoryType(ushort? type) => type switch
@@ -415,7 +429,7 @@ internal static class CollectorSupport
         30 => "LPDDR4",
         34 => "DDR5",
         35 => "LPDDR5",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     public static string MemoryType(uint? type) => MemoryType(type is null ? null : (ushort)Math.Min(type.Value, ushort.MaxValue));

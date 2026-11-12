@@ -578,7 +578,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
 
     /// <summary>
     /// Reads a date spec as a <see cref="DateTimeOffset"/>. A missing spec,
-    /// the literal "Not reported by hardware" and any other unparseable
+    /// the literal SpecLabels.NotReportedByHardware and any other unparseable
     /// value all read as absent, so the caller can fall back to another
     /// component that reports the same reading.
     /// </summary>

@@ -222,7 +222,7 @@ public static class CrashHistoryParser
             return null;
         }
 
-        // Values are "yyyy-MM-dd" or "Not reported by hardware". A value
+        // Values are "yyyy-MM-dd" or SpecLabels.NotReportedByHardware. A value
         // that is neither is corrupt input, not a date: return null.
         return DateTimeOffset.TryParseExact(
             text.Trim(),

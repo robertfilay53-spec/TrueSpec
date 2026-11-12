@@ -47,7 +47,7 @@ public sealed class DisplayCollector : ICollector
         var week = monitor?.UInt16("WeekOfManufacture");
 
         var manufactureDate = year is null or 0
-            ? CollectorSupport.NotReported
+            ? SpecLabels.NotReportedByHardware
             : week is null or 0
                 ? string.Create(CultureInfo.InvariantCulture, $"{year.Value}")
                 : string.Create(CultureInfo.InvariantCulture, $"{year.Value} week {week.Value}");
@@ -77,8 +77,8 @@ public sealed class DisplayCollector : ICollector
             CollectorSupport.Spec(SpecLabels.ColourDepth, colourDepth, "CIM Win32_VideoController.CurrentBitsPerPixel"),
             CollectorSupport.Spec(SpecLabels.RefreshRate, refresh, "CIM Win32_VideoController"),
             CollectorSupport.Spec(SpecLabels.MonitorsDetected, monitors.Count.ToString(CultureInfo.InvariantCulture), "CIM WmiMonitorID"),
-            CollectorSupport.Spec(SpecLabels.HDR, "Not reported by hardware", "EDID extended block not exposed by WmiMonitorID"),
-            CollectorSupport.Spec(SpecLabels.PanelType, "Not reported by hardware", "EDID panel type is not exposed by WmiMonitorID"),
+            CollectorSupport.Spec(SpecLabels.HDR, SpecLabels.NotReportedByHardware, "EDID extended block not exposed by WmiMonitorID"),
+            CollectorSupport.Spec(SpecLabels.PanelType, SpecLabels.NotReportedByHardware, "EDID panel type is not exposed by WmiMonitorID"),
         };
 
         for (var i = 1; i < monitors.Count; i++)
@@ -124,21 +124,21 @@ public sealed class DisplayCollector : ICollector
         string resolution)
     {
         var identityParts = new[] { manufacturer, model }
-            .Where(v => !string.Equals(v, CollectorSupport.NotReported, StringComparison.Ordinal))
+            .Where(v => !string.Equals(v, SpecLabels.NotReportedByHardware, StringComparison.Ordinal))
             .ToArray();
         var panelPart = identityParts.Length == 0
             ? "panel manufacturer and model not reported by hardware"
             : string.Create(CultureInfo.InvariantCulture, $"panel {string.Join(" ", identityParts)}");
 
-        var madePart = string.Equals(manufactureDate, CollectorSupport.NotReported, StringComparison.Ordinal)
+        var madePart = string.Equals(manufactureDate, SpecLabels.NotReportedByHardware, StringComparison.Ordinal)
             ? "manufacture date not reported by hardware"
             : string.Create(CultureInfo.InvariantCulture, $"made {manufactureDate}");
 
-        var colourPart = string.Equals(colourDepth, CollectorSupport.NotReported, StringComparison.Ordinal)
+        var colourPart = string.Equals(colourDepth, SpecLabels.NotReportedByHardware, StringComparison.Ordinal)
             ? "colour depth not reported by hardware"
             : string.Create(CultureInfo.InvariantCulture, $"colour depth {colourDepth}");
 
-        var activePart = string.Equals(resolution, CollectorSupport.NotReported, StringComparison.Ordinal)
+        var activePart = string.Equals(resolution, SpecLabels.NotReportedByHardware, StringComparison.Ordinal)
             ? "Windows is not reporting an active resolution"
             : string.Create(CultureInfo.InvariantCulture, $"Windows is using {resolution}");
 
@@ -151,7 +151,7 @@ public sealed class DisplayCollector : ICollector
     {
         if (values is null || values.Length == 0)
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var chars = values
@@ -159,13 +159,13 @@ public sealed class DisplayCollector : ICollector
             .Select(v => (char)v)
             .ToArray();
 
-        return chars.Length == 0 ? CollectorSupport.NotReported : new string(chars).Trim();
+        return chars.Length == 0 ? SpecLabels.NotReportedByHardware : new string(chars).Trim();
     }
 
     /// <summary>
     /// Card headline: the panel name when EDID reports one, then the real
     /// active resolution and refresh. A missing panel name must never
-    /// print as "Not reported by hardware" in front of real values: only
+    /// print as SpecLabels.NotReportedByHardware in front of real values: only
     /// the missing field is unreported, and the Panel name spec says so.
     /// Returns an empty string when nothing is reported; the caller falls
     /// back to "Display".
@@ -176,16 +176,16 @@ public sealed class DisplayCollector : ICollector
         foreach (var candidate in new[] { friendlyName, model })
         {
             if (!string.IsNullOrWhiteSpace(candidate) &&
-                !string.Equals(candidate, CollectorSupport.NotReported, StringComparison.Ordinal))
+                !string.Equals(candidate, SpecLabels.NotReportedByHardware, StringComparison.Ordinal))
             {
                 name = candidate;
                 break;
             }
         }
 
-        string? displayPart = resolution == CollectorSupport.NotReported
-            ? refreshRate == CollectorSupport.NotReported ? null : refreshRate
-            : refreshRate == CollectorSupport.NotReported
+        string? displayPart = resolution == SpecLabels.NotReportedByHardware
+            ? refreshRate == SpecLabels.NotReportedByHardware ? null : refreshRate
+            : refreshRate == SpecLabels.NotReportedByHardware
                 ? resolution
                 : string.Create(CultureInfo.InvariantCulture, $"{resolution}, {refreshRate}");
 
@@ -199,19 +199,19 @@ public sealed class DisplayCollector : ICollector
     /// <summary>
     /// Panel serial from EDID. A serial of "0" (or all zeroes) means the
     /// panel vendor never programmed one: it is not a serial number, so it
-    /// shows as "Not reported by hardware" instead of "0". A serial with
+    /// shows as SpecLabels.NotReportedByHardware instead of "0". A serial with
     /// leading zeroes followed by other characters is kept as reported.
     /// </summary>
     internal static string FormatSerial(string decoded)
     {
-        if (string.Equals(decoded, CollectorSupport.NotReported, StringComparison.Ordinal))
+        if (string.Equals(decoded, SpecLabels.NotReportedByHardware, StringComparison.Ordinal))
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var serial = decoded.Trim();
         return serial.Length == 0 || serial.Trim('0').Length == 0
-            ? CollectorSupport.NotReported
+            ? SpecLabels.NotReportedByHardware
             : serial;
     }
 
@@ -219,17 +219,17 @@ public sealed class DisplayCollector : ICollector
     /// U11: colour depth from Win32_VideoController.CurrentBitsPerPixel, as
     /// "32-bit". A missing, zero or impossible value (no panel reports
     /// more than 64 bits per pixel; UInt32.MaxValue is the "unknown"
-    /// sentinel) is "Not reported by hardware": 0 bits per pixel is not
+    /// sentinel) is SpecLabels.NotReportedByHardware: 0 bits per pixel is not
     /// a real colour depth.
     /// </summary>
     internal static string FormatColourDepth(uint? bitsPerPixel) =>
         bitsPerPixel is null or 0 or > 64
-            ? CollectorSupport.NotReported
+            ? SpecLabels.NotReportedByHardware
             : string.Create(CultureInfo.InvariantCulture, $"{bitsPerPixel.Value}-bit");
 
     internal static string FormatResolution(uint? width, uint? height) =>
         width is null or 0 or uint.MaxValue || height is null or 0 or uint.MaxValue
-            ? CollectorSupport.NotReported
+            ? SpecLabels.NotReportedByHardware
             : string.Create(CultureInfo.InvariantCulture, $"{width.Value} x {height.Value}");
 
     private static string FormatResolution(WmiRow? video) =>
@@ -238,11 +238,11 @@ public sealed class DisplayCollector : ICollector
     /// <summary>
     /// Refresh rate from Win32_VideoController.CurrentRefreshRate. A
     /// missing, zero or UInt32.MaxValue ("unknown" sentinel) value is
-    /// "Not reported by hardware", never "0 Hz" or a billions-of-Hz number.
+    /// SpecLabels.NotReportedByHardware, never "0 Hz" or a billions-of-Hz number.
     /// </summary>
     internal static string FormatRefreshRate(uint? hertz) =>
         hertz is null or 0 or uint.MaxValue
-            ? CollectorSupport.NotReported
+            ? SpecLabels.NotReportedByHardware
             : string.Create(CultureInfo.InvariantCulture, $"{hertz.Value} Hz");
 
     private static string FormatPanelSize(WmiRow? basic)
@@ -251,7 +251,7 @@ public sealed class DisplayCollector : ICollector
         var heightCm = basic?.UInt16("MaxVerticalImageSize");
         if (widthCm is null or 0 || heightCm is null or 0)
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var diagonalCm = Math.Sqrt((widthCm.Value * widthCm.Value) + (heightCm.Value * heightCm.Value));
