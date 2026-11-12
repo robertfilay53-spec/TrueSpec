@@ -111,14 +111,15 @@ public static class PathSafety
     /// check, so a path that looks inside the allowed folder cannot
     /// escape through a link. Every segment is resolved from the root
     /// down, so a link anywhere in the chain is caught, including a
-    /// not-yet-created file under a linked folder. Two Windows quirks
-    /// force the per-segment walk instead of an existence check:
-    /// File.Exists/Directory.Exists are unreliable for reparse points
-    /// (a link can report as neither), and File.ResolveLinkTarget does
-    /// not resolve a directory link, so each segment is tried with both
-    /// the file and the directory API. A segment that is not a link, or
-    /// cannot be resolved, is kept as-is: resolution is a hardening
-    /// step, never a reason to reject a legitimate path.
+    /// not-yet-created file under a linked folder. The resolution reads
+    /// the reparse point itself (FileSystemInfo.LinkTarget): the
+    /// ResolveLinkTarget APIs open the target, which throws
+    /// access-denied on Windows when a file-type link points at a
+    /// directory — and a file written through such a link really does
+    /// land outside, so the escape is real, not theoretical. A segment
+    /// that is not a link, or cannot be resolved, is kept as-is:
+    /// resolution is a hardening step, never a reason to reject a
+    /// legitimate path.
     /// </summary>
     internal static string ResolveLinks(string fullPath)
     {
@@ -142,28 +143,52 @@ public static class PathSafety
 
     private static string? ResolveOneLink(string candidate)
     {
-        foreach (var resolve in new Func<string, bool, FileSystemInfo?>[]
-                 {
-                     File.ResolveLinkTarget,
-                     Directory.ResolveLinkTarget,
-                 })
+        // LinkTarget returns one hop, so a chain of links needs repeated
+        // hops until the path stops changing. Capped: a link cycle must
+        // not loop forever. A relative target is resolved against the
+        // directory holding the link.
+        var current = candidate;
+        for (var hops = 0; hops < 40; hops++)
         {
-            try
+            string? target = null;
+            foreach (var getTarget in new Func<string?>[]
+                     {
+                         () => new FileInfo(current).LinkTarget,
+                         () => new DirectoryInfo(current).LinkTarget,
+                     })
             {
-                var target = resolve(candidate, true);
-                if (target is not null)
+                try
                 {
-                    return target.FullName;
+                    target = getTarget();
+                    if (target is not null)
+                    {
+                        break;
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+                {
+                    // Try the other API, then treat the segment as not a link.
                 }
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+
+            if (target is null)
             {
-                // Not a link this API can resolve (or not resolvable):
-                // try the other API, then keep the segment as-is.
+                return current == candidate ? null : current;
             }
+
+            var next = Path.IsPathFullyQualified(target)
+                ? target
+                : Path.Combine(Path.GetDirectoryName(current) ?? string.Empty, target);
+            next = Path.GetFullPath(next);
+            if (string.Equals(next, current, StringComparison.OrdinalIgnoreCase))
+            {
+                return current == candidate ? null : current;
+            }
+
+            current = next;
         }
 
-        return null;
+        return current == candidate ? null : current;
     }
 
     /// <summary>
