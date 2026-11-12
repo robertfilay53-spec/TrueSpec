@@ -47,6 +47,7 @@
     <Compile Remove="ScoreAgreementTests.cs" />
     <Compile Remove="HistoryForecastViewModelTests.cs" />
     <Compile Remove="SensorAlertViewModelTests.cs" />
+    <Compile Remove="AdminNoticeViewModelTests.cs" />
     <Compile Remove="StartupCollectorTests.cs" />
     <Compile Remove="UpdatesCollectorTests.cs" />
     <Compile Remove="StorageCollectorTests.cs" />

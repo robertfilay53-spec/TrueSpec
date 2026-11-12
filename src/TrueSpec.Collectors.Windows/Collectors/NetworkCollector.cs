@@ -56,14 +56,9 @@ public sealed class NetworkCollector : ICollector
         var configurations = Wmi.Query("root\\cimv2", "SELECT Index, IPAddress, DefaultIPGateway, DNSServerSearchOrder FROM Win32_NetworkAdapterConfiguration")
             .GroupBy(r => r.String("Index") ?? string.Empty, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-        var drivers = Wmi.Query(
-                "root\\cimv2",
-                "SELECT DeviceID, DriverVersion, DriverDate, Manufacturer FROM Win32_PnPSignedDriver")
-            .GroupBy(r => r.String("DeviceID") ?? string.Empty, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-
         var wifi = adapters.FirstOrDefault(IsWifi);
         var ethernet = adapters.FirstOrDefault(IsEthernet);
+        var drivers = ReadAdapterDrivers(wifi, ethernet);
 
         // Live adapters from the OS networking stack. This is the fallback
         // when CIM does not see an adapter, and it is also what proves a
@@ -442,6 +437,38 @@ public sealed class NetworkCollector : ICollector
                (text.Contains("ethernet", StringComparison.OrdinalIgnoreCase) ||
                 text.Contains("802.3", StringComparison.OrdinalIgnoreCase) ||
                 text.Contains("gbe", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// The drivers of the Wi-Fi and Ethernet adapters only. FindDriver
+    /// matches on DeviceID, so the old unfiltered query enumerated every
+    /// installed driver (hundreds of rows) to look up at most two. The
+    /// filter turns it into indexed lookups; with no Wi-Fi or Ethernet
+    /// adapter there is nothing to look up and no query runs at all.
+    /// </summary>
+    private static Dictionary<string, WmiRow> ReadAdapterDrivers(WmiRow? wifi, WmiRow? ethernet)
+    {
+        var deviceIds = new[] { wifi?.String("PNPDeviceID"), ethernet?.String("PNPDeviceID") }
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (deviceIds.Count == 0)
+        {
+            return new Dictionary<string, WmiRow>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        // PNP device IDs contain backslashes but no quotes; a doubled
+        // single quote is the WQL escape if one ever appears.
+        var filter = string.Join(" OR ", deviceIds.Select(id =>
+            string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"DeviceID = '{id.Replace("'", "''", StringComparison.Ordinal)}'")));
+        return Wmi.Query(
+                "root\\cimv2",
+                $"SELECT DeviceID, DriverVersion, DriverDate, Manufacturer FROM Win32_PnPSignedDriver WHERE {filter}")
+            .GroupBy(r => r.String("DeviceID") ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
     }
 
     private static WmiRow? FindDriver(

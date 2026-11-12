@@ -25,9 +25,13 @@ public sealed class DriversCollector : ICollector
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        // Only DeviceName, DriverDate, DriverVersion and IsSigned are read
+        // below. DriverProviderName and InfName were fetched for every one
+        // of the hundreds of driver rows and thrown away; Win32_PnPSignedDriver
+        // is enumerated by three collectors, so every dropped column counts.
         var drivers = Wmi.Query(
             "root\\cimv2",
-            "SELECT DeviceName, DriverDate, DriverVersion, DriverProviderName, IsSigned, InfName FROM Win32_PnPSignedDriver");
+            "SELECT DeviceName, DriverDate, DriverVersion, IsSigned FROM Win32_PnPSignedDriver");
 
         if (drivers.Count == 0)
         {

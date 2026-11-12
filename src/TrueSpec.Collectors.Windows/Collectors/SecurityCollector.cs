@@ -36,9 +36,14 @@ public sealed class SecurityCollector : ICollector
         var firewall = Wmi.Query(
             "root\\SecurityCenter2",
             "SELECT displayName, productState FROM FirewallProduct");
+        // Only IsSigned is ever read from these rows: DeviceName was
+        // fetched and thrown away. Win32_PnPSignedDriver has hundreds of
+        // rows and every returned property is materialised per row, so
+        // asking for one column is measurably cheaper — and this query runs
+        // in three collectors (System, Security, Drivers).
         var drivers = Wmi.Query(
             "root\\cimv2",
-            "SELECT DeviceName, IsSigned FROM Win32_PnPSignedDriver");
+            "SELECT IsSigned FROM Win32_PnPSignedDriver");
 
         var unsigned = drivers.Count(r => r.Bool("IsSigned") is false);
         var secureBoot = ReadSecureBoot();

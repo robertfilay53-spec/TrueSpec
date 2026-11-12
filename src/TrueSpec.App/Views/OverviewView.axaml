@@ -10,6 +10,17 @@
 
     <ScrollViewer>
         <StackPanel Margin="24" Spacing="18">
+            <!-- Admin notice: a standard-user scan with silent admin-gated
+                 readings (disk wear, CPU/GPU temperature) says so plainly
+                 instead of leaving blank cards unexplained. -->
+            <Border Classes="card" Padding="18" IsVisible="{Binding HasAdminNotice}">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="RUN AS ADMINISTRATOR FOR FULL RESULTS" Classes="eyebrow" />
+                    <TextBlock Text="{Binding AdminNoticeText}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
             <!-- Hero strip -->
             <Border Classes="hero" Padding="24">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="26">
