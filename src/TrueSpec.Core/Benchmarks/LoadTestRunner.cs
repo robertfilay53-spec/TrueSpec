@@ -85,10 +85,42 @@ public sealed class LoadTestRunner
         IProgress<LoadTestProgress>? progress,
         CancellationToken cancellationToken)
     {
+        // Warm-up read, discarded: it pays the sensor library's
+        // initialization cost (LibreHardwareMonitor's first sweep can take
+        // 10+ seconds on a virtual machine) before the clock starts, so
+        // the init cost neither eats the test duration nor delays the
+        // first real sample. The burn has not started yet, so no heat is
+        // missed. A failed warm-up is fine: the samples will be gaps.
+        try
+        {
+            _ = _sensors.ReadAsync(cancellationToken).GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+            return LoadTestAnalyzer.Analyze(
+                Array.Empty<LoadTestSample>(),
+                config.RatedMaxMHz,
+                LoadTestResult.AbortCancelled,
+                config.DurationSeconds,
+                false,
+                null);
+        }
+        catch
+        {
+            // A failed warm-up must never stop the test from running.
+        }
+
         var startedAt = DateTimeOffset.Now;
         var samples = new List<LoadTestSample>();
         string? abortReason = null;
 
+        // The burn workers get their own linked token: it is cancelled when
+        // the sampling loop ends, so the heat stops the moment the test is
+        // over. Memory and disk instead use the caller's token: they are
+        // part of the result, and a normal completion must not kill them
+        // mid-measurement (a 128 MB disk read can outlast a 3-second test
+        // on a loaded machine). On user cancel they still stop promptly
+        // through the caller's token.
         using var workerCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var workerToken = workerCts.Token;
 
@@ -97,16 +129,15 @@ public sealed class LoadTestRunner
         // every core, and thread-pool work queued after it can starve long
         // enough that the run ends before it starts (the 256 MB check then
         // reports "did not verify" for a scheduling reason, not a memory
-        // reason). Dedicated threads are always scheduled, and they still
-        // stop cooperatively on cancel.
+        // reason). Dedicated threads are always scheduled.
         var memoryVerified = false;
         double? diskMbps = null;
-        var memoryThread = new Thread(() => { memoryVerified = VerifyMemoryPattern(workerToken); })
+        var memoryThread = new Thread(() => { memoryVerified = VerifyMemoryPattern(cancellationToken); })
         {
             IsBackground = true,
             Name = "TrueSpec load test memory",
         };
-        var diskThread = new Thread(() => { diskMbps = MeasureDisk(workerToken); })
+        var diskThread = new Thread(() => { diskMbps = MeasureDisk(cancellationToken); })
         {
             IsBackground = true,
             Name = "TrueSpec load test disk",
@@ -130,7 +161,39 @@ public sealed class LoadTestRunner
                     break;
                 }
 
-                var sample = Sample(cancellationToken);
+                try
+                {
+                    // Task.Delay on this thread keeps the 1 Hz cadence
+                    // without blocking a thread-pool thread for the whole
+                    // test. A cancelled delay is the cancel path, not an
+                    // error. The delay comes first, so samples land at
+                    // roughly 1, 2, 3... seconds after the burn starts.
+                    Task.Delay(config.SampleIntervalMs, cancellationToken).GetAwaiter().GetResult();
+                }
+                catch (OperationCanceledException)
+                {
+                    abortReason = LoadTestResult.AbortCancelled;
+                    break;
+                }
+
+                if (DateTimeOffset.Now >= deadline)
+                {
+                    break;
+                }
+
+                LoadTestSample sample;
+                try
+                {
+                    // A cancelled sensor read is the cancel path, not an
+                    // error: it returns a cancelled result, never a throw.
+                    sample = Sample(cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    abortReason = LoadTestResult.AbortCancelled;
+                    break;
+                }
+
                 samples.Add(sample);
                 ReportProgress(progress, startedAt, sample, samples.Count);
 
@@ -163,20 +226,6 @@ public sealed class LoadTestRunner
                 {
                     break;
                 }
-
-                try
-                {
-                    // Task.Delay on this thread keeps the 1 Hz cadence
-                    // without blocking a thread-pool thread for the whole
-                    // test. A cancelled delay is the cancel path, not an
-                    // error.
-                    Task.Delay(config.SampleIntervalMs, cancellationToken).GetAwaiter().GetResult();
-                }
-                catch (OperationCanceledException)
-                {
-                    abortReason = LoadTestResult.AbortCancelled;
-                    break;
-                }
             }
         }
         finally
@@ -187,16 +236,29 @@ public sealed class LoadTestRunner
             JoinWorkers();
         }
 
+        // The timed test ends when the burn stops. Memory and disk may
+        // still be finishing (a slow disk can outlast a short test), but
+        // they are not part of the timed load, so the clock stops here.
+        var completedAt = DateTimeOffset.Now;
+
         var memoryVerifiedResult = JoinWithTimeout(memoryThread, TimeSpan.FromSeconds(10)) ? memoryVerified : false;
         var diskMbpsResult = JoinWithTimeout(diskThread, TimeSpan.FromSeconds(10)) ? diskMbps : null;
 
+        // StartedAt/CompletedAt are the test's own wall-clock bounds, not
+        // the first/last sample: with slow sweeps the last sample can land
+        // seconds before the deadline, and the duration is still the
+        // duration that ran.
         return LoadTestAnalyzer.Analyze(
             samples,
             config.RatedMaxMHz,
             abortReason,
             config.DurationSeconds,
             memoryVerifiedResult,
-            diskMbpsResult);
+            diskMbpsResult) with
+        {
+            StartedAt = startedAt,
+            CompletedAt = completedAt,
+        };
     }
 
     private void StartWorkers(CancellationToken workerToken)
