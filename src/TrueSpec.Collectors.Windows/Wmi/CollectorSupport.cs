@@ -170,10 +170,17 @@ internal static class CollectorSupport
     }
 
     /// <summary>
-    /// The driver-stale threshold shared by every component (U12 rule):
-    /// a driver older than this many years is flagged in its age value.
+    /// The one driver-age rule in the whole app (U12): a driver older
+    /// than this many years is flagged as stale, in its age value on the
+    /// Wi-Fi, Ethernet and GPU pages and in the Drivers page count
+    /// ("Drivers older than 5 years"). One rule, one number: the pages
+    /// used to disagree (2 years on the component pages, 5 on the Drivers
+    /// page), so a 4-year-old driver was flagged stale in one place and
+    /// not counted as old in another. 5 years is the line because a
+    /// 2-year-old driver is normal: vendors ship stable drivers for
+    /// years, and only a driver older than 5 years is very old.
     /// </summary>
-    public const int DriverStaleAgeYears = 2;
+    public const int DriverStaleAgeYears = 5;
 
     /// <summary>
     /// Plain-text age of a driver from its driver date ("yyyy-MM-dd" as
@@ -209,7 +216,7 @@ internal static class CollectorSupport
 
         // The stale flag sits inside the same parentheses as the age, so
         // the value reads as one sentence: "Driver from 2020 (6 years old,
-        // older than 2 years)".
+        // older than 5 years)".
         var stale = years > DriverStaleAgeYears
             ? string.Create(CultureInfo.InvariantCulture, $", older than {DriverStaleAgeYears} years")
             : string.Empty;

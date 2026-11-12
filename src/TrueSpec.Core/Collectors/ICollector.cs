@@ -25,5 +25,19 @@ public interface ICollector
     bool RequiresAdministrator { get; }
 
     /// <summary>Collects one snapshot of this component.</summary>
+    /// <remarks>
+    /// Throw-vs-empty contract: a collector never throws for missing or
+    /// unreadable hardware. When a component cannot be measured it returns
+    /// an honest-empty snapshot instead (<see cref="ComponentSnapshot.NotAvailable"/>
+    /// when the component is absent, <see cref="ComponentSnapshot.NotMeasurable"/>
+    /// when it is present but a reading could not be taken), with every
+    /// unmeasured value reading "Not reported by hardware" and the reason
+    /// in the headline. The only exception is
+    /// <see cref="OperationCanceledException"/> when the caller's token is
+    /// cancelled: cancellation is a control signal, not a missing reading.
+    /// A collector that threw on a missing battery or an unreadable sensor
+    /// would fail the whole scan for one absent part; honest-empty keeps
+    /// the scan, the score and the history intact.
+    /// </remarks>
     Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default);
 }

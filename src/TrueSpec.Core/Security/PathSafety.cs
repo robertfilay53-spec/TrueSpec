@@ -56,6 +56,11 @@ public static class PathSafety
             return null;
         }
 
+        // A folder that is itself a symlink (or sits under one) to a
+        // system folder must fail the checks below on its real target,
+        // not on the link path: resolve before the root/system checks.
+        fullPath = ResolveLinks(fullPath);
+
         if (!Path.IsPathRooted(fullPath))
         {
             return null;
@@ -102,6 +107,52 @@ public static class PathSafety
     }
 
     /// <summary>
+    /// Resolves symlinks and junctions in a path before a containment
+    /// check, so a path that looks inside the allowed folder cannot
+    /// escape through a link. The file itself is resolved when it exists;
+    /// otherwise the containing directory chain is resolved (a database
+    /// or log file that does not exist yet has no link of its own, but
+    /// the folder holding it can still be a link). Any failure to resolve
+    /// falls back to the unresolved path: resolution is a hardening step,
+    /// never a reason to reject a legitimate path.
+    /// </summary>
+    internal static string ResolveLinks(string fullPath)
+    {
+        try
+        {
+            if (File.Exists(fullPath))
+            {
+                var target = File.ResolveLinkTarget(fullPath, returnFinalTarget: true);
+                if (target is not null)
+                {
+                    return target.FullName;
+                }
+            }
+            else
+            {
+                var directory = Path.GetDirectoryName(fullPath);
+                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory))
+                {
+                    var target = File.ResolveLinkTarget(directory, returnFinalTarget: true);
+                    if (target is not null)
+                    {
+                        var fileName = Path.GetFileName(fullPath);
+                        return string.IsNullOrEmpty(fileName)
+                            ? target.FullName
+                            : Path.Combine(target.FullName, fileName);
+                    }
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            // Fall through to the unresolved path.
+        }
+
+        return fullPath;
+    }
+
+    /// <summary>
     /// Validates a database file path. The file must live inside the given
     /// base folder (the app data folder) after resolving every ".." segment.
     /// </summary>
@@ -116,8 +167,8 @@ public static class PathSafety
         string fullBase;
         try
         {
-            fullPath = Path.GetFullPath(databasePath.Trim());
-            fullBase = Path.GetFullPath(baseFolder.Trim());
+            fullPath = ResolveLinks(Path.GetFullPath(databasePath.Trim()));
+            fullBase = ResolveLinks(Path.GetFullPath(baseFolder.Trim()));
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
@@ -154,8 +205,8 @@ public static class PathSafety
         string fullBase;
         try
         {
-            fullPath = Path.GetFullPath(logPath.Trim());
-            fullBase = Path.GetFullPath(baseFolder.Trim());
+            fullPath = ResolveLinks(Path.GetFullPath(logPath.Trim()));
+            fullBase = ResolveLinks(Path.GetFullPath(baseFolder.Trim()));
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
@@ -217,6 +268,23 @@ public static class PathSafety
     }
 
     private static readonly string[] AllowedReportExtensions = { "csv", "json", "html", "pdf" };
+
+    /// <summary>
+    /// True when the path ends in one of the report extensions the app
+    /// produces (csv, json, html, pdf). Used by the shell file opener as
+    /// a second line of defence: a report file must never end in an
+    /// executable extension, even if the caller passes one.
+    /// </summary>
+    public static bool IsAllowedReportExtension(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        var extension = Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
+        return AllowedReportExtensions.Contains(extension, StringComparer.Ordinal);
+    }
 
     private static readonly char[] WindowsInvalidFileNameChars = { '<', '>', ':', '"', '|', '?', '*' };
 

@@ -65,7 +65,7 @@ public class DisplayNetworkTruthTests
     {
         var age = NetworkCollector.FormatWifiDriverAge("2020-01-15", AsOf);
 
-        Assert.Equal("Driver from 2020 (6 years old, older than 2 years)", age);
+        Assert.Equal("Driver from 2020 (6 years old, older than 5 years)", age);
     }
 
     [Fact]
@@ -325,7 +325,7 @@ public class DisplayNetworkTruthTests
     public void DriverAge_GpuDriverDate_IsFlaggedLikeWifi()
     {
         Assert.Equal(
-            "Driver from 2021 (4 years old, older than 2 years)",
+            "Driver from 2021 (4 years old)",
             CollectorSupport.FormatDriverAge("2021-11-15", AsOf));
     }
 
@@ -333,7 +333,7 @@ public class DisplayNetworkTruthTests
     public void DriverAge_EthernetDriverDate_IsFlaggedLikeWifi()
     {
         Assert.Equal(
-            "Driver from 2019 (6 years old, older than 2 years)",
+            "Driver from 2019 (6 years old, older than 5 years)",
             CollectorSupport.FormatDriverAge("2019-06-06", AsOf));
     }
 
@@ -367,8 +367,8 @@ public class DisplayNetworkTruthTests
 
         var specs = NetworkCollector.BuildSpecs(reading, Array.Empty<NetworkCollector.InterfaceData>(), AsOf);
 
-        Assert.Equal("Driver from 2019 (6 years old, older than 2 years)", Assert.Single(specs, s => s.Label == SpecLabels.EthernetDriverAge).Value);
-        Assert.Equal("Driver from 2022 (4 years old, older than 2 years)", Assert.Single(specs, s => s.Label == SpecLabels.WifiDriverAge).Value);
+        Assert.Equal("Driver from 2019 (6 years old, older than 5 years)", Assert.Single(specs, s => s.Label == SpecLabels.EthernetDriverAge).Value);
+        Assert.Equal("Driver from 2022 (4 years old)", Assert.Single(specs, s => s.Label == SpecLabels.WifiDriverAge).Value);
     }
 
     // ---- U11: colour depth ----------------------------------------------
@@ -427,7 +427,7 @@ public class DisplayNetworkTruthTests
         Assert.Equal("netsh wlan show interfaces", standard.Source);
 
         var driverAge = Assert.Single(specs, s => s.Label == SpecLabels.WifiDriverAge);
-        Assert.Equal("Driver from 2020 (6 years old, older than 2 years)", driverAge.Value);
+        Assert.Equal("Driver from 2020 (6 years old, older than 5 years)", driverAge.Value);
         Assert.Equal("CIM Win32_PnPSignedDriver", driverAge.Source);
 
         var linkSpeed = Assert.Single(specs, s => s.Label == SpecLabels.LinkSpeed);

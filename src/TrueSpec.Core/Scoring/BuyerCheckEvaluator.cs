@@ -85,7 +85,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         {
             return new BuyerCheck(BuyerCheckResult.LoadTestCheckId, "CPU throttled under load",
                 FormattableString.Invariant(
-                    $"The load test stopped automatically at {loadTest.PeakTempC:0.#} C, above the 95 C safety limit. The cooling could not keep up with a full load."),
+                    $"The load test stopped automatically at {loadTest.PeakTempC:0.#} C, above the {LoadTestConfig.DefaultAbortTemperatureC:0.#} C safety limit. The cooling could not keep up with a full load."),
                 BuyerCheckState.Fail,
                 "Ask why the machine overheats under load, and whether the cooling has been serviced.");
         }

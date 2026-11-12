@@ -176,13 +176,18 @@ public sealed class PdfReportExporter : IReportExporter
         while (remaining.Length > WrapColumns)
         {
             var cut = remaining.LastIndexOf(' ', WrapColumns);
-            if (cut <= 0)
+            var cutAtSpace = cut > 0;
+            if (!cutAtSpace)
             {
                 cut = WrapColumns;
             }
 
             rows.Add(new PdfLine(remaining[..cut], line.Bold, line.Size));
-            remaining = remaining[(cut + 1)..].TrimStart();
+            // A cut at a space skips the space; a forced cut inside a
+            // spaceless run (a long URL or path) keeps the character at
+            // the cut: the old code always skipped one character, so a
+            // 200-character URL lost a character at every wrap.
+            remaining = cutAtSpace ? remaining[(cut + 1)..].TrimStart() : remaining[cut..];
             if (remaining.Length == 0)
             {
                 break;
