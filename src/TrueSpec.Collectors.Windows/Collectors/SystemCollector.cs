@@ -81,9 +81,13 @@ public sealed class SystemCollector : ICollector
         var bitLocker = ReadBitLocker();
 
         var drivers = ReadDriverSignatureSummary();
-        var criticalErrors = WindowsEventLog.CountCriticalErrors(TimeSpan.FromDays(30));
-        var memoryErrors = WindowsEventLog.CountMemoryErrors(TimeSpan.FromDays(30));
-        var earliestLogEntry = WindowsEventLog.EarliestEntry();
+        // One open of the System event log for all three readings: three
+        // separate walks (critical count, memory count, earliest entry)
+        // were a large share of this collector's cost on a busy log.
+        var logSummary = WindowsEventLog.ReadSummary(TimeSpan.FromDays(30));
+        var criticalErrors = logSummary.CriticalErrors;
+        var memoryErrors = logSummary.MemoryErrors;
+        var earliestLogEntry = logSummary.EarliestEntry;
 
         var specs = new List<SpecValue>
         {
@@ -264,9 +268,14 @@ public sealed class SystemCollector : ICollector
 
     private static (int? Total, int? Unsigned, int? Unknown) ReadDriverSignatureSummary()
     {
+        // Only IsSigned is ever read from these rows: DeviceName was
+        // fetched and thrown away. Win32_PnPSignedDriver has hundreds of
+        // rows and every returned property is materialised per row, so
+        // asking for one column is measurably cheaper — and this query runs
+        // in three collectors (System, Security, Drivers).
         var rows = Wmi.Query(
             "root\\cimv2",
-            "SELECT DeviceName, IsSigned FROM Win32_PnPSignedDriver");
+            "SELECT IsSigned FROM Win32_PnPSignedDriver");
         if (rows.Count == 0)
         {
             return (null, null, null);

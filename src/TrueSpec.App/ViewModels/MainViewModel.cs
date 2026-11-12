@@ -549,7 +549,8 @@ public partial class MainViewModel : ViewModelBase
         isScanning,
         _sensorLogWriter,
         _alertEvaluator,
-        _settings);
+        _settings,
+        IsElevated);
 
     /// <summary>
     /// The load test finished on the Tests page. The result is saved into

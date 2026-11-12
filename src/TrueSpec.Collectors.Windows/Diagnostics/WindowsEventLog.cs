@@ -37,13 +37,36 @@ internal static class WindowsEventLog
         }
     }
 
-    public static int? CountCriticalErrors(TimeSpan window)
+    /// <summary>
+    /// One pass over the System log: the critical-error count, the memory
+    /// error count and the earliest surviving entry, read from a single
+    /// <see cref="EventLog"/> open. The System collector used to call
+    /// <see cref="CountCriticalErrors"/>, <see cref="CountMemoryErrors"/>
+    /// and <see cref="EarliestEntry"/> separately — three opens, each
+    /// walking up to 10,000 entries through the legacy Event Log API — and
+    /// the RAM collector walked it a fourth time. On a busy machine that
+    /// was a large, repeated share of the scan. One open, one walk.
+    /// A null field means that reading could not be made, never a guess.
+    /// </summary>
+    public sealed record SystemLogSummary(
+        int? CriticalErrors,
+        int? MemoryErrors,
+        DateTimeOffset? EarliestEntry);
+
+    public static SystemLogSummary ReadSummary(TimeSpan window)
     {
         try
         {
             using var log = new EventLog("System");
+            if (log.Entries.Count == 0)
+            {
+                return new SystemLogSummary(null, null, null);
+            }
+
+            var earliest = new DateTimeOffset(log.Entries[0].TimeGenerated);
             var cutoff = DateTime.Now - window;
-            var count = 0;
+            var critical = 0;
+            var memory = 0;
             var examined = 0;
 
             for (var i = log.Entries.Count - 1; i >= 0 && examined < MaxEntriesExamined; i--, examined++)
@@ -56,58 +79,44 @@ internal static class WindowsEventLog
 
                 if (entry.EntryType == EventLogEntryType.Error)
                 {
-                    count++;
+                    critical++;
+                }
+
+                if (entry.EntryType is EventLogEntryType.Error or EventLogEntryType.Warning &&
+                    IsMemoryError(entry))
+                {
+                    memory++;
                 }
             }
 
-            return count;
+            return new SystemLogSummary(critical, memory, earliest);
         }
         catch
         {
-            return null;
+            return new SystemLogSummary(null, null, null);
         }
     }
 
-    public static int? CountMemoryErrors(TimeSpan window)
+    public static int? CountCriticalErrors(TimeSpan window) => ReadSummary(window).CriticalErrors;
+
+    public static int? CountMemoryErrors(TimeSpan window) => ReadSummary(window).MemoryErrors;
+
+    /// <summary>
+    /// The memory-error predicate the old separate count used: a
+    /// MemoryDiagnostic entry, or a WHEA-Logger entry that is a memory
+    /// error (see <see cref="IsWheaMemoryError"/>). Every other error or
+    /// warning source is not a memory error.
+    /// </summary>
+    private static bool IsMemoryError(EventLogEntry entry)
     {
-        try
+        var source = entry.Source ?? string.Empty;
+        if (source.Contains("MemoryDiagnostic", StringComparison.OrdinalIgnoreCase))
         {
-            using var log = new EventLog("System");
-            var cutoff = DateTime.Now - window;
-            var count = 0;
-            var examined = 0;
-
-            for (var i = log.Entries.Count - 1; i >= 0 && examined < MaxEntriesExamined; i--, examined++)
-            {
-                var entry = log.Entries[i];
-                if (entry.TimeGenerated < cutoff)
-                {
-                    break;
-                }
-
-                if (entry.EntryType is not EventLogEntryType.Error and not EventLogEntryType.Warning)
-                {
-                    continue;
-                }
-
-                var source = entry.Source ?? string.Empty;
-                if (source.Contains("MemoryDiagnostic", StringComparison.OrdinalIgnoreCase))
-                {
-                    count++;
-                }
-                else if (source.Contains("WHEA-Logger", StringComparison.OrdinalIgnoreCase) &&
-                         IsWheaMemoryError(entry))
-                {
-                    count++;
-                }
-            }
-
-            return count;
+            return true;
         }
-        catch
-        {
-            return null;
-        }
+
+        return source.Contains("WHEA-Logger", StringComparison.OrdinalIgnoreCase) &&
+            IsWheaMemoryError(entry);
     }
 
     /// <summary>

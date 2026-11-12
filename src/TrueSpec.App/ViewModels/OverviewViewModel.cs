@@ -31,6 +31,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
     private readonly SensorLogWriter? _sensorLogWriter;
     private readonly ThresholdAlertEvaluator? _alertEvaluator;
     private readonly Action<string> _openComponent;
+    private readonly bool _isElevated;
     private IReadOnlyList<SpecValue> _cpuSpecs = Array.Empty<SpecValue>();
     private bool _refreshing;
 
@@ -44,12 +45,16 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         bool isScanning = false,
         SensorLogWriter? sensorLogWriter = null,
         ThresholdAlertEvaluator? alertEvaluator = null,
-        AppSettings? settings = null)
+        AppSettings? settings = null,
+        bool? isElevated = null)
     {
         _sensorMonitor = sensorMonitor;
         _sensorLogWriter = sensorLogWriter;
         _alertEvaluator = alertEvaluator;
         _openComponent = openComponent;
+        // Reuses the shell's elevation check (Environment.IsPrivilegedProcess):
+        // injectable so tests can drive the notice without elevation.
+        _isElevated = isElevated ?? Environment.IsPrivilegedProcess;
         NewLaptopCheckCommand = newLaptopCheckCommand;
         ExportCommand = exportCommand;
         Cards = new ObservableCollection<ComponentCardViewModel>();
@@ -128,6 +133,15 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         }
 
         HasComponents = Cards.Count > 0;
+
+        // The admin notice is recomputed from every finished scan: a
+        // standard-user scan with silent admin-gated readings says so
+        // plainly instead of leaving blank cards unexplained. While a scan
+        // is running there is no snapshot to judge, so no banner.
+        AdminNoticeText = isScanning
+            ? string.Empty
+            : AdminElevationNotice.ForSnapshot(snapshot, _isElevated) ?? string.Empty;
+        HasAdminNotice = AdminNoticeText.Length > 0;
     }
 
     /// <summary>
@@ -214,6 +228,17 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
     /// <summary>False when the scan collected no components: the view shows an empty state instead of a blank section.</summary>
     [ObservableProperty]
     public partial bool HasComponents { get; set; }
+
+    /// <summary>
+    /// The "Run as administrator for full results" banner text, empty when
+    /// no notice applies (elevated process, or no admin-gated gaps).
+    /// </summary>
+    [ObservableProperty]
+    public partial string AdminNoticeText { get; set; } = string.Empty;
+
+    /// <summary>True when the admin notice banner should be shown.</summary>
+    [ObservableProperty]
+    public partial bool HasAdminNotice { get; set; }
 
     public ObservableCollection<LiveMetricViewModel> LiveMetrics { get; }
 
