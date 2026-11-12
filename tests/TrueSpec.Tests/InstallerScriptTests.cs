@@ -33,6 +33,25 @@ public class InstallerScriptTests
             "Could not find installer/TrueSpec.iss by walking up from " + AppContext.BaseDirectory);
     }
 
+    private static string FindRepoFile(params string[] relativePath)
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var candidate = relativePath.Aggregate(dir.FullName, Path.Combine);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            dir = dir.Parent;
+        }
+
+        throw new FileNotFoundException(
+            "Could not find " + string.Join(Path.DirectorySeparatorChar, relativePath)
+            + " by walking up from " + AppContext.BaseDirectory);
+    }
+
     private static string[] ReadScript() => File.ReadAllLines(FindInstallerScript());
 
     private static string SetupDirective(string[] lines, string name)
@@ -82,6 +101,23 @@ public class InstallerScriptTests
         }
 
         return found.ToArray();
+    }
+
+    [Fact]
+    public void Version_Is_1_2_0_InAllThreePlaces()
+    {
+        // The version lives in three places and they must agree: the app
+        // project (assembly version), the installer script, and the
+        // application manifest. A bump that misses one ships a build whose
+        // installer, exe and manifest disagree about what version it is.
+        var iss = File.ReadAllText(FindInstallerScript());
+        Assert.Contains("#define AppVersion \"1.2.0\"", iss, StringComparison.Ordinal);
+
+        var csproj = File.ReadAllText(FindRepoFile("src", "TrueSpec.App", "TrueSpec.App.csproj"));
+        Assert.Contains("<Version>1.2.0</Version>", csproj, StringComparison.Ordinal);
+
+        var manifest = File.ReadAllText(FindRepoFile("src", "TrueSpec.App", "app.manifest"));
+        Assert.Contains("version=\"1.2.0.0\"", manifest, StringComparison.Ordinal);
     }
 
     [Fact]
