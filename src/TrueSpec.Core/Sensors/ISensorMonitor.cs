@@ -101,10 +101,20 @@ public sealed record SensorSnapshot(
 
     public SensorReading? CpuLoad() => Find(SensorKind.Load, "CPU", "CPU Total", "Total");
 
-    /// <summary>Every per-core clock reading with a value, for the load test's average/max clock.</summary>
+    /// <summary>
+    /// Every per-core clock reading with a value, for the load test's
+    /// average/max clock. LibreHardwareMonitor also reports a "Bus Speed"
+    /// clock (~100 MHz) on the CPU hardware: it is the bus, not a core,
+    /// and averaging it in drags the average ~19% low on a 4-core machine
+    /// at ~3500 MHz, enough to flip the load-test throttle verdict — so
+    /// it is excluded here, as is any other non-core CPU clock. When no
+    /// core clock reports, this is empty: "not reported", never a wrong
+    /// number.
+    /// </summary>
     public IReadOnlyList<SensorReading> CpuClocks() => Readings
         .Where(r => r.Kind == SensorKind.Clock && r.HasValue)
         .Where(r => r.Hardware.Contains("CPU", StringComparison.OrdinalIgnoreCase))
+        .Where(r => r.Name.Contains("Core", StringComparison.OrdinalIgnoreCase))
         .ToList();
 
     /// <summary>Average of the per-core clocks, or null when no core clock reported.</summary>

@@ -107,6 +107,36 @@ public class SensorSnapshotTests
     }
 
     [Fact]
+    public void BusSpeed_IsExcludedFromCpuClocks()
+    {
+        // H1: LibreHardwareMonitor reports a ~100 MHz "Bus Speed" clock
+        // on the CPU hardware. Averaging it with the per-core clocks
+        // drags a 4-core machine at ~3500 MHz about 19% low, enough to
+        // flip the load-test throttle verdict. Only per-core clocks count.
+        var snapshot = Snapshot(
+            Clock("Core #0", 3500d),
+            Clock("Core #1", 3500d),
+            Clock("Core #2", 3500d),
+            Clock("Core #3", 3500d),
+            Clock("Bus Speed", 100d));
+
+        Assert.Equal(4, snapshot.CpuClocks().Count);
+        Assert.All(snapshot.CpuClocks(), c => Assert.Contains("Core", c.Name, StringComparison.Ordinal));
+        Assert.Equal(3500d, snapshot.CpuClockMHz());
+    }
+
+    [Fact]
+    public void OnlyBusSpeed_NoClockReported()
+    {
+        // No core clock reported means "not reported", never the bus
+        // speed presented as a core clock.
+        var snapshot = Snapshot(Clock("Bus Speed", 100d));
+
+        Assert.Empty(snapshot.CpuClocks());
+        Assert.Null(snapshot.CpuClockMHz());
+    }
+
+    [Fact]
     public void RealClockAndTemperature_AreStillReported()
     {
         var snapshot = Snapshot(Clock("Core #1", 3000d), Temp("CPU", "Package", 55d));

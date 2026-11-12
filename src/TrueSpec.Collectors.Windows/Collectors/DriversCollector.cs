@@ -29,9 +29,13 @@ public sealed class DriversCollector : ICollector
         // below. DriverProviderName and InfName were fetched for every one
         // of the hundreds of driver rows and thrown away; Win32_PnPSignedDriver
         // is enumerated by three collectors, so every dropped column counts.
+        // The 3-arg Query keeps the error: the class is capped at
+        // Wmi.MaxRows (1000), and a truncated list must never be presented
+        // as complete (see BuildSnapshot).
         var drivers = Wmi.Query(
             "root\\cimv2",
-            "SELECT DeviceName, DriverDate, DriverVersion, IsSigned FROM Win32_PnPSignedDriver");
+            "SELECT DeviceName, DriverDate, DriverVersion, IsSigned FROM Win32_PnPSignedDriver",
+            out var queryError);
 
         if (drivers.Count == 0)
         {
@@ -43,6 +47,27 @@ public sealed class DriversCollector : ICollector
                 "CIM did not return Win32_PnPSignedDriver."));
         }
 
+        return Task.FromResult(BuildSnapshot(drivers, queryError));
+    }
+
+    /// <summary>
+    /// Pure snapshot builder, so the truncation handling is unit-testable
+    /// without live WMI: the collector only fetches rows, this decides
+    /// what the user sees. When the WMI row cap truncated the list
+    /// (<paramref name="queryError"/> is <see cref="Wmi.TruncatedError"/>),
+    /// the headline says "1000+" — never an exact count implying
+    /// completeness — and a spec row states the list was truncated at
+    /// 1000 rows and the counts cover the first 1000 drivers only. The
+    /// "Installed drivers" value itself stays the number of rows actually
+    /// read (1000), qualified by that row.
+    /// </summary>
+    internal static ComponentSnapshot BuildSnapshot(IReadOnlyList<WmiRow> drivers, string? queryError)
+    {
+        const string id = "drivers";
+        const string name = "Drivers";
+        const string category = "Security";
+
+        var truncated = string.Equals(queryError, Wmi.TruncatedError, StringComparison.Ordinal);
         var now = DateTimeOffset.UtcNow;
         var unsigned = drivers.Count(r => r.Bool("IsSigned") is false);
         var unknown = drivers.Count(r => r.Bool("IsSigned") is null);
@@ -55,10 +80,13 @@ public sealed class DriversCollector : ICollector
 
         // "All signed" is only true when every signature is known and
         // signed: drivers with an unknown signature state must not be
-        // counted as signed.
+        // counted as signed. When truncated, the count is "1000+": the
+        // list held more drivers than the row cap returned, so an exact
+        // number would imply a completeness the data does not have.
+        var countText = truncated ? "1000+" : drivers.Count.ToString(CultureInfo.InvariantCulture);
         var headline = string.Create(
             CultureInfo.InvariantCulture,
-            $"{drivers.Count} drivers - {(unsigned == 0 && unknown == 0 ? "all signed" : unsigned > 0 ? $"{unsigned} unsigned" : $"{unknown} with unknown signature")}");
+            $"{countText} drivers - {(unsigned == 0 && unknown == 0 ? "all signed" : unsigned > 0 ? $"{unsigned} unsigned" : $"{unknown} with unknown signature")}");
 
         var specs = new List<SpecValue>
         {
@@ -74,6 +102,18 @@ public sealed class DriversCollector : ICollector
                 _ => CollectorSupport.NotReported,
             }, "CIM Win32_PnPSignedDriver.DriverDate older than 5 years"),
         };
+
+        // A plain literal label: no new SpecLabels constant (the
+        // hardening batch owns SpecLabels). The row sits right after the
+        // installed-drivers count so the qualification is next to the
+        // number it qualifies.
+        if (truncated)
+        {
+            specs.Insert(1, CollectorSupport.Spec(
+                "Driver list truncated",
+                "Truncated at 1000 rows; counts cover the first 1000 drivers only.",
+                "CIM Win32_PnPSignedDriver"));
+        }
 
         // Two drivers can share a DeviceName; duplicate spec labels
         // collapse in the comparison view, so number repeats.
@@ -97,13 +137,13 @@ public sealed class DriversCollector : ICollector
                 "CIM Win32_PnPSignedDriver"));
         }
 
-        return Task.FromResult(ComponentSnapshot.NotMeasurable(
-            Id,
-            Name,
-            Category,
-            Id,
+        return ComponentSnapshot.NotMeasurable(
+            id,
+            name,
+            category,
+            id,
             headline,
             specs,
-            "Drivers are the small programs that let Windows talk to hardware. All signed drivers is a good sign. A few very old drivers are normal, but many old drivers can cause instability."));
+            "Drivers are the small programs that let Windows talk to hardware. All signed drivers is a good sign. A few very old drivers are normal, but many old drivers can cause instability.");
     }
 }
