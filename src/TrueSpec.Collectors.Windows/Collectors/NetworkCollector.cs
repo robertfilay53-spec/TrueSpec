@@ -528,12 +528,15 @@ public sealed class NetworkCollector : ICollector
             years = 0;
         }
 
-        var text = string.Create(
+        // The stale flag sits inside the same parentheses as the age, so
+        // the value reads as one sentence: "Driver from 2020 (6 years old,
+        // older than 2 years)".
+        var stale = years > WifiDriverStaleAgeYears
+            ? string.Create(CultureInfo.InvariantCulture, $", older than {WifiDriverStaleAgeYears} years")
+            : string.Empty;
+        return string.Create(
             CultureInfo.InvariantCulture,
-            $"Driver from {date.Year} ({years} year{(years == 1 ? string.Empty : "s")} old)");
-        return years > WifiDriverStaleAgeYears
-            ? string.Create(CultureInfo.InvariantCulture, $"{text}, older than {WifiDriverStaleAgeYears} years")
-            : text;
+            $"Driver from {date.Year} ({years} year{(years == 1 ? string.Empty : "s")} old{stale})");
     }
 
     private static string ReadStandards(string driverOutput)
