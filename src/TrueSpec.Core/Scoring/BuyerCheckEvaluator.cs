@@ -255,8 +255,15 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "bios-date";
         const string title = "BIOS date is recent";
 
-        if (!TryGetSpec(byId, "system", out var value, SpecLabels.BIOSDate) ||
-            !DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var biosDate))
+        // The system collector and the motherboard collector both read
+        // Win32_BIOS.ReleaseDate, but they run independently: on a slow
+        // machine the system collector can time out while the motherboard
+        // collector already delivered the same date. Read the system
+        // value first and fall back to the motherboard value, so the
+        // check uses the date already collected instead of reporting
+        // "not available" for a date the Motherboard page shows.
+        if (!TryReadDate(byId, "system", SpecLabels.BIOSDate, out var biosDate) &&
+            !TryReadDate(byId, "motherboard", SpecLabels.BIOSDate, out biosDate))
         {
             return new BuyerCheck(id, title,
                 "The BIOS date was not available.",
@@ -567,6 +574,23 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
 
         return titles.All(title => result.SkippedChecks.Any(
             skipped => skipped.StartsWith(title, StringComparison.Ordinal)));
+    }
+
+    /// <summary>
+    /// Reads a date spec as a <see cref="DateTimeOffset"/>. A missing spec,
+    /// the literal "Not reported by hardware" and any other unparseable
+    /// value all read as absent, so the caller can fall back to another
+    /// component that reports the same reading.
+    /// </summary>
+    private static bool TryReadDate(
+        IReadOnlyDictionary<string, ComponentSnapshot> byId,
+        string componentId,
+        string label,
+        out DateTimeOffset date)
+    {
+        date = default;
+        return TryGetSpec(byId, componentId, out var value, label) &&
+            DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out date);
     }
 
     private static bool TryGetSpec(

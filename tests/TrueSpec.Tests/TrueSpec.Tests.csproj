@@ -39,13 +39,15 @@
   </ItemGroup>
 
   <!-- ScoreAgreementTests, NavigationTests, HistoryForecastViewModelTests,
-       SensorAlertViewModelTests and ExportConfirmationTests
+       LoadTestViewModelTests, SensorAlertViewModelTests,
+       AdminNoticeViewModelTests and ExportConfirmationTests
        drive the App's ViewModels, so they only compile on the Windows leg. Excluding the files (rather
        than #if-ing them) keeps the tests readable and the exclusion visible
        in the project file. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <Compile Remove="ScoreAgreementTests.cs" />
     <Compile Remove="HistoryForecastViewModelTests.cs" />
+    <Compile Remove="LoadTestViewModelTests.cs" />
     <Compile Remove="SensorAlertViewModelTests.cs" />
     <Compile Remove="AdminNoticeViewModelTests.cs" />
     <Compile Remove="ExportConfirmationTests.cs" />

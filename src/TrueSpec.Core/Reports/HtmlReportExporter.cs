@@ -88,6 +88,7 @@ public sealed class HtmlReportExporter : IReportExporter
         builder.AppendLine("<section class=\"card\">");
         builder.AppendLine($"<h2>New Laptop Check</h2>");
         builder.AppendLine($"<p><strong>{Encode(snapshot.BuyerChecks.BannerText)}</strong></p>");
+        builder.AppendLine($"<p>{Encode(snapshot.BuyerChecks.SummaryText)}.</p>");
         builder.AppendLine("<table><thead><tr><th>Check</th><th>Result</th><th>Detail</th><th>What to ask</th></tr></thead><tbody>");
         foreach (var check in snapshot.BuyerChecks.Checks)
         {
