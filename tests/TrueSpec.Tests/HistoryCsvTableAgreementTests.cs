@@ -1,5 +1,6 @@
 using TrueSpec.App.ViewModels;
 using TrueSpec.Core.History;
+using TrueSpec.Core.Models;
 using TrueSpec.Core.Reports;
 
 namespace TrueSpec.Tests;
@@ -18,7 +19,7 @@ public class HistoryCsvTableAgreementTests
         var first = new DateTimeOffset(2026, 1, 1, 10, 0, 0, TimeSpan.Zero);
         var second = new DateTimeOffset(2026, 1, 31, 10, 30, 0, TimeSpan.Zero);
         var before = TestSnapshots.HistorySnapshot(90d, "90.0%", "10", "2%", "100", first);
-        var after = TestSnapshots.HistorySnapshot(85.5d, "Not reported by hardware", null, "5%", "250", second);
+        var after = TestSnapshots.HistorySnapshot(85.5d, SpecLabels.NotReportedByHardware, null, "5%", "250", second);
 
         var trend = HistoryTrendAnalyzer.Analyze(new[] { before, after });
         var csv = HistoryCsvExporter.Build(trend);

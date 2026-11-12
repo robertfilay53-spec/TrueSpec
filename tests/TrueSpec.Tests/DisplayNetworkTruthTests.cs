@@ -41,7 +41,7 @@ public class DisplayNetworkTruthTests
     [InlineData("802.11b")]
     public void NegotiatedStandard_UnknownRadioType_IsNotReported(string? radioType)
     {
-        Assert.Equal("Not reported by hardware", NetworkCollector.MapNegotiatedStandard(radioType));
+        Assert.Equal(SpecLabels.NotReportedByHardware, NetworkCollector.MapNegotiatedStandard(radioType));
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class DisplayNetworkTruthTests
     {
         var age = NetworkCollector.FormatWifiDriverAge("2020-01-15", AsOf);
 
-        Assert.Equal("Driver from 2020 (6 years old, older than 2 years)", age);
+        Assert.Equal("Driver from 2020 (6 years old, older than 5 years)", age);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class DisplayNetworkTruthTests
     [InlineData("not-a-date")]
     public void WifiDriverAge_MissingOrUnparseableDate_IsNotReported(string? driverDate)
     {
-        Assert.Equal("Not reported by hardware", NetworkCollector.FormatWifiDriverAge(driverDate, AsOf));
+        Assert.Equal(SpecLabels.NotReportedByHardware, NetworkCollector.FormatWifiDriverAge(driverDate, AsOf));
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class DisplayNetworkTruthTests
     [InlineData(long.MaxValue)]
     public void LinkSpeed_SentinelOrZero_IsNotReported(long? bitsPerSecond)
     {
-        Assert.Equal("Not reported by hardware", NetworkCollector.FormatBitsPerSecond(bitsPerSecond));
+        Assert.Equal(SpecLabels.NotReportedByHardware, NetworkCollector.FormatBitsPerSecond(bitsPerSecond));
     }
 
     [Theory]
@@ -142,7 +142,7 @@ public class DisplayNetworkTruthTests
             WifiIp: null,
             WifiGateway: null,
             WifiDns: null,
-            Standards: "Not reported by hardware",
+            Standards: SpecLabels.NotReportedByHardware,
             Signal: null,
             Band: null,
             Channel: null,
@@ -159,7 +159,7 @@ public class DisplayNetworkTruthTests
 
         var specs = NetworkCollector.BuildSpecs(reading, Array.Empty<NetworkCollector.InterfaceData>(), AsOf);
 
-        Assert.Equal("Not reported by hardware", Assert.Single(specs, s => s.Label == SpecLabels.EthernetLinkSpeed).Value);
+        Assert.Equal(SpecLabels.NotReportedByHardware, Assert.Single(specs, s => s.Label == SpecLabels.EthernetLinkSpeed).Value);
     }
 
     // ---- v1.4.1 F1: GPU current mode -----------------------------------
@@ -198,7 +198,7 @@ public class DisplayNetworkTruthTests
     [InlineData("0 x 1080 x 4294967296 colors")]
     public void SanitizeVideoModeDescription_Unparseable_IsNotReported(string? description)
     {
-        Assert.Equal("Not reported by hardware", GpuCollector.SanitizeVideoModeDescription(description));
+        Assert.Equal(SpecLabels.NotReportedByHardware, GpuCollector.SanitizeVideoModeDescription(description));
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public class DisplayNetworkTruthTests
     {
         Assert.Equal("1920 x 1080", GpuCollector.FormatCurrentMode(1920, 1080, null, null));
         Assert.Equal("32-bit color", GpuCollector.FormatCurrentMode(null, null, 32, null));
-        Assert.Equal("Not reported by hardware", GpuCollector.FormatCurrentMode(null, null, null, null));
+        Assert.Equal(SpecLabels.NotReportedByHardware, GpuCollector.FormatCurrentMode(null, null, null, null));
         Assert.Equal("1920 x 1080", GpuCollector.FormatCurrentMode(1920, 1080, 0, "1920 x 1080 x 4294967296 colors"));
         Assert.Equal("1920 x 1080", GpuCollector.FormatCurrentMode(1920, 1080, uint.MaxValue, null));
         Assert.Equal("1920 x 1080, 32-bit color", GpuCollector.FormatCurrentMode(1920, 1080, 32, null));
@@ -229,7 +229,7 @@ public class DisplayNetworkTruthTests
     [InlineData(uint.MaxValue)]
     public void ColourDepth_ImpossibleValue_IsNotReported(uint bitsPerPixel)
     {
-        Assert.Equal("Not reported by hardware", DisplayCollector.FormatColourDepth(bitsPerPixel));
+        Assert.Equal(SpecLabels.NotReportedByHardware, DisplayCollector.FormatColourDepth(bitsPerPixel));
     }
 
     [Theory]
@@ -241,7 +241,7 @@ public class DisplayNetworkTruthTests
     [InlineData(1920u, uint.MaxValue)]
     public void Resolution_Sentinel_IsNotReported(uint? width, uint? height)
     {
-        Assert.Equal("Not reported by hardware", DisplayCollector.FormatResolution(width, height));
+        Assert.Equal(SpecLabels.NotReportedByHardware, DisplayCollector.FormatResolution(width, height));
     }
 
     [Fact]
@@ -256,7 +256,7 @@ public class DisplayNetworkTruthTests
     [InlineData(uint.MaxValue)]
     public void RefreshRate_Sentinel_IsNotReported(uint? hertz)
     {
-        Assert.Equal("Not reported by hardware", DisplayCollector.FormatRefreshRate(hertz));
+        Assert.Equal(SpecLabels.NotReportedByHardware, DisplayCollector.FormatRefreshRate(hertz));
     }
 
     [Fact]
@@ -272,7 +272,7 @@ public class DisplayNetworkTruthTests
     {
         Assert.Equal(
             "1920 x 1080, 60 Hz",
-            DisplayCollector.BuildHeadline("Not reported by hardware", "Not reported by hardware", "1920 x 1080", "60 Hz"));
+            DisplayCollector.BuildHeadline(SpecLabels.NotReportedByHardware, SpecLabels.NotReportedByHardware, "1920 x 1080", "60 Hz"));
     }
 
     [Fact]
@@ -280,7 +280,7 @@ public class DisplayNetworkTruthTests
     {
         Assert.Equal(
             "ThinkPad Display 1920x1080 1920 x 1080, 60 Hz",
-            DisplayCollector.BuildHeadline("ThinkPad Display 1920x1080", "Not reported by hardware", "1920 x 1080", "60 Hz"));
+            DisplayCollector.BuildHeadline("ThinkPad Display 1920x1080", SpecLabels.NotReportedByHardware, "1920 x 1080", "60 Hz"));
     }
 
     [Fact]
@@ -288,7 +288,7 @@ public class DisplayNetworkTruthTests
     {
         Assert.Equal(
             "LP140WFH 1920 x 1080",
-            DisplayCollector.BuildHeadline("Not reported by hardware", "LP140WFH", "1920 x 1080", "Not reported by hardware"));
+            DisplayCollector.BuildHeadline(SpecLabels.NotReportedByHardware, "LP140WFH", "1920 x 1080", SpecLabels.NotReportedByHardware));
     }
 
     [Fact]
@@ -296,7 +296,7 @@ public class DisplayNetworkTruthTests
     {
         Assert.Equal(
             string.Empty,
-            DisplayCollector.BuildHeadline("Not reported by hardware", "Not reported by hardware", "Not reported by hardware", "Not reported by hardware"));
+            DisplayCollector.BuildHeadline(SpecLabels.NotReportedByHardware, SpecLabels.NotReportedByHardware, SpecLabels.NotReportedByHardware, SpecLabels.NotReportedByHardware));
     }
 
     // ---- v1.4.1 F9: panel serial ---------------------------------------
@@ -304,10 +304,10 @@ public class DisplayNetworkTruthTests
     [Theory]
     [InlineData("0")]
     [InlineData("00000000")]
-    [InlineData("Not reported by hardware")]
+    [InlineData(SpecLabels.NotReportedByHardware)]
     public void PanelSerial_Placeholder_IsNotReported(string serial)
     {
-        Assert.Equal("Not reported by hardware", DisplayCollector.FormatSerial(serial));
+        Assert.Equal(SpecLabels.NotReportedByHardware, DisplayCollector.FormatSerial(serial));
     }
 
     [Theory]
@@ -325,7 +325,7 @@ public class DisplayNetworkTruthTests
     public void DriverAge_GpuDriverDate_IsFlaggedLikeWifi()
     {
         Assert.Equal(
-            "Driver from 2021 (4 years old, older than 2 years)",
+            "Driver from 2021 (4 years old)",
             CollectorSupport.FormatDriverAge("2021-11-15", AsOf));
     }
 
@@ -333,7 +333,7 @@ public class DisplayNetworkTruthTests
     public void DriverAge_EthernetDriverDate_IsFlaggedLikeWifi()
     {
         Assert.Equal(
-            "Driver from 2019 (6 years old, older than 2 years)",
+            "Driver from 2019 (6 years old, older than 5 years)",
             CollectorSupport.FormatDriverAge("2019-06-06", AsOf));
     }
 
@@ -350,7 +350,7 @@ public class DisplayNetworkTruthTests
             WifiIp: null,
             WifiGateway: null,
             WifiDns: null,
-            Standards: "Not reported by hardware",
+            Standards: SpecLabels.NotReportedByHardware,
             Signal: null,
             Band: null,
             Channel: null,
@@ -367,8 +367,8 @@ public class DisplayNetworkTruthTests
 
         var specs = NetworkCollector.BuildSpecs(reading, Array.Empty<NetworkCollector.InterfaceData>(), AsOf);
 
-        Assert.Equal("Driver from 2019 (6 years old, older than 2 years)", Assert.Single(specs, s => s.Label == SpecLabels.EthernetDriverAge).Value);
-        Assert.Equal("Driver from 2022 (4 years old, older than 2 years)", Assert.Single(specs, s => s.Label == SpecLabels.WifiDriverAge).Value);
+        Assert.Equal("Driver from 2019 (6 years old, older than 5 years)", Assert.Single(specs, s => s.Label == SpecLabels.EthernetDriverAge).Value);
+        Assert.Equal("Driver from 2022 (4 years old)", Assert.Single(specs, s => s.Label == SpecLabels.WifiDriverAge).Value);
     }
 
     // ---- U11: colour depth ----------------------------------------------
@@ -387,7 +387,7 @@ public class DisplayNetworkTruthTests
     [InlineData(0u)]
     public void ColourDepth_MissingOrZero_IsNotReported(uint? bitsPerPixel)
     {
-        Assert.Equal("Not reported by hardware", DisplayCollector.FormatColourDepth(bitsPerPixel));
+        Assert.Equal(SpecLabels.NotReportedByHardware, DisplayCollector.FormatColourDepth(bitsPerPixel));
     }
 
     // ---- U12: BuildSpecs wires the new specs in --------------------------
@@ -427,7 +427,7 @@ public class DisplayNetworkTruthTests
         Assert.Equal("netsh wlan show interfaces", standard.Source);
 
         var driverAge = Assert.Single(specs, s => s.Label == SpecLabels.WifiDriverAge);
-        Assert.Equal("Driver from 2020 (6 years old, older than 2 years)", driverAge.Value);
+        Assert.Equal("Driver from 2020 (6 years old, older than 5 years)", driverAge.Value);
         Assert.Equal("CIM Win32_PnPSignedDriver", driverAge.Source);
 
         var linkSpeed = Assert.Single(specs, s => s.Label == SpecLabels.LinkSpeed);
@@ -448,7 +448,7 @@ public class DisplayNetworkTruthTests
             WifiIp: null,
             WifiGateway: null,
             WifiDns: null,
-            Standards: "Not reported by hardware",
+            Standards: SpecLabels.NotReportedByHardware,
             Signal: null,
             Band: null,
             Channel: null,
@@ -465,8 +465,8 @@ public class DisplayNetworkTruthTests
 
         var specs = NetworkCollector.BuildSpecs(reading, Array.Empty<NetworkCollector.InterfaceData>(), AsOf);
 
-        Assert.Equal("Not reported by hardware", Assert.Single(specs, s => s.Label == SpecLabels.WifiStandardNegotiated).Value);
-        Assert.Equal("Not reported by hardware", Assert.Single(specs, s => s.Label == SpecLabels.WifiDriverAge).Value);
+        Assert.Equal(SpecLabels.NotReportedByHardware, Assert.Single(specs, s => s.Label == SpecLabels.WifiStandardNegotiated).Value);
+        Assert.Equal(SpecLabels.NotReportedByHardware, Assert.Single(specs, s => s.Label == SpecLabels.WifiDriverAge).Value);
     }
 
     // ---- v1.4.1 F5: netsh parsing --------------------------------------
@@ -676,7 +676,7 @@ public class DisplayNetworkTruthTests
         Assert.Contains(snapshot.Specs, s => s.Label == SpecLabels.NativeResolution);
         // v1.4.1 F4: the headline never leads with "Not reported by
         // hardware" when real values were reported.
-        Assert.DoesNotContain("Not reported by hardware", snapshot.Headline, StringComparison.Ordinal);
+        Assert.DoesNotContain(SpecLabels.NotReportedByHardware, snapshot.Headline, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -786,11 +786,11 @@ public class DisplayNetworkTruthTests
     public void DisplayBuyerSummary_MissingReadings_SaysNotReportedInsteadOfGuessing()
     {
         var summary = DisplayCollector.BuildBuyerSummary(
-            "Not reported by hardware",
-            "Not reported by hardware",
-            "Not reported by hardware",
-            "Not reported by hardware",
-            "Not reported by hardware");
+            SpecLabels.NotReportedByHardware,
+            SpecLabels.NotReportedByHardware,
+            SpecLabels.NotReportedByHardware,
+            SpecLabels.NotReportedByHardware,
+            SpecLabels.NotReportedByHardware);
 
         Assert.Equal(
             "Buyer check: panel manufacturer and model not reported by hardware, manufacture date not reported by hardware, colour depth not reported by hardware; Windows is not reporting an active resolution.",

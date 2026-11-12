@@ -1,5 +1,6 @@
 using System.Globalization;
 using TrueSpec.Collectors.Windows.Collectors;
+using TrueSpec.Core.Models;
 
 namespace TrueSpec.Tests;
 
@@ -8,7 +9,7 @@ namespace TrueSpec.Tests;
 /// Linux this file is excluded from the build (see TrueSpec.Tests.csproj),
 /// like StorageCollectorTests. The date depends on the machine the test
 /// runs on, so only its shape is asserted: a parseable yyyy-MM-dd date, or
-/// "Not reported by hardware" when the log is empty or unreadable.
+/// SpecLabels.NotReportedByHardware when the log is empty or unreadable.
 /// </summary>
 public class SystemCollectorTests
 {
@@ -35,7 +36,7 @@ public class SystemCollectorTests
             s => string.Equals(s.Label, "Earliest event log entry", StringComparison.Ordinal));
         Assert.Equal("Windows Event Log (System)", spec.Source);
         Assert.True(
-            spec.Value == "Not reported by hardware" ||
+            spec.Value == SpecLabels.NotReportedByHardware ||
             DateTimeOffset.TryParseExact(
                 spec.Value,
                 "yyyy-MM-dd",

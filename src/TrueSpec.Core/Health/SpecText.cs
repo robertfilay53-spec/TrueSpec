@@ -27,9 +27,25 @@ public static class SpecText
     public static string? Value(IReadOnlyList<SpecValue> specs, params string[] labels) =>
         Find(specs, labels)?.Value;
 
+    /// <summary>
+    /// The typed measurement for a spec, when the collector recorded one
+    /// (<see cref="SpecValue.NumericValue"/>). The typed value wins over
+    /// parsing the display string: "12,400 hours" parses to 12,400 only by
+    /// luck, and a renamed unit or a thousands separator must never change
+    /// a health rule. Collectors that do not set the typed value yet fall
+    /// back to parsing the display string, so old snapshots keep working.
+    /// A non-finite typed value is never returned: a corrupt or hand-edited
+    /// snapshot must never feed a rule with an infinite number.
+    /// </summary>
     public static double? Number(IReadOnlyList<SpecValue> specs, params string[] labels)
     {
-        var value = Value(specs, labels);
+        var spec = Find(specs, labels);
+        if (spec?.NumericValue is { } typed && double.IsFinite(typed))
+        {
+            return typed;
+        }
+
+        var value = spec?.Value;
         return value is not null && TryParseLeadingNumber(value, out var number) ? number : null;
     }
 

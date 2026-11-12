@@ -22,6 +22,15 @@ public sealed record SensorLogSeries(
 /// </summary>
 public static class SensorLogReader
 {
+    /// <summary>
+    /// Maximum rows read from one log file. The writer caps the file at
+    /// 10,000 rows, so a real log never comes near this; the cap only
+    /// stops a hand-edited or foreign file with millions of rows from
+    /// ballooning memory on the History chart. Rows past the cap are
+    /// dropped oldest-first: the chart shows the newest data.
+    /// </summary>
+    public const int MaxRows = 20000;
+
     /// <summary>Reads one column of the log. <paramref name="columnName"/> must match the header exactly.</summary>
     public static SensorLogSeries Read(string filePath, string columnName)
     {
@@ -38,13 +47,13 @@ public static class SensorLogReader
                 break;
             }
         }
-        var points = new List<SensorLogPoint>();
+        var kept = new Queue<SensorLogPoint>();
         var rowCount = 0;
         var gapCount = 0;
 
         if (columns.Count == 0)
         {
-            return new SensorLogSeries(columns, points, 0, 0, null, null);
+            return new SensorLogSeries(columns, Array.Empty<SensorLogPoint>(), 0, 0, null, null);
         }
 
         try
@@ -78,15 +87,31 @@ public static class SensorLogReader
                     gapCount++;
                 }
 
-                points.Add(new SensorLogPoint(timestamp, value));
+                kept.Enqueue(new SensorLogPoint(timestamp, value));
+
+                // Cap: a hand-edited file with millions of rows must not
+                // balloon memory. The oldest points are dropped first, so
+                // the series keeps the newest MaxRows points: the chart
+                // shows the newest data. RowCount still counts every row
+                // in the file, so "newest N of M" stays truthful; GapCount
+                // counts gaps among the kept points only.
+                if (kept.Count > MaxRows)
+                {
+                    if (kept.Dequeue().Value is null)
+                    {
+                        gapCount--;
+                    }
+                }
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // A log that cannot be read is an empty series, not a crash.
-            return new SensorLogSeries(columns, points, rowCount, gapCount, FirstOf(points), LastOf(points));
+            var partial = kept.ToList();
+            return new SensorLogSeries(columns, partial, rowCount, gapCount, FirstOf(partial), LastOf(partial));
         }
 
+        var points = kept.ToList();
         return new SensorLogSeries(columns, points, rowCount, gapCount, FirstOf(points), LastOf(points));
     }
 

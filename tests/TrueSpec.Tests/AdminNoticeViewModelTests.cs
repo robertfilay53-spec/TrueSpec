@@ -94,7 +94,7 @@ public class AdminNoticeViewModelTests
             string.Equals(component.Id, "cpu", StringComparison.OrdinalIgnoreCase)
                 ? component with
                 {
-                    Specs = new[] { new SpecValue("Package temperature", "Not reported by hardware", "LibreHardwareMonitor") },
+                    Specs = new[] { new SpecValue("Package temperature", SpecLabels.NotReportedByHardware, "LibreHardwareMonitor") },
                 }
                 : component).ToList();
         return snapshot with { Components = components };

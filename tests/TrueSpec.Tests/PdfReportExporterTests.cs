@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using TrueSpec.Core;
@@ -41,7 +42,7 @@ public class PdfReportExporterTests
         await exporter.ExportAsync(ReportModel.FromSnapshot(snapshot), stream);
 
         var text = Encoding.ASCII.GetString(stream.ToArray());
-        Assert.Contains("Not reported by hardware", text, StringComparison.Ordinal);
+        Assert.Contains(SpecLabels.NotReportedByHardware, text, StringComparison.Ordinal);
         Assert.Contains("Not available", text, StringComparison.Ordinal);
     }
 
@@ -104,7 +105,7 @@ public class PdfReportExporterTests
 
     [Theory]
     [InlineData("Not reported")]
-    [InlineData("Not reported by hardware")]
+    [InlineData(SpecLabels.NotReportedByHardware)]
     public async Task PdfExporter_OmitsOperatingSystemLineWhenItWasNotReported(string operatingSystem)
     {
         // v1.4.0 laptop PDF header: "RANAJAWADLAPTOP / Not reported" — a
@@ -207,5 +208,182 @@ public class PdfReportExporterTests
             "storage", "Storage", "Storage", "storage", "Test drive", 100d, specs,
             "Drive health comes from the manufacturer wear counter.", DateTimeOffset.Now);
         return healthy with { Components = healthy.Components.Append(big).ToList() };
+    }
+
+    [Fact]
+    public async Task PdfExporter_WrapKeepsEveryCharacterOfASpacelessLongString()
+    {
+        // Polish: Wrap() dropped one character on spaceless long strings
+        // (URLs/paths) at every wrap. The URL below is 150 characters with
+        // no space, so it wraps at least once; concatenating the text the
+        // PDF actually shows must reproduce it exactly. The URL can span
+        // a page break, so ShownText drops the page-footer shows that
+        // would otherwise sit between its two halves.
+        var url = "https://example.com/" + new string('a', 120) + "/report";
+        Assert.True(url.Length > 95, "Fixture must be long enough to wrap.");
+        var healthy = TestSnapshots.Healthy();
+        var spec = new SpecValue("Model", url, "Test source");
+        var component = new ComponentSnapshot(
+            "storage", "Storage", "Storage", "storage", "Test drive", 100d,
+            new[] { spec }, "Drive health.", DateTimeOffset.Now);
+        var snapshot = healthy with { Components = healthy.Components.Append(component).ToList() };
+
+        var exporter = new PdfReportExporter();
+        await using var stream = new MemoryStream();
+        await exporter.ExportAsync(ReportModel.FromSnapshot(snapshot), stream);
+
+        var shown = ShownText(Encoding.ASCII.GetString(stream.ToArray()));
+        Assert.Contains(url, shown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PdfExporter_RealReaderCheck_PdftotextReadsTheReport()
+    {
+        // Test-infra (item 7): poppler pdftotext was manual only. When it
+        // is installed (GitHub Ubuntu runners have it; Windows runners do
+        // not), a real reader must extract the report text, including a
+        // long spaceless URL in full. Otherwise the test skips visibly
+        // instead of passing vacuously.
+        var pdftotext = FindOnPath(OperatingSystem.IsWindows() ? "pdftotext.exe" : "pdftotext");
+        if (pdftotext is null)
+        {
+            // xUnit 2.9.3 has no Assert.Skip and SkipException is not
+            // publicly constructible, so the check simply returns on
+            // runners without poppler (Windows). The reason is written to
+            // the test output so the skip is visible, not silent.
+            Console.WriteLine("SKIPPED: pdftotext is not installed, so the real-reader PDF check did not run.");
+            return;
+        }
+
+        var url = "https://example.com/" + new string('b', 120) + "/report";
+        var healthy = TestSnapshots.Healthy();
+        var component = new ComponentSnapshot(
+            "storage", "Storage", "Storage", "storage", "Test drive", 100d,
+            new[] { new SpecValue("Model", url, "Test source") },
+            "Drive health.", DateTimeOffset.Now);
+        var snapshot = healthy with { Components = healthy.Components.Append(component).ToList() };
+
+        var exporter = new PdfReportExporter();
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var pdfPath = Path.Combine(directory, "report.pdf");
+            var txtPath = Path.Combine(directory, "report.txt");
+            await using (var stream = File.Create(pdfPath))
+            {
+                await exporter.ExportAsync(ReportModel.FromSnapshot(snapshot), stream);
+            }
+
+            var start = new ProcessStartInfo
+            {
+                FileName = pdftotext,
+                Arguments = $"\"{pdfPath}\" \"{txtPath}\"",
+                UseShellExecute = false,
+                RedirectStandardError = true,
+            };
+            using var process = Process.Start(start);
+            Assert.NotNull(process);
+            var error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            Assert.True(process.ExitCode == 0, $"pdftotext failed: {error}");
+
+            var extracted = await File.ReadAllTextAsync(txtPath);
+            Assert.Contains("Test Laptop", extracted, StringComparison.Ordinal);
+            // A reader breaks long lines and pages: the URL can span a
+            // line wrap and a page break, with the "TrueSpec - page N of
+            // M" footer and a form feed between its halves. Join the
+            // lines back (dropping footers) before asserting the URL
+            // survived in full: the check is that every character is
+            // present, not that it fits on one line.
+            var unwrapped = string.Concat(extracted
+                .Split(new[] { '\n', '\f', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(line => !line.StartsWith("TrueSpec - page ", StringComparison.Ordinal)));
+            Assert.Contains(url, unwrapped, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>Finds a tool on PATH, or null when it is not installed.</summary>
+    private static string? FindOnPath(string fileName)
+    {
+        var path = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrEmpty(path))
+        {
+            return null;
+        }
+
+        foreach (var directory in path.Split(Path.PathSeparator))
+        {
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                continue;
+            }
+
+            var candidate = Path.Combine(directory.Trim(), fileName);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Concatenates every PDF literal string the content streams show, in
+    /// order, unescaping \(, \) and \\: what a reader sees on the page.
+    /// Page-footer shows ("TrueSpec - page N of M") are dropped: a string
+    /// that spans a page break would otherwise read with the footer in
+    /// the middle, and the footer is not part of the content.
+    /// </summary>
+    private static string ShownText(string pdf)
+    {
+        var builder = new StringBuilder();
+        for (var i = 0; i < pdf.Length; i++)
+        {
+            if (pdf[i] != '(')
+            {
+                continue;
+            }
+
+            var text = new StringBuilder();
+            var j = i + 1;
+            var closed = false;
+            while (j < pdf.Length)
+            {
+                if (pdf[j] == '\\' && j + 1 < pdf.Length)
+                {
+                    text.Append(pdf[j + 1]);
+                    j += 2;
+                    continue;
+                }
+
+                if (pdf[j] == ')')
+                {
+                    closed = true;
+                    break;
+                }
+
+                text.Append(pdf[j]);
+                j++;
+            }
+
+            if (closed)
+            {
+                var shown = text.ToString();
+                if (!shown.StartsWith("TrueSpec - page ", StringComparison.Ordinal))
+                {
+                    builder.Append(shown);
+                }
+
+                i = j;
+            }
+        }
+
+        return builder.ToString();
     }
 }

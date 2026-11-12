@@ -51,7 +51,7 @@ public static class StartupProgramParser
     /// <summary>
     /// Cleans a stored Run value: trims whitespace, expands %variables%
     /// using the current environment, and returns null for an empty value
-    /// so the collector reports it as "Not reported by hardware" instead
+    /// so the collector reports it as SpecLabels.NotReportedByHardware instead
     /// of showing a blank command. Long commands are capped at the same
     /// 512 characters as WMI spec values, with a visible "..." marker:
     /// a registry value can be arbitrarily long and the detail table must

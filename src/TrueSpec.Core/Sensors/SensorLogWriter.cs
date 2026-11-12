@@ -147,8 +147,7 @@ public sealed class SensorLogWriter
                 if (_columns is null && snapshot.Readings.Count > 0)
                 {
                     _columns = BuildColumns(snapshot.Readings);
-                    File.WriteAllText(_filePath, HeaderLine() + Environment.NewLine);
-                    _rowCount = 0;
+                    WriteHeaderPreservingGapRowsLocked();
                 }
 
                 var row = BuildRow(snapshot);
@@ -172,6 +171,38 @@ public sealed class SensorLogWriter
     }
 
     private string HeaderLine() => string.Join(",", new[] { TimestampHeader }.Concat(_columns!));
+
+    /// <summary>
+    /// Writes the header for the first time, keeping the timestamp-only
+    /// rows written before any reading-bearing snapshot arrived. Those gap
+    /// rows used to be destroyed by an unconditional overwrite: a dead
+    /// sweep at startup (no sensors reporting yet) vanished the moment the
+    /// first real reading fixed the columns. The kept rows are padded
+    /// with empty cells so they stay aligned with the new columns.
+    /// </summary>
+    private void WriteHeaderPreservingGapRowsLocked()
+    {
+        var existing = File.Exists(_filePath)
+            ? File.ReadAllLines(_filePath)
+            : Array.Empty<string>();
+        var lines = new List<string> { HeaderLine() };
+        var preserved = 0;
+        foreach (var line in existing)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            // A timestamp-only row has no comma; pad it with one empty cell
+            // per column. Anything else is kept verbatim.
+            lines.Add(line.Contains(',') ? line : line + new string(',', _columns!.Count));
+            preserved++;
+        }
+
+        File.WriteAllLines(_filePath, lines);
+        _rowCount = preserved;
+    }
 
     private string BuildRow(SensorSnapshot snapshot)
     {
@@ -225,7 +256,11 @@ public sealed class SensorLogWriter
         kept.Add(lines[0]);
         kept.AddRange(lines.Skip(lines.Length - _trimToRows));
 
-        var tempPath = _filePath + ".tmp";
+        // A GUID temp name, like AppSettingsStore: a predictable ".tmp"
+        // name lets another process on the machine guess the path and
+        // swap the file between the write and the move.
+        var directory = Path.GetDirectoryName(_filePath) ?? ".";
+        var tempPath = Path.Combine(directory, $".truespec-{Guid.NewGuid():N}.tmp");
         File.WriteAllLines(tempPath, kept);
         File.Move(tempPath, _filePath, overwrite: true);
         _rowCount = _trimToRows;

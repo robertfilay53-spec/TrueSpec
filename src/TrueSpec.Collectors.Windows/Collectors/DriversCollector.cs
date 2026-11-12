@@ -21,6 +21,11 @@ public sealed class DriversCollector : ICollector
 
     public bool RequiresAdministrator => false;
 
+    // WMI query strings are hoisted so CollectorWmiSelectionTests can pin
+    // the SELECT list to the properties this collector reads (hardening
+    // item 7, F9 bug class).
+    internal const string SignedDriverQuery = "SELECT DeviceName, DriverDate, DriverVersion, IsSigned FROM Win32_PnPSignedDriver";
+
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -34,7 +39,7 @@ public sealed class DriversCollector : ICollector
         // as complete (see BuildSnapshot).
         var drivers = Wmi.Query(
             "root\\cimv2",
-            "SELECT DeviceName, DriverDate, DriverVersion, IsSigned FROM Win32_PnPSignedDriver",
+            SignedDriverQuery,
             out var queryError);
 
         if (drivers.Count == 0)
@@ -75,7 +80,7 @@ public sealed class DriversCollector : ICollector
             .Select(r => new { Row = r, Date = r.Date("DriverDate") })
             .Where(x => x.Date is not null)
             .ToList();
-        var old = dated.Count(x => (now - x.Date!.Value).TotalDays > 365d * 5d);
+        var old = dated.Count(x => (now - x.Date!.Value).TotalDays > 365d * CollectorSupport.DriverStaleAgeYears);
         var oldest = dated.OrderBy(x => x.Date!.Value).FirstOrDefault();
 
         // "All signed" is only true when every signature is known and
@@ -90,16 +95,16 @@ public sealed class DriversCollector : ICollector
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec(SpecLabels.InstalledDrivers, drivers.Count.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver"),
-            CollectorSupport.Spec(SpecLabels.UnsignedDrivers, unsigned.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver.IsSigned"),
-            CollectorSupport.Spec(SpecLabels.DriversOlderThan5Years, old.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver.DriverDate"),
+            CollectorSupport.Spec(SpecLabels.InstalledDrivers, drivers.Count.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver", numericValue: drivers.Count, numericUnit: "drivers"),
+            CollectorSupport.Spec(SpecLabels.UnsignedDrivers, unsigned.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver.IsSigned", numericValue: unsigned, numericUnit: "drivers"),
+            CollectorSupport.Spec(SpecLabels.DriversOlderThan5Years, old.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver.DriverDate", numericValue: old, numericUnit: "drivers"),
             CollectorSupport.Spec(SpecLabels.OldestDriverDate, oldest?.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver.DriverDate"),
             CollectorSupport.Spec(SpecLabels.OldestDriverDevice, oldest?.Row.String("DeviceName"), "CIM Win32_PnPSignedDriver"),
             CollectorSupport.Spec(SpecLabels.VeryOldDriverFlag, old switch
             {
                 0 => "No",
                 > 0 => "Yes",
-                _ => CollectorSupport.NotReported,
+                _ => SpecLabels.NotReportedByHardware,
             }, "CIM Win32_PnPSignedDriver.DriverDate older than 5 years"),
         };
 
@@ -119,7 +124,7 @@ public sealed class DriversCollector : ICollector
         // collapse in the comparison view, so number repeats.
         var usedLabels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var item in dated
-                     .Where(x => (now - x.Date!.Value).TotalDays > 365d * 5d)
+                     .Where(x => (now - x.Date!.Value).TotalDays > 365d * CollectorSupport.DriverStaleAgeYears)
                      .OrderBy(x => x.Date!.Value)
                      .Take(10))
         {

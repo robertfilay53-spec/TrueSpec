@@ -17,6 +17,17 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
         Converters = { new JsonStringEnumConverter() },
     };
 
+    /// <summary>
+    /// Snapshots kept per database. Reads were always clamped, but saves
+    /// only INSERTed, so rows accumulated unbounded; a machine scanned
+    /// daily would grow the file forever. The cap mirrors the sensor log
+    /// next door (<see cref="TrueSpec.Core.Sensors.SensorLogWriter"/>:
+    /// 10,000 rows, trim to 8,000). 200 snapshots is years of weekly scans
+    /// and far more than any comparison or trend ever reads (50 at most),
+    /// so pruning the oldest beyond the cap loses nothing the UI shows.
+    /// </summary>
+    public const int MaxSnapshots = 200;
+
     private readonly string _connectionString;
 
     public SqliteSnapshotStore(string databasePath)
@@ -94,6 +105,23 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
         command.Parameters.AddWithValue("$payload", payload);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
+
+        // Retention: keep only the newest MaxSnapshots rows. The prune
+        // runs on every save so the file can never grow unbounded; the
+        // DELETE is a single indexed statement and the newest rows are
+        // the ones every reader (history list, comparison, trends) uses.
+        await using var prune = connection.CreateCommand();
+        prune.CommandText =
+            """
+            DELETE FROM snapshots
+            WHERE id NOT IN (
+                SELECT id FROM snapshots
+                ORDER BY captured_at DESC, id DESC
+                LIMIT $keep
+            );
+            """;
+        prune.Parameters.AddWithValue("$keep", MaxSnapshots);
+        await prune.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task<SystemSnapshot?> GetSnapshotAsync(
@@ -221,6 +249,11 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
             }
         }
 
+        // Chronological order by the parsed timestamp, not by the stored
+        // string: captured_at is ISO with an offset, and two ISO strings
+        // can sort lexicographically out of order across a DST change
+        // (different offsets), so the SQL ORDER BY is only a first cut.
+        results.Sort(static (a, b) => b.CapturedAt.CompareTo(a.CapturedAt));
         return results;
     }
 

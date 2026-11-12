@@ -72,7 +72,7 @@ public class BatteryHealthAlertTests
     {
         // Middle scan did not report health: the alert compares the first and
         // latest measured values, not the gap.
-        var trend = Analyze("85.0%", "Not reported by hardware", "78.0%");
+        var trend = Analyze("85.0%", SpecLabels.NotReportedByHardware, "78.0%");
 
         Assert.NotNull(trend.BatteryAlert);
         Assert.Contains("dropped from Normal (85%) to Worn (78%)", trend.BatteryAlert, StringComparison.Ordinal);

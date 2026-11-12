@@ -31,7 +31,7 @@ namespace TrueSpec.App.ViewModels;
 /// saved to local history after every scan, and settings are loaded from
 /// disk and saved whenever they change.
 /// </summary>
-public partial class MainViewModel : ViewModelBase
+public partial class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly MachineScanService _scanService;
     private readonly ISensorMonitor _sensorMonitor;
@@ -40,12 +40,14 @@ public partial class MainViewModel : ViewModelBase
     private readonly IBuyerCheckEvaluator _buyerCheckEvaluator;
     private readonly AppSettingsStore _settingsStore;
     private readonly IExportFileOpener _fileOpener;
+    private readonly ExportOrchestrator _exporter;
     private ISnapshotStore? _snapshotStore;
+    private CancellationTokenSource? _scanCts;
+    private bool _disposed;
     private readonly Dictionary<string, ViewModelBase> _pageCache =
         new(StringComparer.OrdinalIgnoreCase);
 
     private bool _initialScanStarted;
-    private bool _scanRunning;
 
     private SystemSnapshot _snapshot;
     private BuyerCheckContext _buyerContext = new();
@@ -103,8 +105,27 @@ public partial class MainViewModel : ViewModelBase
         _buyerCheckEvaluator = buyerCheckEvaluator;
 
         _settingsStore = settingsStore;
-        _fileOpener = fileOpener;
         _settings = _settingsStore.Load();
+
+        // The production opener enforces the export folder itself
+        // (extension + containment inside the opener); a test opener
+        // passed through the test seam is used as-is.
+        _fileOpener = fileOpener is ShellExportFileOpener
+            ? new ShellExportFileOpener(EffectiveExportFolder)
+            : fileOpener;
+
+        // The loading snapshot is created before the exporter: the
+        // exporter holds a live Func over this field, and the compiler
+        // must see the field assigned before the Func is built.
+        _snapshot = CreateLoadingSnapshot();
+
+        _exporter = new ExportOrchestrator(
+            () => _snapshot,
+            EffectiveExportFolder,
+            _fileOpener,
+            ShowExportConfirmation,
+            message => StatusMessage = message);
+
         IsDarkTheme = _settings.IsDarkTheme;
 
         // The sensor log is a convenience, never a startup blocker: when
@@ -120,8 +141,8 @@ public partial class MainViewModel : ViewModelBase
         // The window has to appear immediately. The real scan starts after
         // the window is shown (MainWindow calls BeginInitialScan on Opened)
         // and updates the Overview in place when it completes.
-        _snapshot = CreateLoadingSnapshot();
-
+        // (The loading snapshot itself is created above, before the
+        // ExportOrchestrator, so the exporter's snapshot Func is never null.)
         NavItems = new ObservableCollection<NavItemViewModel>(NavItemViewModel.CreateDefault());
         Overview = CreateOverview(isScanning: true);
 
@@ -150,13 +171,13 @@ public partial class MainViewModel : ViewModelBase
     private async Task InitializeAsync()
     {
         StartupLog.Append("MainViewModel: initial scan starting");
-        _scanRunning = true;
+        IsScanRunning = true;
         try
         {
             _snapshotStore = await CreateSnapshotStoreAsync();
             var snapshot = await _scanService.ScanAsync(
                 _buyerContext,
-                CancellationToken.None,
+                NewScanToken(),
                 ScanTimeouts.Default,
                 StartupLog.Append);
             // The scan is done: clear the flag before ApplySnapshot, so a
@@ -164,10 +185,20 @@ public partial class MainViewModel : ViewModelBase
             // (Same pattern as RefreshAsync: the save below is persistence,
             // not part of the scan, and must not keep the UI in "scanning"
             // state after the Overview already shows the finished score.)
-            _scanRunning = false;
+            IsScanRunning = false;
             ApplySnapshot(snapshot, "Real scan complete. Live sensors use LibreHardwareMonitor when available.", resetNavigation: true);
             await SaveSnapshotAsync(snapshot);
             StartupLog.Append("MainViewModel: initial scan complete");
+        }
+        catch (OperationCanceledException)
+        {
+            StartupLog.Append("MainViewModel: initial scan cancelled");
+            StatusMessage = "Scan cancelled.";
+            // The hero must stop saying "Scanning...": the loading
+            // snapshot is a finished (empty) scan, not a running one.
+            Overview.UpdateSnapshot(_snapshot, isScanning: false);
+            LastScanText = "No scan yet";
+            OnPropertyChanged(nameof(LastScanText));
         }
         catch (Exception exception)
         {
@@ -181,7 +212,37 @@ public partial class MainViewModel : ViewModelBase
         }
         finally
         {
-            _scanRunning = false;
+            IsScanRunning = false;
+        }
+    }
+
+    /// <summary>
+    /// A fresh token source for a scan. The previous source is disposed:
+    /// a new scan can only start when no scan is running, so the old one
+    /// is always finished by the time this is called.
+    /// </summary>
+    private CancellationToken NewScanToken()
+    {
+        _scanCts?.Dispose();
+        _scanCts = new CancellationTokenSource();
+        return _scanCts.Token;
+    }
+
+    /// <summary>
+    /// Cancels the running scan. The scan reports "Scan cancelled." and
+    /// keeps the previous snapshot: a cancelled scan is not a failed scan
+    /// and must never blank the Overview.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(IsScanRunning))]
+    private void CancelScan()
+    {
+        try
+        {
+            _scanCts?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The scan finished between the button press and the cancel.
         }
     }
 
@@ -253,6 +314,12 @@ public partial class MainViewModel : ViewModelBase
     public OverviewViewModel Overview { get; private set; }
 
     public AppSettings Settings => _settings;
+
+    /// <summary>True while a hardware scan is running: the Cancel button shows and Refresh stays guarded.</summary>
+    [ObservableProperty]
+    public partial bool IsScanRunning { get; set; }
+
+    partial void OnIsScanRunningChanged(bool value) => CancelScanCommand.NotifyCanExecuteChanged();
 
     public bool HistoryAvailable => _snapshotStore is not null;
 
@@ -401,19 +468,19 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private async Task RefreshAsync()
     {
-        if (_scanRunning)
+        if (IsScanRunning)
         {
             StatusMessage = "A scan is already running.";
             return;
         }
 
-        _scanRunning = true;
+        IsScanRunning = true;
         StatusMessage = "Scanning hardware...";
         try
         {
             var snapshot = await _scanService.ScanAsync(
                 _buyerContext,
-                CancellationToken.None,
+                NewScanToken(),
                 ScanTimeouts.Default,
                 StartupLog.Append);
             // A refresh re-scans the passive hardware, but the load test was
@@ -432,9 +499,13 @@ public partial class MainViewModel : ViewModelBase
             }
             // The scan is done: clear the flag before ApplySnapshot, so a
             // page rebuilt from the new snapshot does not read "scanning".
-            _scanRunning = false;
+            IsScanRunning = false;
             ApplySnapshot(snapshot, "Hardware scan refreshed from real collectors.", resetNavigation: false);
             await SaveSnapshotAsync(snapshot);
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "Scan cancelled.";
         }
         catch (Exception exception)
         {
@@ -442,21 +513,21 @@ public partial class MainViewModel : ViewModelBase
         }
         finally
         {
-            _scanRunning = false;
+            IsScanRunning = false;
         }
     }
 
     [RelayCommand]
-    private Task ExportJsonAsync() => ExportAsync(ReportFormat.Json);
+    private Task ExportJsonAsync() => _exporter.ExportReportAsync(ReportFormat.Json);
 
     [RelayCommand]
-    private Task ExportHtmlAsync() => ExportAsync(ReportFormat.Html);
+    private Task ExportHtmlAsync() => _exporter.ExportReportAsync(ReportFormat.Html);
 
     [RelayCommand]
-    private Task ExportCsvAsync() => ExportAsync(ReportFormat.Csv);
+    private Task ExportCsvAsync() => _exporter.ExportReportAsync(ReportFormat.Csv);
 
     [RelayCommand]
-    private Task ExportPdfAsync() => ExportAsync(ReportFormat.Pdf);
+    private Task ExportPdfAsync() => _exporter.ExportReportAsync(ReportFormat.Pdf);
 
     /// <summary>
     /// Exports the trend currently shown on the History page as CSV, to the
@@ -468,79 +539,15 @@ public partial class MainViewModel : ViewModelBase
     private async Task ExportHistoryCsvAsync()
     {
         var history = _pageCache.TryGetValue("history", out var page) ? page as HistoryViewModel : null;
-        var trend = history?.CurrentTrend;
-        if (trend is null || trend.SnapshotCount == 0)
+        await _exporter.ExportHistoryCsvAsync(history?.CurrentTrend);
+        if (history is not null)
         {
-            StatusMessage = "History export failed: there is no history to export yet.";
-            if (history is not null)
-            {
-                history.StatusMessage = StatusMessage;
-            }
-
-            return;
-        }
-
-        try
-        {
-            var folder = EffectiveExportFolder();
-            Directory.CreateDirectory(folder);
-            var path = Path.Combine(folder, PathSafety.SafeReportFileName("TrueSpec-history", "csv", DateTime.Now));
-            await using var stream = File.Create(path);
-            await new HistoryCsvExporter().ExportAsync(trend, stream);
-            ShowExportConfirmation(path, "History");
-            if (history is not null)
-            {
-                history.StatusMessage = StatusMessage;
-            }
-        }
-        catch (Exception exception)
-        {
-            StatusMessage = $"History export failed: {exception.Message}";
-            if (history is not null)
-            {
-                history.StatusMessage = StatusMessage;
-            }
+            history.StatusMessage = StatusMessage;
         }
     }
 
     [RelayCommand]
-    private async Task ExportChecklistAsync()
-    {
-        try
-        {
-            var folder = EffectiveExportFolder();
-            Directory.CreateDirectory(folder);
-            var path = Path.Combine(folder, PathSafety.SafeReportFileName("TrueSpec-checklist", "html", DateTime.Now));
-            await using var stream = File.Create(path);
-            await new ChecklistHtmlExporter().ExportAsync(_snapshot, stream);
-            ShowExportConfirmation(path, "Buyer checklist");
-        }
-        catch (Exception exception)
-        {
-            StatusMessage = $"Checklist export failed: {exception.Message}";
-        }
-    }
-
-    private async Task ExportAsync(ReportFormat format)
-    {
-        try
-        {
-            var folder = EffectiveExportFolder();
-            Directory.CreateDirectory(folder);
-
-            var (extension, exporter) = ReportExporterFactory.Resolve(format);
-
-            var path = Path.Combine(folder, PathSafety.SafeReportFileName("TrueSpec-report", extension, DateTime.Now));
-            await using var stream = File.Create(path);
-            await exporter.ExportAsync(ReportModel.FromSnapshot(_snapshot), stream);
-
-            ShowExportConfirmation(path, "Report");
-        }
-        catch (Exception exception)
-        {
-            StatusMessage = $"Export failed: {exception.Message}";
-        }
-    }
+    private Task ExportChecklistAsync() => _exporter.ExportChecklistAsync();
 
     /// <summary>
     /// Raises the unmissable export confirmation: the banner in the shell
@@ -552,65 +559,24 @@ public partial class MainViewModel : ViewModelBase
     private void ShowExportConfirmation(string path, string label)
     {
         ExportConfirmationPath = path;
-        ExportConfirmationText = $"{label} exported to {path}";
+        // One-line note (6g): an export contains hardware serial numbers,
+        // MAC addresses, IP addresses and Wi-Fi network names. The buyer
+        // should know before sharing the file with a seller.
+        ExportConfirmationText = $"{label} exported to {path}. This file contains hardware serial numbers, MAC addresses, IP addresses and Wi-Fi network names. Share it only with someone you trust.";
         StatusMessage = ExportConfirmationText;
     }
 
     [RelayCommand]
-    private void OpenExportFolder()
-    {
-        if (ExportConfirmationPath is null)
-        {
-            return;
-        }
-
-        var folder = Path.GetDirectoryName(Path.GetFullPath(ExportConfirmationPath));
-        if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
-        {
-            StatusMessage = "Export folder could not be opened: the folder no longer exists.";
-            return;
-        }
-
-        if (!_fileOpener.OpenFolder(folder))
-        {
-            StatusMessage = $"Could not open {folder}. The file is still saved there.";
-        }
-    }
+    private void OpenExportFolder() => _exporter.OpenExportFolder(ExportConfirmationPath);
 
     [RelayCommand]
-    private void OpenExportedFile()
-    {
-        if (ExportConfirmationPath is null)
-        {
-            return;
-        }
-
-        // Only ever open a file this app just wrote into the export folder:
-        // a confirmation path pointing anywhere else is not opened, even if
-        // it exists.
-        if (!File.Exists(ExportConfirmationPath) || !IsDirectlyInExportFolder(ExportConfirmationPath))
-        {
-            StatusMessage = "Exported file could not be opened: the file is no longer in the export folder.";
-            return;
-        }
-
-        if (!_fileOpener.OpenFile(ExportConfirmationPath))
-        {
-            StatusMessage = $"Could not open {ExportConfirmationPath}. The file is still saved in the export folder.";
-        }
-    }
+    private void OpenExportedFile() => _exporter.OpenExportedFile(ExportConfirmationPath);
 
     [RelayCommand]
     private void DismissExportConfirmation()
     {
         ExportConfirmationPath = null;
         ExportConfirmationText = string.Empty;
-    }
-
-    private bool IsDirectlyInExportFolder(string path)
-    {
-        var folder = Path.GetDirectoryName(Path.GetFullPath(path));
-        return string.Equals(folder, Path.GetFullPath(EffectiveExportFolder()), StringComparison.OrdinalIgnoreCase);
     }
 
     private string EffectiveExportFolder()
@@ -656,6 +622,37 @@ public partial class MainViewModel : ViewModelBase
         {
             // A failed history write must never surface as a scan error.
         }
+    }
+
+    /// <summary>
+    /// Window-close cleanup (called from MainWindow.Closing): stops the
+    /// Overview's 2 s sensor timer, cancels a running scan and disposes
+    /// the sensor monitor. The monitor is the static LibreHardwareMonitor
+    /// singleton, IDisposable and previously never disposed; the Overview
+    /// timer had zero callers for its Dispose. Safe to call twice, and
+    /// safe on a shell whose scan never started.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        try
+        {
+            _scanCts?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The scan already finished.
+        }
+
+        Overview.Dispose();
+        (_sensorMonitor as IDisposable)?.Dispose();
+        _scanCts?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private OverviewViewModel CreateOverview(bool isScanning) => new(
@@ -737,7 +734,7 @@ public partial class MainViewModel : ViewModelBase
                 RatedMaxFromSnapshot(_snapshot),
                 IsOnBattery(_snapshot),
                 OnLoadTestCompleted)),
-            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: _scanRunning, exportPdfCommand: ExportPdfCommand)),
+            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: IsScanRunning, exportPdfCommand: ExportPdfCommand)),
             "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot)),
             "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand, SensorLogWriter.DefaultFilePath(), _settings.SensorLoggingEnabled, _settings.CpuTemperatureThresholdC)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),

@@ -5,8 +5,6 @@ using TrueSpec.Core.Models;
 
 internal static class CollectorSupport
 {
-    public const string NotReported = "Not reported by hardware";
-
     // A WMI string can be arbitrarily long (a hostile or corrupt driver
     // description, a pasted blob). Values are capped at the boundary so a
     // single runaway string cannot bloat the snapshot, the history database
@@ -19,17 +17,33 @@ internal static class CollectorSupport
             ? value
             : value[..(MaxSpecValueLength - 3)] + "...";
 
-    public static SpecValue Spec(string label, string? value, string source, bool estimate = false) => new(
-        label,
-        string.IsNullOrWhiteSpace(value) ? NotReported : TruncateValue(value.Trim()),
-        source,
-        estimate);
+    /// <summary>
+    /// One spec row. <paramref name="numericValue"/> is the typed measurement
+    /// behind the display string (with <paramref name="numericUnit"/> naming
+    /// its unit), when the value is a number: analyzers read it through
+    /// <see cref="TrueSpec.Core.Health.SpecText.Number"/> instead of
+    /// re-parsing the display text. A value the hardware did not report
+    /// never carries a typed number, even if the caller passes one.
+    /// </summary>
+    public static SpecValue Spec(string label, string? value, string source, bool estimate = false, double? numericValue = null, string? numericUnit = null)
+    {
+        var text = string.IsNullOrWhiteSpace(value)
+            ? SpecLabels.NotReportedByHardware
+            : TruncateValue(value.Trim());
+        if (string.Equals(text, SpecLabels.NotReportedByHardware, StringComparison.Ordinal))
+        {
+            numericValue = null;
+            numericUnit = null;
+        }
+
+        return new(label, text, source, estimate, numericValue, numericUnit);
+    }
 
     public static string FormatBytes(ulong? bytes)
     {
         if (bytes is null)
         {
-            return NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var value = bytes.Value;
@@ -61,7 +75,7 @@ internal static class CollectorSupport
     {
         if (bytes is null)
         {
-            return NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var value = bytes.Value;
@@ -149,17 +163,95 @@ internal static class CollectorSupport
     {
         if (bitsPerSecond is null)
         {
-            return NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         return string.Create(CultureInfo.InvariantCulture, $"{bitsPerSecond.Value / 1_000_000d:0.#} Mbps");
     }
 
     /// <summary>
-    /// The driver-stale threshold shared by every component (U12 rule):
-    /// a driver older than this many years is flagged in its age value.
+    /// The one driver-age rule in the whole app (U12): a driver older
+    /// than this many years is flagged as stale, in its age value on the
+    /// Wi-Fi, Ethernet and GPU pages and in the Drivers page count
+    /// ("Drivers older than 5 years"). One rule, one number: the pages
+    /// used to disagree (2 years on the component pages, 5 on the Drivers
+    /// page), so a 4-year-old driver was flagged stale in one place and
+    /// not counted as old in another. 5 years is the line because a
+    /// 2-year-old driver is normal: vendors ship stable drivers for
+    /// years, and only a driver older than 5 years is very old.
     /// </summary>
-    public const int DriverStaleAgeYears = 2;
+    public const int DriverStaleAgeYears = 5;
+
+    /// <summary>
+    /// The one driver-signature query in the app: SystemCollector and
+    /// SecurityCollector both enumerate Win32_PnPSignedDriver for its
+    /// IsSigned column only (DriversCollector has its own wider query:
+    /// it also reads DeviceName, DriverDate and DriverVersion, and
+    /// already handles truncation since PR #12). Only IsSigned is ever
+    /// read from these rows: DeviceName was fetched and thrown away.
+    /// Win32_PnPSignedDriver has hundreds of rows and every returned
+    /// property is materialised per row, so asking for one column is
+    /// measurably cheaper.
+    /// </summary>
+    internal const string DriverSignatureQuery = "SELECT IsSigned FROM Win32_PnPSignedDriver";
+
+    /// <summary>
+    /// What the driver-signature enumeration actually knows. The counts
+    /// are over the rows WMI returned; <see cref="Truncated"/> says
+    /// whether that was the whole list. The counts are all null together
+    /// when the class returned no rows at all (not "zero drivers": the
+    /// data was not reported), and <see cref="Truncated"/> is false then:
+    /// the row cap can only trigger at <see cref="Wmi.MaxRows"/> rows.
+    /// </summary>
+    public sealed record DriverSignatureSummary(int? Total, int? Unsigned, int? Unknown, bool Truncated);
+
+    /// <summary>
+    /// Pure summary of driver-signature rows, so the truncation handling
+    /// is unit-testable without live WMI (same pattern as
+    /// DriversCollector.BuildSnapshot, PR #12). When the WMI row cap
+    /// truncated the list (<paramref name="queryError"/> is
+    /// <see cref="Wmi.TruncatedError"/>), the counts cover the first
+    /// <see cref="Wmi.MaxRows"/> drivers only: callers must qualify them
+    /// with <see cref="DriverListTruncationNote"/> and must never derive
+    /// an "all signed" claim from a partial list.
+    /// </summary>
+    internal static DriverSignatureSummary SummarizeDriverSignatures(IReadOnlyList<WmiRow> rows, string? queryError)
+    {
+        var truncated = string.Equals(queryError, Wmi.TruncatedError, StringComparison.Ordinal);
+        if (rows.Count == 0)
+        {
+            return new(null, null, null, false);
+        }
+
+        return new(
+            rows.Count,
+            rows.Count(r => r.Bool("IsSigned") is false),
+            rows.Count(r => r.Bool("IsSigned") is null),
+            truncated);
+    }
+
+    /// <summary>
+    /// Live driver-signature enumeration shared by SystemCollector and
+    /// SecurityCollector: the 3-arg Query keeps the error, so a list
+    /// truncated at the WMI row cap is reported, never silently counted.
+    /// </summary>
+    internal static DriverSignatureSummary ReadDriverSignatureSummary()
+    {
+        var rows = Wmi.Query("root\\cimv2", DriverSignatureQuery, out var queryError);
+        return SummarizeDriverSignatures(rows, queryError);
+    }
+
+    /// <summary>
+    /// The truncation qualifier for a driver count, in the same words
+    /// DriversCollector uses (PR #12): a plain literal label, no new
+    /// SpecLabels constant, so the three collectors say the same thing.
+    /// DriversCollector keeps its own identical inline copy because
+    /// that file is owned by PR #12.
+    /// </summary>
+    internal static SpecValue DriverListTruncationNote() => Spec(
+        "Driver list truncated",
+        "Truncated at 1000 rows; counts cover the first 1000 drivers only.",
+        "CIM Win32_PnPSignedDriver");
 
     /// <summary>
     /// Plain-text age of a driver from its driver date ("yyyy-MM-dd" as
@@ -179,7 +271,7 @@ internal static class CollectorSupport
                 DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
                 out var date))
         {
-            return NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var years = asOf.Year - date.Year;
@@ -195,7 +287,7 @@ internal static class CollectorSupport
 
         // The stale flag sits inside the same parentheses as the age, so
         // the value reads as one sentence: "Driver from 2020 (6 years old,
-        // older than 2 years)".
+        // older than 5 years)".
         var stale = years > DriverStaleAgeYears
             ? string.Create(CultureInfo.InvariantCulture, $", older than {DriverStaleAgeYears} years")
             : string.Empty;
@@ -205,11 +297,11 @@ internal static class CollectorSupport
     }
 
     public static string FormatPercent(double? value) =>
-        value is null ? NotReported : string.Create(CultureInfo.InvariantCulture, $"{value.Value:0.#}%");
+        value is null ? SpecLabels.NotReportedByHardware : string.Create(CultureInfo.InvariantCulture, $"{value.Value:0.#}%");
 
     public static string FormatNumber(double? value, string unit, int decimals = 0) =>
         value is null
-            ? NotReported
+            ? SpecLabels.NotReportedByHardware
             : string.Create(CultureInfo.InvariantCulture, $"{value.Value.ToString($"F{decimals}", CultureInfo.InvariantCulture)} {unit}");
 
     public static string BusType(uint? busType) => busType switch
@@ -233,7 +325,7 @@ internal static class CollectorSupport
         17 => "NVMe",
         18 => "SCM",
         19 => "UFS",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     public static string MediaType(uint? mediaType) => mediaType switch
@@ -241,7 +333,7 @@ internal static class CollectorSupport
         3 => "HDD",
         4 => "SSD",
         5 => "SCM",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     public static string DiskHealth(uint? health) => health switch
@@ -250,12 +342,12 @@ internal static class CollectorSupport
         1 => "Warning",
         2 => "Unhealthy",
         5 => "Unknown",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     /// <summary>
     /// MSFT_PhysicalDisk.OperationalStatus, the documented CIM codes
-    /// (2 = OK). Unknown codes show as "Not reported by hardware", never
+    /// (2 = OK). Unknown codes show as SpecLabels.NotReportedByHardware, never
     /// as a bare number.
     /// </summary>
     public static string OperationalStatus(uint? status) => status switch
@@ -279,7 +371,7 @@ internal static class CollectorSupport
         16 => "Supporting Entity in Error",
         17 => "Completed",
         18 => "Power Mode",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     /// <summary>
@@ -297,7 +389,7 @@ internal static class CollectorSupport
         6 => "Lithium ion",
         7 => "Zinc air",
         8 => "Lithium polymer",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     /// <summary>
@@ -311,7 +403,7 @@ internal static class CollectorSupport
     {
         if (string.IsNullOrWhiteSpace(chemistry))
         {
-            return NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var text = chemistry.Trim();
@@ -364,7 +456,7 @@ internal static class CollectorSupport
         30 => "Tablet",
         31 => "Convertible",
         32 => "Detachable",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     /// <summary>
@@ -399,7 +491,7 @@ internal static class CollectorSupport
         21 => "BGA",
         22 => "FPBGA",
         23 => "LGA",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     public static string MemoryType(ushort? type) => type switch
@@ -415,7 +507,7 @@ internal static class CollectorSupport
         30 => "LPDDR4",
         34 => "DDR5",
         35 => "LPDDR5",
-        _ => NotReported,
+        _ => SpecLabels.NotReportedByHardware,
     };
 
     public static string MemoryType(uint? type) => MemoryType(type is null ? null : (ushort)Math.Min(type.Value, ushort.MaxValue));

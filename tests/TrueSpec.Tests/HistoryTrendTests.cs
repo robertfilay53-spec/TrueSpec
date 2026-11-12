@@ -54,7 +54,7 @@ public class HistoryTrendTests
     {
         var before = SnapshotWith(90d, "90.0%", "10", "2%", "100");
         // Second scan: the battery firmware stopped reporting health.
-        var after = SnapshotWith(88d, "Not reported by hardware", "12", "3%", "200");
+        var after = SnapshotWith(88d, SpecLabels.NotReportedByHardware, "12", "3%", "200");
 
         var trend = HistoryTrendAnalyzer.Analyze(new[] { before, after });
 

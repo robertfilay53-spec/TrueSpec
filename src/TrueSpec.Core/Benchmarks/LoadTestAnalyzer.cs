@@ -207,7 +207,7 @@ public static class LoadTestAnalyzer
             var clockText = avgClock is { } clock && clockHeldPercent is { } percent
                 ? FormattableString.Invariant($", averaging {clock:0} MHz ({percent:0}% of rated max)")
                 : string.Empty;
-            return FormattableString.Invariant($"The load test stopped automatically at {peakTemp:0.#} C, above the 95 C safety limit{clockText}. The cooling could not keep up with a full load.") + memoryNote;
+            return FormattableString.Invariant($"The load test stopped automatically at {peakTemp:0.#} C, above the {LoadTestConfig.DefaultAbortTemperatureC:0.#} C safety limit{clockText}. The cooling could not keep up with a full load.") + memoryNote;
         }
 
         if (ratedMaxMHz is null || ratedMaxMHz <= 0d)

@@ -1,4 +1,5 @@
 using TrueSpec.Core.Health;
+using TrueSpec.Core.Models;
 
 namespace TrueSpec.Tests;
 
@@ -22,7 +23,7 @@ public class SpecTextTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData("Not reported by hardware")]
+    [InlineData(SpecLabels.NotReportedByHardware)]
     [InlineData("16 XB")]
     [InlineData("GB")]
     [InlineData("-16 GB")]

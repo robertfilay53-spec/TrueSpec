@@ -131,13 +131,13 @@ public sealed class NetworkCollector : ICollector
     internal static string BuildBuyerSummary(NetworkReading reading, IReadOnlyList<InterfaceData> interfaces)
     {
         var standard = MapNegotiatedStandard(reading.RadioType);
-        var standardPart = string.Equals(standard, CollectorSupport.NotReported, StringComparison.Ordinal)
+        var standardPart = string.Equals(standard, SpecLabels.NotReportedByHardware, StringComparison.Ordinal)
             ? "Wi-Fi standard not reported by hardware"
             : string.Create(CultureInfo.InvariantCulture, $"{standard} adapter");
 
         var wifiSpeed = reading.WifiSpeedBitsPerSecond ?? PickWireless(interfaces)?.SpeedBitsPerSecond;
         var speed = FormatBitsPerSecond(wifiSpeed);
-        var speedPart = string.Equals(speed, CollectorSupport.NotReported, StringComparison.Ordinal)
+        var speedPart = string.Equals(speed, SpecLabels.NotReportedByHardware, StringComparison.Ordinal)
             ? "link speed not reported by hardware"
             : string.Create(CultureInfo.InvariantCulture, $"linked at {speed} (negotiated rate at scan time, not a speed test)");
 
@@ -208,7 +208,7 @@ public sealed class NetworkCollector : ICollector
     /// <summary>
     /// Builds the detail table. Each address/speed field prefers its CIM value
     /// and falls back to the matching live adapter; anything neither source
-    /// reports stays "Not reported by hardware". The Wi-Fi-only fields
+    /// reports stays SpecLabels.NotReportedByHardware. The Wi-Fi-only fields
     /// (signal, band, channel, SSID, standards) have no NetworkInterface
     /// equivalent and stay CIM/netsh-only.
     /// </summary>
@@ -256,7 +256,7 @@ public sealed class NetworkCollector : ICollector
             CollectorSupport.Spec(SpecLabels.IPAddress, wifiIp.Value, wifiIp.Source),
             CollectorSupport.Spec(SpecLabels.Gateway, wifiGateway.Value, wifiGateway.Source),
             CollectorSupport.Spec(SpecLabels.DNSServers, wifiDns.Value, wifiDns.Source),
-            CollectorSupport.Spec(SpecLabels.HardwareManufactureDate, "Not reported by hardware", "No Wi-Fi card or driver exposes a manufacture date"),
+            CollectorSupport.Spec(SpecLabels.HardwareManufactureDate, SpecLabels.NotReportedByHardware, "No Wi-Fi card or driver exposes a manufacture date"),
             CollectorSupport.Spec(SpecLabels.EthernetAdapter, ethernetName.Value, ethernetName.Source),
             CollectorSupport.Spec(SpecLabels.EthernetLinkSpeed, FormatBitsPerSecond(ethernetSpeed), ethernetSpeed == reading.EthernetSpeedBitsPerSecond ? "CIM Win32_NetworkAdapter.Speed" : NetworkInterfaceSource),
             CollectorSupport.Spec(SpecLabels.EthernetStatus, wired?.Status, NetworkInterfaceSource),
@@ -269,7 +269,7 @@ public sealed class NetworkCollector : ICollector
             CollectorSupport.Spec(SpecLabels.BluetoothDevices, reading.BluetoothCount == 0
                 ? null
                 : reading.BluetoothCount.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPEntity (PNPClass = Bluetooth)"),
-            CollectorSupport.Spec(SpecLabels.BluetoothVersion, "Not reported by hardware", "Windows does not expose the Bluetooth core version through Win32_PnPEntity"),
+            CollectorSupport.Spec(SpecLabels.BluetoothVersion, SpecLabels.NotReportedByHardware, "Windows does not expose the Bluetooth core version through Win32_PnPEntity"),
         };
     }
 
@@ -425,7 +425,7 @@ public sealed class NetworkCollector : ICollector
     internal static string FormatBitsPerSecond(long? bitsPerSecond) =>
         bitsPerSecond is { } value && NormalizeLinkSpeed(value) is { } speed
             ? string.Create(CultureInfo.InvariantCulture, $"{speed / 1_000_000d:0.#} Mbps")
-            : CollectorSupport.NotReported;
+            : SpecLabels.NotReportedByHardware;
 
     private static bool IsWifi(WmiRow adapter)
     {
@@ -561,7 +561,7 @@ public sealed class NetworkCollector : ICollector
 
         // 4. The named interface even when disconnected, then the first
         // block: both are better than inventing a network, and the caller
-        // shows "Not reported by hardware" for whatever is still missing.
+        // shows SpecLabels.NotReportedByHardware for whatever is still missing.
         return named?.Fields ?? blocks[0].Fields;
     }
 
@@ -655,14 +655,14 @@ public sealed class NetworkCollector : ICollector
     /// netsh "Radio type" value (for example "802.11ax"). Highest standard
     /// first: a radio-type string names one standard, but checking in
     /// descending order keeps the mapping correct if a value ever names
-    /// more than one. Anything unrecognised is "Not reported by hardware",
+    /// more than one. Anything unrecognised is SpecLabels.NotReportedByHardware,
     /// never a guessed generation.
     /// </summary>
     internal static string MapNegotiatedStandard(string? radioType)
     {
         if (string.IsNullOrWhiteSpace(radioType))
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         if (radioType.Contains("802.11be", StringComparison.OrdinalIgnoreCase))
@@ -685,7 +685,7 @@ public sealed class NetworkCollector : ICollector
             return "802.11n (Wi-Fi 4)";
         }
 
-        return CollectorSupport.NotReported;
+        return SpecLabels.NotReportedByHardware;
     }
 
     /// <summary>
@@ -701,7 +701,7 @@ public sealed class NetworkCollector : ICollector
     {
         if (string.IsNullOrWhiteSpace(driverOutput))
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var standards = new List<string>();
@@ -725,7 +725,7 @@ public sealed class NetworkCollector : ICollector
             standards.Add("802.11n (Wi-Fi 4)");
         }
 
-        return standards.Count == 0 ? CollectorSupport.NotReported : string.Join(", ", standards);
+        return standards.Count == 0 ? SpecLabels.NotReportedByHardware : string.Join(", ", standards);
     }
 
     private static string? Join(string[]? values) =>

@@ -56,6 +56,11 @@ public static class PathSafety
             return null;
         }
 
+        // A folder that is itself a symlink (or sits under one) to a
+        // system folder must fail the checks below on its real target,
+        // not on the link path: resolve before the root/system checks.
+        fullPath = ResolveLinks(fullPath);
+
         if (!Path.IsPathRooted(fullPath))
         {
             return null;
@@ -102,6 +107,91 @@ public static class PathSafety
     }
 
     /// <summary>
+    /// Resolves symlinks and junctions in a path before a containment
+    /// check, so a path that looks inside the allowed folder cannot
+    /// escape through a link. Every segment is resolved from the root
+    /// down, so a link anywhere in the chain is caught, including a
+    /// not-yet-created file under a linked folder. The resolution reads
+    /// the reparse point itself (FileSystemInfo.LinkTarget): the
+    /// ResolveLinkTarget APIs open the target, which throws
+    /// access-denied on Windows when a file-type link points at a
+    /// directory — and a file written through such a link really does
+    /// land outside, so the escape is real, not theoretical. A segment
+    /// that is not a link, or cannot be resolved, is kept as-is:
+    /// resolution is a hardening step, never a reason to reject a
+    /// legitimate path.
+    /// </summary>
+    internal static string ResolveLinks(string fullPath)
+    {
+        var root = Path.GetPathRoot(fullPath);
+        if (string.IsNullOrEmpty(root))
+        {
+            return fullPath;
+        }
+
+        var resolved = root;
+        var segments = fullPath[root.Length..]
+            .Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var segment in segments)
+        {
+            var candidate = Path.Combine(resolved, segment);
+            resolved = ResolveOneLink(candidate) ?? candidate;
+        }
+
+        return resolved;
+    }
+
+    private static string? ResolveOneLink(string candidate)
+    {
+        // LinkTarget returns one hop, so a chain of links needs repeated
+        // hops until the path stops changing. Capped: a link cycle must
+        // not loop forever. A relative target is resolved against the
+        // directory holding the link.
+        var current = candidate;
+        for (var hops = 0; hops < 40; hops++)
+        {
+            string? target = null;
+            foreach (var getTarget in new Func<string?>[]
+                     {
+                         () => new FileInfo(current).LinkTarget,
+                         () => new DirectoryInfo(current).LinkTarget,
+                     })
+            {
+                try
+                {
+                    target = getTarget();
+                    if (target is not null)
+                    {
+                        break;
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+                {
+                    // Try the other API, then treat the segment as not a link.
+                }
+            }
+
+            if (target is null)
+            {
+                return current == candidate ? null : current;
+            }
+
+            var next = Path.IsPathFullyQualified(target)
+                ? target
+                : Path.Combine(Path.GetDirectoryName(current) ?? string.Empty, target);
+            next = Path.GetFullPath(next);
+            if (string.Equals(next, current, StringComparison.OrdinalIgnoreCase))
+            {
+                return current == candidate ? null : current;
+            }
+
+            current = next;
+        }
+
+        return current == candidate ? null : current;
+    }
+
+    /// <summary>
     /// Validates a database file path. The file must live inside the given
     /// base folder (the app data folder) after resolving every ".." segment.
     /// </summary>
@@ -116,8 +206,8 @@ public static class PathSafety
         string fullBase;
         try
         {
-            fullPath = Path.GetFullPath(databasePath.Trim());
-            fullBase = Path.GetFullPath(baseFolder.Trim());
+            fullPath = ResolveLinks(Path.GetFullPath(databasePath.Trim()));
+            fullBase = ResolveLinks(Path.GetFullPath(baseFolder.Trim()));
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
@@ -154,8 +244,8 @@ public static class PathSafety
         string fullBase;
         try
         {
-            fullPath = Path.GetFullPath(logPath.Trim());
-            fullBase = Path.GetFullPath(baseFolder.Trim());
+            fullPath = ResolveLinks(Path.GetFullPath(logPath.Trim()));
+            fullBase = ResolveLinks(Path.GetFullPath(baseFolder.Trim()));
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
@@ -217,6 +307,23 @@ public static class PathSafety
     }
 
     private static readonly string[] AllowedReportExtensions = { "csv", "json", "html", "pdf" };
+
+    /// <summary>
+    /// True when the path ends in one of the report extensions the app
+    /// produces (csv, json, html, pdf). Used by the shell file opener as
+    /// a second line of defence: a report file must never end in an
+    /// executable extension, even if the caller passes one.
+    /// </summary>
+    public static bool IsAllowedReportExtension(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        var extension = Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
+        return AllowedReportExtensions.Contains(extension, StringComparer.Ordinal);
+    }
 
     private static readonly char[] WindowsInvalidFileNameChars = { '<', '>', ':', '"', '|', '?', '*' };
 

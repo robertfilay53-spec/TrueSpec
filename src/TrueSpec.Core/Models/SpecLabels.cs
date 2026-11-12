@@ -160,6 +160,16 @@ public static class SpecLabels
     public const string Standards = "Standards";
     public const string StartupPrograms = "Startup programs";
     public const string StateNotReported = "State not reported";
+
+    /// <summary>
+    /// The one honest "no reading" value in the whole app: anything the
+    /// hardware did not report says exactly this, never a guessed number.
+    /// Every collector, analyzer, exporter and ViewModel that needs the
+    /// text uses this constant; the literal appears nowhere else in the
+    /// tree (enforced by HonestyChokePointTests), so a wording change is
+    /// one edit and a comparison can never silently miss a copy.
+    /// </summary>
+    public const string NotReportedByHardware = "Not reported by hardware";
     public const string Status = "Status";
     public const string SystemFamily = "System family";
     public const string TPMActivated = "TPM activated";

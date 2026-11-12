@@ -305,5 +305,5 @@ public sealed class CrashCollector : ICollector
 
     private static string FormatDate(DateTimeOffset? value) =>
         value?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-        ?? CollectorSupport.NotReported;
+        ?? SpecLabels.NotReportedByHardware;
 }

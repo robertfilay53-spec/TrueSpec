@@ -200,18 +200,20 @@ public static class DegradationForecaster
             ? null
             : (int)Math.Round(highMonths.Value, MidpointRounding.AwayFromZero);
 
+        // A positive forecast is never "0 months": under a month still
+        // reads as within a month. This clamp runs BEFORE the range
+        // widening below: the old order widened first (0 to 1) and then
+        // raised the low end to 1, collapsing the range to "1 to 1 months".
+        if (lowRounded < 1)
+        {
+            lowRounded = 1;
+        }
+
         if (highRounded is not null && highRounded.Value <= lowRounded)
         {
             // Whole-month rounding can collapse a short range to one
             // number; keep a visible range.
             highRounded = lowRounded + 1;
-        }
-
-        // A positive forecast is never "0 months": under a month still
-        // reads as within a month.
-        if (lowRounded < 1)
-        {
-            lowRounded = 1;
         }
 
         return new DegradationForecast(

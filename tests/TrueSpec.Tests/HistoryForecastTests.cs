@@ -274,4 +274,20 @@ public class HistoryForecastTests
     {
         Assert.Throws<ArgumentNullException>(() => DegradationForecaster.ForBattery(null!));
     }
+
+    [Fact]
+    public void ShortRange_NeverCollapsesToOneToOneMonths()
+    {
+        // Polish: the old clamp order widened (0 to 1) first and then
+        // raised the low end to 1, producing "1 to 1 months". A steep
+        // decline ending just above the 60% threshold rounds to 0 to 0
+        // months before clamping; the range must stay a visible range.
+        var forecast = DegradationForecaster.ForBattery(
+            Points((0, 64d), (30, 62d), (60, 61d), (90, 60.3d)));
+
+        Assert.Equal(ForecastStatus.Ready, forecast.Status);
+        Assert.Equal(1, forecast.ForecastLowMonths);
+        Assert.Equal(2, forecast.ForecastHighMonths);
+        Assert.Contains("1 to 2 months", forecast.BasisText, StringComparison.Ordinal);
+    }
 }

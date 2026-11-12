@@ -160,7 +160,7 @@ public class ReverseEngineeringAuditTests
     [InlineData(0x41010u, "On, may be out of date")] // enabled, definitions stale
     [InlineData(0x60100u, "Off")] // Defender present but not enabled
     [InlineData(0x42000u, "Snoozed")]
-    [InlineData(null, "Not reported by hardware")]
+    [InlineData(null, SpecLabels.NotReportedByHardware)]
     public void AntivirusState_DecodesTheWscBitmask(uint? state, string expected)
     {
         Assert.Equal(expected, WindowsSecurityProductState.DecodeProductState(state));
