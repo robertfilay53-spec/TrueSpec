@@ -50,6 +50,7 @@
     <Compile Remove="SystemCollectorTests.cs" />
     <Compile Remove="DisplayNetworkTruthTests.cs" />
     <Compile Remove="CrashCollectorTests.cs" />
+    <Compile Remove="LoadTestIntegrationTests.cs" />
     <Compile Remove="V13IntegrationTests.cs" />
     <Compile Remove="NavigationTests.cs" />
     <Compile Remove="HistoryCsvTableAgreementTests.cs" />

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TrueSpec.Core.Benchmarks;
+using TrueSpec.Core.Sensors;
 
 namespace TrueSpec.App.ViewModels;
 
@@ -12,7 +13,18 @@ namespace TrueSpec.App.ViewModels;
 public sealed class TestsViewModel : ViewModelBase
 {
     public TestsViewModel()
+        : this(new UnavailableSensorMonitor(), null, false, null)
     {
+    }
+
+    public TestsViewModel(
+        ISensorMonitor sensors,
+        double? ratedMaxMHz,
+        bool isOnBattery,
+        Action<LoadTestResult>? onLoadTestCompleted)
+    {
+        LoadTest = new LoadTestViewModel(sensors, ratedMaxMHz, isOnBattery, onLoadTestCompleted);
+
         var benchmarks = new BenchmarkService();
         Tests = new[]
         {
@@ -36,12 +48,11 @@ public sealed class TestsViewModel : ViewModelBase
                 "Wi-Fi speed test",
                 "Not in this build: an internet speed test would need the network, and this app is offline first.",
                 null),
-            new TestItemViewModel(
-                "Stress test",
-                "Not in this build: no load test runs until this test is implemented.",
-                null),
         };
     }
+
+    /// <summary>The load-test card: duration, Start/Cancel, live readouts and the result.</summary>
+    public LoadTestViewModel LoadTest { get; }
 
     public IReadOnlyList<TestItemViewModel> Tests { get; }
 }

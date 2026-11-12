@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:TrueSpec.App.ViewModels"
+             xmlns:controls="using:TrueSpec.App.Controls"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
@@ -28,6 +29,65 @@
                                Classes="muted"
                                TextWrapping="Wrap" />
                 </Grid>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="10" DataContext="{Binding LoadTest}">
+                    <TextBlock Text="Load test" Classes="h3" />
+                    <TextBlock Text="Loads the CPU on all cores, exercises memory and disk, and watches temperature and clock speed every second."
+                               Classes="muted"
+                               TextWrapping="Wrap"
+                               MaxWidth="620" />
+                    <TextBlock Text="{Binding WarningText}"
+                               TextWrapping="Wrap"
+                               MaxWidth="620" />
+                    <TextBlock Text="{Binding FunctionalCheckText}"
+                               Classes="muted"
+                               TextWrapping="Wrap"
+                               MaxWidth="620" />
+                    <TextBlock Text="This machine is running on battery; results may be power-limited."
+                               TextWrapping="Wrap"
+                               MaxWidth="620"
+                               IsVisible="{Binding IsOnBattery}" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="Duration (seconds):" VerticalAlignment="Center" />
+                        <ComboBox ItemsSource="{Binding Durations}"
+                                  SelectedItem="{Binding SelectedDurationSeconds}"
+                                  IsEnabled="{Binding CanStart}"
+                                  MinWidth="90" />
+                        <Button Classes="secondary"
+                                Content="Start load test"
+                                Command="{Binding StartCommand}"
+                                IsEnabled="{Binding CanStart}" />
+                        <Button Classes="secondary"
+                                Content="Cancel"
+                                Command="{Binding CancelCommand}"
+                                IsEnabled="{Binding CanCancel}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4" IsVisible="{Binding IsRunning}">
+                        <TextBlock Text="{Binding LiveTemperatureText}" Classes="muted" />
+                        <TextBlock Text="{Binding LiveClockText}" Classes="muted" />
+                        <TextBlock Text="{Binding ElapsedText}" Classes="muted" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6" IsVisible="{Binding HasResult}">
+                        <TextBlock Text="{Binding StatusText}" Classes="h3" />
+                        <TextBlock Text="{Binding VerdictText}" TextWrapping="Wrap" MaxWidth="620" />
+                        <TextBlock Text="{Binding ResultPeakText}" Classes="muted" />
+                        <TextBlock Text="{Binding ResultClockText}" Classes="muted" />
+                        <TextBlock Text="{Binding ResultPercentText}" Classes="muted" />
+                        <controls:Sparkline Height="52"
+                                            Values="{Binding TemperatureValues}"
+                                            StrokeThickness="2" />
+                        <TextBlock Text="Temperature during the test (C). A gap in the line means the sensor did not report that second."
+                                   Classes="muted"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="620" />
+                    </StackPanel>
+                </StackPanel>
             </Border>
 
             <ItemsControl ItemsSource="{Binding Tests}">
