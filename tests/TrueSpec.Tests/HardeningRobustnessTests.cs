@@ -116,6 +116,10 @@ public class SpecLabelAgreementTests
                 (SpecLabels.WindowsInstallDate, now.AddDays(-20).ToString("yyyy-MM-dd")),
                 (SpecLabels.CriticalErrorsEventLog, "0"),
                 (SpecLabels.SignedDriversOnly, "Yes")),
+            // An empty crash log: the collector always writes the
+            // earliest-entry spec when it succeeds, even with no crashes.
+            MakeComponent("crash", "Crash history", null,
+                (SpecLabels.EarliestEventLogEntry, now.AddDays(-20).ToString("yyyy-MM-dd"))),
         };
 
         var result = new BuyerCheckEvaluator().Evaluate(components, new BuyerCheckContext("16 GB"));
