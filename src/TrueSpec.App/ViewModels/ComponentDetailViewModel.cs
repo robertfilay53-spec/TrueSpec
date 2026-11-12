@@ -40,7 +40,7 @@ public sealed partial class ComponentDetailViewModel : ViewModelBase
         _allSpecs = component.Specs
             .Select(s => new SpecRowViewModel(s.Label, s.Value, s.Source, s.IsEstimate))
             .ToList();
-        Specs = new ObservableCollection<SpecRowViewModel>(_allSpecs);
+        ApplyFilter();
     }
 
     public string Name { get; }
@@ -65,15 +65,25 @@ public sealed partial class ComponentDetailViewModel : ViewModelBase
 
     public string CapturedText { get; }
 
-    public ObservableCollection<SpecRowViewModel> Specs { get; }
+    public ObservableCollection<SpecRowViewModel> Specs { get; } = new();
+
+    /// <summary>False when the component has no specs, or when the search matches none: the view shows an empty state instead of a blank list.</summary>
+    [ObservableProperty]
+    public partial bool HasVisibleSpecs { get; set; }
+
+    /// <summary>Explains the empty list: nothing collected, or nothing matching the search.</summary>
+    [ObservableProperty]
+    public partial string NoSpecsMessage { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;
 
-    partial void OnSearchTextChanged(string value)
+    partial void OnSearchTextChanged(string value) => ApplyFilter();
+
+    private void ApplyFilter()
     {
+        var filter = SearchText?.Trim() ?? string.Empty;
         Specs.Clear();
-        var filter = value?.Trim() ?? string.Empty;
         foreach (var spec in _allSpecs)
         {
             if (filter.Length == 0 ||
@@ -83,6 +93,13 @@ public sealed partial class ComponentDetailViewModel : ViewModelBase
                 Specs.Add(spec);
             }
         }
+
+        HasVisibleSpecs = Specs.Count > 0;
+        NoSpecsMessage = _allSpecs.Count == 0
+            ? "No specifications were collected for this component."
+            : Specs.Count == 0
+                ? $"No specifications match \"{filter}\". Clear the search to see them all."
+                : string.Empty;
     }
 }
 

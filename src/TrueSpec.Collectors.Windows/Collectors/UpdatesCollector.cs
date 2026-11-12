@@ -51,7 +51,10 @@ public sealed class UpdatesCollector : ICollector
             "root\\cimv2",
             "SELECT HotFixID, InstalledOn, Description FROM Win32_QuickFixEngineering",
             out var hotfixError);
-        var hotfixQueryFailed = hotfixError is not null;
+        // A truncation note with rows is partial data, not a failed query:
+        // Wmi records the cut in `error` even when rows were returned.
+        // Only an error with no rows means the hotfix list is unknown.
+        var hotfixQueryFailed = hotfixError is not null && hotfixRows.Count == 0;
 
         var hotfixes = hotfixRows
             .Select(row => (Id: row.String("HotFixID"), Row: row))
@@ -82,27 +85,27 @@ public sealed class UpdatesCollector : ICollector
         var specs = new List<SpecValue>
         {
             CollectorSupport.Spec(
-                "Update management",
+                SpecLabels.UpdateManagement,
                 isManaged
                     ? $"Managed - updates controlled by your organization (WSUS: {server})"
                     : "Not managed - Windows Update",
                 "Registry WindowsUpdate policy (WUServer)"),
             CollectorSupport.Spec(
-                "Last successful update install",
+                SpecLabels.LastSuccessfulUpdateInstall,
                 lastInstall?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
                 "Registry WindowsUpdate Auto Update Results Install LastSuccessTime"),
             CollectorSupport.Spec(
-                "Days since last update install",
+                SpecLabels.DaysSinceLastUpdateInstall,
                 daysSinceInstall is null
                     ? null
                     : string.Create(CultureInfo.InvariantCulture, $"{daysSinceInstall.Value:0.0}"),
                 "Registry WindowsUpdate Auto Update Results Install LastSuccessTime"),
             CollectorSupport.Spec(
-                "Last successful update check",
+                SpecLabels.LastSuccessfulUpdateCheck,
                 lastCheck?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
                 "Registry WindowsUpdate Auto Update Results Detect LastSuccessTime"),
             CollectorSupport.Spec(
-                "Installed updates (hotfixes)",
+                SpecLabels.InstalledUpdatesHotfixes,
                 // A count of 0 from a successful empty query is a real
                 // measurement and is shown as 0; only a failed query is
                 // reported as unknown.

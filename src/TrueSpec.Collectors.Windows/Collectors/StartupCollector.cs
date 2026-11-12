@@ -72,11 +72,11 @@ public sealed class StartupCollector : ICollector
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec("Startup programs", programs.Count.ToString(CultureInfo.InvariantCulture), "Registry Run / RunOnce keys"),
-            CollectorSupport.Spec("Enabled", enabled.ToString(CultureInfo.InvariantCulture), "Explorer StartupApproved state"),
-            CollectorSupport.Spec("Disabled", disabled.ToString(CultureInfo.InvariantCulture), "Explorer StartupApproved state"),
-            CollectorSupport.Spec("State not reported", unknown.ToString(CultureInfo.InvariantCulture), "Explorer StartupApproved state"),
-            CollectorSupport.Spec("Keys read", string.Join("; ", keysRead), "Registry Run / RunOnce keys"),
+            CollectorSupport.Spec(SpecLabels.StartupPrograms, programs.Count.ToString(CultureInfo.InvariantCulture), "Registry Run / RunOnce keys"),
+            CollectorSupport.Spec(SpecLabels.Enabled, enabled.ToString(CultureInfo.InvariantCulture), "Explorer StartupApproved state"),
+            CollectorSupport.Spec(SpecLabels.Disabled, disabled.ToString(CultureInfo.InvariantCulture), "Explorer StartupApproved state"),
+            CollectorSupport.Spec(SpecLabels.StateNotReported, unknown.ToString(CultureInfo.InvariantCulture), "Explorer StartupApproved state"),
+            CollectorSupport.Spec(SpecLabels.KeysRead, string.Join("; ", keysRead), "Registry Run / RunOnce keys"),
         };
         if (keysUnreadable.Count > 0)
         {

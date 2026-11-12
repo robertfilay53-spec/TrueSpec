@@ -51,7 +51,26 @@ public sealed partial class ComparisonViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool HasComparison { get; set; }
 
-    [RelayCommand]
+    /// <summary>True when the compared snapshots differ anywhere; false shows a "no changes" line instead of an empty result card.</summary>
+    [ObservableProperty]
+    public partial bool HasChanges { get; set; }
+
+    /// <summary>True while a comparison is running: the Compare button stays disabled so it cannot be double-run.</summary>
+    [ObservableProperty]
+    public partial bool IsComparing { get; set; }
+
+    partial void OnSelectedBeforeChanged(SnapshotSummary? value) => CompareCommand.NotifyCanExecuteChanged();
+
+    partial void OnSelectedAfterChanged(SnapshotSummary? value) => CompareCommand.NotifyCanExecuteChanged();
+
+    partial void OnIsComparingChanged(bool value) => CompareCommand.NotifyCanExecuteChanged();
+
+    private bool CanCompare => !IsComparing
+        && SelectedBefore is not null
+        && SelectedAfter is not null
+        && SelectedBefore.Id != SelectedAfter.Id;
+
+    [RelayCommand(CanExecute = nameof(CanCompare))]
     private async Task CompareAsync()
     {
         if (_store is null || SelectedBefore is null || SelectedAfter is null)
@@ -63,10 +82,12 @@ public sealed partial class ComparisonViewModel : ViewModelBase
         {
             StatusMessage = "Pick two different snapshots to compare.";
             HasComparison = false;
+            HasChanges = false;
             return;
         }
 
         StatusMessage = "Comparing snapshots...";
+        IsComparing = true;
         try
         {
             var before = await _store.GetSnapshotAsync(SelectedBefore.Id);
@@ -75,6 +96,7 @@ public sealed partial class ComparisonViewModel : ViewModelBase
             {
                 StatusMessage = "One of the snapshots could not be read from history.";
                 HasComparison = false;
+                HasChanges = false;
                 return;
             }
 
@@ -88,12 +110,18 @@ public sealed partial class ComparisonViewModel : ViewModelBase
             OnPropertyChanged(nameof(AddedComponents));
             OnPropertyChanged(nameof(RemovedComponents));
             HasComparison = true;
+            HasChanges = Rows.Count > 0 || AddedComponents.Count > 0 || RemovedComponents.Count > 0;
             StatusMessage = $"Compared {before.CapturedAt:yyyy-MM-dd HH:mm} with {after.CapturedAt:yyyy-MM-dd HH:mm}.";
         }
         catch (Exception exception)
         {
             StatusMessage = $"Comparison failed: {exception.Message}";
             HasComparison = false;
+            HasChanges = false;
+        }
+        finally
+        {
+            IsComparing = false;
         }
     }
 
@@ -112,6 +140,12 @@ public sealed partial class ComparisonViewModel : ViewModelBase
             foreach (var item in history)
             {
                 History.Add(item);
+            }
+
+            if (History.Count == 0)
+            {
+                StatusMessage = "No snapshots are saved yet. Snapshots are saved after every scan, so refresh the scan and come back to compare.";
+                return;
             }
 
             if (History.Count < 2)

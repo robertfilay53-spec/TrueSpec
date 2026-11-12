@@ -29,13 +29,13 @@ public sealed class SecurityCollector : ICollector
         var tpm = ReadTpm();
         var deviceGuard = Wmi.Query(
             "root\\Microsoft\\Windows\\DeviceGuard",
-            "SELECT * FROM Win32_DeviceGuard").FirstOrDefault();
+            "SELECT VirtualizationBasedSecurityStatus FROM Win32_DeviceGuard").FirstOrDefault();
         var antivirus = Wmi.Query(
             "root\\SecurityCenter2",
-            "SELECT * FROM AntiVirusProduct");
+            "SELECT displayName, productState FROM AntiVirusProduct");
         var firewall = Wmi.Query(
             "root\\SecurityCenter2",
-            "SELECT * FROM FirewallProduct");
+            "SELECT displayName, productState FROM FirewallProduct");
         var drivers = Wmi.Query(
             "root\\cimv2",
             "SELECT DeviceName, IsSigned FROM Win32_PnPSignedDriver");
@@ -68,21 +68,21 @@ public sealed class SecurityCollector : ICollector
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec("TPM version", tpmVersion, "CIM Win32_Tpm"),
-            CollectorSupport.Spec("TPM enabled", tpmEnabled, "CIM Win32_Tpm"),
-            CollectorSupport.Spec("TPM activated", tpmActivated, "CIM Win32_Tpm"),
-            CollectorSupport.Spec("TPM owned", tpmOwned, "CIM Win32_Tpm"),
-            CollectorSupport.Spec("Secure Boot", secureBoot, "Windows registry SecureBoot\\State"),
-            CollectorSupport.Spec("BitLocker", bitLocker, "CIM Win32_EncryptableVolume"),
-            CollectorSupport.Spec("Virtualization-based security", DeviceGuardText(deviceGuard), "CIM Win32_DeviceGuard"),
-            CollectorSupport.Spec("User Account Control", uac, "Windows registry EnableLUA"),
-            CollectorSupport.Spec("Antivirus", antivirus.Count == 0
+            CollectorSupport.Spec(SpecLabels.TPMVersion, tpmVersion, "CIM Win32_Tpm"),
+            CollectorSupport.Spec(SpecLabels.TPMEnabled, tpmEnabled, "CIM Win32_Tpm"),
+            CollectorSupport.Spec(SpecLabels.TPMActivated, tpmActivated, "CIM Win32_Tpm"),
+            CollectorSupport.Spec(SpecLabels.TPMOwned, tpmOwned, "CIM Win32_Tpm"),
+            CollectorSupport.Spec(SpecLabels.SecureBoot, secureBoot, "Windows registry SecureBoot\\State"),
+            CollectorSupport.Spec(SpecLabels.BitLocker, bitLocker, "CIM Win32_EncryptableVolume"),
+            CollectorSupport.Spec(SpecLabels.VirtualizationBasedSecurity, DeviceGuardText(deviceGuard), "CIM Win32_DeviceGuard"),
+            CollectorSupport.Spec(SpecLabels.UserAccountControl, uac, "Windows registry EnableLUA"),
+            CollectorSupport.Spec(SpecLabels.Antivirus, antivirus.Count == 0
                 ? null
                 : string.Join(", ", antivirus.Select(r => r.String("displayName")).Where(v => !string.IsNullOrWhiteSpace(v))), "CIM SecurityCenter2 AntiVirusProduct"),
-            CollectorSupport.Spec("Firewall", firewall.Count == 0
+            CollectorSupport.Spec(SpecLabels.Firewall, firewall.Count == 0
                 ? null
                 : string.Join(", ", firewall.Select(r => r.String("displayName")).Where(v => !string.IsNullOrWhiteSpace(v))), "CIM SecurityCenter2 FirewallProduct"),
-            CollectorSupport.Spec("Unsigned drivers", drivers.Count == 0 ? null : unsigned.ToString(), "CIM Win32_PnPSignedDriver.IsSigned"),
+            CollectorSupport.Spec(SpecLabels.UnsignedDrivers, drivers.Count == 0 ? null : unsigned.ToString(), "CIM Win32_PnPSignedDriver.IsSigned"),
         };
 
         foreach (var item in antivirus)
@@ -105,10 +105,10 @@ public sealed class SecurityCollector : ICollector
 
     private static (string? Version, string? Enabled, string? Activated, string? Owned)? ReadTpm()
     {
-        var rows = Wmi.Query("root\\CIMV2\\Security\\MicrosoftTpm", "SELECT * FROM Win32_Tpm");
+        var rows = Wmi.Query("root\\CIMV2\\Security\\MicrosoftTpm", "SELECT SpecVersion, IsEnabled_InitialValue, IsActivated_InitialValue, IsOwned_InitialValue FROM Win32_Tpm");
         if (rows.Count == 0)
         {
-            rows = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_Tpm");
+            rows = Wmi.Query("root\\cimv2", "SELECT SpecVersion, IsEnabled_InitialValue, IsActivated_InitialValue, IsOwned_InitialValue FROM Win32_Tpm");
         }
 
         var tpm = rows.FirstOrDefault();
@@ -166,7 +166,7 @@ public sealed class SecurityCollector : ICollector
         {
             var rows = Wmi.Query(
                 "root\\CIMV2\\Security\\MicrosoftVolumeEncryption",
-                "SELECT * FROM Win32_EncryptableVolume");
+                "SELECT DriveLetter, ProtectionStatus FROM Win32_EncryptableVolume");
             if (rows.Count == 0)
             {
                 return CollectorSupport.NotReported;

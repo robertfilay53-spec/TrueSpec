@@ -35,6 +35,17 @@ internal static class SataSmartReader
 
     public static SataSmartData? TryRead(int driveNumber)
     {
+        // The drive number comes from a WMI DeviceId string parsed by the
+        // caller, and it lands in two places that must agree: the
+        // "\\.\PhysicalDriveN" device path and the single DriveNumber byte
+        // of the ATA command. A negative or >255 value can never be a real
+        // drive, and (byte)256 would alias drive 0, so reject it here at
+        // the P/Invoke boundary instead of trusting the caller.
+        if (driveNumber is < 0 or > 255)
+        {
+            return null;
+        }
+
         SafeFileHandle? handle = null;
         try
         {

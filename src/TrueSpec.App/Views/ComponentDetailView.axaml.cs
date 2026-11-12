@@ -17,6 +17,9 @@ public partial class ComponentDetailView : UserControl
             TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
         {
             await clipboard.SetTextAsync(value);
+            // Copying used to give no feedback at all: the user could not
+            // tell whether the click had done anything.
+            CopyFeedback.Text = "Copied to clipboard.";
         }
     }
 }

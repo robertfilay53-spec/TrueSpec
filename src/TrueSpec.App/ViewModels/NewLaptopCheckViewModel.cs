@@ -35,6 +35,7 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
         _result = snapshot.BuyerChecks;
         Checks = new ObservableCollection<BuyerCheckRowViewModel>(
             _result.Checks.Select(c => new BuyerCheckRowViewModel(c)));
+        HasChecks = Checks.Count > 0;
         Summary = BuildSummary(_result);
 
         // Restore the advertised size the shell kept (for example after a
@@ -57,6 +58,10 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
 
     public ObservableCollection<BuyerCheckRowViewModel> Checks { get; private set; }
 
+    /// <summary>False when the scan produced no buyer checks: the view shows an empty state instead of a blank list.</summary>
+    [ObservableProperty]
+    public partial bool HasChecks { get; set; }
+
     public ICommand ExportCommand { get; }
 
     /// <summary>Exports the printable buyer checklist. Null when the shell did not wire it.</summary>
@@ -72,6 +77,7 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
         _result = _evaluator.Evaluate(_snapshot.Components, context);
         Checks = new ObservableCollection<BuyerCheckRowViewModel>(
             _result.Checks.Select(c => new BuyerCheckRowViewModel(c)));
+        HasChecks = Checks.Count > 0;
         Summary = BuildSummary(_result);
 
         OnPropertyChanged(nameof(Checks));

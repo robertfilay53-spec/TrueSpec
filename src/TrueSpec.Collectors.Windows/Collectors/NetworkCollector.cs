@@ -42,11 +42,11 @@ public sealed class NetworkCollector : ICollector
 
         var adapters = Wmi.Query(
             "root\\cimv2",
-            "SELECT * FROM Win32_NetworkAdapter WHERE PhysicalAdapter = TRUE");
+            "SELECT Name, Manufacturer, MACAddress, Speed, PNPDeviceID, NetConnectionID, AdapterType, Index FROM Win32_NetworkAdapter WHERE PhysicalAdapter = TRUE");
         // A missing key must never crash the scan: two rows with no Index or
         // DeviceID would both map to "" and ToDictionary would throw. Keep
         // the first row for a key and carry on.
-        var configurations = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_NetworkAdapterConfiguration")
+        var configurations = Wmi.Query("root\\cimv2", "SELECT Index, IPAddress, DefaultIPGateway, DNSServerSearchOrder FROM Win32_NetworkAdapterConfiguration")
             .GroupBy(r => r.String("Index") ?? string.Empty, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var drivers = Wmi.Query(
@@ -79,7 +79,7 @@ public sealed class NetworkCollector : ICollector
         var driversOutput = ProcessRunner.Run("netsh", "wlan show drivers") ?? string.Empty;
         var standards = ReadStandards(driversOutput);
 
-        var bluetooth = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_PnPEntity WHERE PNPClass = 'Bluetooth'");
+        var bluetooth = Wmi.Query("root\\cimv2", "SELECT PNPDeviceID FROM Win32_PnPEntity WHERE PNPClass = 'Bluetooth'");
         var ethernetDriver = ethernet is null ? null : FindDriver(drivers, ethernet);
         var ethernetConfig = ethernet is null ? null : FindConfiguration(configurations, ethernet);
 
@@ -203,36 +203,36 @@ public sealed class NetworkCollector : ICollector
 
         return new List<SpecValue>
         {
-            CollectorSupport.Spec("Wi-Fi adapter", wifiName.Value, wifiName.Source),
-            CollectorSupport.Spec("Wi-Fi vendor", reading.WifiVendor, "CIM Win32_NetworkAdapter"),
-            CollectorSupport.Spec("Standards", reading.Standards, "netsh wlan show drivers"),
-            CollectorSupport.Spec("Driver version", reading.WifiDriverVersion, "CIM Win32_PnPSignedDriver"),
-            CollectorSupport.Spec("Driver date", reading.WifiDriverDate, "CIM Win32_PnPSignedDriver"),
-            CollectorSupport.Spec("Link speed", FormatBitsPerSecond(wifiSpeed), wifiSpeed == reading.WifiSpeedBitsPerSecond ? "CIM Win32_NetworkAdapter.Speed" : NetworkInterfaceSource),
-            CollectorSupport.Spec("Signal", reading.Signal, "netsh wlan show interfaces"),
-            CollectorSupport.Spec("Band", reading.Band, "netsh wlan show interfaces"),
-            CollectorSupport.Spec("Channel", reading.Channel, "netsh wlan show interfaces"),
-            CollectorSupport.Spec("Radio type", reading.RadioType, "netsh wlan show interfaces"),
-            CollectorSupport.Spec("Receive rate", reading.ReceiveRate, "netsh wlan show interfaces"),
-            CollectorSupport.Spec("Transmit rate", reading.TransmitRate, "netsh wlan show interfaces"),
-            CollectorSupport.Spec("SSID", reading.Ssid, "netsh wlan show interfaces"),
-            CollectorSupport.Spec("MAC address", wifiMac.Value, wifiMac.Source),
-            CollectorSupport.Spec("IP address", wifiIp.Value, wifiIp.Source),
-            CollectorSupport.Spec("Gateway", wifiGateway.Value, wifiGateway.Source),
-            CollectorSupport.Spec("DNS servers", wifiDns.Value, wifiDns.Source),
-            CollectorSupport.Spec("Hardware manufacture date", "Not reported by hardware", "No Wi-Fi card or driver exposes a manufacture date"),
-            CollectorSupport.Spec("Ethernet adapter", ethernetName.Value, ethernetName.Source),
-            CollectorSupport.Spec("Ethernet link speed", FormatBitsPerSecond(ethernetSpeed), ethernetSpeed == reading.EthernetSpeedBitsPerSecond ? "CIM Win32_NetworkAdapter.Speed" : NetworkInterfaceSource),
-            CollectorSupport.Spec("Ethernet status", wired?.Status, NetworkInterfaceSource),
-            CollectorSupport.Spec("Ethernet MAC address", ethernetMac.Value, ethernetMac.Source),
-            CollectorSupport.Spec("Ethernet driver date", reading.EthernetDriverDate, "CIM Win32_PnPSignedDriver"),
-            CollectorSupport.Spec("Ethernet IP address", ethernetIp.Value, ethernetIp.Source),
-            CollectorSupport.Spec("Ethernet gateway", ethernetGateway.Value, ethernetGateway.Source),
-            CollectorSupport.Spec("Ethernet DNS servers", ethernetDns.Value, ethernetDns.Source),
-            CollectorSupport.Spec("Bluetooth devices", reading.BluetoothCount == 0
+            CollectorSupport.Spec(SpecLabels.WiFiAdapter, wifiName.Value, wifiName.Source),
+            CollectorSupport.Spec(SpecLabels.WiFiVendor, reading.WifiVendor, "CIM Win32_NetworkAdapter"),
+            CollectorSupport.Spec(SpecLabels.Standards, reading.Standards, "netsh wlan show drivers"),
+            CollectorSupport.Spec(SpecLabels.DriverVersion, reading.WifiDriverVersion, "CIM Win32_PnPSignedDriver"),
+            CollectorSupport.Spec(SpecLabels.DriverDate, reading.WifiDriverDate, "CIM Win32_PnPSignedDriver"),
+            CollectorSupport.Spec(SpecLabels.LinkSpeed, FormatBitsPerSecond(wifiSpeed), wifiSpeed == reading.WifiSpeedBitsPerSecond ? "CIM Win32_NetworkAdapter.Speed" : NetworkInterfaceSource),
+            CollectorSupport.Spec(SpecLabels.Signal, reading.Signal, "netsh wlan show interfaces"),
+            CollectorSupport.Spec(SpecLabels.Band, reading.Band, "netsh wlan show interfaces"),
+            CollectorSupport.Spec(SpecLabels.Channel, reading.Channel, "netsh wlan show interfaces"),
+            CollectorSupport.Spec(SpecLabels.RadioType, reading.RadioType, "netsh wlan show interfaces"),
+            CollectorSupport.Spec(SpecLabels.ReceiveRate, reading.ReceiveRate, "netsh wlan show interfaces"),
+            CollectorSupport.Spec(SpecLabels.TransmitRate, reading.TransmitRate, "netsh wlan show interfaces"),
+            CollectorSupport.Spec(SpecLabels.SSID, reading.Ssid, "netsh wlan show interfaces"),
+            CollectorSupport.Spec(SpecLabels.MACAddress, wifiMac.Value, wifiMac.Source),
+            CollectorSupport.Spec(SpecLabels.IPAddress, wifiIp.Value, wifiIp.Source),
+            CollectorSupport.Spec(SpecLabels.Gateway, wifiGateway.Value, wifiGateway.Source),
+            CollectorSupport.Spec(SpecLabels.DNSServers, wifiDns.Value, wifiDns.Source),
+            CollectorSupport.Spec(SpecLabels.HardwareManufactureDate, "Not reported by hardware", "No Wi-Fi card or driver exposes a manufacture date"),
+            CollectorSupport.Spec(SpecLabels.EthernetAdapter, ethernetName.Value, ethernetName.Source),
+            CollectorSupport.Spec(SpecLabels.EthernetLinkSpeed, FormatBitsPerSecond(ethernetSpeed), ethernetSpeed == reading.EthernetSpeedBitsPerSecond ? "CIM Win32_NetworkAdapter.Speed" : NetworkInterfaceSource),
+            CollectorSupport.Spec(SpecLabels.EthernetStatus, wired?.Status, NetworkInterfaceSource),
+            CollectorSupport.Spec(SpecLabels.EthernetMACAddress, ethernetMac.Value, ethernetMac.Source),
+            CollectorSupport.Spec(SpecLabels.EthernetDriverDate, reading.EthernetDriverDate, "CIM Win32_PnPSignedDriver"),
+            CollectorSupport.Spec(SpecLabels.EthernetIPAddress, ethernetIp.Value, ethernetIp.Source),
+            CollectorSupport.Spec(SpecLabels.EthernetGateway, ethernetGateway.Value, ethernetGateway.Source),
+            CollectorSupport.Spec(SpecLabels.EthernetDNSServers, ethernetDns.Value, ethernetDns.Source),
+            CollectorSupport.Spec(SpecLabels.BluetoothDevices, reading.BluetoothCount == 0
                 ? null
                 : reading.BluetoothCount.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPEntity (PNPClass = Bluetooth)"),
-            CollectorSupport.Spec("Bluetooth version", "Not reported by hardware", "Windows does not expose the Bluetooth core version through Win32_PnPEntity"),
+            CollectorSupport.Spec(SpecLabels.BluetoothVersion, "Not reported by hardware", "Windows does not expose the Bluetooth core version through Win32_PnPEntity"),
         };
     }
 

@@ -32,7 +32,7 @@ public sealed class CpuCollector : ICollector
 
     public async Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
-        var cpu = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_Processor").FirstOrDefault();
+        var cpu = Wmi.Query("root\\cimv2", "SELECT Name, Manufacturer, ProcessorId, SocketDesignation, Architecture, CurrentClockSpeed, L2CacheSize, L3CacheSize, MaxClockSpeed, NumberOfCores, NumberOfLogicalProcessors, VirtualizationFirmwareEnabled FROM Win32_Processor").FirstOrDefault();
         if (cpu is null)
         {
             return ComponentSnapshot.NotAvailable(
@@ -61,16 +61,16 @@ public sealed class CpuCollector : ICollector
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec("Model", cpu.String("Name"), "CIM Win32_Processor"),
-            CollectorSupport.Spec("Manufacturer", cpu.String("Manufacturer"), "CIM Win32_Processor"),
-            CollectorSupport.Spec("Cores", cpu.UInt32("NumberOfCores")?.ToString(CultureInfo.InvariantCulture), "CIM Win32_Processor"),
-            CollectorSupport.Spec("Threads", cpu.UInt32("NumberOfLogicalProcessors")?.ToString(CultureInfo.InvariantCulture), "CIM Win32_Processor"),
-            CollectorSupport.Spec("Max clock", FormatMhz(cpu.UInt32("MaxClockSpeed")), "CIM Win32_Processor"),
-            CollectorSupport.Spec("Current clock", FormatMhz(cpu.UInt32("CurrentClockSpeed")), "CIM Win32_Processor"),
-            CollectorSupport.Spec("L2 cache", FormatKb(cpu.UInt32("L2CacheSize")), "CIM Win32_Processor"),
-            CollectorSupport.Spec("L3 cache", FormatKb(cpu.UInt32("L3CacheSize")), "CIM Win32_Processor"),
-            CollectorSupport.Spec("Socket", cpu.String("SocketDesignation"), "CIM Win32_Processor"),
-            CollectorSupport.Spec("Architecture", cpu.UInt16("Architecture") switch
+            CollectorSupport.Spec(SpecLabels.Model, cpu.String("Name"), "CIM Win32_Processor"),
+            CollectorSupport.Spec(SpecLabels.Manufacturer, cpu.String("Manufacturer"), "CIM Win32_Processor"),
+            CollectorSupport.Spec(SpecLabels.Cores, cpu.UInt32("NumberOfCores")?.ToString(CultureInfo.InvariantCulture), "CIM Win32_Processor"),
+            CollectorSupport.Spec(SpecLabels.Threads, cpu.UInt32("NumberOfLogicalProcessors")?.ToString(CultureInfo.InvariantCulture), "CIM Win32_Processor"),
+            CollectorSupport.Spec(SpecLabels.MaxClock, FormatMhz(cpu.UInt32("MaxClockSpeed")), "CIM Win32_Processor"),
+            CollectorSupport.Spec(SpecLabels.CurrentClock, FormatMhz(cpu.UInt32("CurrentClockSpeed")), "CIM Win32_Processor"),
+            CollectorSupport.Spec(SpecLabels.L2Cache, FormatKb(cpu.UInt32("L2CacheSize")), "CIM Win32_Processor"),
+            CollectorSupport.Spec(SpecLabels.L3Cache, FormatKb(cpu.UInt32("L3CacheSize")), "CIM Win32_Processor"),
+            CollectorSupport.Spec(SpecLabels.Socket, cpu.String("SocketDesignation"), "CIM Win32_Processor"),
+            CollectorSupport.Spec(SpecLabels.Architecture, cpu.UInt16("Architecture") switch
             {
                 0 => "x86",
                 5 => "ARM",
@@ -78,21 +78,21 @@ public sealed class CpuCollector : ICollector
                 12 => "ARM64",
                 _ => CollectorSupport.NotReported,
             }, "CIM Win32_Processor"),
-            CollectorSupport.Spec("Virtualization", cpu.Bool("VirtualizationFirmwareEnabled") switch
+            CollectorSupport.Spec(SpecLabels.Virtualization, cpu.Bool("VirtualizationFirmwareEnabled") switch
             {
                 true => "Enabled",
                 false => "Disabled",
                 _ => CollectorSupport.NotReported,
             }, "CIM Win32_Processor"),
-            CollectorSupport.Spec("Processor ID", cpu.String("ProcessorId"), "CIM Win32_Processor"),
-            CollectorSupport.Spec("Package temperature", FormatSensor(temperature, "C", 1), "LibreHardwareMonitor"),
-            CollectorSupport.Spec("Thermal throttle flag", throttle, "LibreHardwareMonitor temperature threshold (95 C)"),
-            CollectorSupport.Spec("Package power", FormatSensor(power, "W", 1), "LibreHardwareMonitor"),
-            CollectorSupport.Spec("CPU fan", FormatSensor(fan, "RPM", 0), "LibreHardwareMonitor"),
-            CollectorSupport.Spec("Core voltage", FormatSensor(voltage, "V", 3), "LibreHardwareMonitor"),
-            CollectorSupport.Spec("Live core clock", FormatSensor(clock, "MHz", 0), "LibreHardwareMonitor"),
-            CollectorSupport.Spec("CPU load", FormatSensor(load, "%", 1), "LibreHardwareMonitor"),
-            CollectorSupport.Spec("Life remaining", "Not reported by hardware", "No CPU life sensor exists"),
+            CollectorSupport.Spec(SpecLabels.ProcessorID, cpu.String("ProcessorId"), "CIM Win32_Processor"),
+            CollectorSupport.Spec(SpecLabels.PackageTemperature, FormatSensor(temperature, "C", 1), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.ThermalThrottleFlag, throttle, "LibreHardwareMonitor temperature threshold (95 C)"),
+            CollectorSupport.Spec(SpecLabels.PackagePower, FormatSensor(power, "W", 1), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.CPUFan, FormatSensor(fan, "RPM", 0), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.CoreVoltage, FormatSensor(voltage, "V", 3), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.LiveCoreClock, FormatSensor(clock, "MHz", 0), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.CPULoad, FormatSensor(load, "%", 1), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.LifeRemaining, "Not reported by hardware", "No CPU life sensor exists"),
         };
 
         var headline = cpu.String("Name") ?? "CPU";

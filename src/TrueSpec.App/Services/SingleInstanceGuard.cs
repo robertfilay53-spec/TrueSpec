@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using TrueSpec.Core.Security;
 
 namespace TrueSpec.App.Services;
 
@@ -9,11 +10,24 @@ namespace TrueSpec.App.Services;
 /// of the process; a second launch finds the mutex taken, asks the existing
 /// window to come to the front, and exits without starting a duplicate
 /// process. The mutex name is session-scoped ("Local\") so two different
-/// RDP users on the same machine are not blocked by each other.
+/// RDP users on the same machine are not blocked by each other, and
+/// per-user (see <see cref="DefaultMutexName"/>) so another local user
+/// cannot squat the name and block launch.
 /// </summary>
 public sealed class SingleInstanceGuard : IDisposable
 {
+    /// <summary>Base name; the live mutex appends a per-user suffix (see <see cref="DefaultMutexName"/>).</summary>
     public const string MutexName = "Local\\TrueSpec.SingleInstance";
+
+    /// <summary>
+    /// The mutex name the app actually uses: the base name plus a hash of
+    /// the current user. A fixed well-known name lets any other local
+    /// process create the mutex first and block TrueSpec from launching;
+    /// the per-user suffix stops another user in the same session from
+    /// squatting it. Only the hash is in the name, never the username.
+    /// </summary>
+    public static string DefaultMutexName() =>
+        MutexName + "." + SingleInstanceIdentity.PerUserSuffix();
 
     /// <summary>Must match Title in Views/MainWindow.axaml.</summary>
     public const string MainWindowTitle = "TrueSpec - Command Center";
@@ -26,9 +40,12 @@ public sealed class SingleInstanceGuard : IDisposable
     /// <summary>
     /// Tries to become the single instance. Returns the guard on success, or
     /// null when another instance already owns the mutex. Never throws.
+    /// A null name uses the per-user default (see <see cref="DefaultMutexName"/>);
+    /// an explicit name is only for tests.
     /// </summary>
-    public static SingleInstanceGuard? TryAcquire(string name = MutexName)
+    public static SingleInstanceGuard? TryAcquire(string? name = null)
     {
+        name ??= DefaultMutexName();
         Mutex mutex;
         bool createdNew;
         try

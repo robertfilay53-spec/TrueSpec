@@ -65,11 +65,14 @@ public static class SpecText
         token = token.TrimEnd('%');
         token = NormalizeDecimalComma(token);
 
+        // "Infinity" and "NaN" parse as doubles. Neither is a measurement:
+        // a corrupt or hand-edited snapshot must never feed a health rule,
+        // a score or a buyer check with an infinite value.
         return double.TryParse(
             token,
             NumberStyles.Float,
             CultureInfo.InvariantCulture,
-            out value);
+            out value) && double.IsFinite(value);
     }
 
     /// <summary>
@@ -123,6 +126,7 @@ public static class SpecText
 
         if (split == 0 ||
             !double.TryParse(NormalizeDecimalComma(clean[..split]), NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ||
+            !double.IsFinite(number) ||
             number < 0d)
         {
             return false;

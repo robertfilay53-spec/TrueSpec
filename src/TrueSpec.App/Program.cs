@@ -12,6 +12,10 @@ sealed class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Last resort first: an exception that escapes everything else is
+        // logged and shown to the user instead of exiting silently.
+        UnhandledExceptionHandler.Install();
+
         // One instance only: a second launch brings the running window to the
         // front instead of starting a duplicate process.
         using var singleInstance = SingleInstanceGuard.TryAcquire();

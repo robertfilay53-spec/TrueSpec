@@ -23,8 +23,8 @@ public sealed class DisplayCollector : ICollector
 
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
-        var monitors = Wmi.Query("root\\wmi", "SELECT * FROM WmiMonitorID");
-        var video = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_VideoController").FirstOrDefault();
+        var monitors = Wmi.Query("root\\wmi", "SELECT ManufacturerName, ProductCodeID, SerialNumberID, UserFriendlyName, YearOfManufacture, WeekOfManufacture FROM WmiMonitorID");
+        var video = Wmi.Query("root\\cimv2", "SELECT CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate FROM Win32_VideoController").FirstOrDefault();
 
         if (monitors.Count == 0 && video is null)
         {
@@ -37,7 +37,7 @@ public sealed class DisplayCollector : ICollector
         }
 
         var monitor = monitors.FirstOrDefault();
-        var basic = Wmi.Query("root\\wmi", "SELECT * FROM WmiMonitorBasicDisplayParams").FirstOrDefault();
+        var basic = Wmi.Query("root\\wmi", "SELECT MaxHorizontalImageSize, MaxVerticalImageSize FROM WmiMonitorBasicDisplayParams").FirstOrDefault();
 
         var manufacturer = Decode(monitor?.UInt16Array("ManufacturerName"));
         var model = Decode(monitor?.UInt16Array("ProductCodeID"));
@@ -67,29 +67,29 @@ public sealed class DisplayCollector : ICollector
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec("Panel manufacturer", manufacturer, "EDID WmiMonitorID.ManufacturerName"),
-            CollectorSupport.Spec("Panel model", model, "EDID WmiMonitorID.ProductCodeID"),
-            CollectorSupport.Spec("Panel serial", serial, "EDID WmiMonitorID.SerialNumberID"),
-            CollectorSupport.Spec("Panel name", friendly, "EDID WmiMonitorID.UserFriendlyName"),
-            CollectorSupport.Spec("Manufacture date", manufactureDate, "EDID WmiMonitorID manufacture week/year"),
-            CollectorSupport.Spec("Size", size, "EDID WmiMonitorBasicDisplayParams"),
-            CollectorSupport.Spec("Resolution", resolution, "CIM Win32_VideoController"),
-            CollectorSupport.Spec("Refresh rate", refresh, "CIM Win32_VideoController"),
-            CollectorSupport.Spec("Monitors detected", monitors.Count.ToString(CultureInfo.InvariantCulture), "CIM WmiMonitorID"),
-            CollectorSupport.Spec("HDR", "Not reported by hardware", "EDID extended block not exposed by WmiMonitorID"),
-            CollectorSupport.Spec("Panel type", "Not reported by hardware", "EDID panel type is not exposed by WmiMonitorID"),
+            CollectorSupport.Spec(SpecLabels.PanelManufacturer, manufacturer, "EDID WmiMonitorID.ManufacturerName"),
+            CollectorSupport.Spec(SpecLabels.PanelModel, model, "EDID WmiMonitorID.ProductCodeID"),
+            CollectorSupport.Spec(SpecLabels.PanelSerial, serial, "EDID WmiMonitorID.SerialNumberID"),
+            CollectorSupport.Spec(SpecLabels.PanelName, friendly, "EDID WmiMonitorID.UserFriendlyName"),
+            CollectorSupport.Spec(SpecLabels.ManufactureDate, manufactureDate, "EDID WmiMonitorID manufacture week/year"),
+            CollectorSupport.Spec(SpecLabels.Size, size, "EDID WmiMonitorBasicDisplayParams"),
+            CollectorSupport.Spec(SpecLabels.Resolution, resolution, "CIM Win32_VideoController"),
+            CollectorSupport.Spec(SpecLabels.RefreshRate, refresh, "CIM Win32_VideoController"),
+            CollectorSupport.Spec(SpecLabels.MonitorsDetected, monitors.Count.ToString(CultureInfo.InvariantCulture), "CIM WmiMonitorID"),
+            CollectorSupport.Spec(SpecLabels.HDR, "Not reported by hardware", "EDID extended block not exposed by WmiMonitorID"),
+            CollectorSupport.Spec(SpecLabels.PanelType, "Not reported by hardware", "EDID panel type is not exposed by WmiMonitorID"),
         };
 
         for (var i = 1; i < monitors.Count; i++)
         {
             var extra = monitors[i];
             var prefix = string.Create(CultureInfo.InvariantCulture, $"Monitor {i + 1}");
-            specs.Add(CollectorSupport.Spec($"{prefix} - Panel model", Decode(extra.UInt16Array("ProductCodeID")), "EDID WmiMonitorID"));
-            specs.Add(CollectorSupport.Spec($"{prefix} - Panel serial", Decode(extra.UInt16Array("SerialNumberID")), "EDID WmiMonitorID"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.PanelModel}", Decode(extra.UInt16Array("ProductCodeID")), "EDID WmiMonitorID"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.PanelSerial}", Decode(extra.UInt16Array("SerialNumberID")), "EDID WmiMonitorID"));
             // Same rule as the first monitor: a missing/zero week means
             // "year only", never "week 0", which is not a real date.
             var extraWeek = extra.UInt16("WeekOfManufacture");
-            specs.Add(CollectorSupport.Spec($"{prefix} - Manufacture date",
+            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.ManufactureDate}",
                 extra.UInt16("YearOfManufacture") is { } extraYear && extraYear > 0
                     ? extraWeek is null or 0
                         ? string.Create(CultureInfo.InvariantCulture, $"{extraYear}")

@@ -55,11 +55,14 @@ public sealed class ScoringEngine : IScoringEngine
             // (for example two drives) must not double-count that
             // category's weight. The worst health in the category is the
             // honest one for a buyer: a dying second drive is not averaged
-            // away by a healthy first one.
+            // away by a healthy first one. The breakdown row is named after
+            // the component that produced that worst health, not the first
+            // component in the category: naming the healthy drive at 20%
+            // health blamed the wrong drive.
             .GroupBy(x => x.Component.Category, StringComparer.OrdinalIgnoreCase)
             .Select(g => new
             {
-                Component = g.First().Component,
+                Component = g.MinBy(x => x.Health)!.Component,
                 Health = g.Min(x => x.Health),
                 Weight = g.First().Weight,
             })

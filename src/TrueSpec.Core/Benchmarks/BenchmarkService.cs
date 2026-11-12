@@ -123,6 +123,18 @@ public sealed class BenchmarkService : IBenchmarkService
         var path = Path.Combine(Path.GetTempPath(), $"truespec-bench-{Guid.NewGuid():N}.bin");
         try
         {
+            // The test writes a 64 MB temporary file. Check first that the
+            // temp drive can hold it: without the check a nearly-full drive
+            // fails halfway through the write with a generic IOException,
+            // and the user learns nothing. A drive that cannot be checked
+            // (unknown root, permission error) falls through to the write,
+            // which reports its own failure honestly.
+            var freeSpaceError = CheckTempDriveFreeSpace();
+            if (freeSpaceError is not null)
+            {
+                return BenchmarkResult.Failed("Disk sequential read", freeSpaceError, "Measured with a local temporary file");
+            }
+
             var buffer = new byte[DiskBufferSize];
             RandomNumberGenerator.Fill(buffer);
 
@@ -209,6 +221,37 @@ public sealed class BenchmarkService : IBenchmarkService
             {
                 // A leftover temporary file must never hide the measurement result.
             }
+        }
+    }
+
+    /// <summary>
+    /// The free-space pre-check for <see cref="MeasureDisk"/>, split out so
+    /// the decision is unit-testable without a real drive. Returns null
+    /// when the drive can hold the test file (or cannot be checked, in
+    /// which case the write itself reports any failure); otherwise a
+    /// plain-language reason the benchmark did not run.
+    /// </summary>
+    public static string? FreeSpaceFailure(long availableFreeSpaceBytes) =>
+        availableFreeSpaceBytes < DiskFileSizeBytes
+            ? FormattableString.Invariant(
+                $"Not enough free space on the temporary drive to run the disk test: it needs {DiskFileSizeBytes / 1024 / 1024} MB free and {availableFreeSpaceBytes / 1024 / 1024} MB is available. Free some space and try again.")
+            : null;
+
+    private static string? CheckTempDriveFreeSpace()
+    {
+        try
+        {
+            var root = Path.GetPathRoot(Path.GetTempPath());
+            if (string.IsNullOrEmpty(root))
+            {
+                return null;
+            }
+
+            return FreeSpaceFailure(new DriveInfo(root).AvailableFreeSpace);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return null;
         }
     }
 }

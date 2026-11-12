@@ -40,7 +40,19 @@ treats every hardware reading as untrusted input until validated.
 - Saves settings as JSON under `%LocalApplicationData%\TrueSpec\settings.json`.
   A missing or corrupt file falls back to defaults; every loaded value is
   sanitized (refresh interval clamped to 1-30 seconds, export folder
-  re-validated). Settings are written atomically (temp file + move).
+  re-validated). Settings are written atomically (randomly named temp file
+  in the same folder + move, so a fixed temp name can never be pre-planted).
+- Runs one instance only, guarded by a named mutex. The mutex name is
+  session-scoped (`Local\`) and per-user (base name + 16 hex characters of
+  the SHA-256 of the logon identity, `SingleInstanceIdentity`): a fixed
+  well-known name would let any other local process create the mutex first
+  and block the app from launching. The plain username never appears in
+  the name.
+- Opens raw physical drives (`\\.\PhysicalDriveN`) only for SATA SMART
+  reads, and only with a drive number from WMI that `SataSmartReader`
+  validates to 0-255 first: the number lands in the device path and in the
+  single DriveNumber byte of the ATA command, so an out-of-range value must
+  never reach the P/Invoke boundary.
 
 ## What the app does NOT do
 
@@ -72,6 +84,61 @@ treats every hardware reading as untrusted input until validated.
 | SQLite history limit | Clamped to 1-500 rows (`SqliteSnapshotStore.GetHistoryAsync`) |
 | Settings file | JSON parse failure falls back to defaults; values sanitized on load |
 | Snapshot payloads | `GetSnapshotAsync` returns null on corrupt JSON instead of crashing |
+| Single-instance mutex | Per-user name (base + SHA-256 of logon identity); no fixed squattable name |
+| Settings temp file | Random name per save (`.truespec-<guid>.tmp`), deleted on failure |
+| SMART drive number | Rejected unless 0-255 before the device path is built |
+
+## Reverse engineering and tamper resistance
+
+TrueSpec is MIT open source: the source is public, so **full
+reverse-engineering prevention is impossible** and is not claimed. Anyone
+can read the code, rebuild it, and patch the binary. What hardening does
+provide is tamper *evidence* and a smaller attack surface:
+
+- **No debug backdoors.** There are no test hooks, no hidden flags, no
+  hardcoded test values in release builds. The only `#if DEBUG` in the app
+  is Avalonia's developer tools in `Program.cs`, compiled out of Release.
+  The diagnostics package (`AvaloniaUI.DiagnosticsSupport`) is excluded
+  from non-Debug builds in the `.csproj`.
+- **Deterministic builds.** `Directory.Build.props` sets
+  `<Deterministic>true</Deterministic>`: the same source produces
+  byte-identical assemblies. Verify by building twice into two folders
+  and comparing SHA-256 hashes; a mismatch means the build is not
+  reproducible and must be investigated before release.
+- **Tamper-evident release assets.** Every GitHub Release publishes the
+  installer and the portable zip **plus SHA-256 checksums** for both
+  (see `RELEASE-CHECKLIST.md` Gate 6). A user verifies with
+  `Get-FileHash <file> -Algorithm SHA256` and compares against the
+  release notes. The release workflow must generate the checksums; if it
+  does not, the release is incomplete and must not ship as final.
+- **No obfuscation.** Obfuscation is deliberately not used: it would break
+  the MIT open-source promise (the shipped binary should match the public
+  source), it breaks Avalonia reflection and trimming assumptions, and it
+  provides no real protection against a determined reverser.
+
+## Code signing (how to sign, not yet set up)
+
+No signing key exists in the repo and none should ever be committed: a
+private key in a public repository is compromised by definition. When
+signing is set up, it is done in CI from a secret, never from a file in
+the tree:
+
+1. Obtain a code-signing certificate (OV or EV) or use Azure Trusted
+   Signing, which holds the key in the cloud and signs via the service.
+2. In the release workflow, sign the installer and the portable exe
+   after building them and before uploading, for example with
+   `signtool sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a <file>`
+   (or the Trusted Signing equivalent). Timestamping is required so the
+   signature stays valid after the certificate expires.
+3. Verify with `signtool verify /pa <file>` before upload. An unsigned
+   asset must never be uploaded as a release.
+4. **Strong-naming is not used.** A strong name proves assembly identity,
+   not safety, and the `.snk` private key would need the same secret
+   handling as a certificate for no user-facing benefit on a desktop app
+   that is not loaded by other assemblies. If strong-naming is ever
+   wanted, generate the keypair once, commit only the public key, keep
+   the private key in a CI secret, and sign with `PublicSign` in CI.
+   Do not commit a `.snk` containing a private key.
 
 ## Dependencies
 
@@ -82,10 +149,11 @@ Audit before every release:
 dotnet list package --vulnerable --include-transitive
 ```
 
-As of the last audit (TrueSpec v1, .NET 10): **no vulnerable packages** in
-any project, including transitive dependencies. If the audit ever reports a
-vulnerability, upgrade or replace the package before release; do not ship
-with a known vulnerable dependency.
+As of the last audit (Nov 12, 2026, TrueSpec v1.1.0, .NET 10):
+**no vulnerable packages** in any project, including transitive
+dependencies. If the audit ever reports a vulnerability, upgrade or
+replace the package before release; do not ship with a known vulnerable
+dependency.
 
 ## Build and release checklist
 

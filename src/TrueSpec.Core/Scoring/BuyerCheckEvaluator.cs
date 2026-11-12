@@ -45,7 +45,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "ssd-wear";
         const string title = "SSD wear is 0%";
 
-        if (!TryGetSpec(byId, "storage", out var component, "Wear level") ||
+        if (!TryGetSpec(byId, "storage", out var component, SpecLabels.WearLevel) ||
             !SpecText.TryParseLeadingNumber(component, out var wear))
         {
             return new BuyerCheck(id, title,
@@ -54,7 +54,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
                 "Ask the seller for a screenshot of the drive SMART data.");
         }
 
-        var smartWarning = SpecValue(byId, "storage", "SMART warnings");
+        var smartWarning = SpecValue(byId, "storage", SpecLabels.SMARTWarnings);
         var extra = string.Equals(smartWarning, "Yes", StringComparison.OrdinalIgnoreCase)
             ? " The drive also reports SMART warnings."
             : string.Empty;
@@ -75,7 +75,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "battery-cycles";
         const string title = "Battery cycles 5 or fewer";
 
-        if (!TryGetSpec(byId, "battery", out var value, "Cycle count") ||
+        if (!TryGetSpec(byId, "battery", out var value, SpecLabels.CycleCount) ||
             !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var cycles))
         {
             return new BuyerCheck(id, title,
@@ -100,7 +100,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "power-on-hours";
         const string title = "Drive power-on hours are 0";
 
-        if (!TryGetSpec(byId, "storage", out var value, "Power-on hours") ||
+        if (!TryGetSpec(byId, "storage", out var value, SpecLabels.PowerOnHours) ||
             !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours))
         {
             return new BuyerCheck(id, title,
@@ -127,7 +127,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "ram-size";
         const string title = "RAM size matches the advertisement";
 
-        if (!TryGetSpec(byId, "ram", out var actual, "Total memory"))
+        if (!TryGetSpec(byId, "ram", out var actual, SpecLabels.TotalMemory))
         {
             return new BuyerCheck(id, title,
                 "The installed RAM size was not available.",
@@ -175,7 +175,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "bios-date";
         const string title = "BIOS date is recent";
 
-        if (!TryGetSpec(byId, "system", out var value, "BIOS date") ||
+        if (!TryGetSpec(byId, "system", out var value, SpecLabels.BIOSDate) ||
             !DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var biosDate))
         {
             return new BuyerCheck(id, title,
@@ -219,7 +219,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "windows-install";
         const string title = "Windows install date is recent";
 
-        if (!TryGetSpec(byId, "system", out var value, "Windows install date") ||
+        if (!TryGetSpec(byId, "system", out var value, SpecLabels.WindowsInstallDate) ||
             !DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var installDate))
         {
             return new BuyerCheck(id, title,
@@ -262,7 +262,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "critical-errors";
         const string title = "No critical errors in the event log";
 
-        if (!TryGetSpec(byId, "system", out var value, "Critical errors (event log)") ||
+        if (!TryGetSpec(byId, "system", out var value, SpecLabels.CriticalErrorsEventLog) ||
             !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var errors))
         {
             return new BuyerCheck(id, title,
@@ -287,7 +287,7 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
         const string id = "signed-drivers";
         const string title = "All drivers are signed";
 
-        if (!TryGetSpec(byId, "system", out var value, "Signed drivers only"))
+        if (!TryGetSpec(byId, "system", out var value, SpecLabels.SignedDriversOnly))
         {
             return new BuyerCheck(id, title,
                 "The driver signature state was not available.",

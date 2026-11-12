@@ -23,6 +23,19 @@ public sealed record AppSettings
     [JsonPropertyName("exportFolder")]
     public string ExportFolder { get; init; } = string.Empty;
 
+    /// <summary>
+    /// Schema version of this file. Version 1 is the first versioned
+    /// schema; older files have no field and load as version 1. A future
+    /// version can migrate on load instead of guessing what unknown fields
+    /// mean. Unknown future versions are normalized to the current version
+    /// by <see cref="Sanitized"/>: only known fields are ever read, so an
+    /// unknown version number never changes behaviour.
+    /// </summary>
+    public const int CurrentSchemaVersion = 1;
+
+    [JsonPropertyName("schemaVersion")]
+    public int SchemaVersion { get; init; } = CurrentSchemaVersion;
+
     public static AppSettings Default { get; } = new();
 
     /// <summary>
@@ -34,6 +47,6 @@ public sealed record AppSettings
     {
         var refresh = Math.Clamp(RefreshIntervalSeconds, MinRefreshSeconds, MaxRefreshSeconds);
         var folder = Security.PathSafety.ValidateExportFolder(ExportFolder) ?? string.Empty;
-        return this with { RefreshIntervalSeconds = refresh, ExportFolder = folder };
+        return this with { RefreshIntervalSeconds = refresh, ExportFolder = folder, SchemaVersion = CurrentSchemaVersion };
     }
 }

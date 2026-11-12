@@ -57,7 +57,7 @@
                                             <Ellipse Width="7" Height="7"
                                                      Fill="{Binding Status, Converter={StaticResource StatusBrush}}"
                                                      VerticalAlignment="Center" />
-                                            <TextBlock Text="{Binding Component}" FontSize="12" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Component}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
                                         <TextBlock Grid.Column="1" Text="{Binding HealthText}" FontSize="12" Classes="muted" VerticalAlignment="Center" />
                                         <TextBlock Grid.Column="2" Text="{Binding WeightText}" FontSize="12" Classes="muted" VerticalAlignment="Center" />
@@ -93,7 +93,7 @@
                                                          VerticalAlignment="Center" />
                                                 <TextBlock Text="{Binding Label}" Classes="muted" FontSize="11" />
                                             </StackPanel>
-                                            <TextBlock Text="{Binding Value}" FontSize="17" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Value}" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" />
                                             <TextBlock Text="{Binding Source}"
                                                        Classes="muted"
                                                        FontSize="10"
@@ -126,7 +126,10 @@
                 <TextBlock Grid.Column="1"
                            Text="{Binding OperatingSystem}"
                            Classes="muted"
-                           VerticalAlignment="Center" />
+                           VerticalAlignment="Center"
+                           MaxWidth="520"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTip.Tip="{Binding OperatingSystem}" />
             </Grid>
 
             <ItemsControl ItemsSource="{Binding Cards}">
@@ -192,6 +195,12 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
+            <Border Classes="card" Padding="18" IsVisible="{Binding !HasComponents}">
+                <TextBlock Text="No components were collected in this scan. Refresh the scan from the status bar; if the section stays empty, the collectors could not read this machine."
+                           Classes="muted"
+                           TextWrapping="Wrap" />
+            </Border>
+
             <!-- Live strip -->
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="12">
@@ -206,7 +215,10 @@
                                    Text="{Binding StatusMessage}"
                                    Classes="muted"
                                    FontSize="11"
-                                   VerticalAlignment="Bottom" />
+                                   VerticalAlignment="Bottom"
+                                   MaxWidth="320"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding StatusMessage}" />
                     </Grid>
 
                     <ItemsControl ItemsSource="{Binding LiveMetrics}">

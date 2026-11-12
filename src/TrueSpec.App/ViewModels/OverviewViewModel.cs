@@ -116,6 +116,8 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         {
             Cards.Add(card);
         }
+
+        HasComponents = Cards.Count > 0;
     }
 
     /// <summary>
@@ -169,6 +171,10 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
     private IReadOnlyList<KeyStatViewModel> _keyStats = Array.Empty<KeyStatViewModel>();
 
     public ObservableCollection<ComponentCardViewModel> Cards { get; }
+
+    /// <summary>False when the scan collected no components: the view shows an empty state instead of a blank section.</summary>
+    [ObservableProperty]
+    public partial bool HasComponents { get; set; }
 
     public ObservableCollection<LiveMetricViewModel> LiveMetrics { get; }
 
