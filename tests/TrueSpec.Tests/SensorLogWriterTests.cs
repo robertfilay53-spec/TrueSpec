@@ -84,6 +84,40 @@ public class SensorLogWriterTests
     }
 
     [Fact]
+    public void ZeroTemperatureAndClock_AreGaps_NeverZero()
+    {
+        // A sensor library that does not report returns 0; a 0 C
+        // temperature or 0 MHz clock is a gap (empty cell), never a zero.
+        // A 0 RPM fan is a real reading (a stopped fan) and still writes "0".
+        var path = TempFilePath();
+        try
+        {
+            var writer = new SensorLogWriter(path);
+            var at = new DateTimeOffset(2026, 11, 12, 14, 30, 0, TimeSpan.Zero);
+            writer.Append(Snapshot(
+                at,
+                Temp("CPU", "Package", 71.5),
+                new SensorReading("CPU", "Core #1", SensorKind.Clock, "MHz", 0d, "Test"),
+                new SensorReading("CPU", "Fan #1", SensorKind.Fan, "RPM", 0d, "Test")));
+            writer.Append(Snapshot(
+                at.AddSeconds(2),
+                Temp("CPU", "Package", 0d),
+                new SensorReading("CPU", "Core #1", SensorKind.Clock, "MHz", 3000d, "Test"),
+                new SensorReading("CPU", "Fan #1", SensorKind.Fan, "RPM", 1500d, "Test")));
+
+            var lines = File.ReadAllLines(path);
+            Assert.Equal(3, lines.Length);
+            Assert.Equal("Timestamp,CPU_Package_C,CPU_Core_1_MHz,CPU_Fan_1_RPM", lines[0]);
+            Assert.Equal("2026-11-12T14:30:00.0000000Z,71.5,,0", lines[1]);
+            Assert.Equal("2026-11-12T14:30:02.0000000Z,,3000,1500", lines[2]);
+        }
+        finally
+        {
+            DeleteDirectory(path);
+        }
+    }
+
+    [Fact]
     public void UnavailableSnapshotStillWritesATimestampRow()
     {
         var path = TempFilePath();

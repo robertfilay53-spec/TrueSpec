@@ -15,9 +15,33 @@ namespace TrueSpec.Tests;
 /// the fold and were effectively invisible without scrolling the rail. That
 /// is why a live check listed 16 nav items and no History. History now sits
 /// inside the visible region, and these tests pin it there.
+///
+/// The same defect recurred in v1.4 for Settings (last of 20 items): the
+/// durable fix is a scrollable left rail with an always-visible scrollbar,
+/// so no item is unreachable regardless of how many the list grows to.
+/// These tests pin that: Settings routes to its page, and the shell XAML
+/// declares the nav list scrollable.
 /// </summary>
 public class NavigationTests
 {
+    private static string FindRepoFile(params string[] relativePath)
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var candidate = relativePath.Aggregate(dir.FullName, Path.Combine);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            dir = dir.Parent;
+        }
+
+        throw new FileNotFoundException(
+            "Could not find " + string.Join(Path.DirectorySeparatorChar, relativePath)
+            + " by walking up from " + AppContext.BaseDirectory);
+    }
     [Fact]
     public void Navigation_ContainsHistoryPage()
     {
@@ -75,6 +99,58 @@ public class NavigationTests
         main.SelectedNavItem = main.NavItems.First(i => i.Key == "history");
 
         Assert.IsType<HistoryViewModel>(main.CurrentPage);
+    }
+
+    [Fact]
+    public void Navigation_ContainsSettingsPage()
+    {
+        var items = NavItemViewModel.CreateDefault();
+        var settings = items.FirstOrDefault(i => i.Key == "settings");
+
+        Assert.NotNull(settings);
+        Assert.Equal("Settings", settings.Label);
+    }
+
+    [Fact]
+    public void Navigation_SettingsRoutesToSettingsPage()
+    {
+        var main = new MainViewModel(
+            MachineScanService.CreateDefault(),
+            new UnavailableSensorMonitor(),
+            new BuyerCheckEvaluator());
+
+        main.SelectedNavItem = main.NavItems.First(i => i.Key == "settings");
+
+        Assert.IsType<SettingsViewModel>(main.CurrentPage);
+    }
+
+    [Fact]
+    public void Navigation_NavRailIsScrollable()
+    {
+        // The v1.4 recurrence of the v1.0.1 defect: Settings is the last
+        // of 20 nav items and the rail fits about 16 at the default
+        // 1280x800 window, so it rendered below the fold and was
+        // effectively unreachable. The rail must scroll, and the scrollbar
+        // must be always visible (not auto/overlay) so the scrollability
+        // is discoverable and every item is reachable.
+        var path = FindRepoFile("src", "TrueSpec.App", "Views", "MainWindow.axaml");
+        var lines = File.ReadAllLines(path);
+        var listBoxStart = Array.FindIndex(lines, line => line.Contains("<ListBox", StringComparison.Ordinal));
+        Assert.True(listBoxStart >= 0, "MainWindow.axaml must contain the nav ListBox.");
+
+        var tag = new List<string>();
+        for (var i = listBoxStart; i < lines.Length; i++)
+        {
+            tag.Add(lines[i]);
+            if (lines[i].Contains('>'))
+            {
+                break;
+            }
+        }
+
+        var tagText = string.Join(" ", tag);
+        Assert.Contains("Classes=\"nav\"", tagText, StringComparison.Ordinal);
+        Assert.Contains("ScrollViewer.VerticalScrollBarVisibility=\"Visible\"", tagText, StringComparison.Ordinal);
     }
 
     /// <summary>
