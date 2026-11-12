@@ -33,9 +33,25 @@ public sealed class TestsViewModel : ViewModelBase
                 "Runs a fixed single-thread workload and reports real measured operations per second.",
                 benchmarks.RunCpuSingleThreadAsync),
             new TestItemViewModel(
+                "CPU multi-thread",
+                "Runs the same workload on all logical cores at once and reports real measured operations per second.",
+                benchmarks.RunCpuMultiThreadAsync),
+            new TestItemViewModel(
                 "Disk read speed",
                 "Reads a real 64 MB temporary file and reports measured sequential read speed.",
                 benchmarks.RunDiskSequentialReadAsync),
+            new TestItemViewModel(
+                "Disk random 4K",
+                "Random 4 KB reads and writes against a real 64 MB temporary file, queue depth 1, up to 2 seconds per phase. This is the number that decides how a machine feels.",
+                benchmarks.RunDiskRandom4KAsync),
+            new TestItemViewModel(
+                "Memory copy",
+                "Copies real 64 MB buffers and reports measured copy bandwidth in GB/s.",
+                benchmarks.RunMemoryCopyAsync),
+            new TestItemViewModel(
+                "Disk latency under load",
+                "Continuous random 4 KB reads keep the disk busy for up to 2 seconds; reports p50, p90 and p99 read latency in milliseconds.",
+                benchmarks.RunDiskLatencyAsync),
             new TestItemViewModel(
                 "Quick memory test",
                 "Not in this build: the Windows Memory Diagnostic needs a reboot, so run it from Windows yourself for now.",
@@ -50,6 +66,16 @@ public sealed class TestsViewModel : ViewModelBase
                 null),
         };
     }
+
+    /// <summary>
+    /// U10 scope note (WORLD-CLASS-PLAN.md U10): these benchmarks measure
+    /// this machine only. They do not replace Geekbench (cross-platform
+    /// comparison) or 3DMark (GPU rendering).
+    /// </summary>
+    public string BenchmarkScopeNote =>
+        "These benchmarks measure this machine only, with the exact workload shown on each result. " +
+        "They do not replace Geekbench (cross-platform comparison) or 3DMark (GPU rendering). " +
+        "A result made while another program was using the CPU says so on the result itself.";
 
     /// <summary>The load-test card: duration, Start/Cancel, live readouts and the result.</summary>
     public LoadTestViewModel LoadTest { get; }

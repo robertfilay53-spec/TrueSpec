@@ -31,6 +31,12 @@
                 </Grid>
             </Border>
 
+            <TextBlock Text="{Binding BenchmarkScopeNote}"
+                       Classes="muted"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       MaxWidth="720" />
+
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="10" DataContext="{Binding LoadTest}">
                     <TextBlock Text="Load test" Classes="h3" />
