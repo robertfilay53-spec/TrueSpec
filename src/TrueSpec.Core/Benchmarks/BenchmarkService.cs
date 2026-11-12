@@ -574,13 +574,13 @@ public sealed class BenchmarkService : IBenchmarkService
             return new BenchmarkResult(
                 name,
                 true,
-                FormattableString.Invariant($"p50 {p50:0.00} ms, p90 {p90:0.00} ms, p99 {p99:0.00} ms"),
+                FormattableString.Invariant($"p50 {p50:0.000} ms, p90 {p90:0.000} ms, p99 {p99:0.000} ms"),
                 WithLoadNote(
                     FormattableString.Invariant(
                         $"Workload: 4 KB random reads, queue depth 1, {RandomFileSizeBytes / 1024 / 1024} MB file, {readCount:N0} reads in {readSeconds:0.0} s under continuous load."),
                     loadNote),
                 "Measured with FileStream and Stopwatch on a local temporary file",
-                Math.Round(p90, 2),
+                Math.Round(p90, 3),
                 "ms");
         }
         catch (OperationCanceledException)

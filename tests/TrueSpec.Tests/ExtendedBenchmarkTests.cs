@@ -212,7 +212,7 @@ public class ExtendedBenchmarkTests
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => new BenchmarkService(() => 0d).RunCpuMultiThreadAsync(cts.Token));
     }
 
@@ -222,7 +222,7 @@ public class ExtendedBenchmarkTests
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => new BenchmarkService(() => 0d).RunMemoryCopyAsync(cts.Token));
     }
 
@@ -232,7 +232,7 @@ public class ExtendedBenchmarkTests
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => new BenchmarkService(() => 0d).RunDiskRandom4KAsync(cts.Token));
     }
 
@@ -242,7 +242,7 @@ public class ExtendedBenchmarkTests
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => new BenchmarkService(() => 0d).RunDiskLatencyAsync(cts.Token));
     }
 }
