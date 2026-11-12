@@ -13,6 +13,7 @@ namespace TrueSpec.Tests;
 /// Long-running: a 10-second burn plus the memory and disk exercise.
 /// </summary>
 [Trait("Category", "LongRunning")]
+[Collection("LoadTestBurn")]
 public class LoadTestIntegrationTests
 {
     [Fact]

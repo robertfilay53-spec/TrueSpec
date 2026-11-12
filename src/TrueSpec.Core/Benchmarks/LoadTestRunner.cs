@@ -176,8 +176,11 @@ public sealed class LoadTestRunner
                     break;
                 }
 
-                if (DateTimeOffset.Now >= deadline)
+                if (DateTimeOffset.Now >= deadline && samples.Count > 0)
                 {
+                    // A test always records at least one sample, even when
+                    // a loaded machine delays the first delay past the
+                    // deadline: a test with zero samples proves nothing.
                     break;
                 }
 
