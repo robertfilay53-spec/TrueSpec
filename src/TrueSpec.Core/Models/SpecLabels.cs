@@ -15,6 +15,7 @@ namespace TrueSpec.Core.Models;
 /// </summary>
 public static class SpecLabels
 {
+    public const string ActiveResolution = "Active resolution (Windows)";
     public const string Antivirus = "Antivirus";
     public const string Architecture = "Architecture";
     public const string BIOSDate = "BIOS date";
@@ -32,9 +33,19 @@ public static class SpecLabels
     public const string ChassisSerial = "Chassis serial";
     public const string ChassisType = "Chassis type";
     public const string Chemistry = "Chemistry";
+    public const string ColourDepth = "Colour depth";
     public const string ConfiguredSpeed = "Configured speed";
     public const string CoreVoltage = "Core voltage";
     public const string Cores = "Cores";
+    public const string CrashBlueScreens = "Blue screens";
+    public const string CrashCorrectedHardwareErrors = "Corrected hardware errors";
+    public const string CrashCountSuffix = " (last 90 days)";
+    public const string CrashDiskErrors = "Disk errors";
+    public const string CrashEventLogGap = "Event log gap";
+    public const string CrashFatalHardwareErrors = "Fatal hardware errors";
+    public const string CrashFirstSuffix = " - first recorded";
+    public const string CrashRecentSuffix = " - most recent";
+    public const string CrashUnexpectedShutdowns = "Unexpected shutdowns";
     public const string CriticalErrorsEventLog = "Critical errors (event log)";
     public const string CurrentCharge = "Current charge";
     public const string CurrentClock = "Current clock";
@@ -53,6 +64,7 @@ public static class SpecLabels
     public const string DriverDate = "Driver date";
     public const string DriverVersion = "Driver version";
     public const string DriversOlderThan5Years = "Drivers older than 5 years";
+    public const string EarliestEventLogEntry = "Earliest event log entry";
     public const string Enabled = "Enabled";
     public const string EstimatedRuntime = "Estimated runtime";
     public const string EthernetDNSServers = "Ethernet DNS servers";
@@ -61,7 +73,7 @@ public static class SpecLabels
     public const string EthernetAdapter = "Ethernet adapter";
     public const string EthernetDriverDate = "Ethernet driver date";
     public const string EthernetGateway = "Ethernet gateway";
-    public const string EthernetLinkSpeed = "Ethernet link speed";
+    public const string EthernetLinkSpeed = "Ethernet link speed (negotiated rate at scan time)";
     public const string EthernetStatus = "Ethernet status";
     public const string Filesystem = "Filesystem";
     public const string Firewall = "Firewall";
@@ -93,7 +105,7 @@ public static class SpecLabels
     public const string LastSuccessfulUpdateCheck = "Last successful update check";
     public const string LastSuccessfulUpdateInstall = "Last successful update install";
     public const string LifeRemaining = "Life remaining";
-    public const string LinkSpeed = "Link speed";
+    public const string LinkSpeed = "Link speed (negotiated rate at scan time)";
     public const string LiveCoreClock = "Live core clock";
     public const string M2Slots = "M.2 slots";
     public const string MACAddress = "MAC address";
@@ -105,6 +117,7 @@ public static class SpecLabels
     public const string MemoryTest = "Memory test";
     public const string Model = "Model";
     public const string MonitorsDetected = "Monitors detected";
+    public const string NativeResolution = "Native resolution (panel)";
     public const string OldestDriverDate = "Oldest driver date";
     public const string OldestDriverDevice = "Oldest driver device";
     public const string OperatingSystem = "Operating system";
@@ -177,6 +190,8 @@ public static class SpecLabels
     public const string Wear = "Wear";
     public const string WearLevel = "Wear level";
     public const string WiFiAdapter = "Wi-Fi adapter";
+    public const string WifiDriverAge = "Wi-Fi driver age";
+    public const string WifiStandardNegotiated = "Wi-Fi standard (negotiated)";
     public const string WiFiVendor = "Wi-Fi vendor";
     public const string WindowsBuild = "Windows build";
     public const string WindowsEdition = "Windows edition";

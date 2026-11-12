@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using TrueSpec.Core.Collectors;
+using TrueSpec.Core.History;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Scoring;
 
@@ -38,6 +40,19 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
         HasChecks = Checks.Count > 0;
         Summary = BuildSummary(_result);
 
+        // U1 Authenticity (Blueprint 1): the age-signal cross-checks as
+        // their own section, with the raw verdict and every fired check.
+        // The analyzer is pure over the snapshot, so this never re-runs a
+        // collector and never changes when the advertised RAM changes.
+        Authenticity = AuthenticityAnalyzer.Analyze(snapshot);
+        AuthenticityChecks = new ObservableCollection<AuthenticityCheckRowViewModel>(
+            Authenticity.Checks.Select(c => new AuthenticityCheckRowViewModel(c)));
+        HasAuthenticityChecks = AuthenticityChecks.Count > 0;
+        AuthenticitySummary = Authenticity.Summary;
+        AuthenticitySkippedText = Authenticity.SkippedChecks.Count == 0
+            ? string.Empty
+            : $"{Authenticity.SkippedChecks.Count} authenticity check(s) could not run because a signal was not reported: {string.Join("; ", Authenticity.SkippedChecks)}";
+
         // Restore the advertised size the shell kept (for example after a
         // refresh rebuilt this page): the text box must not come back empty.
         // Setting the property re-evaluates the checks with the same context,
@@ -57,6 +72,24 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
     public string Summary { get; private set; }
 
     public ObservableCollection<BuyerCheckRowViewModel> Checks { get; private set; }
+
+    /// <summary>U1 verdict: "Signs of prior use" or "No signs of prior use".</summary>
+    public AuthenticityResult Authenticity { get; }
+
+    /// <summary>One row per fired authenticity check, with its two sources.</summary>
+    public ObservableCollection<AuthenticityCheckRowViewModel> AuthenticityChecks { get; }
+
+    /// <summary>False when no authenticity check fired: the view shows the verdict line instead of a blank list.</summary>
+    public bool HasAuthenticityChecks { get; }
+
+    /// <summary>Plain-English verdict line for the Authenticity section.</summary>
+    public string AuthenticitySummary { get; }
+
+    /// <summary>Names the rules that could not run, or empty when all ran.</summary>
+    public string AuthenticitySkippedText { get; }
+
+    /// <summary>True when at least one authenticity rule could not run.</summary>
+    public bool HasAuthenticitySkippedText => AuthenticitySkippedText.Length > 0;
 
     /// <summary>False when the scan produced no buyer checks: the view shows an empty state instead of a blank list.</summary>
     [ObservableProperty]
@@ -120,4 +153,43 @@ public sealed class BuyerCheckRowViewModel
     public HealthStatus Status { get; }
 
     public bool NeedsAttention { get; }
+}
+
+/// <summary>
+/// One fired U1 authenticity check: the rule title, the plain-English
+/// evidence line, and the two sources the rule compared. Severity maps to
+/// the shared health colours (Strong = Problem, Watch = Watch, Info =
+/// Healthy) so the view reuses the existing Status brushes, no new tokens.
+/// </summary>
+public sealed class AuthenticityCheckRowViewModel
+{
+    public AuthenticityCheckRowViewModel(AuthenticityCheck check)
+    {
+        Title = check.Title;
+        EvidenceLine = check.EvidenceLine;
+        Severity = check.Severity;
+        SeverityText = check.Severity.ToString();
+        SourceA = check.SourceA;
+        SourceB = check.SourceB;
+        Status = check.Severity switch
+        {
+            AuthenticitySeverity.Strong => HealthStatus.Problem,
+            AuthenticitySeverity.Watch => HealthStatus.Watch,
+            _ => HealthStatus.Healthy,
+        };
+    }
+
+    public string Title { get; }
+
+    public string EvidenceLine { get; }
+
+    public AuthenticitySeverity Severity { get; }
+
+    public string SeverityText { get; }
+
+    public string SourceA { get; }
+
+    public string SourceB { get; }
+
+    public HealthStatus Status { get; }
 }

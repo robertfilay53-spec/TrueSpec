@@ -13,6 +13,30 @@ internal static class WindowsEventLog
     // finish. The same cap applies to the memory-error count.
     public const int MaxEntriesExamined = 10_000;
 
+    /// <summary>
+    /// The earliest entry still in the System log, or null when the log is
+    /// empty or unreadable. Entries are chronological (oldest first), so the
+    /// first entry is the earliest. A cleared or rotated log reports the
+    /// oldest surviving entry, never a guessed date.
+    /// </summary>
+    public static DateTimeOffset? EarliestEntry()
+    {
+        try
+        {
+            using var log = new EventLog("System");
+            if (log.Entries.Count == 0)
+            {
+                return null;
+            }
+
+            return new DateTimeOffset(log.Entries[0].TimeGenerated);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public static int? CountCriticalErrors(TimeSpan window)
     {
         try

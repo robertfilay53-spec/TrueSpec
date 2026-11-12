@@ -28,6 +28,7 @@ public static class WindowsCollectorCatalog
         new DriversCollector(),
         new UpdatesCollector(),
         new StartupCollector(),
+        new CrashCollector(),
     };
 
     public static ISensorMonitor CreateSensorMonitor() => SensorMonitor;

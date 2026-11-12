@@ -25,6 +25,7 @@ public static class IconLibrary
         ["report"] = "M6,3 H14 L18,7 V21 H6 Z M14,3 V7 H18 M9,12 H15 M9,16 H15",
         ["compare"] = "M4,6 H11 V18 H4 Z M13,6 H20 V18 H13 Z M8,10 H7 M8,14 H7 M17,10 H16 M17,14 H16",
         ["settings"] = "M12,9 C13.66,9 15,10.34 15,12 C15,13.66 13.66,15 12,15 C10.34,15 9,13.66 9,12 C9,10.34 10.34,9 12,9 M12,2 V5 M12,19 V22 M2,12 H5 M19,12 H22 M5,5 L7,7 M17,17 L19,19 M19,5 L17,7 M7,17 L5,19",
+        ["crash"] = "M12,3 L21,20 H3 Z M11,9 H13 V14 H11 Z M11,16 H13 V18 H11 Z",
         ["drivers"] = "M4,6 H20 V18 H4 Z M8,10 H16 M8,14 H13",
         ["updates"] = "M12,3 V14 M7,9 L12,14 L17,9 M4,17 H20 V21 H4 Z",
         ["refresh"] = "M20,12 A8,8 0 1 1 17,6 M20,3 V7 H16",

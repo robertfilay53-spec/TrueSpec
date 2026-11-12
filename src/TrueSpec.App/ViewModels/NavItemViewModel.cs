@@ -21,6 +21,10 @@ public sealed record NavItemViewModel(string Key, string Label, string IconData)
         Create("drivers", "Drivers"),
         Create("updates", "Updates"),
         Create("startup", "Startup"),
+        // Crash history sits with the diagnostics pages (its collector
+        // category is Diagnostics) and stays above the ~16-item fold line,
+        // so History keeps its visible slot.
+        Create("crash", "Crash history"),
         // History sits here, inside the ~16 items the left rail shows at the
         // default 1280x800 window, on purpose: it was second-to-last and the
         // rail overflows past ~16 items, so History rendered below the fold

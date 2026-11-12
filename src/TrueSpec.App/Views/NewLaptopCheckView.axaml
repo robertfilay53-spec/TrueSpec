@@ -26,6 +26,59 @@
                 </Grid>
             </Border>
 
+            <TextBlock Text="Authenticity" Classes="h2" />
+            <TextBlock Text="{Binding AuthenticitySummary}" Classes="muted" TextWrapping="Wrap" />
+
+            <ItemsControl ItemsSource="{Binding AuthenticityChecks}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:AuthenticityCheckRowViewModel">
+                        <Border Classes="card" Padding="16" Margin="0,0,0,10">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                                <Border Width="32" Height="32"
+                                        CornerRadius="16"
+                                        VerticalAlignment="Top"
+                                        Background="{Binding Status, Converter={StaticResource StatusTint}}">
+                                    <Ellipse Width="11" Height="11"
+                                             Fill="{Binding Status, Converter={StaticResource StatusBrush}}"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center" />
+                                </Border>
+
+                                <StackPanel Grid.Column="1" Spacing="5">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="{Binding Title}" Classes="h3" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                        <Border Grid.Column="1"
+                                                Background="{Binding Status, Converter={StaticResource StatusTint}}"
+                                                CornerRadius="20"
+                                                Padding="10,3">
+                                            <TextBlock Text="{Binding SeverityText}"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding Status, Converter={StaticResource StatusBrush}}" />
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Text="{Binding EvidenceLine}" Classes="muted" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding SourceA, StringFormat='Source 1: {0}'}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding SourceB, StringFormat='Source 2: {0}'}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Classes="card" Padding="18" IsVisible="{Binding !HasAuthenticityChecks}">
+                <TextBlock Text="No signs of prior use were found in the age signals that could be checked."
+                           Classes="muted"
+                           TextWrapping="Wrap" />
+            </Border>
+
+            <TextBlock Text="{Binding AuthenticitySkippedText}"
+                       Classes="muted"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding HasAuthenticitySkippedText}" />
+
             <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Text="Checklist" Classes="h2" VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">

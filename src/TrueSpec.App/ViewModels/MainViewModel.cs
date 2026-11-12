@@ -533,6 +533,7 @@ public partial class MainViewModel : ViewModelBase
         CurrentPage = key.ToLowerInvariant() switch
         {
             "overview" => Overview,
+            "crash" => GetOrCreate("crash", () => new CrashHistoryViewModel(_snapshot)),
             "tests" => GetOrCreate("tests", () => new TestsViewModel()),
             "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: _scanRunning, exportPdfCommand: ExportPdfCommand)),
             "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot)),

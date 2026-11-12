@@ -105,6 +105,52 @@
                 </StackPanel>
             </Border>
 
+            <Border Classes="card" Padding="20" IsVisible="{Binding HasAgeSignals}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Age signals" Classes="h3" />
+                    <TextBlock Text="The raw numbers behind the authenticity verdict. Each signal names where it was read from."
+                               Classes="muted"
+                               TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding AgeSignals}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AgeSignalRowViewModel">
+                                <Border BorderBrush="{DynamicResource AppBorder}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="0,9">
+                                    <Grid ColumnDefinitions="230,*,Auto" ColumnSpacing="16">
+                                        <TextBlock Text="{Binding Name}"
+                                                   Classes="muted"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="{Binding Value}" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding ReliabilityText}"
+                                                       Classes="muted"
+                                                       FontSize="11"
+                                                       TextWrapping="Wrap"
+                                                       IsVisible="{Binding HasReliabilityText}" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding Source}"
+                                                   Classes="muted"
+                                                   FontSize="11"
+                                                   MaxWidth="220"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip.Tip="{Binding Source}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding AgeSignalsNote}"
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding HasAgeSignalsNote}" />
+                </StackPanel>
+            </Border>
+
             <Border Classes="card" Padding="20">
                 <StackPanel Spacing="8">
                     <TextBlock Text="What this means" Classes="h3" />

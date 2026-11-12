@@ -24,7 +24,7 @@ public sealed class DisplayCollector : ICollector
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
         var monitors = Wmi.Query("root\\wmi", "SELECT ManufacturerName, ProductCodeID, SerialNumberID, UserFriendlyName, YearOfManufacture, WeekOfManufacture FROM WmiMonitorID");
-        var video = Wmi.Query("root\\cimv2", "SELECT CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate FROM Win32_VideoController").FirstOrDefault();
+        var video = Wmi.Query("root\\cimv2", "SELECT CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate, CurrentBitsPerPixel FROM Win32_VideoController").FirstOrDefault();
 
         if (monitors.Count == 0 && video is null)
         {
@@ -54,6 +54,7 @@ public sealed class DisplayCollector : ICollector
 
         var size = FormatPanelSize(basic);
         var resolution = FormatResolution(video);
+        var colourDepth = FormatColourDepth(video?.UInt32("CurrentBitsPerPixel"));
         var refresh = video?.UInt32("CurrentRefreshRate") is { } hz && hz > 0
             ? string.Create(CultureInfo.InvariantCulture, $"{hz} Hz")
             : CollectorSupport.NotReported;
@@ -73,7 +74,14 @@ public sealed class DisplayCollector : ICollector
             CollectorSupport.Spec(SpecLabels.PanelName, friendly, "EDID WmiMonitorID.UserFriendlyName"),
             CollectorSupport.Spec(SpecLabels.ManufactureDate, manufactureDate, "EDID WmiMonitorID manufacture week/year"),
             CollectorSupport.Spec(SpecLabels.Size, size, "EDID WmiMonitorBasicDisplayParams"),
-            CollectorSupport.Spec(SpecLabels.Resolution, resolution, "CIM Win32_VideoController"),
+            // U11: the panel block (EDID) sits next to the active Windows
+            // resolution so a buyer can compare them. The panel's own native
+            // resolution is NOT shown as a number: EDID detailed timings are
+            // not exposed by WmiMonitorID, so it is reported as not available
+            // rather than guessed from the active resolution.
+            CollectorSupport.Spec(SpecLabels.ActiveResolution, resolution, "CIM Win32_VideoController (active display settings)"),
+            CollectorSupport.Spec(SpecLabels.NativeResolution, null, "EDID detailed timings are not exposed by WmiMonitorID"),
+            CollectorSupport.Spec(SpecLabels.ColourDepth, colourDepth, "CIM Win32_VideoController.CurrentBitsPerPixel"),
             CollectorSupport.Spec(SpecLabels.RefreshRate, refresh, "CIM Win32_VideoController"),
             CollectorSupport.Spec(SpecLabels.MonitorsDetected, monitors.Count.ToString(CultureInfo.InvariantCulture), "CIM WmiMonitorID"),
             CollectorSupport.Spec(SpecLabels.HDR, "Not reported by hardware", "EDID extended block not exposed by WmiMonitorID"),
@@ -105,7 +113,45 @@ public sealed class DisplayCollector : ICollector
             Id,
             string.IsNullOrWhiteSpace(headline) ? "Display" : headline,
             specs,
-            "The panel block shows what screen is fitted. The manufacture date comes from the panel EDID itself. A panel made long before the laptop was sold can be a sign of a replaced screen. HDR and panel technology are only shown when the EDID exposes them."));
+            "The panel block shows what screen is fitted. The manufacture date comes from the panel EDID itself. A panel made long before the laptop was sold can be a sign of a replaced screen. The resolution shown is the one Windows is currently using; the panel's own native resolution is not exposed by WmiMonitorID, so it is reported as not available rather than guessed. HDR and panel technology are only shown when the EDID exposes them. " +
+            BuildBuyerSummary(manufacturer, model, manufactureDate, colourDepth, resolution)));
+    }
+
+    /// <summary>
+    /// U11 one-line buyer summary: the panel's real identity (EDID) next to
+    /// the resolution Windows is currently using, so a buyer can compare
+    /// them at a glance. Any part the hardware did not report says so
+    /// instead of being guessed.
+    /// </summary>
+    internal static string BuildBuyerSummary(
+        string manufacturer,
+        string model,
+        string manufactureDate,
+        string colourDepth,
+        string resolution)
+    {
+        var identityParts = new[] { manufacturer, model }
+            .Where(v => !string.Equals(v, CollectorSupport.NotReported, StringComparison.Ordinal))
+            .ToArray();
+        var panelPart = identityParts.Length == 0
+            ? "panel manufacturer and model not reported by hardware"
+            : string.Create(CultureInfo.InvariantCulture, $"panel {string.Join(" ", identityParts)}");
+
+        var madePart = string.Equals(manufactureDate, CollectorSupport.NotReported, StringComparison.Ordinal)
+            ? "manufacture date not reported by hardware"
+            : string.Create(CultureInfo.InvariantCulture, $"made {manufactureDate}");
+
+        var colourPart = string.Equals(colourDepth, CollectorSupport.NotReported, StringComparison.Ordinal)
+            ? "colour depth not reported by hardware"
+            : string.Create(CultureInfo.InvariantCulture, $"colour depth {colourDepth}");
+
+        var activePart = string.Equals(resolution, CollectorSupport.NotReported, StringComparison.Ordinal)
+            ? "Windows is not reporting an active resolution"
+            : string.Create(CultureInfo.InvariantCulture, $"Windows is using {resolution}");
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"Buyer check: {panelPart}, {madePart}, {colourPart}; {activePart}.");
     }
 
     private static string Decode(ushort[]? values)
@@ -122,6 +168,16 @@ public sealed class DisplayCollector : ICollector
 
         return chars.Length == 0 ? CollectorSupport.NotReported : new string(chars).Trim();
     }
+
+    /// <summary>
+    /// U11: colour depth from Win32_VideoController.CurrentBitsPerPixel, as
+    /// "32-bit". A missing or zero value is "Not reported by hardware":
+    /// 0 bits per pixel is not a real colour depth.
+    /// </summary>
+    internal static string FormatColourDepth(uint? bitsPerPixel) =>
+        bitsPerPixel is null or 0
+            ? CollectorSupport.NotReported
+            : string.Create(CultureInfo.InvariantCulture, $"{bitsPerPixel.Value}-bit");
 
     private static string FormatResolution(WmiRow? video)
     {

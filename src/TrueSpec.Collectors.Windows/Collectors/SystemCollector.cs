@@ -83,6 +83,7 @@ public sealed class SystemCollector : ICollector
         var drivers = ReadDriverSignatureSummary();
         var criticalErrors = WindowsEventLog.CountCriticalErrors(TimeSpan.FromDays(30));
         var memoryErrors = WindowsEventLog.CountMemoryErrors(TimeSpan.FromDays(30));
+        var earliestLogEntry = WindowsEventLog.EarliestEntry();
 
         var specs = new List<SpecValue>
         {
@@ -109,6 +110,7 @@ public sealed class SystemCollector : ICollector
             CollectorSupport.Spec(SpecLabels.VirtualizationBasedSecurity, DeviceGuardText(deviceGuard), "CIM Win32_DeviceGuard"),
             CollectorSupport.Spec(SpecLabels.CriticalErrorsEventLog, FormatCount(criticalErrors), "Windows Event Log (System)"),
             CollectorSupport.Spec(SpecLabels.MemoryErrorsEventLog, FormatCount(memoryErrors), "Windows Event Log (WHEA-Logger)"),
+            CollectorSupport.Spec(SpecLabels.EarliestEventLogEntry, earliestLogEntry?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), "Windows Event Log (System)"),
             CollectorSupport.Spec(SpecLabels.InstalledDrivers, FormatCount(drivers.Total), "CIM Win32_PnPSignedDriver"),
             CollectorSupport.Spec(SpecLabels.UnsignedDrivers, FormatCount(drivers.Unsigned), "CIM Win32_PnPSignedDriver.IsSigned"),
             CollectorSupport.Spec(SpecLabels.UnknownDriverSignature, FormatCount(drivers.Unknown), "CIM Win32_PnPSignedDriver.IsSigned"),
