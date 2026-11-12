@@ -49,6 +49,7 @@
     <Compile Remove="StorageCollectorTests.cs" />
     <Compile Remove="SystemCollectorTests.cs" />
     <Compile Remove="DisplayNetworkTruthTests.cs" />
+    <Compile Remove="CrashCollectorTests.cs" />
     <Compile Remove="NavigationTests.cs" />
     <Compile Remove="HistoryCsvTableAgreementTests.cs" />
   </ItemGroup>
