@@ -160,6 +160,14 @@
                                   Data="M20,12 A8,8 0 1 1 17,6 M20,3 V7 H16"
                                   Foreground="{DynamicResource TextSecondary}" />
                     </Button>
+                    <Button Classes="ghost" Command="{Binding CancelScanCommand}" Padding="4,0" Margin="8,0,0,0"
+                            IsVisible="{Binding IsScanRunning}"
+                            ToolTip.Tip="Cancel scan"
+                            auto:AutomationProperties.Name="Cancel scan">
+                        <PathIcon Width="14" Height="14"
+                                  Data="M6,6 L18,18 M18,6 L6,18"
+                                  Foreground="{DynamicResource TextSecondary}" />
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
