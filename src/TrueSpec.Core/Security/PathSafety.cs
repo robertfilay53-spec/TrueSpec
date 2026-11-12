@@ -109,65 +109,61 @@ public static class PathSafety
     /// <summary>
     /// Resolves symlinks and junctions in a path before a containment
     /// check, so a path that looks inside the allowed folder cannot
-    /// escape through a link. The file itself is resolved when it exists;
-    /// otherwise the containing directory chain is resolved (a database
-    /// or log file that does not exist yet has no link of its own, but
-    /// the folder holding it can still be a link). Any failure to resolve
-    /// falls back to the unresolved path: resolution is a hardening step,
-    /// never a reason to reject a legitimate path.
+    /// escape through a link. Every segment is resolved from the root
+    /// down, so a link anywhere in the chain is caught, including a
+    /// not-yet-created file under a linked folder. Two Windows quirks
+    /// force the per-segment walk instead of an existence check:
+    /// File.Exists/Directory.Exists are unreliable for reparse points
+    /// (a link can report as neither), and File.ResolveLinkTarget does
+    /// not resolve a directory link, so each segment is tried with both
+    /// the file and the directory API. A segment that is not a link, or
+    /// cannot be resolved, is kept as-is: resolution is a hardening
+    /// step, never a reason to reject a legitimate path.
     /// </summary>
     internal static string ResolveLinks(string fullPath)
     {
-        try
+        var root = Path.GetPathRoot(fullPath);
+        if (string.IsNullOrEmpty(root))
         {
-            // Walk up to the nearest existing ancestor: the path itself
-            // when it exists (file or directory), otherwise the closest
-            // parent that does. The path itself must be resolved, not
-            // just its parent: File.Exists is false for a directory, so
-            // a directory symlink passed as the export folder was
-            // returned unresolved and the containment check saw the link,
-            // not the target. The segments below the ancestor are
-            // re-appended after resolution, so a not-yet-created file
-            // under a linked folder is resolved through the link too.
-            var ancestor = fullPath;
-            var tail = new List<string>();
-            while (!string.IsNullOrEmpty(ancestor) && !File.Exists(ancestor) && !Directory.Exists(ancestor))
+            return fullPath;
+        }
+
+        var resolved = root;
+        var segments = fullPath[root.Length..]
+            .Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var segment in segments)
+        {
+            var candidate = Path.Combine(resolved, segment);
+            resolved = ResolveOneLink(candidate) ?? candidate;
+        }
+
+        return resolved;
+    }
+
+    private static string? ResolveOneLink(string candidate)
+    {
+        foreach (var resolve in new Func<string, bool, FileSystemInfo?>[]
+                 {
+                     File.ResolveLinkTarget,
+                     Directory.ResolveLinkTarget,
+                 })
+        {
+            try
             {
-                var parent = Path.GetDirectoryName(ancestor);
-                if (string.IsNullOrEmpty(parent) || string.Equals(parent, ancestor, StringComparison.Ordinal))
+                var target = resolve(candidate, true);
+                if (target is not null)
                 {
-                    return fullPath;
+                    return target.FullName;
                 }
-
-                tail.Add(Path.GetFileName(ancestor));
-                ancestor = parent;
             }
-
-            if (string.IsNullOrEmpty(ancestor))
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
             {
-                return fullPath;
+                // Not a link this API can resolve (or not resolvable):
+                // try the other API, then keep the segment as-is.
             }
-
-            var target = File.ResolveLinkTarget(ancestor, returnFinalTarget: true);
-            if (target is null)
-            {
-                return fullPath;
-            }
-
-            var resolved = target.FullName;
-            for (var i = tail.Count - 1; i >= 0; i--)
-            {
-                resolved = Path.Combine(resolved, tail[i]);
-            }
-
-            return resolved;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
-        {
-            // Fall through to the unresolved path.
         }
 
-        return fullPath;
+        return null;
     }
 
     /// <summary>
