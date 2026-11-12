@@ -138,7 +138,7 @@ public class LoadTestRunnerTests
     }
 
     [Fact]
-    public async Task ShortRun_MemoryPatternVerifies_AndDiskReadIsMeasured()
+    public async Task ShortRun_MemoryPatternVerifies_AndDiskReadReportedWhenMeasured()
     {
         var runner = new LoadTestRunner(new FakeSensorMonitor(50d, 3900d));
         var config = new LoadTestConfig(DurationSeconds: 3, RatedMaxMHz: 4000d);
@@ -147,9 +147,30 @@ public class LoadTestRunnerTests
 
         Assert.Null(result.AbortReason);
         Assert.True(result.MemoryPatternVerified, "The 256 MB memory pattern must verify.");
-        Assert.NotNull(result.DiskReadMBps);
-        Assert.True(result.DiskReadMBps > 0, "The 128 MB sequential disk read must measure a speed.");
+        // The 128 MB disk read runs beside the burn and the runner joins it
+        // with a 10-second timeout: on a heavily loaded machine the read can
+        // still be running when the join expires, and the result then
+        // honestly reports null ("not measured in the window") instead of a
+        // fabricated speed. Asserting NotNull here flaked once on main CI
+        // for exactly that reason, so a null reading is accepted here and
+        // the measurement itself is covered directly below.
+        if (result.DiskReadMBps is { } mbps)
+        {
+            Assert.True(mbps > 0, "The 128 MB sequential disk read must measure a speed.");
+        }
         Assert.Equal(0, runner.ActiveWorkerCount);
+    }
+
+    [Fact]
+    public void DiskSequentialRead_MeasuresASpeed()
+    {
+        // Direct cover for the shared disk helper: a small read with no burn
+        // running, so the measurement itself is deterministic.
+        var result = BenchmarkService.MeasureDiskSequentialRead(16 * 1024 * 1024, CancellationToken.None);
+
+        Assert.True(result.Success, $"The disk read must succeed: {result.Summary}");
+        Assert.NotNull(result.Value);
+        Assert.True(result.Value > 0, "The disk read must measure a speed.");
     }
 
     [Fact]
