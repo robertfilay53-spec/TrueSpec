@@ -61,7 +61,8 @@
                                     <Grid ColumnDefinitions="230,*,Auto" ColumnSpacing="16">
                                         <TextBlock Text="{Binding Label}"
                                                    Classes="muted"
-                                                   VerticalAlignment="Center" />
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap" />
                                         <Button Grid.Column="1"
                                                 Classes="ghost"
                                                 Padding="0"
@@ -86,9 +87,21 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <TextBlock Text="Click any value to copy it. Hover a value or source name to see where the reading came from."
+                    <TextBlock Text="{Binding NoSpecsMessage}"
                                Classes="muted"
-                               FontSize="11" />
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding !HasVisibleSpecs}" />
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Click any value to copy it. Hover a value or source name to see where the reading came from."
+                                   Classes="muted"
+                                   FontSize="11" />
+                        <TextBlock Grid.Column="1"
+                                   x:Name="CopyFeedback"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource HealthyBrush}" />
+                    </Grid>
                 </StackPanel>
             </Border>
 

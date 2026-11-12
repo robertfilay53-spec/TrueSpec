@@ -58,9 +58,9 @@
                                 </Border>
                                 <Button Grid.Column="2"
                                         Classes="secondary"
-                                        Content="Run test"
+                                        Content="{Binding RunButtonText}"
                                         Command="{Binding RunCommand}"
-                                        IsEnabled="{Binding CanRun}"
+                                        IsEnabled="{Binding CanRunNow}"
                                         VerticalAlignment="Center" />
                             </Grid>
                         </Border>

@@ -70,6 +70,12 @@ public sealed partial class TestItemViewModel : ViewModelBase
 
     public bool CanRun => _run is not null;
 
+    /// <summary>The Run button enables only for an implemented test that is not already running.</summary>
+    public bool CanRunNow => CanRun && !IsRunning;
+
+    /// <summary>Button label follows the state: unavailable, running, or ready.</summary>
+    public string RunButtonText => !CanRun ? "Not available" : IsRunning ? "Running…" : "Run test";
+
     [ObservableProperty]
     public partial string Status { get; set; }
 
@@ -78,6 +84,12 @@ public sealed partial class TestItemViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool IsRunning { get; set; }
+
+    partial void OnIsRunningChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanRunNow));
+        OnPropertyChanged(nameof(RunButtonText));
+    }
 
     [RelayCommand]
     private async Task RunAsync()

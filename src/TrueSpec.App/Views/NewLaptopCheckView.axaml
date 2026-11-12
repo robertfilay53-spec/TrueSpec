@@ -71,7 +71,7 @@
 
                                 <StackPanel Grid.Column="1" Spacing="5">
                                     <Grid ColumnDefinitions="*,Auto">
-                                        <TextBlock Text="{Binding Title}" Classes="h3" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Title}" Classes="h3" VerticalAlignment="Center" TextWrapping="Wrap" />
                                         <Border Grid.Column="1"
                                                 Background="{Binding Status, Converter={StaticResource StatusTint}}"
                                                 CornerRadius="20"
@@ -97,6 +97,12 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+
+            <Border Classes="card" Padding="18" IsVisible="{Binding !HasChecks}">
+                <TextBlock Text="No buyer checks were produced for this scan."
+                           Classes="muted"
+                           TextWrapping="Wrap" />
+            </Border>
 
             <TextBlock Text="Buyer checks use the same honest rules as the rest of the app: measured values only, no invented numbers."
                        Classes="muted"

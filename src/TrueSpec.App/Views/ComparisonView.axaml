@@ -30,7 +30,15 @@
                                       PlaceholderText="Pick an earlier snapshot">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate x:DataType="storage:SnapshotSummary">
-                                        <TextBlock Text="{Binding CapturedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm} - Score {1}'}" />
+                                        <TextBlock>
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0:yyyy-MM-dd HH:mm} - Score {1:0.#} ({2})">
+                                                    <Binding Path="CapturedAt" />
+                                                    <Binding Path="OverallScore" />
+                                                    <Binding Path="Verdict" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
@@ -43,7 +51,15 @@
                                       PlaceholderText="Pick a later snapshot">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate x:DataType="storage:SnapshotSummary">
-                                        <TextBlock Text="{Binding CapturedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm} - Score {1}'}" />
+                                        <TextBlock>
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0:yyyy-MM-dd HH:mm} - Score {1:0.#} ({2})">
+                                                    <Binding Path="CapturedAt" />
+                                                    <Binding Path="OverallScore" />
+                                                    <Binding Path="Verdict" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
@@ -62,6 +78,10 @@
                 <StackPanel Spacing="10">
                     <TextBlock Text="Result" Classes="h3" />
                     <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                    <TextBlock Text="No component health changed and no specifications changed between these two snapshots."
+                               Classes="muted"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding !HasChanges}" />
 
                     <ItemsControl ItemsSource="{Binding Rows}">
                         <ItemsControl.ItemTemplate>
