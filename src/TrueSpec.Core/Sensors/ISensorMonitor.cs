@@ -81,6 +81,11 @@ public sealed record SensorSnapshot(
         return clocks.Count == 0 ? null : clocks.Average(r => r.Value!.Value);
     }
 
+    /// <summary>Every fan reading with a value, for the load test's per-fan sampling (U5). A 0 RPM value is a real reading (a stopped fan); a fan sensor with no value is absent, never recorded as 0.</summary>
+    public IReadOnlyList<SensorReading> FanReadings() => Readings
+        .Where(r => r.Kind == SensorKind.Fan && r.HasValue)
+        .ToList();
+
     /// <summary>CPU fan speed in RPM, or null when no CPU fan sensor reported.</summary>
     public double? CpuFanRpm() => Find(SensorKind.Fan, "CPU", "CPU Fan", "Fan")?.Value;
 

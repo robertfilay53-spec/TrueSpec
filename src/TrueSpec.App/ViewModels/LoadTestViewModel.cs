@@ -94,6 +94,18 @@ public sealed partial class LoadTestViewModel : ViewModelBase
     [ObservableProperty]
     public partial string ResultPercentText { get; set; } = string.Empty;
 
+    /// <summary>U5: one line per reported fan ("CPU Fan #1: idle 1,200 RPM, under load 2,400 RPM (peak 82 C)"). Empty when no fan sensor reported.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<string> FanHealthLines { get; set; } = Array.Empty<string>();
+
+    /// <summary>U5: one line per measured fan fault, or empty when no fault fired.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<string> FanHealthFindings { get; set; } = Array.Empty<string>();
+
+    /// <summary>U5: the fan-health verdict line; the no-sensor empty state is part of this text.</summary>
+    [ObservableProperty]
+    public partial string FanHealthSummaryText { get; set; } = string.Empty;
+
     [ObservableProperty]
     public partial IReadOnlyList<double> TemperatureValues { get; set; } = Array.Empty<double>();
 
@@ -122,6 +134,9 @@ public sealed partial class LoadTestViewModel : ViewModelBase
         IsRunning = true;
         HasResult = false;
         TemperatureValues = Array.Empty<double>();
+        FanHealthLines = Array.Empty<string>();
+        FanHealthFindings = Array.Empty<string>();
+        FanHealthSummaryText = string.Empty;
         StatusText = "Running...";
         ElapsedText = "0 s";
         LiveTemperatureText = "Temperature: measuring...";
@@ -152,6 +167,19 @@ public sealed partial class LoadTestViewModel : ViewModelBase
             ResultPercentText = result.RatedMaxMHz is { } rated && result.ClockHeldPercent is { } percent
                 ? string.Create(CultureInfo.InvariantCulture, $"Held {percent:0}% of rated {rated:0} MHz max")
                 : "Rated clock: not reported by hardware";
+            // U5 fan health, measured from the same samples: the rows are
+            // the per-fan idle/load speeds, the findings are the measured
+            // faults (if any), and the summary is the honest empty state
+            // when this machine exposes no fan sensors.
+            var fanHealth = result.FanHealth;
+            FanHealthLines = fanHealth is null
+                ? Array.Empty<string>()
+                : fanHealth.Fans.Select(f => f.DisplayText).ToList();
+            FanHealthFindings = fanHealth is null
+                ? Array.Empty<string>()
+                : fanHealth.Findings.Select(f => f.Message).ToList();
+            FanHealthSummaryText = fanHealth?.SummaryText
+                ?? "No fan sensors were reported by hardware, so fan health could not be checked.";
             TemperatureValues = result.Samples
                 .Where(s => s.CpuTempC.HasValue)
                 .Select(s => s.CpuTempC!.Value)

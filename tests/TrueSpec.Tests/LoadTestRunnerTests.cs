@@ -19,13 +19,15 @@ public class LoadTestRunnerTests
     {
         private readonly double? _tempC;
         private readonly double? _clockMHz;
+        private readonly double? _fanRpm;
         private readonly int _goodReads;
         private int _reads;
 
-        public FakeSensorMonitor(double? tempC, double? clockMHz, int goodReads = int.MaxValue)
+        public FakeSensorMonitor(double? tempC, double? clockMHz, int goodReads = int.MaxValue, double? fanRpm = null)
         {
             _tempC = tempC;
             _clockMHz = clockMHz;
+            _fanRpm = fanRpm;
             _goodReads = goodReads;
         }
 
@@ -52,6 +54,11 @@ public class LoadTestRunnerTests
             {
                 readings.Add(new SensorReading("CPU", "Core #1", SensorKind.Clock, "MHz", clock, "Test"));
                 readings.Add(new SensorReading("CPU", "Core #2", SensorKind.Clock, "MHz", clock, "Test"));
+            }
+
+            if (_fanRpm is { } fan)
+            {
+                readings.Add(new SensorReading("CPU", "Fan #1", SensorKind.Fan, "RPM", fan, "Test"));
             }
 
             return Task.FromResult(new SensorSnapshot(true, "Test", DateTimeOffset.Now, readings));
@@ -142,6 +149,43 @@ public class LoadTestRunnerTests
         Assert.True(result.MemoryPatternVerified, "The 256 MB memory pattern must verify.");
         Assert.NotNull(result.DiskReadMBps);
         Assert.True(result.DiskReadMBps > 0, "The 128 MB sequential disk read must measure a speed.");
+        Assert.Equal(0, runner.ActiveWorkerCount);
+    }
+
+    [Fact]
+    public async Task FanReadings_FlowFromSensorToResult_WithIdleBaseline()
+    {
+        // The warm-up read (before the burn) is the idle baseline, and
+        // every sample carries the per-fan reading, so the fan-health
+        // verdict is measured from the same run as the throttle verdict.
+        var runner = new LoadTestRunner(new FakeSensorMonitor(50d, 3900d, fanRpm: 1500d));
+        var config = new LoadTestConfig(DurationSeconds: 3, RatedMaxMHz: 4000d);
+
+        var result = await runner.RunAsync(config);
+
+        Assert.NotNull(result.FanHealth);
+        Assert.True(result.FanHealth!.HasFanSensors);
+        Assert.False(result.FanHealth.HasFault);
+        Assert.Single(result.FanHealth.Fans);
+        Assert.Equal("CPU Fan #1", result.FanHealth.Fans[0].Name);
+        Assert.Equal(1500d, result.FanHealth.Fans[0].IdleRpm);
+        Assert.Equal(1500d, result.FanHealth.Fans[0].LoadRpm);
+        Assert.True(result.Samples.Count >= 1);
+        Assert.All(result.Samples, s => Assert.Contains(s.Fans ?? Array.Empty<FanReading>(), f => f.Name == "CPU Fan #1" && f.Rpm == 1500d));
+        Assert.Equal(0, runner.ActiveWorkerCount);
+    }
+
+    [Fact]
+    public async Task NoFanSensors_ResultSaysSoHonestly()
+    {
+        var runner = new LoadTestRunner(new FakeSensorMonitor(50d, 3900d));
+        var config = new LoadTestConfig(DurationSeconds: 3, RatedMaxMHz: 4000d);
+
+        var result = await runner.RunAsync(config);
+
+        Assert.NotNull(result.FanHealth);
+        Assert.False(result.FanHealth!.HasFanSensors);
+        Assert.Contains("No fan sensors were reported by hardware", result.FanHealth.SummaryText, StringComparison.Ordinal);
         Assert.Equal(0, runner.ActiveWorkerCount);
     }
 }

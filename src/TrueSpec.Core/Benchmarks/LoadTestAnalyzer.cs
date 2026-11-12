@@ -18,13 +18,22 @@ public static class LoadTestAnalyzer
     /// <summary>The verdict window: the last 30 seconds of samples.</summary>
     public static readonly TimeSpan VerdictWindow = TimeSpan.FromSeconds(30);
 
+    /// <summary>
+    /// The idle readings are the fan speeds and component temperatures
+    /// measured before the burn started (U5): rule 2 judges the RPM rise
+    /// against them, so a fan that was already fast at idle is not flagged
+    /// for failing to rise further.
+    /// </summary>
     public static LoadTestResult Analyze(
         IReadOnlyList<LoadTestSample> samples,
         double? ratedMaxMHz,
         string? abortReason,
         int durationSeconds,
         bool memoryPatternVerified = true,
-        double? diskReadMBps = null)
+        double? diskReadMBps = null,
+        IReadOnlyList<FanReading>? idleFans = null,
+        double? idleCpuTempC = null,
+        double? idleGpuTempC = null)
     {
         ArgumentNullException.ThrowIfNull(samples);
 
@@ -85,6 +94,8 @@ public static class LoadTestAnalyzer
             abortReason,
             memoryPatternVerified);
 
+        var fanHealth = FanHealthAnalyzer.Analyze(ordered, idleFans, idleCpuTempC, idleGpuTempC);
+
         return new LoadTestResult(
             ordered,
             peakTempOrNull,
@@ -100,7 +111,8 @@ public static class LoadTestAnalyzer
             memoryPatternVerified,
             diskReadMBps,
             startedAt,
-            completedAt);
+            completedAt,
+            fanHealth);
     }
 
     private static string BuildVerdict(
