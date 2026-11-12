@@ -42,34 +42,26 @@ public sealed class BatteryCollector : ICollector
                 "No battery was reported. This is normal on a desktop, or the battery firmware does not expose Win32_Battery."));
         }
 
-        var design = staticData?.UInt32("DesignedCapacity") ?? battery?.UInt32("DesignCapacity");
-        if (design is 0)
-        {
-            design = null;
-        }
-
-        var full = fullData?.UInt32("FullChargedCapacity") ?? battery?.UInt32("FullChargeCapacity");
-        if (full is 0)
-        {
-            full = null;
-        }
+        var design = CollectorSupport.BatteryCapacity(staticData?.UInt32("DesignedCapacity") ?? battery?.UInt32("DesignCapacity"));
+        var full = CollectorSupport.BatteryCapacity(fullData?.UInt32("FullChargedCapacity") ?? battery?.UInt32("FullChargeCapacity"));
 
         var health = HardwareMath.BatteryHealthPercent(design, full);
         var wear = HardwareMath.BatteryWearPercent(design, full);
-        var cycles = cycleData?.UInt32("CycleCount");
-        var chemistryText = staticData?.String("Chemistry");
-        var chemistry = string.IsNullOrWhiteSpace(chemistryText)
-            ? CollectorSupport.BatteryChemistry(battery?.UInt32("Chemistry"))
-            : CollectorSupport.BatteryChemistry(chemistryText);
+        var cycles = CollectorSupport.BatteryCycleCount(cycleData?.UInt32("CycleCount"));
 
-        var currentCharge = battery?.UInt16("EstimatedChargeRemaining");
-        var runtime = battery?.UInt32("EstimatedRunTime");
-        // Win32_Battery reports 0x04444444 when the runtime is unknown.
-        const uint UnknownRuntimeSentinel = 71582788;
-        if (runtime is UnknownRuntimeSentinel)
+        // BatteryStaticData reports Chemistry as a raw number; when it is
+        // an unmapped vendor value the decoder returns "Not reported by
+        // hardware", so fall back to the Win32_Battery code before giving
+        // up: on a ThinkPad the static value is garbage while the
+        // Win32_Battery code is the real chemistry.
+        var chemistry = CollectorSupport.BatteryChemistry(staticData?.String("Chemistry"));
+        if (chemistry == CollectorSupport.NotReported)
         {
-            runtime = null;
+            chemistry = CollectorSupport.BatteryChemistry(battery?.UInt32("Chemistry"));
         }
+
+        var currentCharge = CollectorSupport.BatteryChargePercent(battery?.UInt16("EstimatedChargeRemaining"));
+        var runtime = CollectorSupport.BatteryRuntimeMinutes(battery?.UInt32("EstimatedRunTime"));
 
         var headline = string.Join(" - ", new[]
         {
@@ -94,13 +86,13 @@ public sealed class BatteryCollector : ICollector
             CollectorSupport.Spec(SpecLabels.CurrentCharge, currentCharge is null
                 ? null
                 : string.Create(CultureInfo.InvariantCulture, $"{currentCharge.Value}%"), "CIM Win32_Battery.EstimatedChargeRemaining"),
-            CollectorSupport.Spec(SpecLabels.Voltage, status?.UInt32("Voltage") is { } millivolts && millivolts > 0
+            CollectorSupport.Spec(SpecLabels.Voltage, CollectorSupport.NonZeroNonMax(status?.UInt32("Voltage")) is { } millivolts
                 ? string.Create(CultureInfo.InvariantCulture, $"{millivolts / 1000d:0.000} V")
                 : null, "CIM root\\WMI BatteryStatus.Voltage"),
-            CollectorSupport.Spec(SpecLabels.ChargeRate, status?.UInt32("ChargeRate") is { } chargeRate && chargeRate > 0
+            CollectorSupport.Spec(SpecLabels.ChargeRate, CollectorSupport.NonZeroNonMax(status?.UInt32("ChargeRate")) is { } chargeRate
                 ? string.Create(CultureInfo.InvariantCulture, $"{chargeRate / 1000d:0.0} W")
                 : null, "CIM root\\WMI BatteryStatus.ChargeRate"),
-            CollectorSupport.Spec(SpecLabels.DischargeRate, status?.UInt32("DischargeRate") is { } dischargeRate && dischargeRate > 0
+            CollectorSupport.Spec(SpecLabels.DischargeRate, CollectorSupport.NonZeroNonMax(status?.UInt32("DischargeRate")) is { } dischargeRate
                 ? string.Create(CultureInfo.InvariantCulture, $"{dischargeRate / 1000d:0.0} W")
                 : null, "CIM root\\WMI BatteryStatus.DischargeRate"),
             CollectorSupport.Spec(SpecLabels.EstimatedRuntime, runtime is null
