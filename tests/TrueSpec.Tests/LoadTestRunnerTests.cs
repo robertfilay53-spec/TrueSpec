@@ -20,14 +20,16 @@ public class LoadTestRunnerTests
         private readonly double? _tempC;
         private readonly double? _clockMHz;
         private readonly double? _fanRpm;
+        private readonly double? _busSpeedMHz;
         private readonly int _goodReads;
         private int _reads;
 
-        public FakeSensorMonitor(double? tempC, double? clockMHz, int goodReads = int.MaxValue, double? fanRpm = null)
+        public FakeSensorMonitor(double? tempC, double? clockMHz, int goodReads = int.MaxValue, double? fanRpm = null, double? busSpeedMHz = null)
         {
             _tempC = tempC;
             _clockMHz = clockMHz;
             _fanRpm = fanRpm;
+            _busSpeedMHz = busSpeedMHz;
             _goodReads = goodReads;
         }
 
@@ -54,6 +56,11 @@ public class LoadTestRunnerTests
             {
                 readings.Add(new SensorReading("CPU", "Core #1", SensorKind.Clock, "MHz", clock, "Test"));
                 readings.Add(new SensorReading("CPU", "Core #2", SensorKind.Clock, "MHz", clock, "Test"));
+            }
+
+            if (_busSpeedMHz is { } bus)
+            {
+                readings.Add(new SensorReading("CPU", "Bus Speed", SensorKind.Clock, "MHz", bus, "Test"));
             }
 
             if (_fanRpm is { } fan)
@@ -216,6 +223,26 @@ public class LoadTestRunnerTests
         Assert.Equal(1500d, result.FanHealth.Fans[0].LoadRpm);
         Assert.True(result.Samples.Count >= 1);
         Assert.All(result.Samples, s => Assert.Contains(s.Fans ?? Array.Empty<FanReading>(), f => f.Name == "CPU Fan #1" && f.Rpm == 1500d));
+        Assert.Equal(0, runner.ActiveWorkerCount);
+    }
+
+    [Fact]
+    public async Task BusSpeed_DoesNotDragDownAverageClock()
+    {
+        // H1, end to end through Sample(): a ~100 MHz Bus Speed reading
+        // averaged with the per-core clocks reads ~19% low on a 4-core
+        // machine and can flip the throttle verdict. The samples must
+        // average per-core clocks only. AbortTemperatureC 1C ends the run
+        // at the first sample, like the forced-abort test above.
+        var runner = new LoadTestRunner(new FakeSensorMonitor(50d, 3500d, busSpeedMHz: 100d));
+        var config = new LoadTestConfig(DurationSeconds: 60, AbortTemperatureC: 1d, RatedMaxMHz: 4000d);
+
+        var result = await runner.RunAsync(config);
+
+        Assert.True(result.Samples.Count >= 1, "At least the first sample must be recorded.");
+        Assert.All(result.Samples, s => Assert.Equal(3500d, s.AvgClockMHz));
+        Assert.All(result.Samples, s => Assert.Equal(3500d, s.MaxClockMHz));
+        Assert.Equal(3500d, result.AvgClockMHz);
         Assert.Equal(0, runner.ActiveWorkerCount);
     }
 

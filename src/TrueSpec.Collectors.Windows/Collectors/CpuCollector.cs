@@ -49,7 +49,13 @@ public sealed class CpuCollector : ICollector
         var power = sensors.Find(SensorKind.Power, "CPU", "Package", "CPU Package");
         var fan = sensors.Find(SensorKind.Fan, "CPU", "CPU Fan", "Fan");
         var voltage = sensors.Find(SensorKind.Voltage, "CPU", "CPU Core", "Vcore");
-        var clock = sensors.Find(SensorKind.Clock, "CPU", "Core", "Bus Speed");
+        // Live core clock is the first per-core clock only. The sensor
+        // library also reports a ~100 MHz "Bus Speed" clock on the CPU
+        // hardware, and showing that as the core clock when no core clock
+        // reports would be a wrong number, not a reading: CpuClocks()
+        // excludes it, so a machine with no core clock honestly reports
+        // "Not reported by hardware" instead of 100 MHz.
+        var clock = sensors.CpuClocks().FirstOrDefault();
 
         var temperatureValue = temperature?.Value;
         var throttle = temperatureValue switch
