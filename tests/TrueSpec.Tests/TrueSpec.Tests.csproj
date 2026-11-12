@@ -44,6 +44,7 @@
        in the project file. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <Compile Remove="ScoreAgreementTests.cs" />
+    <Compile Remove="HistoryForecastViewModelTests.cs" />
     <Compile Remove="StartupCollectorTests.cs" />
     <Compile Remove="UpdatesCollectorTests.cs" />
     <Compile Remove="StorageCollectorTests.cs" />

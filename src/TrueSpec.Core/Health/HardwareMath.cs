@@ -7,6 +7,23 @@ namespace TrueSpec.Core.Health;
 /// </summary>
 public static class HardwareMath
 {
+    /// <summary>
+    /// The health percentage below which a part is in the Replace band.
+    /// The single source of truth for the Replace boundary: the battery
+    /// bands, the score verdict (below 60 is "Replace soon") and the
+    /// degradation forecast's SSD wear threshold all read this value, so
+    /// no second copy of the threshold exists anywhere.
+    /// </summary>
+    public const double ReplaceHealthThresholdPercent = 60d;
+
+    /// <summary>
+    /// SSD wear at which storage health hits the Replace boundary:
+    /// storage health is 100 minus wear, so health below 60% is wear
+    /// above 40%. Derived from <see cref="ReplaceHealthThresholdPercent"/>,
+    /// never a second literal.
+    /// </summary>
+    public static double StorageReplaceWearThresholdPercent => 100d - ReplaceHealthThresholdPercent;
+
     public static double? BatteryHealthPercent(double? designCapacity, double? fullChargeCapacity)
     {
         if (designCapacity is null || fullChargeCapacity is null)
@@ -46,7 +63,7 @@ public static class HardwareMath
         return healthPercent.Value switch
         {
             >= 80d => BatteryHealthBand.Normal,
-            >= 60d => BatteryHealthBand.Worn,
+            >= ReplaceHealthThresholdPercent => BatteryHealthBand.Worn,
             _ => BatteryHealthBand.Replace,
         };
     }

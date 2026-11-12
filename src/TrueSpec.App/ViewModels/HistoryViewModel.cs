@@ -69,6 +69,25 @@ public sealed partial class HistoryViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool HasBatteryAlert { get; set; }
 
+    /// <summary>
+    /// U4 forecast card under the battery sparkline. Null (and the card
+    /// hidden) when no saved scan reported battery health; otherwise the
+    /// forecast text itself, including the not-enough-data wording.
+    /// Core-owned wording: the ViewModel holds no second copy of the rule.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? BatteryForecastText { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasBatteryForecast { get; set; }
+
+    /// <summary>U4 forecast card under the storage-wear sparkline; same rule as <see cref="BatteryForecastText"/>.</summary>
+    [ObservableProperty]
+    public partial string? StorageWearForecastText { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasStorageWearForecast { get; set; }
+
     /// <summary>Core-owned wording: the ViewModel holds no second copy of the rule.</summary>
     [ObservableProperty]
     public partial string? DriverAgeSummaryText { get; set; }
@@ -253,6 +272,10 @@ public sealed partial class HistoryViewModel : ViewModelBase
         HasHistory = false;
         HasBatteryAlert = false;
         BatteryAlertText = null;
+        HasBatteryForecast = false;
+        BatteryForecastText = null;
+        HasStorageWearForecast = false;
+        StorageWearForecastText = null;
         HasDriverAgeSummary = false;
         DriverAgeSummaryText = null;
         SummaryText = string.Empty;
@@ -282,6 +305,10 @@ public sealed partial class HistoryViewModel : ViewModelBase
             SummaryText = trend.Summary;
             BatteryAlertText = trend.BatteryAlert;
             HasBatteryAlert = trend.BatteryAlert is not null;
+            BatteryForecastText = ForecastText(trend.BatteryHealthPoints, DegradationForecaster.ForBattery);
+            HasBatteryForecast = BatteryForecastText is not null;
+            StorageWearForecastText = ForecastText(trend.StorageWearPoints, DegradationForecaster.ForStorageWear);
+            HasStorageWearForecast = StorageWearForecastText is not null;
             DriverAgeSummaryText = trend.DriverAgeSummary;
             HasDriverAgeSummary = trend.DriverAgeSummary is not null;
             ScoreValues = MeasuredValues(trend.ScorePoints);
@@ -426,6 +453,24 @@ public sealed partial class HistoryViewModel : ViewModelBase
 
     private static string PercentText(double? value) =>
         value is null ? "Not reported" : string.Create(CultureInfo.InvariantCulture, $"{value.Value:0.#}%");
+
+    /// <summary>
+    /// The U4 forecast card text for one metric, or null when no saved scan
+    /// reported that metric at all: the card is hidden entirely then, never
+    /// shown empty. Otherwise the forecast's own wording, including the
+    /// not-enough-data and no-decline cases.
+    /// </summary>
+    private static string? ForecastText(
+        IReadOnlyList<TrendPoint> points,
+        Func<IReadOnlyList<TrendPoint>, DegradationForecast> forecast)
+    {
+        if (!points.Any(p => p.Value is not null))
+        {
+            return null;
+        }
+
+        return forecast(points).BasisText;
+    }
 
     private static IReadOnlyList<double>? MeasuredValues(IReadOnlyList<TrendPoint> points)
     {

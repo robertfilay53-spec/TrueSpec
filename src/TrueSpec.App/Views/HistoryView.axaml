@@ -69,6 +69,8 @@
                                             Values="{Binding BatteryHealthValues}"
                                             StrokeThickness="2" />
                         <TextBlock Text="{Binding BatteryRangeText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                        <TextBlock Text="FORECAST" Classes="eyebrow" IsVisible="{Binding HasBatteryForecast}" />
+                        <TextBlock Text="{Binding BatteryForecastText}" Classes="muted" FontSize="11" TextWrapping="Wrap" IsVisible="{Binding HasBatteryForecast}" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="2" Classes="card" Padding="16">
@@ -78,6 +80,8 @@
                                             Values="{Binding StorageWearValues}"
                                             StrokeThickness="2" />
                         <TextBlock Text="{Binding WearRangeText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                        <TextBlock Text="FORECAST" Classes="eyebrow" IsVisible="{Binding HasStorageWearForecast}" />
+                        <TextBlock Text="{Binding StorageWearForecastText}" Classes="muted" FontSize="11" TextWrapping="Wrap" IsVisible="{Binding HasStorageWearForecast}" />
                     </StackPanel>
                 </Border>
             </Grid>
