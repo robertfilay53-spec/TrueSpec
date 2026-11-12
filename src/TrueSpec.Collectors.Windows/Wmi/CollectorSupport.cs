@@ -183,6 +183,77 @@ internal static class CollectorSupport
     public const int DriverStaleAgeYears = 5;
 
     /// <summary>
+    /// The one driver-signature query in the app: SystemCollector and
+    /// SecurityCollector both enumerate Win32_PnPSignedDriver for its
+    /// IsSigned column only (DriversCollector has its own wider query:
+    /// it also reads DeviceName, DriverDate and DriverVersion, and
+    /// already handles truncation since PR #12). Only IsSigned is ever
+    /// read from these rows: DeviceName was fetched and thrown away.
+    /// Win32_PnPSignedDriver has hundreds of rows and every returned
+    /// property is materialised per row, so asking for one column is
+    /// measurably cheaper.
+    /// </summary>
+    internal const string DriverSignatureQuery = "SELECT IsSigned FROM Win32_PnPSignedDriver";
+
+    /// <summary>
+    /// What the driver-signature enumeration actually knows. The counts
+    /// are over the rows WMI returned; <see cref="Truncated"/> says
+    /// whether that was the whole list. The counts are all null together
+    /// when the class returned no rows at all (not "zero drivers": the
+    /// data was not reported), and <see cref="Truncated"/> is false then:
+    /// the row cap can only trigger at <see cref="Wmi.MaxRows"/> rows.
+    /// </summary>
+    public sealed record DriverSignatureSummary(int? Total, int? Unsigned, int? Unknown, bool Truncated);
+
+    /// <summary>
+    /// Pure summary of driver-signature rows, so the truncation handling
+    /// is unit-testable without live WMI (same pattern as
+    /// DriversCollector.BuildSnapshot, PR #12). When the WMI row cap
+    /// truncated the list (<paramref name="queryError"/> is
+    /// <see cref="Wmi.TruncatedError"/>), the counts cover the first
+    /// <see cref="Wmi.MaxRows"/> drivers only: callers must qualify them
+    /// with <see cref="DriverListTruncationNote"/> and must never derive
+    /// an "all signed" claim from a partial list.
+    /// </summary>
+    internal static DriverSignatureSummary SummarizeDriverSignatures(IReadOnlyList<WmiRow> rows, string? queryError)
+    {
+        var truncated = string.Equals(queryError, Wmi.TruncatedError, StringComparison.Ordinal);
+        if (rows.Count == 0)
+        {
+            return new(null, null, null, false);
+        }
+
+        return new(
+            rows.Count,
+            rows.Count(r => r.Bool("IsSigned") is false),
+            rows.Count(r => r.Bool("IsSigned") is null),
+            truncated);
+    }
+
+    /// <summary>
+    /// Live driver-signature enumeration shared by SystemCollector and
+    /// SecurityCollector: the 3-arg Query keeps the error, so a list
+    /// truncated at the WMI row cap is reported, never silently counted.
+    /// </summary>
+    internal static DriverSignatureSummary ReadDriverSignatureSummary()
+    {
+        var rows = Wmi.Query("root\\cimv2", DriverSignatureQuery, out var queryError);
+        return SummarizeDriverSignatures(rows, queryError);
+    }
+
+    /// <summary>
+    /// The truncation qualifier for a driver count, in the same words
+    /// DriversCollector uses (PR #12): a plain literal label, no new
+    /// SpecLabels constant, so the three collectors say the same thing.
+    /// DriversCollector keeps its own identical inline copy because
+    /// that file is owned by PR #12.
+    /// </summary>
+    internal static SpecValue DriverListTruncationNote() => Spec(
+        "Driver list truncated",
+        "Truncated at 1000 rows; counts cover the first 1000 drivers only.",
+        "CIM Win32_PnPSignedDriver");
+
+    /// <summary>
     /// Plain-text age of a driver from its driver date ("yyyy-MM-dd" as
     /// written by WmiRow.DateText), for example "Driver from 2024
     /// (2 years old)". A driver older than <see cref="DriverStaleAgeYears"/>

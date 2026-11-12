@@ -35,7 +35,6 @@ public sealed class SystemCollector : ICollector
     internal const string DeviceGuardQuery = "SELECT VirtualizationBasedSecurityStatus FROM Win32_DeviceGuard";
     internal const string TpmQuery = "SELECT SpecVersion, IsEnabled_InitialValue FROM Win32_Tpm";
     internal const string EncryptableVolumeQuery = "SELECT DriveLetter, ProtectionStatus FROM Win32_EncryptableVolume";
-    internal const string SignedDriverQuery = "SELECT IsSigned FROM Win32_PnPSignedDriver";
 
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
@@ -93,7 +92,11 @@ public sealed class SystemCollector : ICollector
         var secureBoot = ReadSecureBoot();
         var bitLocker = ReadBitLocker();
 
-        var drivers = ReadDriverSignatureSummary();
+        // Driver signatures come from the shared enumeration
+        // (CollectorSupport): the same Win32_PnPSignedDriver list the
+        // Security collector counts, truncated honestly at the WMI row
+        // cap instead of silently counted (H2 defect class).
+        var drivers = CollectorSupport.ReadDriverSignatureSummary();
         // One open of the System event log for all three readings: three
         // separate walks (critical count, memory count, earliest entry)
         // were a large share of this collector's cost on a busy log.
@@ -128,17 +131,13 @@ public sealed class SystemCollector : ICollector
             CollectorSupport.Spec(SpecLabels.CriticalErrorsEventLog, FormatCount(criticalErrors), "Windows Event Log (System)"),
             CollectorSupport.Spec(SpecLabels.MemoryErrorsEventLog, FormatCount(memoryErrors), "Windows Event Log (WHEA-Logger)"),
             CollectorSupport.Spec(SpecLabels.EarliestEventLogEntry, earliestLogEntry?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), "Windows Event Log (System)"),
-            CollectorSupport.Spec(SpecLabels.InstalledDrivers, FormatCount(drivers.Total), "CIM Win32_PnPSignedDriver"),
-            CollectorSupport.Spec(SpecLabels.UnsignedDrivers, FormatCount(drivers.Unsigned), "CIM Win32_PnPSignedDriver.IsSigned"),
-            CollectorSupport.Spec(SpecLabels.UnknownDriverSignature, FormatCount(drivers.Unknown), "CIM Win32_PnPSignedDriver.IsSigned"),
-            CollectorSupport.Spec(SpecLabels.SignedDriversOnly, drivers.Unknown switch
-            {
-                > 0 => SpecLabels.NotReportedByHardware,
-                0 when drivers.Unsigned == 0 => "Yes",
-                0 => "No",
-                _ => SpecLabels.NotReportedByHardware,
-            }, "CIM Win32_PnPSignedDriver.IsSigned"),
         };
+
+        // The driver-signature specs are built by a pure helper (same
+        // pattern as DriversCollector.BuildSnapshot, PR #12) so the
+        // truncation handling is unit-testable without live WMI. They
+        // are the last specs in the list.
+        specs.AddRange(DriverSignatureSpecs(drivers));
 
         return Task.FromResult(ComponentSnapshot.NotMeasurable(
             Id,
@@ -178,6 +177,51 @@ public sealed class SystemCollector : ICollector
         return uptime.Days > 0
             ? string.Create(CultureInfo.InvariantCulture, $"{uptime.Days} days, {uptime.Hours} hours")
             : string.Create(CultureInfo.InvariantCulture, $"{uptime.Hours} hours, {uptime.Minutes} minutes");
+    }
+
+    /// <summary>
+    /// Pure driver-signature specs, so the truncation handling is
+    /// unit-testable without live WMI (same pattern as
+    /// DriversCollector.BuildSnapshot, PR #12). The counts are the rows
+    /// actually read, qualified by the truncation note right after the
+    /// installed-drivers count when the list was truncated. "Signed
+    /// drivers only" is never "Yes" from a partial list: with unknown
+    /// signatures it is already not reported, and with a truncated list
+    /// it is not reported too, because unsigned drivers may sit beyond
+    /// the first 1000 rows.
+    /// </summary>
+    internal static List<SpecValue> DriverSignatureSpecs(CollectorSupport.DriverSignatureSummary summary)
+    {
+        var specs = new List<SpecValue>
+        {
+            CollectorSupport.Spec(SpecLabels.InstalledDrivers, FormatCount(summary.Total), "CIM Win32_PnPSignedDriver"),
+            CollectorSupport.Spec(SpecLabels.UnsignedDrivers, FormatCount(summary.Unsigned), "CIM Win32_PnPSignedDriver.IsSigned"),
+            CollectorSupport.Spec(SpecLabels.UnknownDriverSignature, FormatCount(summary.Unknown), "CIM Win32_PnPSignedDriver.IsSigned"),
+            CollectorSupport.Spec(SpecLabels.SignedDriversOnly, SignedDriversOnly(summary), "CIM Win32_PnPSignedDriver.IsSigned"),
+        };
+
+        if (summary.Truncated)
+        {
+            specs.Insert(1, CollectorSupport.DriverListTruncationNote());
+        }
+
+        return specs;
+    }
+
+    private static string SignedDriversOnly(CollectorSupport.DriverSignatureSummary summary)
+    {
+        if (summary.Truncated)
+        {
+            return SpecLabels.NotReportedByHardware;
+        }
+
+        return summary.Unknown switch
+        {
+            > 0 => SpecLabels.NotReportedByHardware,
+            0 when summary.Unsigned == 0 => "Yes",
+            0 => "No",
+            _ => SpecLabels.NotReportedByHardware,
+        };
     }
 
     private static string FormatCount(int? value) =>
@@ -279,24 +323,4 @@ public sealed class SystemCollector : ICollector
         }
     }
 
-    private static (int? Total, int? Unsigned, int? Unknown) ReadDriverSignatureSummary()
-    {
-        // Only IsSigned is ever read from these rows: DeviceName was
-        // fetched and thrown away. Win32_PnPSignedDriver has hundreds of
-        // rows and every returned property is materialised per row, so
-        // asking for one column is measurably cheaper — and this query runs
-        // in three collectors (System, Security, Drivers).
-        var rows = Wmi.Query(
-            "root\\cimv2",
-            SignedDriverQuery);
-        if (rows.Count == 0)
-        {
-            return (null, null, null);
-        }
-
-        var unsigned = rows.Count(r => r.Bool("IsSigned") is false);
-        var unknown = rows.Count(r => r.Bool("IsSigned") is null);
-
-        return (rows.Count, unsigned, unknown);
-    }
 }

@@ -59,7 +59,7 @@ public sealed class CpuCollector : ICollector
         // hardware, and showing that as the core clock when no core clock
         // reports would be a wrong number, not a reading: CpuClocks()
         // excludes it, so a machine with no core clock honestly reports
-        // "Not reported by hardware" instead of 100 MHz.
+        // SpecLabels.NotReportedByHardware instead of 100 MHz.
         var clock = sensors.CpuClocks().FirstOrDefault();
 
         var temperatureValue = temperature?.Value;

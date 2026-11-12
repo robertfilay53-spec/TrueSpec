@@ -36,21 +36,17 @@ public sealed class SecurityCollector : ICollector
         var firewall = Wmi.Query(
             "root\\SecurityCenter2",
             "SELECT displayName, productState FROM FirewallProduct");
-        // Only IsSigned is ever read from these rows: DeviceName was
-        // fetched and thrown away. Win32_PnPSignedDriver has hundreds of
-        // rows and every returned property is materialised per row, so
-        // asking for one column is measurably cheaper — and this query runs
-        // in three collectors (System, Security, Drivers).
-        var drivers = Wmi.Query(
-            "root\\cimv2",
-            "SELECT IsSigned FROM Win32_PnPSignedDriver");
+        // Driver signatures come from the shared enumeration
+        // (CollectorSupport): the same Win32_PnPSignedDriver list the
+        // System collector counts, truncated honestly at the WMI row cap
+        // instead of silently counted (H2 defect class).
+        var driverSummary = CollectorSupport.ReadDriverSignatureSummary();
 
-        var unsigned = drivers.Count(r => r.Bool("IsSigned") is false);
         var secureBoot = ReadSecureBoot();
         var bitLocker = ReadBitLocker();
         var uac = ReadUac();
 
-        if (tpm is null && deviceGuard is null && drivers.Count == 0 && antivirus.Count == 0)
+        if (tpm is null && deviceGuard is null && driverSummary.Total is null or 0 && antivirus.Count == 0)
         {
             return Task.FromResult(ComponentSnapshot.NotAvailable(
                 Id,
@@ -87,8 +83,13 @@ public sealed class SecurityCollector : ICollector
             CollectorSupport.Spec(SpecLabels.Firewall, firewall.Count == 0
                 ? null
                 : string.Join(", ", firewall.Select(r => r.String("displayName")).Where(v => !string.IsNullOrWhiteSpace(v))), "CIM SecurityCenter2 FirewallProduct"),
-            CollectorSupport.Spec(SpecLabels.UnsignedDrivers, drivers.Count == 0 ? null : unsigned.ToString(), "CIM Win32_PnPSignedDriver.IsSigned"),
         };
+
+        // The unsigned-drivers spec is built by a pure helper (same
+        // pattern as DriversCollector.BuildSnapshot, PR #12) so the
+        // truncation handling is unit-testable without live WMI. It is
+        // the last spec in the list.
+        specs.AddRange(DriverSignatureSpecs(driverSummary));
 
         foreach (var item in antivirus)
         {
@@ -106,6 +107,32 @@ public sealed class SecurityCollector : ICollector
             string.IsNullOrWhiteSpace(headline) ? "Security" : headline,
             specs,
             "This block shows the security features that protect the machine. There is no health percentage here because security state is not a wear measurement. A used laptop with BitLocker and Secure Boot already on has been set up properly."));
+    }
+
+    /// <summary>
+    /// Pure unsigned-drivers spec, so the truncation handling is
+    /// unit-testable without live WMI (same pattern as
+    /// DriversCollector.BuildSnapshot, PR #12). The count is the rows
+    /// actually read, qualified by the truncation note when the list
+    /// was truncated: an unsigned driver may sit beyond the first
+    /// 1000 rows, so the number is a lower bound, never a total.
+    /// </summary>
+    internal static List<SpecValue> DriverSignatureSpecs(CollectorSupport.DriverSignatureSummary summary)
+    {
+        var specs = new List<SpecValue>
+        {
+            CollectorSupport.Spec(
+                SpecLabels.UnsignedDrivers,
+                summary.Total is null or 0 ? null : summary.Unsigned?.ToString(),
+                "CIM Win32_PnPSignedDriver.IsSigned"),
+        };
+
+        if (summary.Truncated)
+        {
+            specs.Add(CollectorSupport.DriverListTruncationNote());
+        }
+
+        return specs;
     }
 
     private static (string? Version, string? Enabled, string? Activated, string? Owned)? ReadTpm()

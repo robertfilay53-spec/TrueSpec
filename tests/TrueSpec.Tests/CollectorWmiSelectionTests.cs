@@ -1,4 +1,5 @@
 using TrueSpec.Collectors.Windows.Collectors;
+using TrueSpec.Collectors.Windows.Wmi;
 using TrueSpec.Core.Collectors;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Sensors;
@@ -55,7 +56,15 @@ public class CollectorWmiSelectionTests
         AssertSelects(SystemCollector.DeviceGuardQuery, "VirtualizationBasedSecurityStatus");
         AssertSelects(SystemCollector.TpmQuery, "SpecVersion", "IsEnabled_InitialValue");
         AssertSelects(SystemCollector.EncryptableVolumeQuery, "DriveLetter", "ProtectionStatus");
-        AssertSelects(SystemCollector.SignedDriverQuery, "IsSigned");
+    }
+
+    [Fact]
+    public void DriverSignatureQuery_SelectsEveryPropertyItReads()
+    {
+        // Shared by SystemCollector and SecurityCollector
+        // (CollectorSupport.ReadDriverSignatureSummary): only IsSigned is
+        // ever read from these rows.
+        AssertSelects(CollectorSupport.DriverSignatureQuery, "IsSigned");
     }
 
     [Fact]
