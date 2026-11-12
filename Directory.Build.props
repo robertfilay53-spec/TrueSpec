@@ -3,5 +3,10 @@
        and locally, so a new warning can never slip into a release. -->
   <PropertyGroup>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Reproducible builds: the same source must produce byte-identical
+         assemblies, so anyone can rebuild a release and compare hashes
+         against the published assets to prove the binary matches the
+         source. Verified by building twice and comparing SHA-256 hashes. -->
+    <Deterministic>true</Deterministic>
   </PropertyGroup>
 </Project>

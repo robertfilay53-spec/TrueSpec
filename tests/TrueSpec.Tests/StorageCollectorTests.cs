@@ -1,4 +1,5 @@
 using TrueSpec.Collectors.Windows.Collectors;
+using TrueSpec.Collectors.Windows.Storage;
 
 namespace TrueSpec.Tests;
 
@@ -35,5 +36,22 @@ public class StorageCollectorTests
         Assert.Contains(
             snapshot.Specs,
             spec => spec.Label.StartsWith("Volume C:", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The drive number comes from a WMI DeviceId string and lands in the
+    /// "\\.\PhysicalDriveN" path and in the single DriveNumber byte of the
+    /// ATA command. A negative value is never a drive, and 256 would
+    /// truncate to byte 0 and alias drive 0, so the reader rejects anything
+    /// outside 0-255 before touching kernel32. The guard must hold without
+    /// a real drive present: these return null, they never throw.
+    /// </summary>
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(256)]
+    [InlineData(1000)]
+    public void SataSmartReader_RejectsOutOfRangeDriveNumbers(int driveNumber)
+    {
+        Assert.Null(SataSmartReader.TryRead(driveNumber));
     }
 }

@@ -1,3 +1,4 @@
+using TrueSpec.App.Services;
 using TrueSpec.App.ViewModels;
 using TrueSpec.Core;
 using TrueSpec.Core.Scoring;
@@ -74,5 +75,30 @@ public class NavigationTests
         main.SelectedNavItem = main.NavItems.First(i => i.Key == "history");
 
         Assert.IsType<HistoryViewModel>(main.CurrentPage);
+    }
+
+    /// <summary>
+    /// Lives here because this is a Windows-leg file that can reference the
+    /// App: the single-instance mutex name must be the base name plus a
+    /// per-user hash suffix, stable across calls, and must never contain
+    /// the plain username. A fixed well-known name lets any local process
+    /// squat the mutex and block TrueSpec from launching. The hash itself
+    /// is covered in HardeningTests.
+    /// </summary>
+    [Fact]
+    public void SingleInstanceGuard_DefaultMutexNameIsPerUser()
+    {
+        var first = SingleInstanceGuard.DefaultMutexName();
+        var second = SingleInstanceGuard.DefaultMutexName();
+
+        Assert.Equal(first, second);
+        Assert.StartsWith(SingleInstanceGuard.MutexName + ".", first, StringComparison.Ordinal);
+
+        // A 1-3 character username can appear in 16 hex characters by
+        // coincidence, so only a longer name proves a leak.
+        if (Environment.UserName.Length >= 4)
+        {
+            Assert.DoesNotContain(Environment.UserName, first, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

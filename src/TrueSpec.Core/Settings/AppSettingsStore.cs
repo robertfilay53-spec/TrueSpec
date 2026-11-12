@@ -61,10 +61,35 @@ public sealed class AppSettingsStore
 
             // Write to a temp file in the same folder, then move over the old
             // file, so a crash mid-write never leaves a half-written settings
-            // file behind.
-            var tempPath = _filePath + ".tmp";
-            File.WriteAllText(tempPath, json);
-            File.Move(tempPath, _filePath, overwrite: true);
+            // file behind. The temp name is random per save: a fixed
+            // "settings.json.tmp" is a predictable path a local process
+            // could pre-plant (for example as a symlink) to redirect the
+            // write, and a stale temp from a crashed run would be reused.
+            var tempDirectory = string.IsNullOrEmpty(directory) ? "." : directory;
+            var tempPath = Path.Combine(tempDirectory, $".truespec-{Guid.NewGuid():N}.tmp");
+            try
+            {
+                File.WriteAllText(tempPath, json);
+                File.Move(tempPath, _filePath, overwrite: true);
+            }
+            catch
+            {
+                // A failed save must not leave a temp file behind.
+                try
+                {
+                    if (File.Exists(tempPath))
+                    {
+                        File.Delete(tempPath);
+                    }
+                }
+                catch
+                {
+                    // Best effort only: the save already failed.
+                }
+
+                throw;
+            }
+
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
