@@ -152,8 +152,8 @@ public sealed class MachineScanService
         }
         var operatingSystem = system?.Specs
             .FirstOrDefault(s =>
-                string.Equals(s.Label, "Operating system", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(s.Label, "Windows edition", StringComparison.OrdinalIgnoreCase))
+                string.Equals(s.Label, SpecLabels.OperatingSystem, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(s.Label, SpecLabels.WindowsEdition, StringComparison.OrdinalIgnoreCase))
             ?.Value ?? "Not reported";
 
         stopwatch.Stop();
@@ -186,7 +186,18 @@ public sealed class MachineScanService
         TimeSpan perCollectorTimeout,
         Action<string>? log)
     {
-        var collectTask = collector.CollectAsync(overallToken);
+        // The WMI/registry/process work inside a collector is synchronous:
+        // calling CollectAsync directly would run it on the caller's thread
+        // (the UI thread during a scan) and a collector that blocks before
+        // returning its task would defeat the timeout race below entirely.
+        // Task.Run moves the whole call onto the thread pool, so the race
+        // is real and the UI stays live. Collectors still run one at a time,
+        // in order: WMI contention makes parallel collection slower, not
+        // faster, and a hung collector is abandoned by the timeout, never
+        // awaited. The token is passed to Task.Run so a scan cancelled
+        // before this collector starts cancels the queued work instead of
+        // running it anyway.
+        var collectTask = Task.Run(() => collector.CollectAsync(overallToken), overallToken);
         var timeoutTask = Task.Delay(perCollectorTimeout, overallToken);
         var completed = await Task.WhenAny(collectTask, timeoutTask);
         if (completed == collectTask)

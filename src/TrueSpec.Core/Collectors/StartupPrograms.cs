@@ -52,8 +52,13 @@ public static class StartupProgramParser
     /// Cleans a stored Run value: trims whitespace, expands %variables%
     /// using the current environment, and returns null for an empty value
     /// so the collector reports it as "Not reported by hardware" instead
-    /// of showing a blank command.
+    /// of showing a blank command. Long commands are capped at the same
+    /// 512 characters as WMI spec values, with a visible "..." marker:
+    /// a registry value can be arbitrarily long and the detail table must
+    /// not grow without bound because of one entry.
     /// </summary>
+    public const int MaxCommandLength = 512;
+
     public static string? CleanCommand(string? rawCommand)
     {
         if (string.IsNullOrWhiteSpace(rawCommand))
@@ -62,7 +67,14 @@ public static class StartupProgramParser
         }
 
         var expanded = Environment.ExpandEnvironmentVariables(rawCommand.Trim());
-        return string.IsNullOrWhiteSpace(expanded) ? null : expanded;
+        if (string.IsNullOrWhiteSpace(expanded))
+        {
+            return null;
+        }
+
+        return expanded.Length <= MaxCommandLength
+            ? expanded
+            : expanded[..(MaxCommandLength - 3)] + "...";
     }
 
     /// <summary>

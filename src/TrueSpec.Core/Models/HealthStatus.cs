@@ -20,7 +20,11 @@ public static class HealthStatusExtensions
 
     public static HealthStatus FromHealth(double? healthPercent)
     {
-        if (healthPercent is null || double.IsNaN(healthPercent.Value))
+        // NaN and Infinity are not measurements: a deserialized or corrupt
+        // snapshot must never map +Infinity to Healthy (the old code did:
+        // +Infinity is >= 80). Non-finite values are NotMeasurable, the
+        // same as a missing sensor.
+        if (healthPercent is null || !double.IsFinite(healthPercent.Value))
         {
             return HealthStatus.NotMeasurable;
         }

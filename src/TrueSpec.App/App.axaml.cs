@@ -17,6 +17,7 @@ public partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         StartupLog.Append("App: starting");
+        UnhandledExceptionHandler.InstallDispatcher();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow

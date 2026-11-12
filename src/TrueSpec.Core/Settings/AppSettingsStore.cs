@@ -26,11 +26,22 @@ public sealed class AppSettingsStore
 
     public string FilePath => _filePath;
 
+    // A settings file is a few hundred bytes. Anything past this cap is
+    // not a settings file: it is a corrupt, bloated or planted file, and
+    // reading it whole into memory is the wrong response. Over the cap the
+    // load falls back to defaults, exactly like a corrupt file.
+    public const long MaxFileBytes = 64 * 1024;
+
     public AppSettings Load()
     {
         try
         {
             if (!File.Exists(_filePath))
+            {
+                return AppSettings.Default;
+            }
+
+            if (new FileInfo(_filePath).Length > MaxFileBytes)
             {
                 return AppSettings.Default;
             }

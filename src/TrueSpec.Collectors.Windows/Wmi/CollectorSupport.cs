@@ -7,9 +7,21 @@ internal static class CollectorSupport
 {
     public const string NotReported = "Not reported by hardware";
 
+    // A WMI string can be arbitrarily long (a hostile or corrupt driver
+    // description, a pasted blob). Values are capped at the boundary so a
+    // single runaway string cannot bloat the snapshot, the history database
+    // or the report. Truncation is visible, never silent: the value ends
+    // with "..." so the reader knows more was there.
+    public const int MaxSpecValueLength = 512;
+
+    public static string TruncateValue(string value) =>
+        value.Length <= MaxSpecValueLength
+            ? value
+            : value[..(MaxSpecValueLength - 3)] + "...";
+
     public static SpecValue Spec(string label, string? value, string source, bool estimate = false) => new(
         label,
-        string.IsNullOrWhiteSpace(value) ? NotReported : value.Trim(),
+        string.IsNullOrWhiteSpace(value) ? NotReported : TruncateValue(value.Trim()),
         source,
         estimate);
 

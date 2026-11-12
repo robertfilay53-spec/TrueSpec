@@ -8,6 +8,16 @@ using System.Management;
 /// </summary>
 internal static class Wmi
 {
+    // A WMI class can return an unbounded number of rows (thousands of
+    // PnP drivers, event-heavy classes). Reads stop after this many rows so
+    // one chatty class cannot balloon memory or stall the scan; the cut is
+    // recorded in `error` so the caller knows the result is partial. Callers
+    // that treat any non-null error as "query failed" must check the row
+    // count first: truncation with rows is partial data, not a failure.
+    public const int MaxRows = 1000;
+
+    public const string TruncatedError = "Query returned more than 1000 rows; results truncated to the first 1000.";
+
     public static IReadOnlyList<WmiRow> Query(string namespacePath, string query) =>
         Query(namespacePath, query, out _);
 
@@ -33,6 +43,12 @@ internal static class Wmi
                     }
 
                     rows.Add(new WmiRow(values));
+                }
+
+                if (rows.Count >= MaxRows)
+                {
+                    error = TruncatedError;
+                    break;
                 }
             }
         }
@@ -67,6 +83,12 @@ internal static class Wmi
                 else
                 {
                     item.Dispose();
+                }
+
+                if (rows.Count >= MaxRows)
+                {
+                    error = TruncatedError;
+                    break;
                 }
             }
         }

@@ -5,6 +5,14 @@ using System.Diagnostics;
 /// <summary>Reads real event log counts. Unreadable logs return null.</summary>
 internal static class WindowsEventLog
 {
+    // The event log is unbounded. Entries are newest-first and the scan
+    // stops at the window cutoff, but a log full of recent entries could
+    // still mean walking tens of thousands of COM objects on the scan
+    // thread. Past this many examined entries the count stops: the number
+    // is already large enough to say "many errors", and the scan must
+    // finish. The same cap applies to the memory-error count.
+    public const int MaxEntriesExamined = 10_000;
+
     public static int? CountCriticalErrors(TimeSpan window)
     {
         try
@@ -12,8 +20,9 @@ internal static class WindowsEventLog
             using var log = new EventLog("System");
             var cutoff = DateTime.Now - window;
             var count = 0;
+            var examined = 0;
 
-            for (var i = log.Entries.Count - 1; i >= 0; i--)
+            for (var i = log.Entries.Count - 1; i >= 0 && examined < MaxEntriesExamined; i--, examined++)
             {
                 var entry = log.Entries[i];
                 if (entry.TimeGenerated < cutoff)
@@ -42,8 +51,9 @@ internal static class WindowsEventLog
             using var log = new EventLog("System");
             var cutoff = DateTime.Now - window;
             var count = 0;
+            var examined = 0;
 
-            for (var i = log.Entries.Count - 1; i >= 0; i--)
+            for (var i = log.Entries.Count - 1; i >= 0 && examined < MaxEntriesExamined; i--, examined++)
             {
                 var entry = log.Entries[i];
                 if (entry.TimeGenerated < cutoff)
