@@ -158,7 +158,13 @@ public class HistoryForecastTests
         Assert.Equal(ForecastStatus.Ready, forecast.Status);
         Assert.Equal(3, forecast.PointsUsed);
         Assert.Equal(90d, forecast.WindowDays);
-        Assert.DoesNotContain("0%", forecast.BasisText, StringComparison.Ordinal);
+        // The fit runs over 90, 88, 87 only: the same 1 point per 30 days
+        // as the gap-free decline, so the range is the same 23 to 30
+        // months. A zero in place of the gap would steepen the slope and
+        // move the range, so matching the gap-free range proves the gap
+        // was skipped, never zeroed.
+        Assert.Equal(23, forecast.ForecastLowMonths);
+        Assert.Equal(30, forecast.ForecastHighMonths);
     }
 
     [Fact]
