@@ -31,7 +31,7 @@ public interface ICollector
     /// an honest-empty snapshot instead (<see cref="ComponentSnapshot.NotAvailable"/>
     /// when the component is absent, <see cref="ComponentSnapshot.NotMeasurable"/>
     /// when it is present but a reading could not be taken), with every
-    /// unmeasured value reading "Not reported by hardware" and the reason
+    /// unmeasured value reading <see cref="SpecLabels.NotReportedByHardware"/> and the reason
     /// in the headline. The only exception is
     /// <see cref="OperationCanceledException"/> when the caller's token is
     /// cancelled: cancellation is a control signal, not a missing reading.

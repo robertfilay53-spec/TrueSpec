@@ -30,9 +30,14 @@ public sealed class CpuCollector : ICollector
 
     public bool RequiresAdministrator => true;
 
+    // WMI query strings are hoisted so CollectorWmiSelectionTests can pin
+    // the SELECT list to the properties this collector reads (hardening
+    // item 7, F9 bug class).
+    internal const string ProcessorQuery = "SELECT Name, Manufacturer, ProcessorId, SocketDesignation, Architecture, CurrentClockSpeed, L2CacheSize, L3CacheSize, MaxClockSpeed, NumberOfCores, NumberOfLogicalProcessors, VirtualizationFirmwareEnabled FROM Win32_Processor";
+
     public async Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
-        var cpu = Wmi.Query("root\\cimv2", "SELECT Name, Manufacturer, ProcessorId, SocketDesignation, Architecture, CurrentClockSpeed, L2CacheSize, L3CacheSize, MaxClockSpeed, NumberOfCores, NumberOfLogicalProcessors, VirtualizationFirmwareEnabled FROM Win32_Processor").FirstOrDefault();
+        var cpu = Wmi.Query("root\\cimv2", ProcessorQuery).FirstOrDefault();
         if (cpu is null)
         {
             return ComponentSnapshot.NotAvailable(

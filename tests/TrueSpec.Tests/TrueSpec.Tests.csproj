@@ -42,7 +42,12 @@
        HistorySensorLogViewModelTests, LoadTestViewModelTests,
        SensorAlertViewModelTests, AdminNoticeViewModelTests and
        ExportConfirmationTests
-       drive the App's ViewModels, so they only compile on the Windows leg. Excluding the files (rather
+       drive the App's ViewModels, so they only compile on the Windows leg.
+       TestsViewModelTests, ComparisonViewModelTests,
+       LiveMetricViewModelTests, ScanCancelTests and
+       ShellExportFileOpenerTests do the same, and
+       CollectorWmiSelectionTests drives the Windows collectors.
+       Excluding the files (rather
        than #if-ing them) keeps the tests readable and the exclusion visible
        in the project file. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
@@ -53,6 +58,12 @@
     <Compile Remove="SensorAlertViewModelTests.cs" />
     <Compile Remove="AdminNoticeViewModelTests.cs" />
     <Compile Remove="ExportConfirmationTests.cs" />
+    <Compile Remove="TestsViewModelTests.cs" />
+    <Compile Remove="ComparisonViewModelTests.cs" />
+    <Compile Remove="LiveMetricViewModelTests.cs" />
+    <Compile Remove="ScanCancelTests.cs" />
+    <Compile Remove="ShellExportFileOpenerTests.cs" />
+    <Compile Remove="CollectorWmiSelectionTests.cs" />
     <Compile Remove="StartupCollectorTests.cs" />
     <Compile Remove="UpdatesCollectorTests.cs" />
     <Compile Remove="CollectorValueTests.cs" />

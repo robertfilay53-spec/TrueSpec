@@ -30,9 +30,14 @@ public sealed class GpuCollector : ICollector
 
     public bool RequiresAdministrator => true;
 
+    // WMI query strings are hoisted so CollectorWmiSelectionTests can pin
+    // the SELECT list to the properties this collector reads (hardening
+    // item 7, F9 bug class).
+    internal const string VideoControllerQuery = "SELECT Name, AdapterCompatibility, AdapterRAM, DriverVersion, DriverDate, VideoProcessor, VideoModeDescription, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentBitsPerPixel FROM Win32_VideoController";
+
     public async Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
-        var adapters = Wmi.Query("root\\cimv2", "SELECT Name, AdapterCompatibility, AdapterRAM, DriverVersion, DriverDate, VideoProcessor, VideoModeDescription, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentBitsPerPixel FROM Win32_VideoController");
+        var adapters = Wmi.Query("root\\cimv2", VideoControllerQuery);
         if (adapters.Count == 0)
         {
             return ComponentSnapshot.NotAvailable(

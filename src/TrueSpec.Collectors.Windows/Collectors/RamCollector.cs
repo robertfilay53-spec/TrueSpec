@@ -22,9 +22,16 @@ public sealed class RamCollector : ICollector
 
     public bool RequiresAdministrator => false;
 
+    // WMI query strings are hoisted so CollectorWmiSelectionTests can pin
+    // the SELECT list to the properties this collector reads (hardening
+    // item 7, F9 bug class).
+    internal const string PhysicalMemoryQuery = "SELECT Capacity, Manufacturer, PartNumber, SerialNumber, BankLabel, DeviceLocator, FormFactor, SMBIOSMemoryType, MemoryType, ConfiguredClockSpeed, Speed FROM Win32_PhysicalMemory";
+    internal const string PhysicalMemoryArrayQuery = "SELECT MemoryDevices FROM Win32_PhysicalMemoryArray";
+    internal const string ComputerSystemQuery = "SELECT TotalPhysicalMemory FROM Win32_ComputerSystem";
+
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
-        var sticks = Wmi.Query("root\\cimv2", "SELECT Capacity, Manufacturer, PartNumber, SerialNumber, BankLabel, DeviceLocator, FormFactor, SMBIOSMemoryType, MemoryType, ConfiguredClockSpeed, Speed FROM Win32_PhysicalMemory");
+        var sticks = Wmi.Query("root\\cimv2", PhysicalMemoryQuery);
         if (sticks.Count == 0)
         {
             return Task.FromResult(ComponentSnapshot.NotAvailable(
@@ -35,8 +42,8 @@ public sealed class RamCollector : ICollector
                 "CIM did not return Win32_PhysicalMemory."));
         }
 
-        var array = Wmi.Query("root\\cimv2", "SELECT MemoryDevices FROM Win32_PhysicalMemoryArray").FirstOrDefault();
-        var computer = Wmi.Query("root\\cimv2", "SELECT TotalPhysicalMemory FROM Win32_ComputerSystem").FirstOrDefault();
+        var array = Wmi.Query("root\\cimv2", PhysicalMemoryArrayQuery).FirstOrDefault();
+        var computer = Wmi.Query("root\\cimv2", ComputerSystemQuery).FirstOrDefault();
         var memoryErrors = WindowsEventLog.CountMemoryErrors(TimeSpan.FromDays(30));
 
         var totalBytes = sticks.Sum(s => (decimal)(CollectorSupport.NonZeroNonMax(s.UInt64("Capacity")) ?? 0UL));

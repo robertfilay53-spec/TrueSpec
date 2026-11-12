@@ -24,14 +24,27 @@ public sealed class SystemCollector : ICollector
 
     public bool RequiresAdministrator => false;
 
+    // WMI query strings are hoisted so CollectorWmiSelectionTests can pin
+    // the SELECT list to the properties this collector reads (hardening
+    // item 7, F9 bug class): WmiRow only carries the properties the query
+    // asked for, so a read of an unselected property always returns null.
+    internal const string ComputerSystemQuery = "SELECT CSName, Manufacturer, Model, SystemFamily, SystemSKUNumber FROM Win32_ComputerSystem";
+    internal const string BiosQuery = "SELECT SerialNumber, ReleaseDate, SMBIOSBIOSVersion, SMBIOSMajorVersion, SMBIOSMinorVersion, Version, Manufacturer FROM Win32_BIOS";
+    internal const string OperatingSystemQuery = "SELECT CSName, Caption, BuildNumber, InstallDate, LastBootUpTime, OSArchitecture, Version FROM Win32_OperatingSystem";
+    internal const string EnclosureQuery = "SELECT ChassisTypes, SerialNumber FROM Win32_SystemEnclosure";
+    internal const string DeviceGuardQuery = "SELECT VirtualizationBasedSecurityStatus FROM Win32_DeviceGuard";
+    internal const string TpmQuery = "SELECT SpecVersion, IsEnabled_InitialValue FROM Win32_Tpm";
+    internal const string EncryptableVolumeQuery = "SELECT DriveLetter, ProtectionStatus FROM Win32_EncryptableVolume";
+    internal const string SignedDriverQuery = "SELECT IsSigned FROM Win32_PnPSignedDriver";
+
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var computer = Wmi.Query("root\\cimv2", "SELECT CSName, Manufacturer, Model, SystemFamily, SystemSKUNumber FROM Win32_ComputerSystem").FirstOrDefault();
-        var bios = Wmi.Query("root\\cimv2", "SELECT SerialNumber, ReleaseDate, SMBIOSBIOSVersion, SMBIOSMajorVersion, SMBIOSMinorVersion, Version FROM Win32_BIOS").FirstOrDefault();
-        var os = Wmi.Query("root\\cimv2", "SELECT CSName, Caption, BuildNumber, InstallDate, LastBootUpTime, OSArchitecture FROM Win32_OperatingSystem").FirstOrDefault();
-        var enclosure = Wmi.Query("root\\cimv2", "SELECT ChassisTypes, SerialNumber FROM Win32_SystemEnclosure").FirstOrDefault();
+        var computer = Wmi.Query("root\\cimv2", ComputerSystemQuery).FirstOrDefault();
+        var bios = Wmi.Query("root\\cimv2", BiosQuery).FirstOrDefault();
+        var os = Wmi.Query("root\\cimv2", OperatingSystemQuery).FirstOrDefault();
+        var enclosure = Wmi.Query("root\\cimv2", EnclosureQuery).FirstOrDefault();
 
         if (computer is null && bios is null && os is null)
         {
@@ -76,7 +89,7 @@ public sealed class SystemCollector : ICollector
         var tpm = ReadTpm();
         var deviceGuard = Wmi.Query(
             "root\\Microsoft\\Windows\\DeviceGuard",
-            "SELECT VirtualizationBasedSecurityStatus FROM Win32_DeviceGuard").FirstOrDefault();
+            DeviceGuardQuery).FirstOrDefault();
         var secureBoot = ReadSecureBoot();
         var bitLocker = ReadBitLocker();
 
@@ -103,7 +116,7 @@ public sealed class SystemCollector : ICollector
             CollectorSupport.Spec(SpecLabels.WindowsInstallDate, installDate, "CIM Win32_OperatingSystem.InstallDate"),
             CollectorSupport.Spec(SpecLabels.Uptime, uptime, "CIM Win32_OperatingSystem.LastBootUpTime"),
             CollectorSupport.Spec(SpecLabels.Architecture, os?.String("OSArchitecture"), "CIM Win32_OperatingSystem"),
-            CollectorSupport.Spec(SpecLabels.BIOSVendor, bios?.String("Manufacturer"), "CIM Win32_BIOS"),
+            CollectorSupport.Spec(SpecLabels.BIOSVendor, bios?.String("Manufacturer"), "CIM Win32_BIOS"), // Manufacturer must stay in BiosQuery (F9 class).
             CollectorSupport.Spec(SpecLabels.BIOSVersion, bios?.String("SMBIOSBIOSVersion") ?? bios?.String("Version"), "CIM Win32_BIOS"),
             CollectorSupport.Spec(SpecLabels.BIOSDate, biosDate, "CIM Win32_BIOS.ReleaseDate"),
             CollectorSupport.Spec(SpecLabels.SMBIOSVersion, smbios, "CIM Win32_BIOS"),
@@ -188,10 +201,10 @@ public sealed class SystemCollector : ICollector
 
     private static (string? Version, string? Enabled) ReadTpm()
     {
-        var rows = Wmi.Query("root\\CIMV2\\Security\\MicrosoftTpm", "SELECT SpecVersion, IsEnabled_InitialValue FROM Win32_Tpm");
+        var rows = Wmi.Query("root\\CIMV2\\Security\\MicrosoftTpm", TpmQuery);
         if (rows.Count == 0)
         {
-            rows = Wmi.Query("root\\cimv2", "SELECT SpecVersion, IsEnabled_InitialValue FROM Win32_Tpm");
+            rows = Wmi.Query("root\\cimv2", TpmQuery);
         }
 
         var tpm = rows.FirstOrDefault();
@@ -242,7 +255,7 @@ public sealed class SystemCollector : ICollector
         {
             var rows = Wmi.Query(
                 "root\\CIMV2\\Security\\MicrosoftVolumeEncryption",
-                "SELECT DriveLetter, ProtectionStatus FROM Win32_EncryptableVolume");
+                EncryptableVolumeQuery);
             if (rows.Count == 0)
             {
                 return SpecLabels.NotReportedByHardware;
@@ -275,7 +288,7 @@ public sealed class SystemCollector : ICollector
         // in three collectors (System, Security, Drivers).
         var rows = Wmi.Query(
             "root\\cimv2",
-            "SELECT IsSigned FROM Win32_PnPSignedDriver");
+            SignedDriverQuery);
         if (rows.Count == 0)
         {
             return (null, null, null);

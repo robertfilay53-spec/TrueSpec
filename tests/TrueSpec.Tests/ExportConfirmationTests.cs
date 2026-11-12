@@ -80,7 +80,7 @@ public class ExportConfirmationTests
             Assert.True(File.Exists(shell.ExportConfirmationPath));
             Assert.True(new FileInfo(shell.ExportConfirmationPath).Length > 0);
             Assert.Contains(shell.ExportConfirmationPath, shell.ExportConfirmationText, StringComparison.Ordinal);
-            Assert.Equal($"Report exported to {shell.ExportConfirmationPath}", shell.StatusMessage);
+            Assert.StartsWith($"Report exported to {shell.ExportConfirmationPath}", shell.StatusMessage, StringComparison.Ordinal);
         }
         finally
         {
@@ -252,6 +252,30 @@ public class ExportConfirmationTests
 
             Assert.Empty(opener.OpenedFiles);
             Assert.Empty(opener.OpenedFolders);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public async Task ExportConfirmation_NotesThatTheFileContainsSensitiveIdentifiers()
+    {
+        // Hardening 6g: an export contains hardware serial numbers, MAC
+        // addresses, IP addresses and Wi-Fi network names. The
+        // confirmation says so, so the buyer knows before sharing it.
+        var exportFolder = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"), "exports");
+        var (shell, _, root) = CreateShell(exportFolder);
+        try
+        {
+            await shell.ExportJsonCommand.ExecuteAsync(null);
+
+            Assert.Contains("serial numbers", shell.ExportConfirmationText, StringComparison.Ordinal);
+            Assert.Contains("MAC addresses", shell.ExportConfirmationText, StringComparison.Ordinal);
+            Assert.Contains("IP addresses", shell.ExportConfirmationText, StringComparison.Ordinal);
+            Assert.Contains("Wi-Fi network names", shell.ExportConfirmationText, StringComparison.Ordinal);
+            Assert.Contains("Share it only with someone you trust", shell.ExportConfirmationText, StringComparison.Ordinal);
         }
         finally
         {

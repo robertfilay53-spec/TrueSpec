@@ -120,29 +120,47 @@ public static class PathSafety
     {
         try
         {
-            if (File.Exists(fullPath))
+            // Walk up to the nearest existing ancestor: the path itself
+            // when it exists (file or directory), otherwise the closest
+            // parent that does. The path itself must be resolved, not
+            // just its parent: File.Exists is false for a directory, so
+            // a directory symlink passed as the export folder was
+            // returned unresolved and the containment check saw the link,
+            // not the target. The segments below the ancestor are
+            // re-appended after resolution, so a not-yet-created file
+            // under a linked folder is resolved through the link too.
+            var ancestor = fullPath;
+            var tail = new List<string>();
+            while (!string.IsNullOrEmpty(ancestor) && !File.Exists(ancestor) && !Directory.Exists(ancestor))
             {
-                var target = File.ResolveLinkTarget(fullPath, returnFinalTarget: true);
-                if (target is not null)
+                var parent = Path.GetDirectoryName(ancestor);
+                if (string.IsNullOrEmpty(parent) || string.Equals(parent, ancestor, StringComparison.Ordinal))
                 {
-                    return target.FullName;
+                    return fullPath;
                 }
+
+                tail.Add(Path.GetFileName(ancestor));
+                ancestor = parent;
             }
-            else
+
+            if (string.IsNullOrEmpty(ancestor))
             {
-                var directory = Path.GetDirectoryName(fullPath);
-                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory))
-                {
-                    var target = File.ResolveLinkTarget(directory, returnFinalTarget: true);
-                    if (target is not null)
-                    {
-                        var fileName = Path.GetFileName(fullPath);
-                        return string.IsNullOrEmpty(fileName)
-                            ? target.FullName
-                            : Path.Combine(target.FullName, fileName);
-                    }
-                }
+                return fullPath;
             }
+
+            var target = File.ResolveLinkTarget(ancestor, returnFinalTarget: true);
+            if (target is null)
+            {
+                return fullPath;
+            }
+
+            var resolved = target.FullName;
+            for (var i = tail.Count - 1; i >= 0; i--)
+            {
+                resolved = Path.Combine(resolved, tail[i]);
+            }
+
+            return resolved;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
         {

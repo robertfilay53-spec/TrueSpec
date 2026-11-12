@@ -21,6 +21,11 @@ public sealed class DriversCollector : ICollector
 
     public bool RequiresAdministrator => false;
 
+    // WMI query strings are hoisted so CollectorWmiSelectionTests can pin
+    // the SELECT list to the properties this collector reads (hardening
+    // item 7, F9 bug class).
+    internal const string SignedDriverQuery = "SELECT DeviceName, DriverDate, DriverVersion, IsSigned FROM Win32_PnPSignedDriver";
+
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -34,7 +39,7 @@ public sealed class DriversCollector : ICollector
         // as complete (see BuildSnapshot).
         var drivers = Wmi.Query(
             "root\\cimv2",
-            "SELECT DeviceName, DriverDate, DriverVersion, IsSigned FROM Win32_PnPSignedDriver",
+            SignedDriverQuery,
             out var queryError);
 
         if (drivers.Count == 0)

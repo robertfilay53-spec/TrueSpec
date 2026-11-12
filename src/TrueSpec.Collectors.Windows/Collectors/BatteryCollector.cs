@@ -22,15 +22,24 @@ public sealed class BatteryCollector : ICollector
 
     public bool RequiresAdministrator => false;
 
+    // WMI query strings are hoisted so CollectorWmiSelectionTests can pin
+    // the SELECT list to the properties this collector reads (hardening
+    // item 7, F9 bug class).
+    internal const string BatteryQuery = "SELECT DesignCapacity, FullChargeCapacity, EstimatedChargeRemaining, EstimatedRunTime, Chemistry FROM Win32_Battery";
+    internal const string StaticDataQuery = "SELECT DesignedCapacity, Chemistry, ManufactureName, DeviceName, SerialNumber FROM BatteryStaticData";
+    internal const string FullChargedCapacityQuery = "SELECT FullChargedCapacity FROM BatteryFullChargedCapacity";
+    internal const string CycleCountQuery = "SELECT CycleCount FROM BatteryCycleCount";
+    internal const string StatusQuery = "SELECT Voltage, ChargeRate, DischargeRate FROM BatteryStatus";
+
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var battery = Wmi.Query("root\\cimv2", "SELECT DesignCapacity, FullChargeCapacity, EstimatedChargeRemaining, EstimatedRunTime, Chemistry FROM Win32_Battery").FirstOrDefault();
-        var staticData = Wmi.Query("root\\wmi", "SELECT DesignedCapacity, Chemistry, ManufactureName, DeviceName, SerialNumber FROM BatteryStaticData").FirstOrDefault();
-        var fullData = Wmi.Query("root\\wmi", "SELECT FullChargedCapacity FROM BatteryFullChargedCapacity").FirstOrDefault();
-        var cycleData = Wmi.Query("root\\wmi", "SELECT CycleCount FROM BatteryCycleCount").FirstOrDefault();
-        var status = Wmi.Query("root\\wmi", "SELECT Voltage, ChargeRate, DischargeRate FROM BatteryStatus").FirstOrDefault();
+        var battery = Wmi.Query("root\\cimv2", BatteryQuery).FirstOrDefault();
+        var staticData = Wmi.Query("root\\wmi", StaticDataQuery).FirstOrDefault();
+        var fullData = Wmi.Query("root\\wmi", FullChargedCapacityQuery).FirstOrDefault();
+        var cycleData = Wmi.Query("root\\wmi", CycleCountQuery).FirstOrDefault();
+        var status = Wmi.Query("root\\wmi", StatusQuery).FirstOrDefault();
 
         if (battery is null && staticData is null)
         {
@@ -66,7 +75,7 @@ public sealed class BatteryCollector : ICollector
         var headline = string.Join(" - ", new[]
         {
             // A missing design capacity is skipped, never printed as
-            // "<Not reported by hardware> - 85.5% health".
+            // "<not reported> - 85.5% health".
             design is null ? null : FormatCapacity(design),
             health is null ? "Health not reported" : string.Create(CultureInfo.InvariantCulture, $"{health.Value:0.#}% health"),
         }.Where(v => !string.IsNullOrWhiteSpace(v)));

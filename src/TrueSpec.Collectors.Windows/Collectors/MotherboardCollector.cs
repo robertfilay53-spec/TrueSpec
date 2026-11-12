@@ -20,20 +20,28 @@ public sealed class MotherboardCollector : ICollector
 
     public bool RequiresAdministrator => false;
 
+    // WMI query strings are hoisted so CollectorWmiSelectionTests can pin
+    // the SELECT list to the properties this collector reads (hardening
+    // item 7, F9 bug class).
+    internal const string BaseBoardQuery = "SELECT Manufacturer, Product, Version, SerialNumber FROM Win32_BaseBoard";
+    internal const string BiosQuery = "SELECT Manufacturer, ReleaseDate, SMBIOSBIOSVersion, Version, SerialNumber FROM Win32_BIOS";
+    internal const string EnclosureQuery = "SELECT ChassisTypes, SerialNumber FROM Win32_SystemEnclosure";
+    internal const string ComputerSystemQuery = "SELECT SystemFamily FROM Win32_ComputerSystem";
+
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var board = Wmi.Query("root\\cimv2", "SELECT Manufacturer, Product, Version, SerialNumber FROM Win32_BaseBoard").FirstOrDefault();
+        var board = Wmi.Query("root\\cimv2", BaseBoardQuery).FirstOrDefault();
         // Manufacturer and Version must be in the SELECT: WmiRow only
         // carries the properties the query asked for, so reading them
         // without selecting them always returned null and the BIOS vendor
         // showed SpecLabels.NotReportedByHardware even though the same
         // Win32_BIOS read had the version and date (a ThinkPad reports
         // "LENOVO" here).
-        var bios = Wmi.Query("root\\cimv2", "SELECT Manufacturer, ReleaseDate, SMBIOSBIOSVersion, Version, SerialNumber FROM Win32_BIOS").FirstOrDefault();
-        var enclosure = Wmi.Query("root\\cimv2", "SELECT ChassisTypes, SerialNumber FROM Win32_SystemEnclosure").FirstOrDefault();
-        var computer = Wmi.Query("root\\cimv2", "SELECT SystemFamily FROM Win32_ComputerSystem").FirstOrDefault();
+        var bios = Wmi.Query("root\\cimv2", BiosQuery).FirstOrDefault();
+        var enclosure = Wmi.Query("root\\cimv2", EnclosureQuery).FirstOrDefault();
+        var computer = Wmi.Query("root\\cimv2", ComputerSystemQuery).FirstOrDefault();
 
         if (board is null && bios is null)
         {
