@@ -41,7 +41,7 @@ public sealed class DisplayCollector : ICollector
 
         var manufacturer = Decode(monitor?.UInt16Array("ManufacturerName"));
         var model = Decode(monitor?.UInt16Array("ProductCodeID"));
-        var serial = Decode(monitor?.UInt16Array("SerialNumberID"));
+        var serial = FormatSerial(Decode(monitor?.UInt16Array("SerialNumberID")));
         var friendly = Decode(monitor?.UInt16Array("UserFriendlyName"));
         var year = monitor?.UInt16("YearOfManufacture");
         var week = monitor?.UInt16("WeekOfManufacture");
@@ -55,16 +55,9 @@ public sealed class DisplayCollector : ICollector
         var size = FormatPanelSize(basic);
         var resolution = FormatResolution(video);
         var colourDepth = FormatColourDepth(video?.UInt32("CurrentBitsPerPixel"));
-        var refresh = video?.UInt32("CurrentRefreshRate") is { } hz && hz > 0
-            ? string.Create(CultureInfo.InvariantCulture, $"{hz} Hz")
-            : CollectorSupport.NotReported;
+        var refresh = FormatRefreshRate(video?.UInt32("CurrentRefreshRate"));
 
-        var headline = string.Join(" ", new[]
-        {
-            friendly ?? model,
-            resolution == CollectorSupport.NotReported ? null : resolution,
-            refresh == CollectorSupport.NotReported ? null : refresh,
-        }.Where(v => !string.IsNullOrWhiteSpace(v)));
+        var headline = BuildHeadline(friendly, model, resolution, refresh);
 
         var specs = new List<SpecValue>
         {
@@ -93,7 +86,7 @@ public sealed class DisplayCollector : ICollector
             var extra = monitors[i];
             var prefix = string.Create(CultureInfo.InvariantCulture, $"Monitor {i + 1}");
             specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.PanelModel}", Decode(extra.UInt16Array("ProductCodeID")), "EDID WmiMonitorID"));
-            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.PanelSerial}", Decode(extra.UInt16Array("SerialNumberID")), "EDID WmiMonitorID"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.PanelSerial}", FormatSerial(Decode(extra.UInt16Array("SerialNumberID"))), "EDID WmiMonitorID"));
             // Same rule as the first monitor: a missing/zero week means
             // "year only", never "week 0", which is not a real date.
             var extraWeek = extra.UInt16("WeekOfManufacture");
@@ -170,23 +163,87 @@ public sealed class DisplayCollector : ICollector
     }
 
     /// <summary>
+    /// Card headline: the panel name when EDID reports one, then the real
+    /// active resolution and refresh. A missing panel name must never
+    /// print as "Not reported by hardware" in front of real values: only
+    /// the missing field is unreported, and the Panel name spec says so.
+    /// Returns an empty string when nothing is reported; the caller falls
+    /// back to "Display".
+    /// </summary>
+    internal static string BuildHeadline(string? friendlyName, string? model, string resolution, string refreshRate)
+    {
+        string? name = null;
+        foreach (var candidate in new[] { friendlyName, model })
+        {
+            if (!string.IsNullOrWhiteSpace(candidate) &&
+                !string.Equals(candidate, CollectorSupport.NotReported, StringComparison.Ordinal))
+            {
+                name = candidate;
+                break;
+            }
+        }
+
+        string? displayPart = resolution == CollectorSupport.NotReported
+            ? refreshRate == CollectorSupport.NotReported ? null : refreshRate
+            : refreshRate == CollectorSupport.NotReported
+                ? resolution
+                : string.Create(CultureInfo.InvariantCulture, $"{resolution}, {refreshRate}");
+
+        return name is null
+            ? displayPart ?? string.Empty
+            : displayPart is null
+                ? name
+                : string.Create(CultureInfo.InvariantCulture, $"{name} {displayPart}");
+    }
+
+    /// <summary>
+    /// Panel serial from EDID. A serial of "0" (or all zeroes) means the
+    /// panel vendor never programmed one: it is not a serial number, so it
+    /// shows as "Not reported by hardware" instead of "0". A serial with
+    /// leading zeroes followed by other characters is kept as reported.
+    /// </summary>
+    internal static string FormatSerial(string decoded)
+    {
+        if (string.Equals(decoded, CollectorSupport.NotReported, StringComparison.Ordinal))
+        {
+            return CollectorSupport.NotReported;
+        }
+
+        var serial = decoded.Trim();
+        return serial.Length == 0 || serial.Trim('0').Length == 0
+            ? CollectorSupport.NotReported
+            : serial;
+    }
+
+    /// <summary>
     /// U11: colour depth from Win32_VideoController.CurrentBitsPerPixel, as
-    /// "32-bit". A missing or zero value is "Not reported by hardware":
-    /// 0 bits per pixel is not a real colour depth.
+    /// "32-bit". A missing, zero or impossible value (no panel reports
+    /// more than 64 bits per pixel; UInt32.MaxValue is the "unknown"
+    /// sentinel) is "Not reported by hardware": 0 bits per pixel is not
+    /// a real colour depth.
     /// </summary>
     internal static string FormatColourDepth(uint? bitsPerPixel) =>
-        bitsPerPixel is null or 0
+        bitsPerPixel is null or 0 or > 64
             ? CollectorSupport.NotReported
             : string.Create(CultureInfo.InvariantCulture, $"{bitsPerPixel.Value}-bit");
 
-    private static string FormatResolution(WmiRow? video)
-    {
-        var width = video?.UInt32("CurrentHorizontalResolution");
-        var height = video?.UInt32("CurrentVerticalResolution");
-        return width is null or 0 || height is null or 0
+    internal static string FormatResolution(uint? width, uint? height) =>
+        width is null or 0 or uint.MaxValue || height is null or 0 or uint.MaxValue
             ? CollectorSupport.NotReported
             : string.Create(CultureInfo.InvariantCulture, $"{width.Value} x {height.Value}");
-    }
+
+    private static string FormatResolution(WmiRow? video) =>
+        FormatResolution(video?.UInt32("CurrentHorizontalResolution"), video?.UInt32("CurrentVerticalResolution"));
+
+    /// <summary>
+    /// Refresh rate from Win32_VideoController.CurrentRefreshRate. A
+    /// missing, zero or UInt32.MaxValue ("unknown" sentinel) value is
+    /// "Not reported by hardware", never "0 Hz" or a billions-of-Hz number.
+    /// </summary>
+    internal static string FormatRefreshRate(uint? hertz) =>
+        hertz is null or 0 or uint.MaxValue
+            ? CollectorSupport.NotReported
+            : string.Create(CultureInfo.InvariantCulture, $"{hertz.Value} Hz");
 
     private static string FormatPanelSize(WmiRow? basic)
     {

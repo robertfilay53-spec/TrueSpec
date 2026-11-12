@@ -71,6 +71,7 @@ public static class SpecLabels
     public const string EthernetIPAddress = "Ethernet IP address";
     public const string EthernetMACAddress = "Ethernet MAC address";
     public const string EthernetAdapter = "Ethernet adapter";
+    public const string EthernetDriverAge = "Ethernet driver age";
     public const string EthernetDriverDate = "Ethernet driver date";
     public const string EthernetGateway = "Ethernet gateway";
     public const string EthernetLinkSpeed = "Ethernet link speed (negotiated rate at scan time)";
@@ -83,6 +84,7 @@ public static class SpecLabels
     public const string FreeSpacePercent = "Free space (%)";
     public const string FullChargeCapacity = "Full charge capacity";
     public const string GPUClock = "GPU clock";
+    public const string GPUDriverAge = "GPU driver age";
     public const string GPUFan = "GPU fan";
     public const string GPULoad = "GPU load";
     public const string GPUPower = "GPU power";

@@ -103,6 +103,55 @@ internal static class CollectorSupport
         return string.Create(CultureInfo.InvariantCulture, $"{bitsPerSecond.Value / 1_000_000d:0.#} Mbps");
     }
 
+    /// <summary>
+    /// The driver-stale threshold shared by every component (U12 rule):
+    /// a driver older than this many years is flagged in its age value.
+    /// </summary>
+    public const int DriverStaleAgeYears = 2;
+
+    /// <summary>
+    /// Plain-text age of a driver from its driver date ("yyyy-MM-dd" as
+    /// written by WmiRow.DateText), for example "Driver from 2024
+    /// (2 years old)". A driver older than <see cref="DriverStaleAgeYears"/>
+    /// years is flagged in the same value. A missing, unparseable or future
+    /// date never produces a negative age: a future date reads as 0 years
+    /// old. Shared by the Wi-Fi, Ethernet and GPU collectors so the same
+    /// rule (and the same wording) applies to every driver.
+    /// </summary>
+    public static string FormatDriverAge(string? driverDate, DateTimeOffset asOf)
+    {
+        if (string.IsNullOrWhiteSpace(driverDate) ||
+            !DateTimeOffset.TryParse(
+                driverDate,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var date))
+        {
+            return NotReported;
+        }
+
+        var years = asOf.Year - date.Year;
+        if (asOf.Month < date.Month || (asOf.Month == date.Month && asOf.Day < date.Day))
+        {
+            years--;
+        }
+
+        if (years < 0)
+        {
+            years = 0;
+        }
+
+        // The stale flag sits inside the same parentheses as the age, so
+        // the value reads as one sentence: "Driver from 2020 (6 years old,
+        // older than 2 years)".
+        var stale = years > DriverStaleAgeYears
+            ? string.Create(CultureInfo.InvariantCulture, $", older than {DriverStaleAgeYears} years")
+            : string.Empty;
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"Driver from {date.Year} ({years} year{(years == 1 ? string.Empty : "s")} old{stale})");
+    }
+
     public static string FormatPercent(double? value) =>
         value is null ? NotReported : string.Create(CultureInfo.InvariantCulture, $"{value.Value:0.#}%");
 

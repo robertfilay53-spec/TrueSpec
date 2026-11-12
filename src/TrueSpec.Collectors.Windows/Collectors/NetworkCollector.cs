@@ -27,12 +27,6 @@ public sealed class NetworkCollector : ICollector
     /// <summary>Source label used for every value read through NetworkInterface.</summary>
     internal const string NetworkInterfaceSource = "System.Net.NetworkInformation.NetworkInterface";
 
-    /// <summary>
-    /// U12: a Wi-Fi driver older than this many years is flagged in the
-    /// "Wi-Fi driver age" spec. The plan names two years as the threshold.
-    /// </summary>
-    internal const int WifiDriverStaleAgeYears = 2;
-
     public string Id => "network";
 
     public string Name => "Network";
@@ -82,7 +76,7 @@ public sealed class NetworkCollector : ICollector
 
         var wifiDriver = wifi is null ? null : FindDriver(drivers, wifi);
         var wifiConfig = wifi is null ? null : FindConfiguration(configurations, wifi);
-        var interfacesOutput = ParseNetsh(ProcessRunner.Run("netsh", "wlan show interfaces"));
+        var interfacesOutput = ParseNetsh(ProcessRunner.Run("netsh", "wlan show interfaces"), wifi?.String("NetConnectionID"));
         var driversOutput = ProcessRunner.Run("netsh", "wlan show drivers") ?? string.Empty;
         var standards = ReadStandards(driversOutput);
 
@@ -95,7 +89,7 @@ public sealed class NetworkCollector : ICollector
             WifiVendor: wifi?.String("Manufacturer"),
             WifiDriverVersion: wifiDriver?.String("DriverVersion"),
             WifiDriverDate: wifiDriver?.DateText("DriverDate"),
-            WifiSpeedBitsPerSecond: wifi?.UInt64("Speed") is { } wifiSpeed ? (long)wifiSpeed : null,
+            WifiSpeedBitsPerSecond: NormalizeCimSpeed(wifi?.UInt64("Speed")),
             WifiMac: wifi?.String("MACAddress"),
             WifiIp: Join(wifiConfig?.StringArray("IPAddress")),
             WifiGateway: Join(wifiConfig?.StringArray("DefaultIPGateway")),
@@ -109,7 +103,7 @@ public sealed class NetworkCollector : ICollector
             TransmitRate: Get(interfacesOutput, "Transmit rate (Mbps)"),
             Ssid: Get(interfacesOutput, "SSID"),
             EthernetName: ethernet?.String("Name"),
-            EthernetSpeedBitsPerSecond: ethernet?.UInt64("Speed") is { } ethernetSpeed ? (long)ethernetSpeed : null,
+            EthernetSpeedBitsPerSecond: NormalizeCimSpeed(ethernet?.UInt64("Speed")),
             EthernetMac: ethernet?.String("MACAddress"),
             EthernetDriverDate: ethernetDriver?.DateText("DriverDate"),
             EthernetIp: Join(ethernetConfig?.StringArray("IPAddress")),
@@ -250,7 +244,7 @@ public sealed class NetworkCollector : ICollector
             CollectorSupport.Spec(SpecLabels.Standards, reading.Standards, "netsh wlan show drivers"),
             CollectorSupport.Spec(SpecLabels.DriverVersion, reading.WifiDriverVersion, "CIM Win32_PnPSignedDriver"),
             CollectorSupport.Spec(SpecLabels.DriverDate, reading.WifiDriverDate, "CIM Win32_PnPSignedDriver"),
-            CollectorSupport.Spec(SpecLabels.WifiDriverAge, FormatWifiDriverAge(reading.WifiDriverDate, referenceDate), "CIM Win32_PnPSignedDriver"),
+            CollectorSupport.Spec(SpecLabels.WifiDriverAge, CollectorSupport.FormatDriverAge(reading.WifiDriverDate, referenceDate), "CIM Win32_PnPSignedDriver"),
             // U12 honesty rule: this is the rate the adapter negotiated at
             // scan time, not a throughput measurement. The label says so so
             // the UI never has to.
@@ -273,6 +267,7 @@ public sealed class NetworkCollector : ICollector
             CollectorSupport.Spec(SpecLabels.EthernetStatus, wired?.Status, NetworkInterfaceSource),
             CollectorSupport.Spec(SpecLabels.EthernetMACAddress, ethernetMac.Value, ethernetMac.Source),
             CollectorSupport.Spec(SpecLabels.EthernetDriverDate, reading.EthernetDriverDate, "CIM Win32_PnPSignedDriver"),
+            CollectorSupport.Spec(SpecLabels.EthernetDriverAge, CollectorSupport.FormatDriverAge(reading.EthernetDriverDate, referenceDate), "CIM Win32_PnPSignedDriver"),
             CollectorSupport.Spec(SpecLabels.EthernetIPAddress, ethernetIp.Value, ethernetIp.Source),
             CollectorSupport.Spec(SpecLabels.EthernetGateway, ethernetGateway.Value, ethernetGateway.Source),
             CollectorSupport.Spec(SpecLabels.EthernetDNSServers, ethernetDns.Value, ethernetDns.Source),
@@ -375,7 +370,7 @@ public sealed class NetworkCollector : ICollector
             Ipv4Addresses: ipv4.Length == 0 ? null : string.Join(", ", ipv4),
             Gateways: gateways.Length == 0 ? null : string.Join(", ", gateways),
             DnsServers: dns.Length == 0 ? null : string.Join(", ", dns),
-            SpeedBitsPerSecond: nic.Speed > 0 ? nic.Speed : null,
+            SpeedBitsPerSecond: NormalizeLinkSpeed(nic.Speed),
             Status: nic.OperationalStatus.ToString(),
             IsWireless: isWireless,
             IsWired: isWired,
@@ -407,10 +402,35 @@ public sealed class NetworkCollector : ICollector
         return string.Join(":", parts);
     }
 
+    /// <summary>
+    /// Normalises a link speed from <see cref="NetworkInterface.Speed"/>:
+    /// 0 and negative values mean "no reading", and
+    /// <see cref="long.MaxValue"/> is the "unknown speed" sentinel some
+    /// drivers report (it used to display as "9223372036854.8 Mbps").
+    /// Anything else is a real negotiated rate in bits per second.
+    /// </summary>
+    internal static long? NormalizeLinkSpeed(long speed) =>
+        speed is <= 0 or long.MaxValue ? null : speed;
+
+    /// <summary>
+    /// Normalises a link speed from CIM Win32_NetworkAdapter.Speed (a
+    /// UInt64): the same sentinels as <see cref="NormalizeLinkSpeed"/>,
+    /// plus UInt64.MaxValue, which wraps to -1 on the cast to long.
+    /// </summary>
+    internal static long? NormalizeCimSpeed(ulong? bitsPerSecond)
+    {
+        if (bitsPerSecond is null || bitsPerSecond.Value > (ulong)long.MaxValue)
+        {
+            return null;
+        }
+
+        return NormalizeLinkSpeed((long)bitsPerSecond.Value);
+    }
+
     internal static string FormatBitsPerSecond(long? bitsPerSecond) =>
-        bitsPerSecond is null or <= 0
-            ? CollectorSupport.NotReported
-            : string.Create(CultureInfo.InvariantCulture, $"{bitsPerSecond.Value / 1_000_000d:0.#} Mbps");
+        bitsPerSecond is { } value && NormalizeLinkSpeed(value) is { } speed
+            ? string.Create(CultureInfo.InvariantCulture, $"{speed / 1_000_000d:0.#} Mbps")
+            : CollectorSupport.NotReported;
 
     private static bool IsWifi(WmiRow adapter)
     {
@@ -462,13 +482,86 @@ public sealed class NetworkCollector : ICollector
             : null;
     }
 
-    private static Dictionary<string, string> ParseNetsh(string? output)
+    /// <summary>
+    /// Parses `netsh wlan show interfaces` into the fields of one
+    /// interface: the one CIM identified as the Wi-Fi adapter (matched by
+    /// its NetConnectionID, which is the same name netsh prints), or, when
+    /// that name is not given or not connected, the first connected
+    /// interface. The old flat parser merged every interface block into a
+    /// single first-wins dictionary, so on a machine with two wireless
+    /// interfaces (a USB adapter, a Wi-Fi Direct virtual adapter) the
+    /// screen could silently show the wrong network's SSID and signal.
+    /// Each block starts at its "Name :" line; a disconnected block
+    /// carries no SSID, signal, band or channel, so it can never shadow
+    /// the connected interface's values. Keys are matched
+    /// case-insensitively with internal whitespace collapsed, so column
+    /// alignment drift between Windows builds cannot blank the screen.
+    /// A missing, empty or unparseable output parses to no fields, never
+    /// invented values.
+    /// </summary>
+    internal static Dictionary<string, string> ParseNetsh(string? output, string? preferredInterfaceName = null)
     {
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var blocks = ParseNetshBlocks(output);
+        if (blocks.Count == 0)
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        // 1. The interface CIM named, when it is the connected one.
+        var named = string.IsNullOrWhiteSpace(preferredInterfaceName)
+            ? null
+            : blocks.FirstOrDefault(b =>
+                string.Equals(b.Name, preferredInterfaceName, StringComparison.OrdinalIgnoreCase));
+        if (named is { IsConnected: true })
+        {
+            return named.Fields;
+        }
+
+        // 2. Any connected interface with Wi-Fi fields.
+        var connected = blocks.FirstOrDefault(b => b.IsConnected && HasWifiFields(b.Fields));
+        if (connected is not null)
+        {
+            return connected.Fields;
+        }
+
+        // 3. Any interface with Wi-Fi fields (covers a connected block
+        // whose State line was missing or unreadable).
+        var withFields = blocks.FirstOrDefault(b => HasWifiFields(b.Fields));
+        if (withFields is not null)
+        {
+            return withFields.Fields;
+        }
+
+        // 4. The named interface even when disconnected, then the first
+        // block: both are better than inventing a network, and the caller
+        // shows "Not reported by hardware" for whatever is still missing.
+        return named?.Fields ?? blocks[0].Fields;
+    }
+
+    private static bool HasWifiFields(IReadOnlyDictionary<string, string> fields) =>
+        fields.ContainsKey("SSID") || fields.ContainsKey("Signal") || fields.ContainsKey("Radio type");
+
+    /// <summary>One interface block from netsh output, with its parsed fields.</summary>
+    internal sealed record NetshInterfaceBlock(string? Name, bool IsConnected, Dictionary<string, string> Fields);
+
+    /// <summary>
+    /// Splits netsh output into one block per interface. A block starts at
+    /// its "Name :" line; the "There is N interfaces" header and the
+    /// "Hosted network status" trailer belong to no interface (the trailer
+    /// lands in the last block's fields, where it is never looked up).
+    /// Lines without a colon (the "Radio status" continuation line, blank
+    /// lines) are ignored, as are keys with empty values.
+    /// </summary>
+    internal static List<NetshInterfaceBlock> ParseNetshBlocks(string? output)
+    {
+        var blocks = new List<NetshInterfaceBlock>();
         if (string.IsNullOrWhiteSpace(output))
         {
-            return result;
+            return blocks;
         }
+
+        Dictionary<string, string>? current = null;
+        string? currentName = null;
 
         foreach (var rawLine in output.Split('\n'))
         {
@@ -479,15 +572,52 @@ public sealed class NetworkCollector : ICollector
                 continue;
             }
 
-            var key = line[..separator].Trim();
+            var key = NormalizeNetshKey(line[..separator]);
             var value = line[(separator + 1)..].Trim();
-            if (key.Length > 0 && value.Length > 0 && !result.ContainsKey(key))
+            if (key.Length == 0 || value.Length == 0)
             {
-                result[key] = value;
+                continue;
+            }
+
+            // A new "Name :" line starts a new interface block. ("Name" is
+            // the first line of every interface block in netsh output.)
+            if (string.Equals(key, "Name", StringComparison.OrdinalIgnoreCase))
+            {
+                current = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                currentName = value;
+                blocks.Add(new NetshInterfaceBlock(currentName, IsConnected: false, current));
+            }
+
+            // Lines before the first Name line (the "There is N
+            // interfaces" header) belong to no interface and are ignored.
+            if (current is null)
+            {
+                continue;
+            }
+
+            if (!current.ContainsKey(key))
+            {
+                current[key] = value;
             }
         }
 
-        return result;
+        // State is only known once the whole block has been read.
+        for (var i = 0; i < blocks.Count; i++)
+        {
+            var block = blocks[i];
+            var connected = block.Fields.TryGetValue("State", out var state) &&
+                state.Equals("connected", StringComparison.OrdinalIgnoreCase);
+            blocks[i] = block with { IsConnected = connected };
+        }
+
+        return blocks;
+    }
+
+    /// <summary>Collapses runs of whitespace in a netsh key so alignment drift cannot break the match.</summary>
+    private static string NormalizeNetshKey(string key)
+    {
+        var parts = key.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return string.Join(" ", parts);
     }
 
     private static string? Get(IReadOnlyDictionary<string, string> values, string key) =>
@@ -532,46 +662,13 @@ public sealed class NetworkCollector : ICollector
     }
 
     /// <summary>
-    /// U12: plain-text age of the Wi-Fi driver from its driver date
-    /// ("yyyy-MM-dd" as written by WmiRow.DateText), for example
-    /// "Driver from 2024 (2 years old)". A driver older than
-    /// <see cref="WifiDriverStaleAgeYears"/> years is flagged in the same
-    /// value. A missing, unparseable or future date never produces a
-    /// negative age: a future date reads as 0 years old.
+    /// U12: plain-text age of the Wi-Fi driver from its driver date.
+    /// Delegates to the shared rule in
+    /// <see cref="CollectorSupport.FormatDriverAge"/> so Wi-Fi, Ethernet
+    /// and GPU drivers are all judged by the same threshold and wording.
     /// </summary>
-    internal static string FormatWifiDriverAge(string? driverDate, DateTimeOffset asOf)
-    {
-        if (string.IsNullOrWhiteSpace(driverDate) ||
-            !DateTimeOffset.TryParse(
-                driverDate,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
-                out var date))
-        {
-            return CollectorSupport.NotReported;
-        }
-
-        var years = asOf.Year - date.Year;
-        if (asOf.Month < date.Month || (asOf.Month == date.Month && asOf.Day < date.Day))
-        {
-            years--;
-        }
-
-        if (years < 0)
-        {
-            years = 0;
-        }
-
-        // The stale flag sits inside the same parentheses as the age, so
-        // the value reads as one sentence: "Driver from 2020 (6 years old,
-        // older than 2 years)".
-        var stale = years > WifiDriverStaleAgeYears
-            ? string.Create(CultureInfo.InvariantCulture, $", older than {WifiDriverStaleAgeYears} years")
-            : string.Empty;
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"Driver from {date.Year} ({years} year{(years == 1 ? string.Empty : "s")} old{stale})");
-    }
+    internal static string FormatWifiDriverAge(string? driverDate, DateTimeOffset asOf) =>
+        CollectorSupport.FormatDriverAge(driverDate, asOf);
 
     private static string ReadStandards(string driverOutput)
     {
