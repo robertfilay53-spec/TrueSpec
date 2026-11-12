@@ -102,6 +102,46 @@ public class NavigationTests
     }
 
     [Fact]
+    public void Navigation_ContainsSoftwarePage()
+    {
+        var items = NavItemViewModel.CreateDefault();
+        var software = items.FirstOrDefault(i => i.Key == "software");
+
+        Assert.NotNull(software);
+        Assert.Equal("Software", software.Label);
+    }
+
+    [Fact]
+    public void Navigation_SoftwareSitsAfterHistorySoHistoryStaysVisible()
+    {
+        // U8 left-rail decision: the rail fits ~16 items and History must
+        // stay inside the visible region (index 0-15, pinned by
+        // Navigation_HistoryIsWithinVisibleRegion), so Software sits
+        // directly after History instead of with the other collectors.
+        // The rail scrolls with an always-visible scrollbar, so Software
+        // stays reachable.
+        var items = NavItemViewModel.CreateDefault().ToList();
+        var history = items.FindIndex(i => i.Key == "history");
+        var software = items.FindIndex(i => i.Key == "software");
+
+        Assert.InRange(history, 0, 15);
+        Assert.True(software > history, "Software must sit after History so History keeps its visible slot.");
+    }
+
+    [Fact]
+    public void Navigation_SoftwareRoutesToComponentDetail()
+    {
+        var main = new MainViewModel(
+            MachineScanService.CreateDefault(),
+            new UnavailableSensorMonitor(),
+            new BuyerCheckEvaluator());
+
+        main.SelectedNavItem = main.NavItems.First(i => i.Key == "software");
+
+        Assert.IsType<ComponentDetailViewModel>(main.CurrentPage);
+    }
+
+    [Fact]
     public void Navigation_ContainsSettingsPage()
     {
         var items = NavItemViewModel.CreateDefault();
@@ -128,7 +168,7 @@ public class NavigationTests
     public void Navigation_NavRailIsScrollable()
     {
         // The v1.4 recurrence of the v1.0.1 defect: Settings is the last
-        // of 20 nav items and the rail fits about 16 at the default
+        // of 21 nav items and the rail fits about 16 at the default
         // 1280x800 window, so it rendered below the fold and was
         // effectively unreachable. The rail must scroll, and the scrollbar
         // must be always visible (not auto/overlay) so the scrollability

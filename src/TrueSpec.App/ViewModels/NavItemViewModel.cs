@@ -31,6 +31,16 @@ public sealed record NavItemViewModel(string Key, string Label, string IconData)
         // and was effectively unreachable in v1.0.1 even though it was
         // registered. Keep it above that fold line.
         Create("history", "History"),
+        // U8 left-rail decision: the rail fits ~16 items and History must
+        // stay inside that visible region (pinned by
+        // Navigation_HistoryIsWithinVisibleRegion), so Software sits here,
+        // directly after History, instead of with the other collectors.
+        // Grouping the rail or folding the audit into the System page were
+        // both rejected: grouping is a bigger UI change than a MEDIUM item
+        // should carry, and the audit is hundreds of rows that would bloat
+        // the System detail table. The rail scrolls with an always-visible
+        // scrollbar (the v1.4 durable fix), so Software stays reachable.
+        Create("software", "Software"),
         Create("tests", "Tests"),
         Create("report", "Report"),
         Create("compare", "Compare"),

@@ -121,6 +121,19 @@ public class CollectorWmiSelectionTests
         AssertSelects(DriversCollector.SignedDriverQuery, "DeviceName", "DriverDate", "DriverVersion", "IsSigned");
     }
 
+    [Fact]
+    public void SoftwareCollector_SelectsEveryPropertyItReads_AndNeverSelectsAKey()
+    {
+        AssertSelects(SoftwareCollector.LicensingProductQuery, "ApplicationID", "Description", "LicenseStatus", "Name");
+        // A product key is never read, stored or displayed: the query must
+        // not select PartialProductKey (or any key-bearing property), and
+        // the forbidden Win32_Product class (repair-install trigger) must
+        // not appear anywhere in the query.
+        Assert.DoesNotContain("PartialProductKey", SoftwareCollector.LicensingProductQuery, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("ProductKeyID", SoftwareCollector.LicensingProductQuery, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Win32_Product", SoftwareCollector.LicensingProductQuery, StringComparison.Ordinal);
+    }
+
     private static async Task<ComponentSnapshot> CollectAsync(ICollector collector)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
