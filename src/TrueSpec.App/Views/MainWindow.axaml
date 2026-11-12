@@ -44,8 +44,16 @@
                     </StackPanel>
                 </StackPanel>
 
+                <!-- The rail scrolls and the scrollbar is always visible:
+                     there are 20 nav items and the rail fits about 16 at the
+                     default 1280x800 window, so without a visible scrollbar
+                     the last items (Settings) were below the fold and
+                     effectively unreachable. A scrollable rail is the durable
+                     fix: no item is unreachable regardless of how many the
+                     list grows to. -->
                 <ListBox Grid.Row="1"
                          Classes="nav"
+                         ScrollViewer.VerticalScrollBarVisibility="Visible"
                          ItemsSource="{Binding NavItems}"
                          SelectedItem="{Binding SelectedNavItem}">
                     <ListBox.ItemTemplate>

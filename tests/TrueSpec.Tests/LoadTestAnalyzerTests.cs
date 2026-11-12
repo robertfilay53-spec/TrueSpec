@@ -191,4 +191,71 @@ public class LoadTestAnalyzerTests
         Assert.False(result.MemoryPatternVerified);
         Assert.Contains("memory pattern check did not verify", result.VerdictText, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void ZeroClockAndZeroTemperature_AreNotReadings_CannotBeJudged()
+    {
+        // The VM case (v1.4 release blocker): the sensor library reports
+        // 0 MHz / 0 C when it does not report at all. A 0 clock and a 0 C
+        // temperature are not data, so the verdict must be "could not be
+        // judged" — never "power-limited", which asserts a cause with zero
+        // evidence. A running CPU cannot be at 0 MHz or 0 C.
+        var result = LoadTestAnalyzer.Analyze(GetSamples(0d, 0d), 4200d, null, 60);
+
+        Assert.False(result.Throttled);
+        Assert.False(result.PowerLimited);
+        Assert.Null(result.AvgClockMHz);
+        Assert.Null(result.PeakTempC);
+        Assert.Contains("could not be judged", result.VerdictText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("power-limited", result.VerdictText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void NoClockAndNoTemperatureReadings_CannotBeJudged()
+    {
+        var samples = Enumerable.Range(0, 35).Select(i => GetSample(null, null, i)).ToList();
+
+        var result = LoadTestAnalyzer.Analyze(samples, 4200d, null, 60);
+
+        Assert.False(result.Throttled);
+        Assert.False(result.PowerLimited);
+        Assert.Null(result.AvgClockMHz);
+        Assert.Null(result.PeakTempC);
+        Assert.Contains("could not be judged", result.VerdictText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ShortThrottledRun_VerdictNamesTheActualWindow()
+    {
+        // A 10-second run is judged on its own 10 seconds, so the verdict
+        // must say "last 10 seconds", never "last 30 seconds".
+        var result = LoadTestAnalyzer.Analyze(GetSamples(1800d, 97d, 10), 4200d, null, 10);
+
+        Assert.True(result.Throttled);
+        Assert.Contains("last 10 seconds", result.VerdictText, StringComparison.Ordinal);
+        Assert.DoesNotContain("last 30 seconds", result.VerdictText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FullThrottledRun_VerdictNamesThirtySeconds()
+    {
+        var result = LoadTestAnalyzer.Analyze(GetSamples(1800d, 97d), 4200d, null, 60);
+
+        Assert.True(result.Throttled);
+        Assert.Contains("last 30 seconds", result.VerdictText, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 1)]
+    [InlineData(10, 10)]
+    [InlineData(30, 30)]
+    [InlineData(35, 30)]
+    [InlineData(60, 30)]
+    public void VerdictWindowSeconds_IsTheSampleSpanCappedAtThirty(int sampleCount, int expectedSeconds)
+    {
+        var samples = GetSamples(3900d, 70d, sampleCount);
+
+        Assert.Equal(expectedSeconds, LoadTestAnalyzer.VerdictWindowSeconds(samples));
+    }
 }

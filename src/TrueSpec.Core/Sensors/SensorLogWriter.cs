@@ -192,7 +192,11 @@ public sealed class SensorLogWriter
                 continue;
             }
 
-            values[index] = FormatValue(reading.Value);
+            // A reading with no usable value leaves its cell empty: a gap
+            // is a gap, never a zero. A clock or temperature of zero is the
+            // sensor library's "not reporting" sentinel, so it is a gap;
+            // a 0 RPM fan is a real reading and still writes "0".
+            values[index] = reading.HasValue ? FormatValue(reading.Value) : string.Empty;
         }
 
         return timestamp + "," + string.Join(",", values);

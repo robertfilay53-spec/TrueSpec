@@ -138,6 +138,29 @@ public class LoadTestRunnerTests
     }
 
     [Fact]
+    public async Task ZeroReadings_AreNotReadings_RunsToCompletionAndCannotBeJudged()
+    {
+        // The VM case (v1.4 release blocker): the sensor library reports
+        // 0 C / 0 MHz when it does not report at all. Those zeros are not
+        // readings, so the test runs to completion (there was nothing to
+        // lose, so no sensor-lost abort) and the verdict is "could not be
+        // judged" — never "power-limited".
+        var runner = new LoadTestRunner(new FakeSensorMonitor(0d, 0d));
+        var config = new LoadTestConfig(DurationSeconds: 3, RatedMaxMHz: 4000d);
+
+        var result = await runner.RunAsync(config);
+
+        Assert.Null(result.AbortReason);
+        Assert.True(result.Samples.Count >= 1, $"A 3 second test must record samples, saw {result.Samples.Count}.");
+        Assert.Equal(result.Samples.Count, result.GapCount);
+        Assert.Null(result.PeakTempC);
+        Assert.Null(result.AvgClockMHz);
+        Assert.False(result.PowerLimited);
+        Assert.Contains("could not be judged", result.VerdictText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0, runner.ActiveWorkerCount);
+    }
+
+    [Fact]
     public async Task ShortRun_MemoryPatternVerifies_AndDiskReadReportedWhenMeasured()
     {
         var runner = new LoadTestRunner(new FakeSensorMonitor(50d, 3900d));

@@ -162,7 +162,7 @@ public sealed partial class LoadTestViewModel : ViewModelBase
                 ? string.Create(CultureInfo.InvariantCulture, $"Peak temperature: {peak:0.#} C")
                 : "Peak temperature: not reported by hardware";
             ResultClockText = result.AvgClockMHz is { } clock
-                ? string.Create(CultureInfo.InvariantCulture, $"Average clock (last 30 s): {clock:0} MHz")
+                ? string.Create(CultureInfo.InvariantCulture, $"Average clock (last {LoadTestAnalyzer.VerdictWindowSeconds(result.Samples)} s): {clock:0} MHz")
                 : "Average clock: not reported by hardware";
             ResultPercentText = result.RatedMaxMHz is { } rated && result.ClockHeldPercent is { } percent
                 ? string.Create(CultureInfo.InvariantCulture, $"Held {percent:0}% of rated {rated:0} MHz max")
