@@ -67,7 +67,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         Save();
     }
 
-    /// <summary>Empty means the default Documents/TrueSpec folder.</summary>
+    /// <summary>Empty means the default Downloads folder (falling back to Documents/TrueSpec when Downloads does not exist).</summary>
     [ObservableProperty]
     public partial string ExportFolder { get; set; } = string.Empty;
 
