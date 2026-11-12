@@ -11,9 +11,10 @@ public class CollectorAndScanTests
     {
         var collectors = UnavailableCollectorCatalog.CreateAll();
 
-        Assert.Equal(13, collectors.Count);
+        Assert.Equal(14, collectors.Count);
         Assert.Equal(collectors.Count, collectors.Select(c => c.Id).Distinct().Count());
         Assert.Contains(collectors, c => c.Id == "system");
+        Assert.Contains(collectors, c => c.Id == "crash");
         Assert.Contains(collectors, c => c.Id == "drivers");
         Assert.All(collectors, c =>
         {
@@ -46,8 +47,8 @@ public class CollectorAndScanTests
         var snapshot = await MachineScanService.CreateDefault().ScanAsync();
 
         // The default scan runs the whole honest-fallback catalogue: one
-        // "Not available" component per dashboard screen (13 since the
-        // Windows Update collector joined in v1.1).
+        // "Not available" component per dashboard screen (14 since the
+        // crash-history collector joined in v1.3).
         // An earlier version of this test expected 4, which never matched
         // the catalogue and never ran before CI.
         Assert.Equal(UnavailableCollectorCatalog.CreateAll().Count, snapshot.Components.Count);
