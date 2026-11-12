@@ -28,4 +28,10 @@ public interface ISnapshotStore
     Task<IReadOnlyList<SnapshotSummary>> GetHistoryAsync(
         int limit = 50,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The distinct machine names in the store, alphabetical. Empty when
+    /// no snapshots are saved.
+    /// </summary>
+    Task<IReadOnlyList<string>> GetMachineNamesAsync(CancellationToken cancellationToken = default);
 }

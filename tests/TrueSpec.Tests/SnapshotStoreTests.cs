@@ -36,8 +36,7 @@ public class SnapshotStoreTests
 
     [Fact]
     public async Task SqliteStore_CorruptRowsAreSkippedNotFatal()
-    {
-        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+    {        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
         var databasePath = Path.Combine(directory, "snapshots.db");
 
         try
@@ -72,6 +71,57 @@ public class SnapshotStoreTests
 
             var saved = Assert.Single(history);
             Assert.Equal(snapshot.Id, saved.Id);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GetMachineNamesAsync_ReturnsDistinctNamesAlphabetically()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+            await store.SaveAsync(TestSnapshots.Healthy());
+            await store.SaveAsync(TestSnapshots.Healthy() with { MachineName = "Alpha Laptop" });
+            await store.SaveAsync(TestSnapshots.Healthy() with { MachineName = "Test Laptop" });
+
+            var names = await store.GetMachineNamesAsync();
+
+            Assert.Equal(new[] { "Alpha Laptop", "Test Laptop" }, names);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GetMachineNamesAsync_EmptyStore_ReturnsEmptyList()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var names = await store.GetMachineNamesAsync();
+
+            Assert.Empty(names);
         }
         finally
         {

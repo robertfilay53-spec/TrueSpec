@@ -30,7 +30,10 @@ public sealed record HistoryTrend(
     double? BatteryHealthDelta,
     double? StorageWearDelta,
     string Summary,
-    string? BatteryAlert)
+    string? BatteryAlert,
+    IReadOnlyList<TrendPoint> DriverAgePoints,
+    double? DriverAgeDelta,
+    string? DriverAgeSummary)
 {
     public static HistoryTrend Empty { get; } = new(
         0,
@@ -45,6 +48,9 @@ public sealed record HistoryTrend(
         null,
         null,
         "No scans saved yet. Run a scan and come back: every scan is saved to local history, and the trend appears once there are two scans to compare.",
+        null,
+        Array.Empty<TrendPoint>(),
+        null,
         null);
 }
 
@@ -89,10 +95,15 @@ public static class HistoryTrendAnalyzer
         var storageHoursPoints = ordered
             .Select(s => new TrendPoint(s.CapturedAt, ReadStoragePowerOnHours(s)))
             .ToList();
+        var driverAges = ordered.Select(ReadOldestDriverAge).ToList();
+        var driverAgePoints = ordered
+            .Select((s, i) => new TrendPoint(s.CapturedAt, driverAges[i].AgeDays))
+            .ToList();
 
         var scoreDelta = Delta(scorePoints);
         var batteryDelta = Delta(batteryHealthPoints);
         var wearDelta = Delta(storageWearPoints);
+        var driverAgeDelta = Delta(driverAgePoints);
 
         return new HistoryTrend(
             ordered.Count,
@@ -107,7 +118,10 @@ public static class HistoryTrendAnalyzer
             batteryDelta,
             wearDelta,
             BuildSummary(ordered, scorePoints, batteryHealthPoints, storageWearPoints, scoreDelta, batteryDelta, wearDelta),
-            BatteryHealthAlert(batteryHealthPoints));
+            BatteryHealthAlert(batteryHealthPoints),
+            driverAgePoints,
+            driverAgeDelta,
+            BuildDriverAgeSummary(driverAges, driverAgeDelta));
     }
 
     /// <summary>
@@ -293,7 +307,156 @@ public static class HistoryTrendAnalyzer
     private static double? ReadStoragePowerOnHours(SystemSnapshot snapshot) =>
         ParseNumber(FindSpec(snapshot, "storage", "Power-on hours"));
 
-    private static string? FindSpec(SystemSnapshot snapshot, string componentId, string label) =>
+    /// <summary>
+    /// The oldest driver date a scan reported ("drivers" / "Oldest driver
+    /// date", yyyy-MM-dd), or null when the component did not report one or
+    /// the value does not parse. No future check here: the trend applies it
+    /// when it turns the date into an age, while the machine comparer
+    /// reports the date as written.
+    /// </summary>
+    internal static DateTime? ReadOldestDriverDate(SystemSnapshot snapshot)
+    {
+        var text = FindSpec(snapshot, "drivers", "Oldest driver date");
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        return DateTime.TryParseExact(
+            text.Trim(),
+            "yyyy-MM-dd",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var date)
+            ? date
+            : null;
+    }
+
+    /// <summary>
+    /// One scan's oldest-driver reading: the date as written, the age in
+    /// whole days at scan time, and the older-than-5-years count when the
+    /// scan reported it. Age is whole days because the driver date itself
+    /// is day-precision. A missing, unparseable or future date is a gap:
+    /// the date and the age are both null, never zero.
+    /// </summary>
+    private sealed record DriverAgeReading(DateTime? Date, double? AgeDays, int? OlderThan5Years);
+
+    private static DriverAgeReading ReadOldestDriverAge(SystemSnapshot snapshot)
+    {
+        var date = ReadOldestDriverDate(snapshot);
+        var count = ReadOldDriversCount(snapshot);
+
+        // A date in the future relative to the scan cannot be an age.
+        if (date is null || date.Value.Date > snapshot.CapturedAt.Date)
+        {
+            return new DriverAgeReading(null, null, count);
+        }
+
+        return new DriverAgeReading(
+            date,
+            (snapshot.CapturedAt.Date - date.Value.Date).TotalDays,
+            count);
+    }
+
+    private static int? ReadOldDriversCount(SystemSnapshot snapshot)
+    {
+        var text = FindSpec(snapshot, "drivers", "Drivers older than 5 years");
+        return int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var count) && count >= 0
+            ? count
+            : null;
+    }
+
+    /// <summary>
+    /// One or two plain sentences about the oldest driver, in the same voice
+    /// as <see cref="BuildSummary"/>: the oldest-driver date first vs
+    /// latest with its age, then whether the oldest driver got newer or
+    /// older and how the older-than-5-years count moved when it was
+    /// measured. Null when no scan reported an oldest driver date.
+    /// </summary>
+    private static string? BuildDriverAgeSummary(
+        IReadOnlyList<DriverAgeReading> readings,
+        double? driverAgeDelta)
+    {
+        var measured = readings.Where(r => r.AgeDays is not null).ToList();
+        if (measured.Count == 0)
+        {
+            return null;
+        }
+
+        var first = measured[0];
+        var last = measured[^1];
+        var firstSentence = measured.Count == 1
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"Oldest driver dated {first.Date!.Value:yyyy-MM-dd} ({first.AgeDays!.Value:0.#} days old) on the only saved scan that reported it: one more scan is needed for a trend.")
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"Oldest driver dated {first.Date!.Value:yyyy-MM-dd} ({first.AgeDays!.Value:0.#} days old) on the first saved scan and {last.Date!.Value:yyyy-MM-dd} ({last.AgeDays!.Value:0.#} days old) on the latest scan.");
+
+        if (measured.Count == 1)
+        {
+            if (first.OlderThan5Years is null)
+            {
+                return firstSentence;
+            }
+
+            return firstSentence + string.Create(
+                CultureInfo.InvariantCulture,
+                $" Drivers older than 5 years: {first.OlderThan5Years.Value} on that scan.");
+        }
+
+        var clauses = new List<string>();
+        if (driverAgeDelta is not null)
+        {
+            clauses.Add(driverAgeDelta.Value switch
+            {
+                < -0.05 => string.Create(CultureInfo.InvariantCulture, $"the oldest driver got {Math.Abs(driverAgeDelta.Value):0.#} days newer"),
+                > 0.05 => string.Create(CultureInfo.InvariantCulture, $"the oldest driver got {Math.Abs(driverAgeDelta.Value):0.#} days older"),
+                _ => "the oldest driver is unchanged since the first saved scan",
+            });
+        }
+
+        var countClause = CountClause(first, last);
+        if (countClause is not null)
+        {
+            clauses.Add(countClause);
+        }
+
+        if (clauses.Count == 0)
+        {
+            return firstSentence;
+        }
+
+        var second = string.Join(", and ", clauses);
+        second = char.ToUpperInvariant(second[0]) + second[1..] + ".";
+        return firstSentence + " " + second;
+    }
+
+    private static string? CountClause(DriverAgeReading first, DriverAgeReading last)
+    {
+        if (first.OlderThan5Years is not null && last.OlderThan5Years is not null)
+        {
+            return first.OlderThan5Years.Value == last.OlderThan5Years.Value
+                ? string.Create(CultureInfo.InvariantCulture, $"drivers older than 5 years stayed at {first.OlderThan5Years.Value}")
+                : string.Create(CultureInfo.InvariantCulture, $"drivers older than 5 years went from {first.OlderThan5Years.Value} to {last.OlderThan5Years.Value}");
+        }
+
+        if (first.OlderThan5Years is not null)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"drivers older than 5 years were {first.OlderThan5Years.Value} on the first saved scan");
+        }
+
+        if (last.OlderThan5Years is not null)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"drivers older than 5 years were {last.OlderThan5Years.Value} on the latest scan");
+        }
+
+        return null;
+    }
+
+    // Shared with MachineHistoryComparer, which reads the same spec labels
+    // from one machine's latest scan: the parsing rules stay in one place.
+    internal static string? FindSpec(SystemSnapshot snapshot, string componentId, string label) =>
         snapshot.Find(componentId)?.Specs
             .FirstOrDefault(s => string.Equals(s.Label, label, StringComparison.OrdinalIgnoreCase))
             ?.Value;

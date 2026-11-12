@@ -4,7 +4,9 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using TrueSpec.Core.History;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Storage;
@@ -15,21 +17,42 @@ namespace TrueSpec.App.ViewModels;
 /// History page: score, battery-health and storage-wear trends across the
 /// saved scans in the local SQLite store. Every point comes from a real
 /// saved snapshot; a value a scan did not report is a gap in the line and
-/// in the table, never a zero.
+/// in the table, never a zero. History is shown for one machine at a time:
+/// the picker switches the trend, and the compare card puts two machines
+/// side by side without ever mixing them into one trend line.
 /// </summary>
 public sealed partial class HistoryViewModel : ViewModelBase
 {
     private readonly ISnapshotStore? _store;
     private readonly SystemSnapshot _current;
+    private int _loadGeneration;
+    private string? _displayedMachine;
+    private bool _suppressSelectionReload;
 
-    public HistoryViewModel(ISnapshotStore? store, SystemSnapshot current)
+    public HistoryViewModel(ISnapshotStore? store, SystemSnapshot current, ICommand? exportHistoryCsvCommand = null)
     {
         _store = store;
         _current = current;
-        _ = LoadHistoryAsync();
+        ExportHistoryCsvCommand = exportHistoryCsvCommand;
+        MachineSubtitleText = $"How {current.MachineName} changes over time";
+        _ = LoadAsync();
     }
 
+    /// <summary>
+    /// Supplied by MainViewModel (mirrors how ReportViewModel receives the
+    /// export commands): writes the currently shown trend to the configured
+    /// export folder via HistoryCsvExporter. Null when no caller supplied one.
+    /// </summary>
+    public ICommand? ExportHistoryCsvCommand { get; }
+
+    /// <summary>The trend currently shown on the page, for the CSV export command.</summary>
+    public HistoryTrend? CurrentTrend { get; private set; }
+
     public ObservableCollection<HistoryRowViewModel> Rows { get; } = new();
+
+    public ObservableCollection<string> MachineNames { get; } = new();
+
+    public ObservableCollection<MachineComparisonRowViewModel> ComparisonRows { get; } = new();
 
     [ObservableProperty]
     public partial string StatusMessage { get; set; } = "Loading snapshot history...";
@@ -45,6 +68,13 @@ public sealed partial class HistoryViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool HasBatteryAlert { get; set; }
+
+    /// <summary>Core-owned wording: the ViewModel holds no second copy of the rule.</summary>
+    [ObservableProperty]
+    public partial string? DriverAgeSummaryText { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasDriverAgeSummary { get; set; }
 
     [ObservableProperty]
     public partial IReadOnlyList<double>? ScoreValues { get; set; }
@@ -64,17 +94,185 @@ public sealed partial class HistoryViewModel : ViewModelBase
     [ObservableProperty]
     public partial string WearRangeText { get; set; } = string.Empty;
 
-    private async Task LoadHistoryAsync()
+    [ObservableProperty]
+    public partial string MachineSubtitleText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string? SelectedMachine { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsLoading { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsMachinePickerEnabled { get; set; }
+
+    [ObservableProperty]
+    public partial string? CompareMachineA { get; set; }
+
+    [ObservableProperty]
+    public partial string? CompareMachineB { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasMachineComparison { get; set; }
+
+    [ObservableProperty]
+    public partial string ComparisonStatusText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool CanCompareMachines { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsComparing { get; set; }
+
+    [ObservableProperty]
+    public partial string MachineAName { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string MachineBName { get; set; } = string.Empty;
+
+    partial void OnSelectedMachineChanged(string? value)
+    {
+        if (_suppressSelectionReload || value is null)
+        {
+            return;
+        }
+
+        if (string.Equals(value, _displayedMachine, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        _ = LoadTrendForMachineAsync(value);
+    }
+
+    partial void OnCompareMachineAChanged(string? value) => UpdateCompareState();
+
+    partial void OnCompareMachineBChanged(string? value) => UpdateCompareState();
+
+    partial void OnIsLoadingChanged(bool value) => UpdateCompareState();
+
+    partial void OnIsComparingChanged(bool value) => UpdateCompareState();
+
+    private void UpdateCompareState()
+    {
+        CanCompareMachines = !IsLoading && !IsComparing
+            && MachineNames.Count >= 2
+            && CompareMachineA is not null
+            && CompareMachineB is not null
+            && !string.Equals(CompareMachineA, CompareMachineB, StringComparison.OrdinalIgnoreCase);
+
+        if (!IsLoading && MachineNames.Count < 2)
+        {
+            ComparisonStatusText = "Only one machine is in history so far. Run a scan on a second machine and its history will appear here for comparison.";
+        }
+        else if (!IsLoading && CompareMachineA is not null && CompareMachineB is not null
+            && string.Equals(CompareMachineA, CompareMachineB, StringComparison.OrdinalIgnoreCase))
+        {
+            ComparisonStatusText = "Pick two different machines.";
+        }
+    }
+
+    private async Task LoadAsync()
     {
         if (_store is null)
         {
             StatusMessage = "Snapshot history is unavailable on this machine, so there is nothing to trend yet.";
+            ComparisonStatusText = "Snapshot history is unavailable on this machine, so there is nothing to compare yet.";
             return;
         }
 
+        IsLoading = true;
+        IsMachinePickerEnabled = false;
         try
         {
-            var trend = await HistoryTrendAnalyzer.LoadAsync(_store, _current.MachineName, 50);
+            var names = await _store.GetMachineNamesAsync();
+            MachineNames.Clear();
+            foreach (var name in names.OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
+            {
+                MachineNames.Add(name);
+            }
+
+            // The current machine stays selectable even before its first
+            // saved scan, so its empty state is reachable from the picker.
+            if (!MachineNames.Contains(_current.MachineName, StringComparer.OrdinalIgnoreCase))
+            {
+                var index = MachineNames
+                    .TakeWhile(n => string.Compare(n, _current.MachineName, StringComparison.OrdinalIgnoreCase) < 0)
+                    .Count();
+                MachineNames.Insert(index, _current.MachineName);
+            }
+
+            _suppressSelectionReload = true;
+            try
+            {
+                SelectedMachine = _current.MachineName;
+                CompareMachineA = _current.MachineName;
+                CompareMachineB = MachineNames.FirstOrDefault(n =>
+                    !string.Equals(n, _current.MachineName, StringComparison.OrdinalIgnoreCase));
+            }
+            finally
+            {
+                _suppressSelectionReload = false;
+            }
+
+            UpdateCompareState();
+            if (CompareMachineA is not null && CompareMachineB is not null)
+            {
+                ComparisonStatusText = "Pick two machines and compare. Different machines are shown side by side, never mixed in one trend.";
+            }
+
+            await LoadTrendForMachineAsync(_current.MachineName);
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"History could not be read: {exception.Message}";
+            ComparisonStatusText = $"History could not be read: {exception.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+            IsMachinePickerEnabled = MachineNames.Count > 0;
+            UpdateCompareState();
+        }
+    }
+
+    private async Task LoadTrendForMachineAsync(string machineName)
+    {
+        if (_store is null)
+        {
+            return;
+        }
+
+        var generation = ++_loadGeneration;
+        IsLoading = true;
+        IsMachinePickerEnabled = false;
+        _displayedMachine = machineName;
+        MachineSubtitleText = $"How {machineName} changes over time";
+        StatusMessage = "Loading snapshot history...";
+        CurrentTrend = null;
+        HasHistory = false;
+        HasBatteryAlert = false;
+        BatteryAlertText = null;
+        HasDriverAgeSummary = false;
+        DriverAgeSummaryText = null;
+        SummaryText = string.Empty;
+        ScoreValues = null;
+        BatteryHealthValues = null;
+        StorageWearValues = null;
+        ScoreRangeText = string.Empty;
+        BatteryRangeText = string.Empty;
+        WearRangeText = string.Empty;
+        Rows.Clear();
+
+        try
+        {
+            var trend = await HistoryTrendAnalyzer.LoadAsync(_store, machineName, 50);
+            if (generation != _loadGeneration)
+            {
+                return;
+            }
+
+            CurrentTrend = trend;
             if (trend.SnapshotCount == 0)
             {
                 StatusMessage = "No saved scans yet. Run a scan (refresh) and come back: every scan is saved to local history.";
@@ -84,6 +282,8 @@ public sealed partial class HistoryViewModel : ViewModelBase
             SummaryText = trend.Summary;
             BatteryAlertText = trend.BatteryAlert;
             HasBatteryAlert = trend.BatteryAlert is not null;
+            DriverAgeSummaryText = trend.DriverAgeSummary;
+            HasDriverAgeSummary = trend.DriverAgeSummary is not null;
             ScoreValues = MeasuredValues(trend.ScorePoints);
             BatteryHealthValues = MeasuredValues(trend.BatteryHealthPoints);
             StorageWearValues = MeasuredValues(trend.StorageWearPoints);
@@ -110,9 +310,122 @@ public sealed partial class HistoryViewModel : ViewModelBase
         }
         catch (Exception exception)
         {
-            StatusMessage = $"History could not be read: {exception.Message}";
+            if (generation == _loadGeneration)
+            {
+                StatusMessage = $"History could not be read: {exception.Message}";
+            }
+        }
+        finally
+        {
+            if (generation == _loadGeneration)
+            {
+                IsLoading = false;
+                IsMachinePickerEnabled = true;
+                UpdateCompareState();
+            }
         }
     }
+
+    [RelayCommand]
+    private async Task CompareMachinesAsync()
+    {
+        if (_store is null)
+        {
+            ComparisonStatusText = "Snapshot history is unavailable on this machine, so there is nothing to compare yet.";
+            HasMachineComparison = false;
+            return;
+        }
+
+        if (CompareMachineA is null || CompareMachineB is null)
+        {
+            ComparisonStatusText = "Pick two machines to compare.";
+            HasMachineComparison = false;
+            return;
+        }
+
+        if (string.Equals(CompareMachineA, CompareMachineB, StringComparison.OrdinalIgnoreCase))
+        {
+            ComparisonStatusText = "Pick two different machines.";
+            HasMachineComparison = false;
+            return;
+        }
+
+        IsComparing = true;
+        ComparisonStatusText = "Comparing machines...";
+        try
+        {
+            var snapshotsA = await LoadSnapshotsForMachineAsync(CompareMachineA);
+            var snapshotsB = await LoadSnapshotsForMachineAsync(CompareMachineB);
+            var comparison = MachineHistoryComparer.Compare(snapshotsA, snapshotsB);
+
+            MachineAName = comparison.MachineA.MachineName;
+            MachineBName = comparison.MachineB.MachineName;
+            ComparisonRows.Clear();
+            ComparisonRows.Add(new MachineComparisonRowViewModel("Scans in history", ScanCountText(comparison.MachineA), ScanCountText(comparison.MachineB)));
+            ComparisonRows.Add(new MachineComparisonRowViewModel("First scan", DateText(comparison.MachineA.FirstScan), DateText(comparison.MachineB.FirstScan)));
+            ComparisonRows.Add(new MachineComparisonRowViewModel("Last scan", DateText(comparison.MachineA.LastScan), DateText(comparison.MachineB.LastScan)));
+            ComparisonRows.Add(new MachineComparisonRowViewModel("Latest score", ScoreText(comparison.MachineA.LatestScore), ScoreText(comparison.MachineB.LatestScore)));
+            ComparisonRows.Add(new MachineComparisonRowViewModel("Latest battery health", PercentText(comparison.MachineA.LatestBatteryHealth), PercentText(comparison.MachineB.LatestBatteryHealth)));
+            ComparisonRows.Add(new MachineComparisonRowViewModel("Latest storage wear", PercentText(comparison.MachineA.LatestStorageWear), PercentText(comparison.MachineB.LatestStorageWear)));
+            ComparisonRows.Add(new MachineComparisonRowViewModel("Latest oldest driver date", DateText(comparison.MachineA.LatestOldestDriverDate), DateText(comparison.MachineB.LatestOldestDriverDate)));
+            ComparisonRows.Add(new MachineComparisonRowViewModel("Last update install", DateText(comparison.MachineA.LastUpdateInstall), DateText(comparison.MachineB.LastUpdateInstall)));
+
+            HasMachineComparison = true;
+            ComparisonStatusText = $"Compared {comparison.MachineA.MachineName} with {comparison.MachineB.MachineName}. Different machines are shown side by side, never mixed in one trend.";
+        }
+        catch (Exception exception)
+        {
+            ComparisonStatusText = $"Comparison failed: {exception.Message}";
+            HasMachineComparison = false;
+        }
+        finally
+        {
+            IsComparing = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads one machine's snapshots the same way
+    /// <see cref="HistoryTrendAnalyzer.LoadAsync"/> does: history summaries,
+    /// then each snapshot, skipping unreadable ones and any snapshot from a
+    /// different machine. No new store method.
+    /// </summary>
+    private async Task<IReadOnlyList<SystemSnapshot>> LoadSnapshotsForMachineAsync(string machineName)
+    {
+        var summaries = await _store!.GetHistoryAsync(50);
+        var snapshots = new List<SystemSnapshot>();
+        foreach (var summary in summaries)
+        {
+            var snapshot = await _store.GetSnapshotAsync(summary.Id);
+            if (snapshot is null)
+            {
+                continue;
+            }
+
+            if (!string.Equals(snapshot.MachineName, machineName, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            snapshots.Add(snapshot);
+        }
+
+        return snapshots;
+    }
+
+    private static string ScanCountText(MachineSideSummary summary) =>
+        summary.ScanCount == 0
+            ? "Not reported"
+            : summary.ScanCount.ToString(CultureInfo.InvariantCulture);
+
+    private static string DateText(DateTimeOffset? value) =>
+        value is null ? "Not reported" : value.Value.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+
+    private static string ScoreText(double? value) =>
+        value is null ? "Not reported" : value.Value.ToString("0.#", CultureInfo.InvariantCulture);
+
+    private static string PercentText(double? value) =>
+        value is null ? "Not reported" : string.Create(CultureInfo.InvariantCulture, $"{value.Value:0.#}%");
 
     private static IReadOnlyList<double>? MeasuredValues(IReadOnlyList<TrendPoint> points)
     {
@@ -179,4 +492,21 @@ public sealed class HistoryRowViewModel
     public string StorageWearText { get; }
 
     public string StorageHoursText { get; }
+}
+
+/// <summary>One facts-only row of the two-machine side-by-side table. No verdict.</summary>
+public sealed class MachineComparisonRowViewModel
+{
+    public MachineComparisonRowViewModel(string label, string machineAText, string machineBText)
+    {
+        Label = label;
+        MachineAText = machineAText;
+        MachineBText = machineBText;
+    }
+
+    public string Label { get; }
+
+    public string MachineAText { get; }
+
+    public string MachineBText { get; }
 }

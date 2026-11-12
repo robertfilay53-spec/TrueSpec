@@ -368,6 +368,51 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private Task ExportPdfAsync() => ExportAsync(ReportFormat.Pdf);
 
+    /// <summary>
+    /// Exports the trend currently shown on the History page as CSV, to the
+    /// configured export folder, exactly like the other exports: no dialog,
+    /// no cloud. The trend lives on the History page, so this command reads
+    /// it from the cached page; with no history there is nothing to export.
+    /// </summary>
+    [RelayCommand]
+    private async Task ExportHistoryCsvAsync()
+    {
+        var history = _pageCache.TryGetValue("history", out var page) ? page as HistoryViewModel : null;
+        var trend = history?.CurrentTrend;
+        if (trend is null || trend.SnapshotCount == 0)
+        {
+            StatusMessage = "History export failed: there is no history to export yet.";
+            if (history is not null)
+            {
+                history.StatusMessage = StatusMessage;
+            }
+
+            return;
+        }
+
+        try
+        {
+            var folder = EffectiveExportFolder();
+            Directory.CreateDirectory(folder);
+            var path = Path.Combine(folder, PathSafety.SafeReportFileName("TrueSpec-history", "csv", DateTime.Now));
+            await using var stream = File.Create(path);
+            await new HistoryCsvExporter().ExportAsync(trend, stream);
+            StatusMessage = $"History exported to {path}";
+            if (history is not null)
+            {
+                history.StatusMessage = StatusMessage;
+            }
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"History export failed: {exception.Message}";
+            if (history is not null)
+            {
+                history.StatusMessage = StatusMessage;
+            }
+        }
+    }
+
     [RelayCommand]
     private async Task ExportChecklistAsync()
     {
@@ -485,7 +530,7 @@ public partial class MainViewModel : ViewModelBase
             "tests" => GetOrCreate("tests", () => new TestsViewModel()),
             "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: _scanRunning, exportPdfCommand: ExportPdfCommand)),
             "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot)),
-            "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot)),
+            "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
             _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key)),
         };

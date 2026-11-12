@@ -13,11 +13,30 @@
             <StackPanel Spacing="6">
                 <TextBlock Text="HISTORY" Classes="eyebrow" />
                 <TextBlock Text="How this machine changes over time" Classes="h1" />
+                <TextBlock Text="{Binding MachineSubtitleText}"
+                           Classes="muted"
+                           TextWrapping="Wrap"
+                           MaxWidth="720" />
                 <TextBlock Text="Every scan is saved to a local database on this machine. TrueSpec trends the overall score, battery health and storage wear across those scans. A value a scan did not report is a gap, never a zero."
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
             </StackPanel>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Machine" Classes="h3" />
+                    <ComboBox ItemsSource="{Binding MachineNames}"
+                              SelectedItem="{Binding SelectedMachine}"
+                              IsEnabled="{Binding IsMachinePickerEnabled}"
+                              HorizontalAlignment="Stretch"
+                              PlaceholderText="Pick a machine" />
+                    <TextBlock Text="History is shown for one machine at a time. Pick another machine to see its own trend."
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
 
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="8">
@@ -63,9 +82,23 @@
                 </Border>
             </Grid>
 
+            <Border Classes="card" Padding="18" IsVisible="{Binding HasDriverAgeSummary}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="DRIVER AGE" Classes="eyebrow" />
+                    <TextBlock Text="{Binding DriverAgeSummaryText}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
             <Border Classes="card" Padding="18" IsVisible="{Binding HasHistory}">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="Saved scans" Classes="h3" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                        <TextBlock Text="Saved scans" Classes="h3" VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Classes="secondary"
+                                Content="Export history as CSV"
+                                Command="{Binding ExportHistoryCsvCommand}"
+                                IsEnabled="{Binding HasHistory}" />
+                    </Grid>
                     <TextBlock Text="Oldest first. A dash means that scan did not report the value."
                                Classes="muted"
                                FontSize="11" />
@@ -108,6 +141,78 @@
                         <TextBlock Grid.Column="4" Text="Storage wear" Classes="muted" FontSize="11" />
                         <TextBlock Grid.Column="5" Text="Power-on hours" Classes="muted" FontSize="11" />
                     </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Compare two machines" Classes="h3" />
+                    <TextBlock Text="Different machines — shown side by side, never mixed in one trend."
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+                    <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="14">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Machine A" Classes="h3" />
+                            <ComboBox ItemsSource="{Binding MachineNames}"
+                                      SelectedItem="{Binding CompareMachineA}"
+                                      IsEnabled="{Binding IsMachinePickerEnabled}"
+                                      HorizontalAlignment="Stretch"
+                                      PlaceholderText="Pick a machine" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="6">
+                            <TextBlock Text="Machine B" Classes="h3" />
+                            <ComboBox ItemsSource="{Binding MachineNames}"
+                                      SelectedItem="{Binding CompareMachineB}"
+                                      IsEnabled="{Binding IsMachinePickerEnabled}"
+                                      HorizontalAlignment="Stretch"
+                                      PlaceholderText="Pick a machine" />
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Classes="primary"
+                                Content="Compare"
+                                Command="{Binding CompareMachinesCommand}"
+                                IsEnabled="{Binding CanCompareMachines}"
+                                VerticalAlignment="Bottom" />
+                    </Grid>
+                    <TextBlock Text="{Binding ComparisonStatusText}" Classes="muted" TextWrapping="Wrap" />
+
+                    <StackPanel Spacing="10" IsVisible="{Binding HasMachineComparison}">
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                            <TextBlock Text="" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding MachineAName}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding MachineBName}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding ComparisonRows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:MachineComparisonRowViewModel">
+                                    <Border BorderBrush="{DynamicResource AppBorder}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="0,9">
+                                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                                            <TextBlock Text="{Binding Label}"
+                                                       Classes="muted"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding MachineAText}"
+                                                       VerticalAlignment="Center"
+                                                       TextWrapping="Wrap" />
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{Binding MachineBText}"
+                                                       VerticalAlignment="Center"
+                                                       TextWrapping="Wrap" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </StackPanel>

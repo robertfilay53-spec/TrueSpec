@@ -130,6 +130,39 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
         }
     }
 
+    public async Task<IReadOnlyList<string>> GetMachineNamesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        // Constant SQL, no parameters and no concatenation: machine names
+        // are data, never part of the query.
+        command.CommandText =
+            """
+            SELECT DISTINCT machine_name
+            FROM snapshots
+            ORDER BY machine_name;
+            """;
+
+        var names = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            if (!reader.IsDBNull(0))
+            {
+                var name = reader.GetString(0);
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    names.Add(name);
+                }
+            }
+        }
+
+        return names;
+    }
+
     public async Task<IReadOnlyList<SnapshotSummary>> GetHistoryAsync(
         int limit = 50,
         CancellationToken cancellationToken = default)

@@ -1,3 +1,4 @@
+using System.Globalization;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Scoring;
 
@@ -129,4 +130,111 @@ internal static class TestSnapshots
         new[] { new SpecValue("Driver date", driverDate, "CIM Win32_PnPSignedDriver") },
         "Network health uses the adapter driver date.",
         DateTimeOffset.Now);
+
+    /// <summary>
+    /// Snapshot shaped for history/trend tests: battery health, cycle count,
+    /// storage wear and power-on hours live in spec values (the way the real
+    /// collectors write them), with optional drivers and updates components.
+    /// A null spec value leaves that spec out entirely; null driver/update
+    /// values leave the whole component out. Mirrors the factory in
+    /// HistoryTrendTests, extended with the drivers and updates specs the
+    /// v1.2 trend and comparer read.
+    /// </summary>
+    public static SystemSnapshot HistorySnapshot(
+        double score,
+        string? batteryHealth,
+        string? cycles,
+        string? wear,
+        string? powerOnHours,
+        DateTimeOffset capturedAt,
+        string machineName = "Test Laptop",
+        string? oldestDriverDate = null,
+        string? driversOlderThan5 = null,
+        string? lastUpdateInstall = null,
+        bool measurableScore = true)
+    {
+        var batterySpecs = new List<SpecValue>();
+        if (batteryHealth is not null)
+        {
+            batterySpecs.Add(new SpecValue("Health", batteryHealth, "Full charge capacity / design capacity"));
+        }
+
+        if (cycles is not null)
+        {
+            batterySpecs.Add(new SpecValue("Cycle count", cycles, "CIM root\\WMI BatteryCycleCount"));
+        }
+
+        var storageSpecs = new List<SpecValue>();
+        if (wear is not null)
+        {
+            storageSpecs.Add(new SpecValue("Wear level", wear, "Get-StorageReliabilityCounter.Wear"));
+        }
+
+        if (powerOnHours is not null)
+        {
+            storageSpecs.Add(new SpecValue("Power-on hours", powerOnHours, "Get-StorageReliabilityCounter.PowerOnHours"));
+        }
+
+        var wearValue = wear is null
+            ? 0d
+            : double.Parse(wear.TrimEnd('%'), CultureInfo.InvariantCulture);
+        var components = new List<ComponentSnapshot>
+        {
+            new(
+                "battery", "Battery", "Battery", "battery", "Test battery", null,
+                batterySpecs,
+                "Battery health compares full charge capacity with design capacity.",
+                capturedAt),
+            new(
+                "storage", "Storage", "Storage", "storage", "Test drive", 100d - wearValue,
+                storageSpecs,
+                "Drive health comes from the manufacturer wear counter.",
+                capturedAt),
+        };
+
+        if (oldestDriverDate is not null || driversOlderThan5 is not null)
+        {
+            var driverSpecs = new List<SpecValue>();
+            if (driversOlderThan5 is not null)
+            {
+                driverSpecs.Add(new SpecValue("Drivers older than 5 years", driversOlderThan5, "CIM Win32_PnPSignedDriver.DriverDate"));
+            }
+
+            if (oldestDriverDate is not null)
+            {
+                driverSpecs.Add(new SpecValue("Oldest driver date", oldestDriverDate, "CIM Win32_PnPSignedDriver.DriverDate"));
+            }
+
+            components.Add(new ComponentSnapshot(
+                "drivers", "Drivers", "Security", "drivers", "Test drivers", null,
+                driverSpecs,
+                "Drivers are the small programs that let Windows talk to hardware.",
+                capturedAt));
+        }
+
+        if (lastUpdateInstall is not null)
+        {
+            components.Add(new ComponentSnapshot(
+                "updates", "Windows Update", "Security", "updates", "Test updates", null,
+                new[] { new SpecValue("Last successful update install", lastUpdateInstall, "Registry WindowsUpdate Auto Update Results Install LastSuccessTime") },
+                "Windows Update status from read-only sources.",
+                capturedAt));
+        }
+
+        var scoreResult = measurableScore
+            ? new ScoreResult(
+                score,
+                Verdict.UsedHealthy,
+                new[] { new ComponentScore("storage", 100d - wearValue, 10d, 10d, 10d) },
+                10d)
+            : ScoreResult.Empty;
+        return new SystemSnapshot(
+            Guid.NewGuid(),
+            capturedAt,
+            machineName,
+            "Windows 11 Pro",
+            components,
+            scoreResult,
+            new BuyerCheckEvaluator().Evaluate(components, null));
+    }
 }
