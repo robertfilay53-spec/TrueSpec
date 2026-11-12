@@ -128,7 +128,41 @@ public sealed class NetworkCollector : ICollector
             Id,
             headline,
             BuildSpecs(reading, interfaces),
-            "Network health is based on the age of the driver and the capability of the adapter. The card itself never reports a manufacture date, so this tool shows the driver date and says the hardware date is not reported instead of guessing. Wired adapters are also read through System.Net.NetworkInformation, so a wired-only machine still shows its real address and speed."));
+            "Network health is based on the age of the driver and the capability of the adapter. The card itself never reports a manufacture date, so this tool shows the driver date and says the hardware date is not reported instead of guessing. Wired adapters are also read through System.Net.NetworkInformation, so a wired-only machine still shows its real address and speed. " +
+            BuildBuyerSummary(reading, interfaces)));
+    }
+
+    /// <summary>
+    /// U12 one-line buyer summary (plan line ~627): the negotiated standard,
+    /// the negotiated link speed, and the driver year, in one sentence a
+    /// buyer can use. The link speed is the negotiated rate at scan time,
+    /// labelled as such; it is never a throughput measurement. Any part the
+    /// hardware did not report says so instead of being guessed.
+    /// </summary>
+    internal static string BuildBuyerSummary(NetworkReading reading, IReadOnlyList<InterfaceData> interfaces)
+    {
+        var standard = MapNegotiatedStandard(reading.RadioType);
+        var standardPart = string.Equals(standard, CollectorSupport.NotReported, StringComparison.Ordinal)
+            ? "Wi-Fi standard not reported by hardware"
+            : string.Create(CultureInfo.InvariantCulture, $"{standard} adapter");
+
+        var wifiSpeed = reading.WifiSpeedBitsPerSecond ?? PickWireless(interfaces)?.SpeedBitsPerSecond;
+        var speed = FormatBitsPerSecond(wifiSpeed);
+        var speedPart = string.Equals(speed, CollectorSupport.NotReported, StringComparison.Ordinal)
+            ? "link speed not reported by hardware"
+            : string.Create(CultureInfo.InvariantCulture, $"linked at {speed} (negotiated rate at scan time, not a speed test)");
+
+        var driverPart = DateTimeOffset.TryParse(
+                reading.WifiDriverDate,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var driverDate)
+            ? string.Create(CultureInfo.InvariantCulture, $"driver from {driverDate.Year}")
+            : "driver date not reported by hardware";
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"Buyer check: {standardPart}, {speedPart}, {driverPart}.");
     }
 
     /// <summary>

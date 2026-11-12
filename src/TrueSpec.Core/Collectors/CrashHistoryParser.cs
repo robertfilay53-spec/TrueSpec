@@ -1,5 +1,9 @@
 namespace TrueSpec.Core.Collectors;
 
+using System.Globalization;
+using TrueSpec.Core.History;
+using TrueSpec.Core.Models;
+
 /// <summary>
 /// Pure crash-history parsing: raw event rows in, per-class summaries out.
 /// The parser relies on provider + event id + timestamp ONLY. It never reads
@@ -16,13 +20,12 @@ public static class CrashHistoryParser
     public const int MaxEventsPerClass = 500;
 
     /// <summary>
-    /// Grace period for the cleared-log rule: the earliest log entry is
-    /// expected within a week of the Windows install date (a fresh install
-    /// starts a fresh log). This is the same rule and grace period as the
-    /// authenticity engine (U1 R6); the two constants are defined separately
-    /// for now and should be unified to one shared constant after merge.
+    /// The recent-crash window, in days: a BugCheck or WHEA fatal inside
+    /// this window fires the buyer-check failure and the Crash history
+    /// alert card (Blueprint 3). One constant, shared by the evaluator
+    /// and the Crash history page.
     /// </summary>
-    public static readonly TimeSpan LogClearedGracePeriod = TimeSpan.FromDays(7);
+    public const int RecentWindowDays = 30;
 
     /// <summary>
     /// One raw System-channel row. <paramref name="Message"/> is accepted so
@@ -110,7 +113,10 @@ public static class CrashHistoryParser
     /// <summary>
     /// The cleared-log rule: the log is suspected cleared when its earliest
     /// entry is newer than the Windows install date plus the grace period.
-    /// Missing dates never suspect anything.
+    /// Missing dates never suspect anything. The grace period is the
+    /// authenticity engine's threshold (U1 R6,
+    /// <see cref="AuthenticityAnalyzer.LogGapThreshold"/>): there is exactly
+    /// one definition of the 7-day value, owned by the analyzer.
     /// </summary>
     public static bool IsLogClearedSuspected(
         DateTimeOffset? earliestLogEntry,
@@ -121,7 +127,111 @@ public static class CrashHistoryParser
             return false;
         }
 
-        return earliestLogEntry.Value > installDate.Value + LogClearedGracePeriod;
+        return earliestLogEntry.Value > installDate.Value + AuthenticityAnalyzer.LogGapThreshold;
+    }
+
+    /// <summary>
+    /// Reads a crash history back out of the specs a <see cref="CrashCollector"/>
+    /// wrote (the label contract in <see cref="SpecLabels"/>): one summary
+    /// per class that has a count spec, plus the earliest-log-entry and
+    /// log-gap specs. Returns null when the component is missing or carries
+    /// no crash specs at all (a NotAvailable component only has a Status
+    /// spec): no usable crash data, never an invented empty history. The
+    /// collector always writes the earliest-entry spec when it succeeds,
+    /// even when no crash class was recorded.
+    /// </summary>
+    public static CrashHistory? FromComponent(ComponentSnapshot? component)
+    {
+        if (component is null)
+        {
+            return null;
+        }
+
+        var specs = component.Specs.ToDictionary(
+            s => s.Label,
+            s => s.Value,
+            StringComparer.OrdinalIgnoreCase);
+
+        var summaries = new List<CrashClassSummary>();
+        foreach (var (crashClass, display) in ClassDisplayNames)
+        {
+            if (!specs.TryGetValue(display + SpecLabels.CrashCountSuffix, out var countText) ||
+                !int.TryParse(countText.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var count))
+            {
+                continue;
+            }
+
+            summaries.Add(new CrashClassSummary(
+                crashClass,
+                count,
+                ReadSpecDate(specs, display + SpecLabels.CrashFirstSuffix),
+                ReadSpecDate(specs, display + SpecLabels.CrashRecentSuffix),
+                PlainMeaning(crashClass)));
+        }
+
+        var earliest = ReadSpecDate(specs, SpecLabels.EarliestEventLogEntry);
+        var suspected = specs.ContainsKey(SpecLabels.CrashEventLogGap);
+
+        if (summaries.Count == 0 && earliest is null && !suspected)
+        {
+            return null;
+        }
+
+        return new CrashHistory(summaries, earliest, suspected);
+    }
+
+    /// <summary>
+    /// True when the class's most recent event falls inside the recent
+    /// window (<see cref="RecentWindowDays"/> days before <paramref name="now"/>).
+    /// A missing summary or a missing last date is never recent. The
+    /// comparison is by calendar date: the specs this reads carry dates,
+    /// not times, so an event dated exactly 30 days ago counts as recent.
+    /// </summary>
+    public static bool HasRecentEvent(CrashHistory history, CrashClass crashClass, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(history);
+
+        var last = history.Summaries
+            .FirstOrDefault(s => s.Class == crashClass)?.LastAt;
+        return last is not null &&
+            last.Value.UtcDateTime.Date >= now.UtcDateTime.Date.AddDays(-RecentWindowDays);
+    }
+
+    /// <summary>The spec display name per class, as written by the collector.</summary>
+    public static string DisplayName(CrashClass crashClass) =>
+        ClassDisplayNames.FirstOrDefault(pair => pair.Class == crashClass).Display
+        ?? "Recorded errors";
+
+    /// <summary>The spec display name per class, as written by the collector.</summary>
+    internal static (CrashClass Class, string Display)[] ClassDisplayNames { get; } = new[]
+    {
+        (CrashClass.BugCheck, SpecLabels.CrashBlueScreens),
+        (CrashClass.WheaFatal, SpecLabels.CrashFatalHardwareErrors),
+        (CrashClass.WheaCorrected, SpecLabels.CrashCorrectedHardwareErrors),
+        (CrashClass.UnexpectedShutdown, SpecLabels.CrashUnexpectedShutdowns),
+        (CrashClass.DiskError, SpecLabels.CrashDiskErrors),
+    };
+
+    private static DateTimeOffset? ReadSpecDate(
+        IReadOnlyDictionary<string, string> specs,
+        string label)
+    {
+        if (!specs.TryGetValue(label, out var text) ||
+            string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        // Values are "yyyy-MM-dd" or "Not reported by hardware". A value
+        // that is neither is corrupt input, not a date: return null.
+        return DateTimeOffset.TryParseExact(
+            text.Trim(),
+            "yyyy-MM-dd",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeUniversal,
+            out var parsed)
+            ? parsed
+            : null;
     }
 
     private static CrashEvent? Classify(RawCrashEvent row)

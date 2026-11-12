@@ -100,4 +100,237 @@ public class BuyerCheckEvaluatorTests
 
         Assert.Equal(BuyerCheckState.NotApplicable, result.Checks.Single(c => c.Id == "ram-size").State);
     }
+
+    // ---- v1.3 integration: authenticity (U1) and crash (U3) buyer checks --
+
+    private static ComponentSnapshot SystemWithDates(DateTimeOffset install, DateTimeOffset bios, string criticalErrors = "0") => new(
+        "system",
+        "System",
+        "System",
+        "system",
+        "Test Laptop",
+        null,
+        new[]
+        {
+            new SpecValue("Operating system", "Windows 11 Pro", "CIM Win32_OperatingSystem"),
+            new SpecValue("BIOS date", bios.ToString("yyyy-MM-dd"), "CIM Win32_BIOS"),
+            new SpecValue("Windows install date", install.ToString("yyyy-MM-dd"), "CIM Win32_OperatingSystem"),
+            new SpecValue("Critical errors (event log)", criticalErrors, "Windows Event Log"),
+            new SpecValue("Signed drivers only", "Yes", "CIM Win32_PnPSignedDriver"),
+        },
+        "System information comes from Windows.",
+        DateTimeOffset.UtcNow);
+
+    private static ComponentSnapshot StorageWithWrites(string wear, string hours, string written) => new(
+        "storage",
+        "Storage",
+        "Storage",
+        "storage",
+        $"{wear}% wear",
+        100d,
+        new[]
+        {
+            new SpecValue("Wear level", $"{wear}%", "SMART / NVMe reliability counters"),
+            new SpecValue("SMART warnings", "No", "SMART / NVMe reliability counters"),
+            new SpecValue("Power-on hours", hours, "SMART / NVMe reliability counters"),
+            new SpecValue("Data written", written, "SATA SMART attribute 241 (total LBAs written)"),
+        },
+        "Drive health comes from the manufacturer wear counter.",
+        DateTimeOffset.UtcNow);
+
+    private static ComponentSnapshot CrashWithBugCheck(DateTimeOffset mostRecent, int count90d) => new(
+        "crash",
+        "Crash history",
+        "Diagnostics",
+        "crash",
+        $"{count90d} blue screen(s) in the last 90 days",
+        null,
+        new[]
+        {
+            new SpecValue("Blue screens (last 90 days)", count90d.ToString(), "Windows Event Log (System)"),
+            new SpecValue("Blue screens - first recorded", mostRecent.AddDays(-40).ToString("yyyy-MM-dd"), "Windows Event Log (System)"),
+            new SpecValue("Blue screens - most recent", mostRecent.ToString("yyyy-MM-dd"), "Windows Event Log (System)"),
+            new SpecValue("Earliest event log entry", mostRecent.AddDays(-100).ToString("yyyy-MM-dd"), "Windows Event Log (System)"),
+        },
+        "Test component.",
+        DateTimeOffset.UtcNow);
+
+    /// <summary>Every ordinary check passes, with an empty crash log.</summary>
+    private static ComponentSnapshot[] AllPassBase(DateTimeOffset now) => new[]
+    {
+        SystemWithDates(now.AddDays(-20), now.AddDays(-20)),
+        TestSnapshots.Storage("0", "0"),
+        TestSnapshots.Battery(2),
+        TestSnapshots.Ram("16 GB"),
+        TestSnapshots.Crash(now),
+    };
+
+    [Fact]
+    public void HealthyMachine_AuthenticityAndCrashChecksPassToo()
+    {
+        var result = TestSnapshots.Healthy().BuyerChecks;
+
+        Assert.Equal(BuyerCheckState.Pass, result.Checks.Single(c => c.Id == "authenticity").State);
+        Assert.Equal(BuyerCheckState.Pass, result.Checks.Single(c => c.Id == "recent-crashes").State);
+    }
+
+    [Fact]
+    public void Authenticity_StrongCheck_FailsTheRowAndDropsTheBannerOneLevel()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var components = AllPassBase(now).ToList();
+        // R4: BIOS date one day after the Windows install date.
+        components[0] = SystemWithDates(now.AddDays(-20), now.AddDays(-19));
+
+        var result = new BuyerCheckEvaluator().Evaluate(components, new BuyerCheckContext("16 GB"));
+
+        var check = result.Checks.Single(c => c.Id == "authenticity");
+        Assert.Equal(BuyerCheckState.Fail, check.State);
+        Assert.Contains("BIOS date vs Windows install date", check.Title, StringComparison.Ordinal);
+        Assert.Equal(BuyerCheckState.Warning, result.OverallState);
+        Assert.Equal("WARNING - Signs of prior use (BIOS date vs Windows install date)", result.BannerText);
+    }
+
+    [Fact]
+    public void Authenticity_WatchOnly_WarnsTheRowButDoesNotDropTheBanner()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var components = new[]
+        {
+            SystemWithDates(now.AddDays(-10), now.AddDays(-10)),
+            // R2: 650 GB written on a 10-day-old install.
+            StorageWithWrites("0", "0", "650.0 GB"),
+            TestSnapshots.Battery(2),
+            TestSnapshots.Ram("16 GB"),
+            TestSnapshots.Crash(now),
+        };
+
+        var result = new BuyerCheckEvaluator().Evaluate(components, new BuyerCheckContext("16 GB"));
+
+        Assert.Equal(BuyerCheckState.Warning, result.Checks.Single(c => c.Id == "authenticity").State);
+        Assert.Equal(BuyerCheckState.Pass, result.OverallState);
+        Assert.Equal("PASS - this machine matches a new laptop", result.BannerText);
+    }
+
+    [Fact]
+    public void Authenticity_AllRulesSkipped_IsNotApplicableNotAPass()
+    {
+        var result = new BuyerCheckEvaluator().Evaluate(Array.Empty<ComponentSnapshot>());
+
+        Assert.Equal(BuyerCheckState.NotApplicable, result.Checks.Single(c => c.Id == "authenticity").State);
+        Assert.Equal(BuyerCheckState.NotApplicable, result.Checks.Single(c => c.Id == "recent-crashes").State);
+    }
+
+    [Fact]
+    public void RecentBugCheck_FailsTheRowAndDropsTheBannerOneLevel()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var components = AllPassBase(now).ToList();
+        components[^1] = CrashWithBugCheck(now.AddDays(-5), 2);
+
+        var result = new BuyerCheckEvaluator().Evaluate(components, new BuyerCheckContext("16 GB"));
+
+        var check = result.Checks.Single(c => c.Id == "recent-crashes");
+        Assert.Equal(BuyerCheckState.Fail, check.State);
+        Assert.Equal("Recent blue screens recorded", check.Title);
+        Assert.Equal(BuyerCheckState.Warning, result.OverallState);
+        Assert.Equal("WARNING - Recent blue screens recorded", result.BannerText);
+    }
+
+    [Fact]
+    public void OlderBugCheck_WarnsTheRowButDoesNotDropTheBanner()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var components = AllPassBase(now).ToList();
+        components[^1] = CrashWithBugCheck(now.AddDays(-40), 1);
+
+        var result = new BuyerCheckEvaluator().Evaluate(components, new BuyerCheckContext("16 GB"));
+
+        Assert.Equal(BuyerCheckState.Warning, result.Checks.Single(c => c.Id == "recent-crashes").State);
+        Assert.Equal(BuyerCheckState.Pass, result.OverallState);
+    }
+
+    [Fact]
+    public void BothFindings_DropTheBannerTwoLevelsToFail_AndNameAuthenticity()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var components = AllPassBase(now).ToList();
+        components[0] = SystemWithDates(now.AddDays(-20), now.AddDays(-19));
+        components[^1] = CrashWithBugCheck(now.AddDays(-5), 1);
+
+        var result = new BuyerCheckEvaluator().Evaluate(components, new BuyerCheckContext("16 GB"));
+
+        Assert.Equal(BuyerCheckState.Fail, result.OverallState);
+        Assert.Equal("FAIL - Signs of prior use (BIOS date vs Windows install date)", result.BannerText);
+    }
+
+    [Fact]
+    public void WarningBase_PlusStrongAuthenticity_DropsToFail()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var components = new[]
+        {
+            // R4 Strong (BIOS after install) plus a Warning base: critical errors.
+            SystemWithDates(now.AddDays(-20), now.AddDays(-19), criticalErrors: "3"),
+            TestSnapshots.Storage("0", "0"),
+            TestSnapshots.Battery(2),
+            TestSnapshots.Ram("16 GB"),
+            TestSnapshots.Crash(now),
+        };
+
+        var result = new BuyerCheckEvaluator().Evaluate(components, new BuyerCheckContext("16 GB"));
+
+        Assert.Equal(BuyerCheckState.Warning, result.Checks.Single(c => c.Id == "critical-errors").State);
+        Assert.Equal(BuyerCheckState.Fail, result.OverallState);
+    }
+
+    [Fact]
+    public void FailBase_PlusStrongAuthenticity_StaysFail()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var components = new[]
+        {
+            SystemWithDates(now.AddDays(-20), now.AddDays(-19)),
+            TestSnapshots.Storage("9", "120"),
+            TestSnapshots.Battery(40),
+            TestSnapshots.Ram("16 GB"),
+        };
+
+        var result = new BuyerCheckEvaluator().Evaluate(components);
+
+        Assert.Equal(BuyerCheckState.Fail, result.OverallState);
+        Assert.Equal("FAIL - Signs of prior use (BIOS date vs Windows install date)", result.BannerText);
+    }
+
+    [Fact]
+    public void FindingWithNoUsableBaseReadings_LandsOnWarningNotNotApplicable()
+    {
+        // Only the authenticity entry has data (R4 Strong); every ordinary
+        // check is NotApplicable. The finding itself is data, so the banner
+        // is a verdict, not "not enough data".
+        var checks = new[]
+        {
+            new BuyerCheck("ssd-wear", "SSD wear is 0%", "No reading.", BuyerCheckState.NotApplicable, "Ask."),
+            new BuyerCheck("authenticity", "Signs of prior use (BIOS date vs Windows install date)", "BIOS date is after the install date.", BuyerCheckState.Fail, "Ask."),
+        };
+
+        var result = new BuyerCheckResult(checks);
+
+        Assert.Equal(BuyerCheckState.Warning, result.OverallState);
+        Assert.Equal("WARNING - Signs of prior use (BIOS date vs Windows install date)", result.BannerText);
+    }
+
+    [Fact]
+    public void CrashHistory_DoesNotChangeTheHealthScore()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var clean = AllPassBase(now);
+        var withCrashes = AllPassBase(now).ToList();
+        withCrashes[^1] = CrashWithBugCheck(now.AddDays(-5), 3);
+
+        var cleanScore = new ScoringEngine().Score(clean);
+        var crashScore = new ScoringEngine().Score(withCrashes);
+
+        Assert.Equal(cleanScore.OverallScore, crashScore.OverallScore);
+    }
 }

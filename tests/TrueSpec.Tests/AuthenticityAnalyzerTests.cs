@@ -113,6 +113,32 @@ public class AuthenticityAnalyzerTests
     private static void AssertNotSkipped(AuthenticityResult result, string title) =>
         Assert.DoesNotContain(result.SkippedChecks, s => s.StartsWith(title, StringComparison.Ordinal));
 
+    // v1.3 integration: the component-list overload (used by the buyer-check
+    // evaluator, which runs before the snapshot is built) is the same
+    // analysis as the snapshot overload, not a second implementation.
+
+    [Fact]
+    public void Analyze_ComponentListOverload_MatchesSnapshotOverload()
+    {
+        var snapshot = Snapshot(
+            installDate: Day(3),
+            biosDate: Day(20),
+            earliestLogEntry: Day(30),
+            powerOnHours: "4120",
+            dataWritten: "650.0 GB",
+            cycleCount: "80",
+            hotfixDates: new[] { Day(40) });
+
+        var fromSnapshot = AuthenticityAnalyzer.Analyze(snapshot);
+        var fromComponents = AuthenticityAnalyzer.Analyze(snapshot.Components, snapshot.CapturedAt);
+
+        Assert.Equal(fromSnapshot.Verdict, fromComponents.Verdict);
+        Assert.Equal(fromSnapshot.Summary, fromComponents.Summary);
+        Assert.Equal(fromSnapshot.Checks.Count, fromComponents.Checks.Count);
+        Assert.Equal(fromSnapshot.SkippedChecks.Count, fromComponents.SkippedChecks.Count);
+        Assert.Equal(fromSnapshot.Signals.Count, fromComponents.Signals.Count);
+    }
+
     // R1: SSD power-on hours vs Windows age (Strong, 72h tolerance).
 
     [Fact]

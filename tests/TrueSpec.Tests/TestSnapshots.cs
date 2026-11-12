@@ -18,6 +18,7 @@ internal static class TestSnapshots
             Battery(2),
             Gpu(),
             Network(now.AddDays(-20).ToString("yyyy-MM-dd")),
+            Crash(now),
         };
 
         var score = new ScoringEngine().Score(components);
@@ -130,6 +131,25 @@ internal static class TestSnapshots
         new[] { new SpecValue("Driver date", driverDate, "CIM Win32_PnPSignedDriver") },
         "Network health uses the adapter driver date.",
         DateTimeOffset.Now);
+
+    /// <summary>
+    /// A crash component with a readable but empty log: the collector always
+    /// writes the earliest-entry spec when it succeeds, even when no crash
+    /// class was recorded, so this fixture mirrors that output.
+    /// </summary>
+    public static ComponentSnapshot Crash(DateTimeOffset now) => new(
+        "crash",
+        "Crash history",
+        "Diagnostics",
+        "crash",
+        "No crashes recorded in the last 90 days",
+        null,
+        new[]
+        {
+            new SpecValue("Earliest event log entry", now.AddDays(-20).ToString("yyyy-MM-dd"), "Windows Event Log (System)"),
+        },
+        "No blue screens, hardware errors, unexpected shutdowns or disk errors were recorded in the System event log in the last 90 days.",
+        now);
 
     /// <summary>
     /// Snapshot shaped for history/trend tests: battery health, cycle count,

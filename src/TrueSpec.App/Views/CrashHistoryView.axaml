@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TrueSpec.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="TrueSpec.App.Views.CrashHistoryView"
+             x:DataType="vm:CrashHistoryViewModel">
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="18">
+            <Border Classes="card" Padding="22">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Crash history" Classes="h1" />
+                    <TextBlock Text="{Binding Headline}" FontSize="14" Classes="muted" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding CapturedText}" FontSize="11" Classes="muted" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18" IsVisible="{Binding HasRecentAlert}">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Recent crash" Classes="h3" />
+                    <TextBlock Text="{Binding AlertText}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18" IsVisible="{Binding HasHistory}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Failures by class" Classes="h3" />
+
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto,2*" ColumnSpacing="16" IsVisible="{Binding HasRows}">
+                        <TextBlock Text="Class" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1" Text="Count (90 days)" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="2" Text="First" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="3" Text="Last" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="4" Text="Meaning" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding Rows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CrashClassRowViewModel">
+                                <Border BorderBrush="{DynamicResource AppBorder}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="0,9">
+                                    <Grid ColumnDefinitions="*,Auto,Auto,Auto,2*" ColumnSpacing="16">
+                                        <TextBlock Text="{Binding ClassName}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Count90d}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="2" Text="{Binding FirstText}" Classes="muted" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="3" Text="{Binding LastText}" Classes="muted" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="4" Text="{Binding Meaning}" Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="{Binding EmptyMessage}"
+                               Classes="muted"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding !HasRows}" />
+
+                    <TextBlock Text="{Binding LogClearedText}"
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding HasLogClearedText}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18" IsVisible="{Binding !HasHistory}">
+                <TextBlock Text="{Binding EmptyMessage}"
+                           Classes="muted"
+                           TextWrapping="Wrap" />
+            </Border>
+
+            <TextBlock Text="Counts cover the last 90 days; first and last cover all recorded time. Meanings are fixed labels, not diagnoses."
+                       Classes="muted"
+                       FontSize="11"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

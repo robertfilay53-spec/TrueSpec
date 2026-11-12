@@ -210,4 +210,85 @@ public class DisplayNetworkTruthTests
         Assert.Contains(snapshot.Specs, s => s.Label == SpecLabels.WifiDriverAge);
         Assert.Contains(snapshot.Specs, s => s.Label == SpecLabels.LinkSpeed);
     }
+
+    // ---- v1.3 integration: one-line buyer summaries ----------------------
+
+    private static NetworkCollector.NetworkReading Reading(
+        string? radioType,
+        long? wifiSpeedBitsPerSecond,
+        string? wifiDriverDate) => new(
+            WifiName: "Test Wi-Fi",
+            WifiVendor: "Test Vendor",
+            WifiDriverVersion: "1.2.3.4",
+            WifiDriverDate: wifiDriverDate,
+            WifiSpeedBitsPerSecond: wifiSpeedBitsPerSecond,
+            WifiMac: null,
+            WifiIp: null,
+            WifiGateway: null,
+            WifiDns: null,
+            Standards: "802.11ax (Wi-Fi 6/6E)",
+            Signal: "80%",
+            Band: "5 GHz",
+            Channel: "36",
+            RadioType: radioType,
+            ReceiveRate: "1201",
+            TransmitRate: "1201",
+            Ssid: "TestNet",
+            EthernetName: null,
+            EthernetSpeedBitsPerSecond: null,
+            EthernetMac: null,
+            EthernetDriverDate: null,
+            EthernetIp: null,
+            BluetoothCount: 0);
+
+    [Fact]
+    public void NetworkBuyerSummary_NamesNegotiatedStandard_LinkSpeed_AndDriverYear()
+    {
+        var summary = NetworkCollector.BuildBuyerSummary(
+            Reading("802.11ax", 1_201_000_000, "2020-01-15"),
+            Array.Empty<NetworkCollector.InterfaceData>());
+
+        Assert.Equal(
+            "Buyer check: 802.11ax (Wi-Fi 6) adapter, linked at 1201 Mbps (negotiated rate at scan time, not a speed test), driver from 2020.",
+            summary);
+        Assert.DoesNotContain("throughput", summary, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void NetworkBuyerSummary_MissingReadings_SaysNotReportedInsteadOfGuessing()
+    {
+        var summary = NetworkCollector.BuildBuyerSummary(
+            Reading(null, null, null),
+            Array.Empty<NetworkCollector.InterfaceData>());
+
+        Assert.Equal(
+            "Buyer check: Wi-Fi standard not reported by hardware, link speed not reported by hardware, driver date not reported by hardware.",
+            summary);
+    }
+
+    [Fact]
+    public void DisplayBuyerSummary_NamesPanelIdentity_NextToActiveResolution()
+    {
+        var summary = DisplayCollector.BuildBuyerSummary(
+            "ACME", "XYZ123", "2023 week 4", "32-bit", "1920 x 1080");
+
+        Assert.Equal(
+            "Buyer check: panel ACME XYZ123, made 2023 week 4, colour depth 32-bit; Windows is using 1920 x 1080.",
+            summary);
+    }
+
+    [Fact]
+    public void DisplayBuyerSummary_MissingReadings_SaysNotReportedInsteadOfGuessing()
+    {
+        var summary = DisplayCollector.BuildBuyerSummary(
+            "Not reported by hardware",
+            "Not reported by hardware",
+            "Not reported by hardware",
+            "Not reported by hardware",
+            "Not reported by hardware");
+
+        Assert.Equal(
+            "Buyer check: panel manufacturer and model not reported by hardware, manufacture date not reported by hardware, colour depth not reported by hardware; Windows is not reporting an active resolution.",
+            summary);
+    }
 }

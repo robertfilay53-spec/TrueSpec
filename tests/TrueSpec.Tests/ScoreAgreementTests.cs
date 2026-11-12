@@ -29,7 +29,12 @@ public class ScoreAgreementTests
         Assert.Equal(30d, snapshot.Score.MeasuredWeight);
         Assert.Equal(Verdict.UsedHealthy, snapshot.Score.Verdict);
         Assert.Equal(BuyerCheckState.Fail, snapshot.BuyerChecks.OverallState);
-        Assert.Equal(0, snapshot.BuyerChecks.Checks.Count(c => c.IsPass));
+        // One check passes: authenticity. Its only runnable rule (R4, BIOS
+        // date vs install date) ran clean on this VM, and the other rules
+        // skipped for missing signals; the entry mirrors the analyzer's
+        // "No signs of prior use" verdict and names the coverage gap in its
+        // detail. The crash row is NotApplicable (no crash component).
+        Assert.Equal(1, snapshot.BuyerChecks.Checks.Count(c => c.IsPass));
 
         using var overview = new OverviewViewModel(snapshot, _ => { }, new TestCommand(), new TestCommand(), new UnavailableSensorMonitor());
         var report = new ReportViewModel(snapshot, new TestCommand(), new TestCommand(), new TestCommand(), "/tmp");

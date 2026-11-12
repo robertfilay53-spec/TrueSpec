@@ -94,8 +94,22 @@ public static class AuthenticityAnalyzer
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
-        var now = snapshot.CapturedAt;
-        var byId = snapshot.Components
+        return Analyze(snapshot.Components, snapshot.CapturedAt);
+    }
+
+    /// <summary>
+    /// Same analysis over a component list and a reference time, for callers
+    /// that have no snapshot yet (the buyer-check evaluator runs before the
+    /// snapshot is built). The snapshot overload delegates here, so there is
+    /// one rule implementation, not two.
+    /// </summary>
+    public static AuthenticityResult Analyze(
+        IEnumerable<ComponentSnapshot> components,
+        DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(components);
+
+        var byId = components
             .GroupBy(c => c.Id, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 

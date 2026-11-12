@@ -37,6 +37,15 @@ public static class SpecLabels
     public const string ConfiguredSpeed = "Configured speed";
     public const string CoreVoltage = "Core voltage";
     public const string Cores = "Cores";
+    public const string CrashBlueScreens = "Blue screens";
+    public const string CrashCorrectedHardwareErrors = "Corrected hardware errors";
+    public const string CrashCountSuffix = " (last 90 days)";
+    public const string CrashDiskErrors = "Disk errors";
+    public const string CrashEventLogGap = "Event log gap";
+    public const string CrashFatalHardwareErrors = "Fatal hardware errors";
+    public const string CrashFirstSuffix = " - first recorded";
+    public const string CrashRecentSuffix = " - most recent";
+    public const string CrashUnexpectedShutdowns = "Unexpected shutdowns";
     public const string CriticalErrorsEventLog = "Critical errors (event log)";
     public const string CurrentCharge = "Current charge";
     public const string CurrentClock = "Current clock";

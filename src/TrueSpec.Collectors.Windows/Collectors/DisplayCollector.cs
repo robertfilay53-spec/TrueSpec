@@ -113,7 +113,45 @@ public sealed class DisplayCollector : ICollector
             Id,
             string.IsNullOrWhiteSpace(headline) ? "Display" : headline,
             specs,
-            "The panel block shows what screen is fitted. The manufacture date comes from the panel EDID itself. A panel made long before the laptop was sold can be a sign of a replaced screen. The resolution shown is the one Windows is currently using; the panel's own native resolution is not exposed by WmiMonitorID, so it is reported as not available rather than guessed. HDR and panel technology are only shown when the EDID exposes them."));
+            "The panel block shows what screen is fitted. The manufacture date comes from the panel EDID itself. A panel made long before the laptop was sold can be a sign of a replaced screen. The resolution shown is the one Windows is currently using; the panel's own native resolution is not exposed by WmiMonitorID, so it is reported as not available rather than guessed. HDR and panel technology are only shown when the EDID exposes them. " +
+            BuildBuyerSummary(manufacturer, model, manufactureDate, colourDepth, resolution)));
+    }
+
+    /// <summary>
+    /// U11 one-line buyer summary: the panel's real identity (EDID) next to
+    /// the resolution Windows is currently using, so a buyer can compare
+    /// them at a glance. Any part the hardware did not report says so
+    /// instead of being guessed.
+    /// </summary>
+    internal static string BuildBuyerSummary(
+        string manufacturer,
+        string model,
+        string manufactureDate,
+        string colourDepth,
+        string resolution)
+    {
+        var identityParts = new[] { manufacturer, model }
+            .Where(v => !string.Equals(v, CollectorSupport.NotReported, StringComparison.Ordinal))
+            .ToArray();
+        var panelPart = identityParts.Length == 0
+            ? "panel manufacturer and model not reported by hardware"
+            : string.Create(CultureInfo.InvariantCulture, $"panel {string.Join(" ", identityParts)}");
+
+        var madePart = string.Equals(manufactureDate, CollectorSupport.NotReported, StringComparison.Ordinal)
+            ? "manufacture date not reported by hardware"
+            : string.Create(CultureInfo.InvariantCulture, $"made {manufactureDate}");
+
+        var colourPart = string.Equals(colourDepth, CollectorSupport.NotReported, StringComparison.Ordinal)
+            ? "colour depth not reported by hardware"
+            : string.Create(CultureInfo.InvariantCulture, $"colour depth {colourDepth}");
+
+        var activePart = string.Equals(resolution, CollectorSupport.NotReported, StringComparison.Ordinal)
+            ? "Windows is not reporting an active resolution"
+            : string.Create(CultureInfo.InvariantCulture, $"Windows is using {resolution}");
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"Buyer check: {panelPart}, {madePart}, {colourPart}; {activePart}.");
     }
 
     private static string Decode(ushort[]? values)

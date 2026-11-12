@@ -203,30 +203,30 @@ public sealed class CrashCollector : ICollector
 
         foreach (var summary in history.Summaries)
         {
-            var display = DisplayName(summary.Class);
+            var display = CrashHistoryParser.DisplayName(summary.Class);
             specs.Add(CollectorSupport.Spec(
-                $"{display} (last 90 days)",
+                display + SpecLabels.CrashCountSuffix,
                 summary.Count90d.ToString(CultureInfo.InvariantCulture),
                 LogSource));
             specs.Add(CollectorSupport.Spec(
-                $"{display} - first recorded",
+                display + SpecLabels.CrashFirstSuffix,
                 FormatDate(summary.FirstAt),
                 LogSource));
             specs.Add(CollectorSupport.Spec(
-                $"{display} - most recent",
+                display + SpecLabels.CrashRecentSuffix,
                 FormatDate(summary.LastAt),
                 LogSource));
         }
 
         specs.Add(CollectorSupport.Spec(
-            "Earliest event log entry",
+            SpecLabels.EarliestEventLogEntry,
             FormatDate(history.EarliestLogEntry),
             LogSource));
 
         if (history.LogClearedSuspected && history.EarliestLogEntry is { } earliest)
         {
             specs.Add(CollectorSupport.Spec(
-                "Event log gap",
+                SpecLabels.CrashEventLogGap,
                 string.Create(
                     CultureInfo.InvariantCulture,
                     $"No entries before {earliest:yyyy-MM-dd}. The log may have been cleared, so earlier crashes would not appear here."),
@@ -286,16 +286,6 @@ public sealed class CrashCollector : ICollector
 
         return text;
     }
-
-    private static string DisplayName(CrashClass crashClass) => crashClass switch
-    {
-        CrashClass.BugCheck => "Blue screens",
-        CrashClass.WheaFatal => "Fatal hardware errors",
-        CrashClass.WheaCorrected => "Corrected hardware errors",
-        CrashClass.UnexpectedShutdown => "Unexpected shutdowns",
-        CrashClass.DiskError => "Disk errors",
-        _ => "Recorded errors",
-    };
 
     private static string CountNoun(CrashClass crashClass, int count) => (crashClass, count) switch
     {

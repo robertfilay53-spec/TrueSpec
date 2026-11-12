@@ -1,7 +1,9 @@
 namespace TrueSpec.Core.Scoring;
 
 using System.Globalization;
+using TrueSpec.Core.Collectors;
 using TrueSpec.Core.Health;
+using TrueSpec.Core.History;
 using TrueSpec.Core.Models;
 
 public interface IBuyerCheckEvaluator
@@ -20,7 +22,8 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
     {
         ArgumentNullException.ThrowIfNull(components);
 
-        var byId = components
+        var componentList = components.ToList();
+        var byId = componentList
             // A duplicate collector id must never crash the whole scan:
             // keep the first component for an id and carry on.
             .GroupBy(c => c.Id, StringComparer.OrdinalIgnoreCase)
@@ -35,6 +38,8 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
             CheckWindowsInstallDate(byId),
             CheckCriticalErrors(byId),
             CheckSignedDrivers(byId),
+            CheckAuthenticity(componentList),
+            CheckRecentCrashes(byId),
         };
 
         return new BuyerCheckResult(checks);
@@ -315,6 +320,178 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
             "Windows did not report a complete driver signature state.",
             BuyerCheckState.NotApplicable,
             "Ask the seller whether any unsigned drivers are installed.");
+    }
+
+    /// <summary>
+    /// U1 authenticity (Blueprint 1): the age-signal cross-checks as one
+    /// buyer-check row. A Strong finding fails the row; a Watch-only result
+    /// warns; an Info-only result passes with the note in the detail. No
+    /// fired check and at least one rule that ran passes on the analyzer's
+    /// own "No signs of prior use" verdict; when every rule was skipped
+    /// (no age signal was reported at all) the row is NotApplicable, never
+    /// a guessed pass. The row's Fail state is what demotes the banner one
+    /// grade (see <see cref="BuyerCheckResult"/>); it never touches the
+    /// 0-100 health score.
+    /// </summary>
+    private static BuyerCheck CheckAuthenticity(IReadOnlyList<ComponentSnapshot> components)
+    {
+        const string id = BuyerCheckResult.AuthenticityCheckId;
+
+        var result = AuthenticityAnalyzer.Analyze(components, DateTimeOffset.UtcNow);
+        var strongest = result.Checks
+            .OrderByDescending(c => c.Severity)
+            .FirstOrDefault();
+
+        if (strongest is null)
+        {
+            if (AllRulesSkipped(result))
+            {
+                return new BuyerCheck(id, "No signs of prior use",
+                    "No age signal was reported, so none of the authenticity checks could run.",
+                    BuyerCheckState.NotApplicable,
+                    "Ask the seller for the drive SMART data, the battery cycle count and the Windows install date.");
+            }
+
+            return new BuyerCheck(id, "No signs of prior use",
+                result.Summary,
+                BuyerCheckState.Pass,
+                "Nothing to ask.");
+        }
+
+        var detail = result.SkippedChecks.Count == 0
+            ? strongest.EvidenceLine
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"{strongest.EvidenceLine} ({result.SkippedChecks.Count} other check(s) could not run because a signal was not reported.)");
+        var title = string.Create(
+            CultureInfo.InvariantCulture,
+            $"Signs of prior use ({strongest.Title})");
+
+        return strongest.Severity switch
+        {
+            AuthenticitySeverity.Strong => new BuyerCheck(id, title, detail,
+                BuyerCheckState.Fail,
+                "Ask the seller how the machine was used before this Windows install."),
+            AuthenticitySeverity.Watch => new BuyerCheck(id, title, detail,
+                BuyerCheckState.Warning,
+                "Ask the seller how the machine was used before this Windows install."),
+            _ => new BuyerCheck(id, "No signs of prior use", detail,
+                BuyerCheckState.Pass,
+                "Nothing to ask."),
+        };
+    }
+
+    /// <summary>
+    /// U3 crash forensics (Blueprint 3): a blue screen in the last 30 days
+    /// fails the row ("Recent blue screens recorded") and demotes the banner
+    /// one grade. Older blue screens, a recent fatal hardware error or a
+    /// recent disk error warn. Corrected hardware errors alone never fail or
+    /// warn: they are shown as information. A cleared-log suspicion warns,
+    /// because a wiped log reads as a gap, never as a clean record. No crash
+    /// component at all is NotApplicable.
+    /// </summary>
+    private static BuyerCheck CheckRecentCrashes(IReadOnlyDictionary<string, ComponentSnapshot> byId)
+    {
+        const string id = BuyerCheckResult.RecentCrashesCheckId;
+
+        if (!byId.TryGetValue("crash", out var crash) ||
+            CrashHistoryParser.FromComponent(crash) is not { } history)
+        {
+            return new BuyerCheck(id, "No recent blue screens",
+                "Crash history was not available for this machine.",
+                BuyerCheckState.NotApplicable,
+                "Ask the seller whether the machine has ever blue-screened.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        if (CrashHistoryParser.HasRecentEvent(history, CrashClass.BugCheck, now))
+        {
+            var summary = history.Summaries.Single(s => s.Class == CrashClass.BugCheck);
+            return new BuyerCheck(id, "Recent blue screens recorded",
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{summary.Count90d} blue screen(s) in the last 90 days, most recently {summary.LastAt:yyyy-MM-dd}."),
+                BuyerCheckState.Fail,
+                "Ask what caused the blue screens and whether the machine has crashed since.");
+        }
+
+        if (history.LogClearedSuspected)
+        {
+            return new BuyerCheck(id, "No recent blue screens",
+                "The event log has no entries before " +
+                $"{history.EarliestLogEntry:yyyy-MM-dd}, so earlier crashes would not appear here.",
+                BuyerCheckState.Warning,
+                "Ask the seller whether the event log was cleared and why.");
+        }
+
+        var olderBugCheck = history.Summaries
+            .FirstOrDefault(s => s.Class == CrashClass.BugCheck && s.Count90d > 0);
+        if (olderBugCheck is not null)
+        {
+            return new BuyerCheck(id, "No recent blue screens",
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{olderBugCheck.Count90d} blue screen(s) in the last 90 days, most recently {olderBugCheck.LastAt:yyyy-MM-dd}. None in the last {CrashHistoryParser.RecentWindowDays} days."),
+                BuyerCheckState.Warning,
+                "Ask what caused the blue screens and whether the machine has crashed since.");
+        }
+
+        if (CrashHistoryParser.HasRecentEvent(history, CrashClass.WheaFatal, now))
+        {
+            var summary = history.Summaries.Single(s => s.Class == CrashClass.WheaFatal);
+            return new BuyerCheck(id, "No recent blue screens",
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{summary.Count90d} fatal hardware error(s) in the last 90 days, most recently {summary.LastAt:yyyy-MM-dd}."),
+                BuyerCheckState.Warning,
+                "Ask what hardware reported the fatal error and whether it was replaced.");
+        }
+
+        var diskErrors = history.Summaries
+            .FirstOrDefault(s => s.Class == CrashClass.DiskError && s.Count90d > 0);
+        if (diskErrors is not null)
+        {
+            return new BuyerCheck(id, "No recent blue screens",
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{diskErrors.Count90d} disk error(s) in the last 90 days, most recently {diskErrors.LastAt:yyyy-MM-dd}."),
+                BuyerCheckState.Warning,
+                "Ask whether the drive has been checked and whether any files were lost.");
+        }
+
+        var corrected = history.Summaries
+            .FirstOrDefault(s => s.Class == CrashClass.WheaCorrected && s.Count90d > 0);
+        if (corrected is not null)
+        {
+            return new BuyerCheck(id, "No recent blue screens",
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"No blue screens in the last 90 days. {corrected.Count90d} hardware error(s) were corrected automatically, which is normal on some hardware."),
+                BuyerCheckState.Pass,
+                "Nothing to ask.");
+        }
+
+        return new BuyerCheck(id, "No recent blue screens",
+            "No blue screens, hardware errors, unexpected shutdowns or disk errors were recorded in the last 90 days.",
+            BuyerCheckState.Pass,
+            "Nothing to ask.");
+    }
+
+    /// <summary>True when every authenticity rule was skipped (no signal ran).</summary>
+    private static bool AllRulesSkipped(AuthenticityResult result)
+    {
+        var titles = new[]
+        {
+            AuthenticityAnalyzer.R1Title,
+            AuthenticityAnalyzer.R2Title,
+            AuthenticityAnalyzer.R3Title,
+            AuthenticityAnalyzer.R4Title,
+            AuthenticityAnalyzer.R5Title,
+            AuthenticityAnalyzer.R6Title,
+        };
+
+        return titles.All(title => result.SkippedChecks.Any(
+            skipped => skipped.StartsWith(title, StringComparison.Ordinal)));
     }
 
     private static bool TryGetSpec(

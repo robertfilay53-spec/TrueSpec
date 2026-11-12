@@ -1,4 +1,6 @@
 using TrueSpec.Core.Collectors;
+using TrueSpec.Core.History;
+using TrueSpec.Core.Models;
 
 namespace TrueSpec.Tests;
 
@@ -287,5 +289,134 @@ public class CrashHistoryParserTests
 
             Assert.False(string.IsNullOrWhiteSpace(meaning));
         }
+    }
+
+    // ---- v1.3 integration: one shared 7-day threshold (U1 R6) --------------
+
+    [Fact]
+    public void ClearedLogRule_BoundaryIsExactlyTheSharedAuthenticityThreshold()
+    {
+        // The cleared-log rule must use the authenticity engine's threshold
+        // (U1 R6), not a second copy of the 7-day value: the boundary is
+        // derived from AuthenticityAnalyzer.LogGapDays, so a drift between
+        // the two fails here.
+        var installDate = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var gap = AuthenticityAnalyzer.LogGapDays;
+
+        Assert.False(CrashHistoryParser.IsLogClearedSuspected(
+            installDate.AddDays(gap), installDate));
+        Assert.True(CrashHistoryParser.IsLogClearedSuspected(
+            installDate.AddDays(gap + 1), installDate));
+    }
+
+    [Fact]
+    public void DisplayName_CoversEveryClass()
+    {
+        foreach (var crashClass in Enum.GetValues<CrashClass>())
+        {
+            var display = CrashHistoryParser.DisplayName(crashClass);
+
+            Assert.False(string.IsNullOrWhiteSpace(display));
+        }
+    }
+
+    [Fact]
+    public void HasRecentEvent_BoundaryIsThirtyDaysByCalendarDate()
+    {
+        var history = CrashHistoryParser.Parse(
+            new[]
+            {
+                Row("Microsoft-Windows-WER-SystemErrorReporting", 1001, Now.AddDays(-30)),
+                Row("Microsoft-Windows-WER-SystemErrorReporting", 1001, Now.AddDays(-31)),
+            },
+            Now,
+            installDate: null);
+
+        // Two rows, same class: the summary's last date is the -30 day row.
+        Assert.True(CrashHistoryParser.HasRecentEvent(history, CrashClass.BugCheck, Now));
+
+        var older = CrashHistoryParser.Parse(
+            new[] { Row("Microsoft-Windows-WER-SystemErrorReporting", 1001, Now.AddDays(-31)) },
+            Now,
+            installDate: null);
+
+        Assert.False(CrashHistoryParser.HasRecentEvent(older, CrashClass.BugCheck, Now));
+        Assert.False(CrashHistoryParser.HasRecentEvent(older, CrashClass.WheaFatal, Now));
+    }
+
+    // ---- v1.3 integration: reading the collector's specs back --------------
+
+    private static ComponentSnapshot CrashComponent(params SpecValue[] specs) => new(
+        "crash",
+        "Crash history",
+        "Diagnostics",
+        "crash",
+        "Test crashes",
+        null,
+        specs,
+        "Test component.",
+        Now);
+
+    [Fact]
+    public void FromComponent_RoundTripsEveryClass()
+    {
+        var component = CrashComponent(
+            new SpecValue("Blue screens (last 90 days)", "2", "Windows Event Log (System)"),
+            new SpecValue("Blue screens - first recorded", "2026-09-01", "Windows Event Log (System)"),
+            new SpecValue("Blue screens - most recent", "2026-11-10", "Windows Event Log (System)"),
+            new SpecValue("Fatal hardware errors (last 90 days)", "1", "Windows Event Log (System)"),
+            new SpecValue("Fatal hardware errors - first recorded", "2026-10-05", "Windows Event Log (System)"),
+            new SpecValue("Fatal hardware errors - most recent", "2026-10-05", "Windows Event Log (System)"),
+            new SpecValue("Earliest event log entry", "2026-08-01", "Windows Event Log (System)"));
+
+        var history = CrashHistoryParser.FromComponent(component);
+
+        Assert.NotNull(history);
+        Assert.Equal(2, history.Summaries.Count);
+        var bugCheck = history.Summaries.Single(s => s.Class == CrashClass.BugCheck);
+        Assert.Equal(2, bugCheck.Count90d);
+        Assert.Equal(new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.Zero), bugCheck.FirstAt);
+        Assert.Equal(new DateTimeOffset(2026, 11, 10, 0, 0, 0, TimeSpan.Zero), bugCheck.LastAt);
+        Assert.Equal("Windows stopped unexpectedly (blue screen)", bugCheck.PlainMeaning);
+        Assert.Equal(new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero), history.EarliestLogEntry);
+        Assert.False(history.LogClearedSuspected);
+    }
+
+    [Fact]
+    public void FromComponent_LogGapSpec_MeansClearedSuspected()
+    {
+        var component = CrashComponent(
+            new SpecValue("Earliest event log entry", "2026-11-01", "Windows Event Log (System)"),
+            new SpecValue("Event log gap", "No entries before 2026-11-01. The log may have been cleared, so earlier crashes would not appear here.", "Windows Event Log (System)"));
+
+        var history = CrashHistoryParser.FromComponent(component);
+
+        Assert.NotNull(history);
+        Assert.Empty(history.Summaries);
+        Assert.True(history.LogClearedSuspected);
+    }
+
+    [Fact]
+    public void FromComponent_MissingOrUnavailable_ReturnsNull()
+    {
+        Assert.Null(CrashHistoryParser.FromComponent(null));
+        Assert.Null(CrashHistoryParser.FromComponent(ComponentSnapshot.NotAvailable(
+            "crash", "Crash history", "Diagnostics", "crash", "The log could not be read.")));
+        Assert.Null(CrashHistoryParser.FromComponent(CrashComponent(
+            new SpecValue("Something else", "1", "Test"))));
+    }
+
+    [Fact]
+    public void FromComponent_UnparseableCount_SkipsThatClassInsteadOfInventing()
+    {
+        var component = CrashComponent(
+            new SpecValue("Blue screens (last 90 days)", "not a number", "Windows Event Log (System)"),
+            new SpecValue("Earliest event log entry", "2026-08-01", "Windows Event Log (System)"));
+
+        var history = CrashHistoryParser.FromComponent(component);
+
+        Assert.NotNull(history);
+        Assert.Empty(history.Summaries);
+        Assert.Equal(new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero), history.EarliestLogEntry);
     }
 }
