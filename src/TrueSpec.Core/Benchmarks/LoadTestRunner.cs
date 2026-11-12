@@ -91,9 +91,18 @@ public sealed class LoadTestRunner
         // the init cost neither eats the test duration nor delays the
         // first real sample. The burn has not started yet, so no heat is
         // missed. A failed warm-up is fine: the samples will be gaps.
+        // The warm-up read doubles as the U5 idle baseline: the fan speeds
+        // and temperatures before the burn are what rule 2 judges the
+        // load behaviour against.
+        IReadOnlyList<FanReading> idleFans = Array.Empty<FanReading>();
+        double? idleCpuTempC = null;
+        double? idleGpuTempC = null;
         try
         {
-            _ = _sensors.ReadAsync(cancellationToken).GetAwaiter().GetResult();
+            var warmUp = _sensors.ReadAsync(cancellationToken).GetAwaiter().GetResult();
+            idleFans = FanReadings(warmUp);
+            idleCpuTempC = warmUp.CpuTemperature()?.Value;
+            idleGpuTempC = warmUp.GpuTemperature()?.Value;
         }
         catch (OperationCanceledException)
         {
@@ -257,7 +266,10 @@ public sealed class LoadTestRunner
             abortReason,
             config.DurationSeconds,
             memoryVerifiedResult,
-            diskMbpsResult) with
+            diskMbpsResult,
+            idleFans,
+            idleCpuTempC,
+            idleGpuTempC) with
         {
             StartedAt = startedAt,
             CompletedAt = completedAt,
@@ -346,7 +358,8 @@ public sealed class LoadTestRunner
             var fan = snapshot.CpuFanRpm();
             var power = snapshot.CpuPowerW();
             var gpuTemp = snapshot.GpuTemperature()?.Value;
-            var isGap = temperature is null && avgClock is null && fan is null && power is null && gpuTemp is null;
+            var fans = FanReadings(snapshot);
+            var isGap = temperature is null && avgClock is null && fan is null && power is null && gpuTemp is null && fans.Count == 0;
 
             return new LoadTestSample(
                 DateTimeOffset.Now,
@@ -356,7 +369,8 @@ public sealed class LoadTestRunner
                 fan,
                 power,
                 gpuTemp,
-                isGap);
+                isGap,
+                fans);
         }
         catch (OperationCanceledException)
         {
@@ -370,6 +384,20 @@ public sealed class LoadTestRunner
             return new LoadTestSample(DateTimeOffset.Now, null, null, null, null, null, null, true);
         }
     }
+
+    /// <summary>
+    /// Per-fan readings from one sensor snapshot (U5). The display name is
+    /// the hardware group plus the sensor name ("CPU Fan #1"), which is
+    /// also what pairs a fan with its component's temperature: a name
+    /// containing "GPU" is judged against the GPU temperature, anything
+    /// else against the CPU temperature.
+    /// </summary>
+    private static IReadOnlyList<FanReading> FanReadings(SensorSnapshot snapshot) => snapshot
+        .FanReadings()
+        .Select(r => new FanReading(
+            FormattableString.Invariant($"{r.Hardware} {r.Name}"),
+            r.Value))
+        .ToList();
 
     private static void ReportProgress(
         IProgress<LoadTestProgress>? progress,

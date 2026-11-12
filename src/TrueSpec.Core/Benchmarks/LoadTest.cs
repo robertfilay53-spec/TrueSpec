@@ -40,7 +40,9 @@ public sealed record LoadTestConfig(
 /// One 1 Hz sensor sample taken during the load test. A null reading means
 /// that sensor did not report at that second, never zero. A sample with no
 /// reading at all is a gap (<see cref="IsGap"/>) and is recorded as such,
-/// never interpolated.
+/// never interpolated. <see cref="Fans"/> carries every fan sensor that
+/// reported that second (U5); a fan with no reading that second is absent
+/// from the list, never recorded as 0 RPM.
 /// </summary>
 public sealed record LoadTestSample(
     DateTimeOffset Timestamp,
@@ -50,7 +52,8 @@ public sealed record LoadTestSample(
     double? FanRpm,
     double? CpuPowerW,
     double? GpuTempC,
-    bool IsGap);
+    bool IsGap,
+    IReadOnlyList<FanReading>? Fans = null);
 
 /// <summary>One live progress report during a load test run.</summary>
 public sealed record LoadTestProgress(
@@ -64,7 +67,10 @@ public sealed record LoadTestProgress(
 /// <see cref="ClockHeldPercent"/> are averages over the last 30 seconds of
 /// the test (the window the throttle verdict judges), or over all samples
 /// when the test ran shorter than 30 seconds. <see cref="AbortReason"/> is
-/// null for a test that ran to its full duration.
+/// null for a test that ran to its full duration. <see cref="FanHealth"/>
+/// is the U5 fan-health verdict measured from the same samples; it is null
+/// only for results built before U5, and it travels with the result into
+/// the snapshot store, so a saved load test keeps its fan readings.
 /// </summary>
 public sealed record LoadTestResult(
     IReadOnlyList<LoadTestSample> Samples,
@@ -81,7 +87,8 @@ public sealed record LoadTestResult(
     bool MemoryPatternVerified,
     double? DiskReadMBps,
     DateTimeOffset StartedAt,
-    DateTimeOffset CompletedAt)
+    DateTimeOffset CompletedAt,
+    FanHealthResult? FanHealth = null)
 {
     /// <summary>Abort reason when the temperature limit stopped the test.</summary>
     public const string AbortTemperature = "temperature";

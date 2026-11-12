@@ -78,6 +78,27 @@
                         <TextBlock Text="{Binding ResultPeakText}" Classes="muted" />
                         <TextBlock Text="{Binding ResultClockText}" Classes="muted" />
                         <TextBlock Text="{Binding ResultPercentText}" Classes="muted" />
+                        <TextBlock Text="Fan health" Classes="h3" />
+                        <TextBlock Text="{Binding FanHealthSummaryText}" TextWrapping="Wrap" MaxWidth="620" />
+                        <ItemsControl ItemsSource="{Binding FanHealthLines}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" Classes="muted" TextWrapping="Wrap" MaxWidth="620" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding FanHealthFindings}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" MaxWidth="620" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="TrueSpec reports fan health only; it never controls fans."
+                                   Classes="muted"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="620" />
                         <controls:Sparkline Height="52"
                                             Values="{Binding TemperatureValues}"
                                             StrokeThickness="2" />
