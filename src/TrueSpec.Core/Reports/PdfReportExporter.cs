@@ -116,7 +116,7 @@ public sealed class PdfReportExporter : IReportExporter
 
         lines.Add(new(
             "TrueSpec is offline. This report was generated on this machine and was not uploaded anywhere. " +
-            "Unmeasurable values say \"Not reported by hardware\" or \"Not available\" instead of showing a fake number.",
+            $"Unmeasurable values say \"{SpecLabels.NotReportedByHardware}\" or \"Not available\" instead of showing a fake number.",
             Bold: false, Size: 10));
         return lines;
     }
@@ -128,7 +128,7 @@ public sealed class PdfReportExporter : IReportExporter
     private static bool HasReportedValue(string value) =>
         !string.IsNullOrWhiteSpace(value) &&
         !string.Equals(value.Trim(), "Not reported", StringComparison.OrdinalIgnoreCase) &&
-        !string.Equals(value.Trim(), "Not reported by hardware", StringComparison.OrdinalIgnoreCase);
+        !string.Equals(value.Trim(), SpecLabels.NotReportedByHardware, StringComparison.OrdinalIgnoreCase);
 
     private static List<List<PdfLine>> Paginate(List<PdfLine> lines)
     {
@@ -176,13 +176,18 @@ public sealed class PdfReportExporter : IReportExporter
         while (remaining.Length > WrapColumns)
         {
             var cut = remaining.LastIndexOf(' ', WrapColumns);
-            if (cut <= 0)
+            var cutAtSpace = cut > 0;
+            if (!cutAtSpace)
             {
                 cut = WrapColumns;
             }
 
             rows.Add(new PdfLine(remaining[..cut], line.Bold, line.Size));
-            remaining = remaining[(cut + 1)..].TrimStart();
+            // A cut at a space skips the space; a forced cut inside a
+            // spaceless run (a long URL or path) keeps the character at
+            // the cut: the old code always skipped one character, so a
+            // 200-character URL lost a character at every wrap.
+            remaining = cutAtSpace ? remaining[(cut + 1)..].TrimStart() : remaining[cut..];
             if (remaining.Length == 0)
             {
                 break;

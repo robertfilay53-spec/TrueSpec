@@ -48,7 +48,7 @@ public class HistoryCsvExporterTests
         var before = TestSnapshots.HistorySnapshot(90d, "90.0%", "10", "2%", "100", FirstScan);
         // Second scan: the battery stopped reporting health, and the cycle
         // count and power-on hours specs are missing entirely.
-        var after = TestSnapshots.HistorySnapshot(85d, "Not reported by hardware", null, "5%", null, SecondScan);
+        var after = TestSnapshots.HistorySnapshot(85d, SpecLabels.NotReportedByHardware, null, "5%", null, SecondScan);
 
         var trend = HistoryTrendAnalyzer.Analyze(new[] { before, after });
         var csv = HistoryCsvExporter.Build(trend);
@@ -65,7 +65,7 @@ public class HistoryCsvExporterTests
         // History table shows, formatted with the table's own format
         // strings (see HistoryRowViewModel).
         var before = TestSnapshots.HistorySnapshot(90d, "90.0%", "10", "2%", "100", FirstScan);
-        var after = TestSnapshots.HistorySnapshot(85.5d, "Not reported by hardware", null, "5%", "250", SecondScan);
+        var after = TestSnapshots.HistorySnapshot(85.5d, SpecLabels.NotReportedByHardware, null, "5%", "250", SecondScan);
 
         var trend = HistoryTrendAnalyzer.Analyze(new[] { before, after });
         var csv = HistoryCsvExporter.Build(trend);

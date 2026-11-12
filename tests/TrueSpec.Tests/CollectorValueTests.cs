@@ -1,4 +1,5 @@
 using TrueSpec.Collectors.Windows.Wmi;
+using TrueSpec.Core.Models;
 
 namespace TrueSpec.Tests;
 
@@ -33,19 +34,19 @@ public class CollectorValueTests
     [InlineData(uint.MaxValue)]
     public void BatteryChemistry_UnmappedCode_IsNotReported(uint code)
     {
-        Assert.Equal(CollectorSupport.NotReported, CollectorSupport.BatteryChemistry(code));
+        Assert.Equal(SpecLabels.NotReportedByHardware, CollectorSupport.BatteryChemistry(code));
     }
 
     [Fact]
     public void BatteryChemistry_NullCode_IsNotReported()
     {
-        Assert.Equal(CollectorSupport.NotReported, CollectorSupport.BatteryChemistry((uint?)null));
+        Assert.Equal(SpecLabels.NotReportedByHardware, CollectorSupport.BatteryChemistry((uint?)null));
     }
 
     [Theory]
     // The T480 reported this raw BatteryStaticData value: a numeric
     // string is a raw enum code, never a name to print.
-    [InlineData("5269836", CollectorSupport.NotReported)]
+    [InlineData("5269836", SpecLabels.NotReportedByHardware)]
     [InlineData("6", "Lithium ion")]
     [InlineData("Li-ion", "Lithium ion")]
     [InlineData("Lithium-ion", "Lithium ion")]
@@ -63,7 +64,7 @@ public class CollectorValueTests
     [InlineData("   ")]
     public void BatteryChemistry_EmptyString_IsNotReported(string? input)
     {
-        Assert.Equal(CollectorSupport.NotReported, CollectorSupport.BatteryChemistry(input));
+        Assert.Equal(SpecLabels.NotReportedByHardware, CollectorSupport.BatteryChemistry(input));
     }
 
     [Theory]
@@ -102,13 +103,13 @@ public class CollectorValueTests
     [InlineData(uint.MaxValue)]
     public void FormFactor_UnmappedCode_IsNotReported(uint code)
     {
-        Assert.Equal(CollectorSupport.NotReported, CollectorSupport.FormFactor(code));
+        Assert.Equal(SpecLabels.NotReportedByHardware, CollectorSupport.FormFactor(code));
     }
 
     [Fact]
     public void FormFactor_NullCode_IsNotReported()
     {
-        Assert.Equal(CollectorSupport.NotReported, CollectorSupport.FormFactor((uint?)null));
+        Assert.Equal(SpecLabels.NotReportedByHardware, CollectorSupport.FormFactor((uint?)null));
     }
 
     [Theory]
@@ -142,13 +143,13 @@ public class CollectorValueTests
     [InlineData(uint.MaxValue)]
     public void OperationalStatus_UnmappedCode_IsNotReported(uint code)
     {
-        Assert.Equal(CollectorSupport.NotReported, CollectorSupport.OperationalStatus(code));
+        Assert.Equal(SpecLabels.NotReportedByHardware, CollectorSupport.OperationalStatus(code));
     }
 
     [Fact]
     public void OperationalStatus_NullCode_IsNotReported()
     {
-        Assert.Equal(CollectorSupport.NotReported, CollectorSupport.OperationalStatus((uint?)null));
+        Assert.Equal(SpecLabels.NotReportedByHardware, CollectorSupport.OperationalStatus((uint?)null));
     }
 
     [Theory]

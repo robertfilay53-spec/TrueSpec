@@ -104,20 +104,20 @@ public class InstallerScriptTests
     }
 
     [Fact]
-    public void Version_Is_1_4_1_InAllThreePlaces()
+    public void Version_Is_1_5_0_InAllThreePlaces()
     {
         // The version lives in three places and they must agree: the app
         // project (assembly version), the installer script, and the
         // application manifest. A bump that misses one ships a build whose
         // installer, exe and manifest disagree about what version it is.
         var iss = File.ReadAllText(FindInstallerScript());
-        Assert.Contains("#define AppVersion \"1.4.1\"", iss, StringComparison.Ordinal);
+        Assert.Contains("#define AppVersion \"1.5.0\"", iss, StringComparison.Ordinal);
 
         var csproj = File.ReadAllText(FindRepoFile("src", "TrueSpec.App", "TrueSpec.App.csproj"));
-        Assert.Contains("<Version>1.4.1</Version>", csproj, StringComparison.Ordinal);
+        Assert.Contains("<Version>1.5.0</Version>", csproj, StringComparison.Ordinal);
 
         var manifest = File.ReadAllText(FindRepoFile("src", "TrueSpec.App", "app.manifest"));
-        Assert.Contains("version=\"1.4.1.0\"", manifest, StringComparison.Ordinal);
+        Assert.Contains("version=\"1.5.0.0\"", manifest, StringComparison.Ordinal);
     }
 
     [Fact]

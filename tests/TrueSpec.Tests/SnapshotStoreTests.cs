@@ -131,4 +131,55 @@ public class SnapshotStoreTests
             }
         }
     }
+
+    [Fact]
+    public async Task SqliteStore_PruneKeepsOnlyTheNewest200Snapshots()
+    {
+        // Hardening 6b: saves only INSERTed, so rows accumulated unbounded.
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var newest = TestSnapshots.Healthy();
+            var oldestId = Guid.Empty;
+            for (var i = 0; i < 205; i++)
+            {
+                var snapshot = TestSnapshots.Healthy() with
+                {
+                    Id = Guid.NewGuid(),
+                    CapturedAt = DateTimeOffset.UtcNow.AddMinutes(-205 + i),
+                };
+                if (i == 0)
+                {
+                    oldestId = snapshot.Id;
+                }
+
+                if (i == 204)
+                {
+                    newest = snapshot;
+                }
+
+                await store.SaveAsync(snapshot);
+            }
+
+            var history = await store.GetHistoryAsync(500);
+
+            Assert.Equal(SqliteSnapshotStore.MaxSnapshots, history.Count);
+            Assert.Equal(newest.Id, history[0].Id);
+            Assert.DoesNotContain(history, h => h.Id == oldestId);
+            Assert.Null(await store.GetSnapshotAsync(oldestId));
+            Assert.NotNull(await store.GetSnapshotAsync(newest.Id));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
 }

@@ -189,4 +189,35 @@ public class SensorLogReaderTests
             DeleteDirectory(path);
         }
     }
+
+    [Fact]
+    public void Read_CapsAtTheNewestMaxRows()
+    {
+        // Hardening 6g: a hand-edited file with millions of rows must not
+        // balloon memory. The read keeps the newest rows; RowCount still
+        // counts every row in the file so "newest N of M" stays truthful.
+        var path = TempFilePath();
+        try
+        {
+            var at = new DateTimeOffset(2026, 11, 12, 14, 30, 0, TimeSpan.Zero);
+            var lines = new List<string> { "Timestamp,CPU_Package_C" };
+            for (var i = 0; i < SensorLogReader.MaxRows + 1; i++)
+            {
+                lines.Add($"{at.AddSeconds(i):o},71.5");
+            }
+
+            File.WriteAllLines(path, lines);
+
+            var series = SensorLogReader.Read(path, "CPU_Package_C");
+
+            Assert.Equal(SensorLogReader.MaxRows + 1, series.RowCount);
+            Assert.Equal(SensorLogReader.MaxRows, series.Points.Count);
+            Assert.Equal(at.AddSeconds(1), series.FirstAt);
+            Assert.Equal(at.AddSeconds(SensorLogReader.MaxRows), series.LastAt);
+        }
+        finally
+        {
+            DeleteDirectory(path);
+        }
+    }
 }

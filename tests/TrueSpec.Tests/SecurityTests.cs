@@ -220,4 +220,40 @@ public class SecurityTests
             }
         }
     }
+
+    [Fact]
+    public void PathSafety_RejectsSymlinkedPathsThatEscapeTheBaseFolder()
+    {
+        // Hardening 6g: containment is checked after resolving symlinks
+        // and junctions, so a link inside the app-data folder that points
+        // outside cannot smuggle the database or the sensor log out.
+        var root = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var inside = Path.Combine(root, "inside");
+        var outside = Path.Combine(root, "outside");
+        Directory.CreateDirectory(inside);
+        Directory.CreateDirectory(outside);
+        try
+        {
+            var link = Path.Combine(inside, "link");
+            File.CreateSymbolicLink(link, outside);
+
+            Assert.Null(PathSafety.ValidateDatabasePath(Path.Combine(link, "history.db"), inside));
+            Assert.Null(PathSafety.ValidateSensorLogPath(Path.Combine(link, "sensor-log.csv"), inside));
+
+            // The export folder is user-picked, so a link to an ordinary
+            // folder is allowed, but it is resolved first: the validator
+            // returns the real target, never the link path.
+            var resolved = PathSafety.ValidateExportFolder(link);
+            Assert.NotNull(resolved);
+            Assert.DoesNotContain("link", resolved, StringComparison.OrdinalIgnoreCase);
+
+            // The same paths without the link still validate.
+            Assert.NotNull(PathSafety.ValidateDatabasePath(Path.Combine(inside, "history.db"), inside));
+            Assert.NotNull(PathSafety.ValidateSensorLogPath(Path.Combine(inside, "sensor-log.csv"), inside));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 }

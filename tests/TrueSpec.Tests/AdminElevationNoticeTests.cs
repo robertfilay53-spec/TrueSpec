@@ -99,7 +99,7 @@ public class AdminElevationNoticeTests
             string.Equals(component.Id, "cpu", StringComparison.OrdinalIgnoreCase)
                 ? component with
                 {
-                    Specs = new[] { new SpecValue("Package temperature", "Not reported by hardware", "LibreHardwareMonitor") },
+                    Specs = new[] { new SpecValue("Package temperature", SpecLabels.NotReportedByHardware, "LibreHardwareMonitor") },
                 }
                 : component).ToList();
         return snapshot with { Components = components };
@@ -111,12 +111,12 @@ public class AdminElevationNoticeTests
             string.Equals(component.Id, "gpu", StringComparison.OrdinalIgnoreCase)
                 ? component with
                 {
-                    Specs = new[] { new SpecValue("GPU temperature", "Not reported by hardware", "LibreHardwareMonitor") },
+                    Specs = new[] { new SpecValue("GPU temperature", SpecLabels.NotReportedByHardware, "LibreHardwareMonitor") },
                 }
                 : string.Equals(component.Id, "storage", StringComparison.OrdinalIgnoreCase)
                     ? component with
                     {
-                        Specs = new[] { new SpecValue("Wear level", "Not reported by hardware", "SMART / NVMe reliability counters") },
+                        Specs = new[] { new SpecValue("Wear level", SpecLabels.NotReportedByHardware, "SMART / NVMe reliability counters") },
                     }
                     : component).ToList();
         return snapshot with { Components = components };

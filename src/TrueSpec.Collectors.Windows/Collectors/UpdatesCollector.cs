@@ -15,7 +15,7 @@ using TrueSpec.Core.Models;
 /// downloaded or changed, and no elevation is needed: the results keys and
 /// the policy key are world-readable and the hotfix class is readable by a
 /// standard user. A missing registry value or an empty hotfix list is
-/// reported as "Not reported by hardware", never filled in with a guess.
+/// reported as SpecLabels.NotReportedByHardware, never filled in with a guess.
 /// </summary>
 public sealed class UpdatesCollector : ICollector
 {

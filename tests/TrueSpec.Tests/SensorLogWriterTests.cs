@@ -269,4 +269,33 @@ public class SensorLogWriterTests
             DeleteDirectory(path);
         }
     }
+
+    [Fact]
+    public void GapRowsBeforeTheFirstReading_AreKeptWhenTheHeaderIsWritten()
+    {
+        // Polish: timestamp-only rows written before the first
+        // reading-bearing snapshot used to be destroyed by the header
+        // write. A dead sweep at startup is a gap, not garbage.
+        var path = TempFilePath();
+        try
+        {
+            var writer = new SensorLogWriter(path);
+            var at = new DateTimeOffset(2026, 11, 12, 14, 30, 0, TimeSpan.Zero);
+            Assert.True(writer.Append(Snapshot(at)));
+            Assert.True(writer.Append(Snapshot(at.AddSeconds(2))));
+            Assert.True(writer.Append(Snapshot(at.AddSeconds(4), Temp("CPU", "Package", 71.5))));
+
+            var lines = File.ReadAllLines(path);
+            Assert.Equal(4, lines.Length);
+            Assert.Equal("Timestamp,CPU_Package_C", lines[0]);
+            Assert.Equal("2026-11-12T14:30:00.0000000Z,", lines[1]);
+            Assert.Equal("2026-11-12T14:30:02.0000000Z,", lines[2]);
+            Assert.Equal("2026-11-12T14:30:04.0000000Z,71.5", lines[3]);
+            Assert.Equal(3, writer.RowCount);
+        }
+        finally
+        {
+            DeleteDirectory(path);
+        }
+    }
 }

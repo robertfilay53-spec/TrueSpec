@@ -467,7 +467,7 @@ public class BuyerCheckEvaluatorTests
     {
         // Same failure mode, one step closer to the hardware: the system
         // component exists but its BIOS date spec is the literal
-        // "Not reported by hardware", which is not a parseable date.
+        // SpecLabels.NotReportedByHardware, which is not a parseable date.
         var system = new ComponentSnapshot(
             "system",
             "System",
@@ -477,7 +477,7 @@ public class BuyerCheckEvaluatorTests
             null,
             new[]
             {
-                new SpecValue("BIOS date", "Not reported by hardware", "CIM Win32_BIOS"),
+                new SpecValue("BIOS date", SpecLabels.NotReportedByHardware, "CIM Win32_BIOS"),
             },
             "System information comes from Windows.",
             DateTimeOffset.UtcNow);

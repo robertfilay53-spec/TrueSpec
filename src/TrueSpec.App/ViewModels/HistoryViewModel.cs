@@ -38,6 +38,15 @@ public sealed partial class HistoryViewModel : ViewModelBase
     private double? _cpuTemperatureThresholdC;
     private readonly TimeZoneInfo _displayTimeZone;
 
+    /// <summary>U9: the raw (verdict-free) comparison the value layer sits on top of. Null until two machines are compared.</summary>
+    private MachineComparison? _comparison;
+
+    /// <summary>U9: each machine's latest snapshot, for the per-component winners only. Never written to.</summary>
+    private SystemSnapshot? _latestSnapshotA;
+
+    /// <summary>U9: each machine's latest snapshot, for the per-component winners only. Never written to.</summary>
+    private SystemSnapshot? _latestSnapshotB;
+
     public HistoryViewModel(ISnapshotStore? store, SystemSnapshot current, ICommand? exportHistoryCsvCommand = null, string? sensorLogPath = null, bool sensorLoggingEnabled = true, double? cpuTemperatureThresholdC = null, TimeZoneInfo? displayTimeZone = null)
     {
         _store = store;
@@ -67,6 +76,12 @@ public sealed partial class HistoryViewModel : ViewModelBase
     public ObservableCollection<string> MachineNames { get; } = new();
 
     public ObservableCollection<MachineComparisonRowViewModel> ComparisonRows { get; } = new();
+
+    /// <summary>U9 value rows (asking price, score per $1) for the two compared machines.</summary>
+    public ObservableCollection<MachineComparisonRowViewModel> ValueRows { get; } = new();
+
+    /// <summary>U9 per-component winners for the two compared machines.</summary>
+    public ObservableCollection<ValueWinnerRowViewModel> ValueComponentWinners { get; } = new();
 
     /// <summary>CPU temperature samples from the sensor log, oldest first, gaps kept as null.</summary>
     [ObservableProperty]
@@ -291,6 +306,34 @@ public sealed partial class HistoryViewModel : ViewModelBase
     [ObservableProperty]
     public partial string MachineBName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// U9: the asking price the buyer typed in for Machine A. Buyer input
+    /// only, held in memory with this comparison: it is never written to a
+    /// snapshot or the store, never scraped, never fetched, never assumed.
+    /// </summary>
+    [ObservableProperty]
+    public partial string PriceAText { get; set; } = string.Empty;
+
+    /// <summary>U9: the asking price the buyer typed in for Machine B. Same rule as <see cref="PriceAText"/>.</summary>
+    [ObservableProperty]
+    public partial string PriceBText { get; set; } = string.Empty;
+
+    /// <summary>U9: true once a value comparison has run for the current machine pair.</summary>
+    [ObservableProperty]
+    public partial bool HasValueComparison { get; set; }
+
+    /// <summary>U9: prompt, parse error, missing-data reason, or the honesty note under the verdict.</summary>
+    [ObservableProperty]
+    public partial string ValueStatusText { get; set; } = "Enter each seller's asking price to compare value.";
+
+    /// <summary>U9: the one-sentence value verdict, empty when there is none.</summary>
+    [ObservableProperty]
+    public partial string ValueVerdictText { get; set; } = string.Empty;
+
+    /// <summary>U9: the Compare value button is enabled only while two machines are compared.</summary>
+    [ObservableProperty]
+    public partial bool CanCompareValue { get; set; }
+
     partial void OnSelectedMachineChanged(string? value)
     {
         if (_suppressSelectionReload || value is null)
@@ -312,7 +355,19 @@ public sealed partial class HistoryViewModel : ViewModelBase
 
     partial void OnIsLoadingChanged(bool value) => UpdateCompareState();
 
-    partial void OnIsComparingChanged(bool value) => UpdateCompareState();
+    partial void OnIsComparingChanged(bool value)
+    {
+        UpdateCompareState();
+        UpdateValueCompareState();
+    }
+
+    partial void OnHasMachineComparisonChanged(bool value) => UpdateValueCompareState();
+
+    private void UpdateValueCompareState()
+    {
+        CanCompareValue = HasMachineComparison && !IsComparing;
+        CompareValueCommand.NotifyCanExecuteChanged();
+    }
 
     private void UpdateCompareState()
     {
@@ -525,11 +580,19 @@ public sealed partial class HistoryViewModel : ViewModelBase
 
         IsComparing = true;
         ComparisonStatusText = "Comparing machines...";
+        ResetValueComparison();
         try
         {
             var snapshotsA = await LoadSnapshotsForMachineAsync(CompareMachineA);
             var snapshotsB = await LoadSnapshotsForMachineAsync(CompareMachineB);
             var comparison = MachineHistoryComparer.Compare(snapshotsA, snapshotsB);
+
+            // U9 keeps the raw comparison and the two latest snapshots so
+            // the value layer can sit on top without re-reading history.
+            // The raw comparison itself stays verdict-free.
+            _comparison = comparison;
+            _latestSnapshotA = LatestSnapshot(snapshotsA);
+            _latestSnapshotB = LatestSnapshot(snapshotsB);
 
             MachineAName = comparison.MachineA.MachineName;
             MachineBName = comparison.MachineB.MachineName;
@@ -556,6 +619,114 @@ public sealed partial class HistoryViewModel : ViewModelBase
             IsComparing = false;
         }
     }
+
+    /// <summary>
+    /// U9 value comparison, on top of the raw two-machine comparison: the
+    /// buyer types each seller's asking price, and TrueSpec shows the
+    /// measured health score per unit of currency, the per-component winner,
+    /// and one verdict sentence. The prices live only in this ViewModel for
+    /// this comparison: they are never written to a snapshot or the store.
+    /// The verdict sentence itself is Core-owned wording
+    /// (<see cref="ValueComparer"/>); this method holds no second copy.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanCompareValue))]
+    private void CompareValue()
+    {
+        if (_comparison is null)
+        {
+            ValueStatusText = "Compare two machines first, then enter asking prices.";
+            HasValueComparison = false;
+            return;
+        }
+
+        if (!TryParseAskingPrice(PriceAText, out var priceA) || !TryParseAskingPrice(PriceBText, out var priceB))
+        {
+            ValueStatusText = "Enter an asking price above zero for each machine (numbers only, for example 500). The price is yours, not measured.";
+            ValueVerdictText = string.Empty;
+            ValueRows.Clear();
+            ValueComponentWinners.Clear();
+            HasValueComparison = false;
+            return;
+        }
+
+        var result = ValueComparer.Compare(_comparison, priceA, priceB, "$", _latestSnapshotA, _latestSnapshotB);
+
+        ValueRows.Clear();
+        ValueRows.Add(new MachineComparisonRowViewModel(
+            ValueComparer.AskingPriceLabel,
+            PriceText(result.MachineA.AskingPrice, result.MachineA.CurrencySymbol),
+            PriceText(result.MachineB.AskingPrice, result.MachineB.CurrencySymbol)));
+        ValueRows.Add(new MachineComparisonRowViewModel(
+            "Score per $1 (ESTIMATE)",
+            PerCurrencyText(result.ScorePerCurrencyA),
+            PerCurrencyText(result.ScorePerCurrencyB)));
+
+        ValueComponentWinners.Clear();
+        foreach (var winner in result.ComponentWinners)
+        {
+            ValueComponentWinners.Add(new ValueWinnerRowViewModel(winner));
+        }
+
+        ValueVerdictText = result.VerdictSentence ?? string.Empty;
+        ValueStatusText = result.VerdictSentence is null
+            ? result.NoVerdictReason ?? string.Empty
+            : "Prices are yours, not measured. The per-dollar figure is arithmetic on the measured score and the price you entered, labelled ESTIMATE. No market-price data is used.";
+        HasValueComparison = true;
+    }
+
+    /// <summary>
+    /// U9: clears the value state when the machine pair changes, so a price
+    /// typed for one pair is never silently applied to another pair.
+    /// </summary>
+    private void ResetValueComparison()
+    {
+        _comparison = null;
+        _latestSnapshotA = null;
+        _latestSnapshotB = null;
+        PriceAText = string.Empty;
+        PriceBText = string.Empty;
+        ValueVerdictText = string.Empty;
+        ValueStatusText = "Enter each seller's asking price to compare value.";
+        ValueRows.Clear();
+        ValueComponentWinners.Clear();
+        HasValueComparison = false;
+        UpdateValueCompareState();
+    }
+
+    private static SystemSnapshot? LatestSnapshot(IReadOnlyList<SystemSnapshot> snapshots) =>
+        snapshots.Count == 0 ? null : snapshots.OrderBy(s => s.CapturedAt).Last();
+
+    /// <summary>
+    /// U9: buyer-typed price parsing. Plain numbers; a leading currency
+    /// symbol and thousands separators are tolerated, anything else is not
+    /// a price. Zero and negative prices are not prices: they mean "no
+    /// price entered", never a free or paid-to-take machine.
+    /// </summary>
+    private static bool TryParseAskingPrice(string? text, out decimal price)
+    {
+        price = 0m;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        var cleaned = text.Trim().TrimStart('$', '€', '£').Trim();
+        if (!decimal.TryParse(cleaned, NumberStyles.Number, CultureInfo.InvariantCulture, out price)
+            && !decimal.TryParse(cleaned, NumberStyles.Number, CultureInfo.CurrentCulture, out price))
+        {
+            return false;
+        }
+
+        return price > 0m;
+    }
+
+    private static string PriceText(decimal? price, string currencySymbol) =>
+        price is null
+            ? "Not entered"
+            : string.Create(CultureInfo.InvariantCulture, $"{currencySymbol}{price.Value:0.##}");
+
+    private static string PerCurrencyText(double? value) =>
+        value is null ? "Not measurable" : value.Value.ToString("0.###", CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Loads one machine's snapshots the same way
@@ -701,3 +872,32 @@ public sealed class MachineComparisonRowViewModel
 
     public string MachineBText { get; }
 }
+
+/// <summary>
+/// U9: one per-component winner row. The winner is decided on measured
+/// health only; the text names the health on both sides so the buyer can
+/// see why, and a component measurable on only one side says so instead of
+/// crowning a winner on missing data.
+/// </summary>
+public sealed class ValueWinnerRowViewModel
+{
+    public ValueWinnerRowViewModel(ComponentValueWinner winner)
+    {
+        ComponentName = winner.ComponentName;
+        WinnerText = winner.Winner switch
+        {
+            ComponentWinner.MachineA => $"Machine A wins ({HealthText(winner.HealthA)} vs {HealthText(winner.HealthB)})",
+            ComponentWinner.MachineB => $"Machine B wins ({HealthText(winner.HealthA)} vs {HealthText(winner.HealthB)})",
+            ComponentWinner.Tie => $"Tie ({HealthText(winner.HealthA)} vs {HealthText(winner.HealthB)})",
+            _ => "Not measurable on one or both machines",
+        };
+    }
+
+    public string ComponentName { get; }
+
+    public string WinnerText { get; }
+
+    private static string HealthText(double? health) =>
+        health is null ? "Not measurable" : string.Create(CultureInfo.InvariantCulture, $"{health.Value:0.#}%");
+}
+

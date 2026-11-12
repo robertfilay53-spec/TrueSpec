@@ -49,9 +49,14 @@ internal static class SataSmartReader
         SafeFileHandle? handle = null;
         try
         {
+            // Read-only first: SMART data is a read, and opening the drive
+            // with write access is both unnecessary and a bigger hammer
+            // than the operation needs. Only if the read-only open is
+            // refused does the reader fall back to read+write (some
+            // drivers require it for the IOCTL to succeed).
             handle = CreateFileW(
                 $@"\\.\PhysicalDrive{driveNumber}",
-                GenericRead | GenericWrite,
+                GenericRead,
                 FileShareRead | FileShareWrite,
                 IntPtr.Zero,
                 OpenExisting,
@@ -63,7 +68,7 @@ internal static class SataSmartReader
                 handle.Dispose();
                 handle = CreateFileW(
                     $@"\\.\PhysicalDrive{driveNumber}",
-                    GenericRead,
+                    GenericRead | GenericWrite,
                     FileShareRead | FileShareWrite,
                     IntPtr.Zero,
                     OpenExisting,

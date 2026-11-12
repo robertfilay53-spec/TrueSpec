@@ -193,7 +193,7 @@ public class AuthenticityAnalyzerTests
     public void R1_Skipped_WhenPowerOnHoursNotReported()
     {
         var result = AuthenticityAnalyzer.Analyze(
-            Snapshot(installDate: Day(3), powerOnHours: "Not reported by hardware"));
+            Snapshot(installDate: Day(3), powerOnHours: SpecLabels.NotReportedByHardware));
 
         Assert.Null(FindCheck(result, AuthenticityAnalyzer.R1Title));
         AssertSkipped(result, AuthenticityAnalyzer.R1Title);
@@ -259,7 +259,7 @@ public class AuthenticityAnalyzerTests
         // NVMe drives have no total-writes spec today: the check is skipped,
         // never guessed from a missing signal.
         var result = AuthenticityAnalyzer.Analyze(
-            Snapshot(installDate: Day(10), dataWritten: "Not reported by hardware"));
+            Snapshot(installDate: Day(10), dataWritten: SpecLabels.NotReportedByHardware));
 
         Assert.Null(FindCheck(result, AuthenticityAnalyzer.R2Title));
         AssertSkipped(result, AuthenticityAnalyzer.R2Title);

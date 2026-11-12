@@ -26,7 +26,7 @@ using TrueSpec.Core.Models;
 /// "Earliest event log entry" (yyyy-MM-dd); storage "Power-on hours"
 /// (integer hours) and "Data written" (decimal FormatBytes text such as
 /// "650.0 GB", SATA SMART attribute 241 only; NVMe drives report
-/// "Not reported by hardware" for total writes, so R2 is skipped for
+/// SpecLabels.NotReportedByHardware for total writes, so R2 is skipped for
 /// them); battery "Cycle count" (integer); updates "Update - KB..."
 /// specs, whose values start with the hotfix date (yyyy-MM-dd).
 /// There is no single "earliest hotfix" spec: R5 takes the earliest date
@@ -87,7 +87,6 @@ public static class AuthenticityAnalyzer
     /// <summary>The R6 threshold as a <see cref="TimeSpan"/>.</summary>
     public static readonly TimeSpan LogGapThreshold = TimeSpan.FromDays(LogGapDays);
 
-    private const string NotReported = "Not reported by hardware";
     private const double BytesPerGb = 1_000_000_000d;
 
     public static AuthenticityResult Analyze(SystemSnapshot snapshot)
@@ -336,7 +335,7 @@ public static class AuthenticityAnalyzer
 
     private static bool IsMissing(string? value) =>
         string.IsNullOrWhiteSpace(value) ||
-        string.Equals(value.Trim(), NotReported, StringComparison.OrdinalIgnoreCase);
+        string.Equals(value.Trim(), SpecLabels.NotReportedByHardware, StringComparison.OrdinalIgnoreCase);
 
     private static DateTimeOffset? ReadDate(
         IReadOnlyDictionary<string, ComponentSnapshot> byId,

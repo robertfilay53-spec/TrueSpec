@@ -244,6 +244,85 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+
+                    </StackPanel>
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Which one is the better buy?" Classes="h3" />
+                        <TextBlock Text="Type in each seller's asking price. The price is yours, not measured, and it is only used for this comparison. It is never saved with the scan."
+                                   Classes="muted"
+                                   FontSize="11"
+                                   TextWrapping="Wrap" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="{Binding MachineAName}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock Text="Asking price (you enter this, not measured)" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                                <TextBox Text="{Binding PriceAText}"
+                                         PlaceholderText="For example 500"
+                                         HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="6">
+                                <TextBlock Text="{Binding MachineBName}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock Text="Asking price (you enter this, not measured)" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                                <TextBox Text="{Binding PriceBText}"
+                                         PlaceholderText="For example 500"
+                                         HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                        </Grid>
+                        <Button Classes="primary"
+                                Content="Compare value"
+                                Command="{Binding CompareValueCommand}"
+                                IsEnabled="{Binding CanCompareValue}"
+                                HorizontalAlignment="Left" />
+                        <TextBlock Text="{Binding ValueStatusText}" Classes="muted" TextWrapping="Wrap" />
+
+                        <StackPanel Spacing="10" IsVisible="{Binding HasValueComparison}">
+                            <TextBlock Text="{Binding ValueVerdictText}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                            <ItemsControl ItemsSource="{Binding ValueRows}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:MachineComparisonRowViewModel">
+                                        <Border BorderBrush="{DynamicResource AppBorder}"
+                                                BorderThickness="0,0,0,1"
+                                                Padding="0,9">
+                                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                                                <TextBlock Text="{Binding Label}"
+                                                           Classes="muted"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding MachineAText}"
+                                                           VerticalAlignment="Center"
+                                                           TextWrapping="Wrap" />
+                                                <TextBlock Grid.Column="2"
+                                                           Text="{Binding MachineBText}"
+                                                           VerticalAlignment="Center"
+                                                           TextWrapping="Wrap" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="Per-component winner (measured health only)" Classes="h3" />
+                            <ItemsControl ItemsSource="{Binding ValueComponentWinners}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ValueWinnerRowViewModel">
+                                        <Border BorderBrush="{DynamicResource AppBorder}"
+                                                BorderThickness="0,0,0,1"
+                                                Padding="0,9">
+                                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                                <TextBlock Text="{Binding ComponentName}"
+                                                           Classes="muted"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding WinnerText}"
+                                                           VerticalAlignment="Center"
+                                                           TextWrapping="Wrap" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
             </Border>

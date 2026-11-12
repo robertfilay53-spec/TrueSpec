@@ -26,6 +26,7 @@ public partial class MainWindow : Window
         Opened += (_, _) => WindowsTaskbar.EnsureMainWindowVisible(this);
         Opened += (_, _) => (DataContext as MainViewModel)?.BeginInitialScan();
         Closing += (_, _) => SaveWindowState();
+        Closing += (_, _) => (DataContext as MainViewModel)?.Dispose();
     }
 
     private void RestoreWindowState()

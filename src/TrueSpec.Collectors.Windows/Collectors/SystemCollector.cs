@@ -24,14 +24,26 @@ public sealed class SystemCollector : ICollector
 
     public bool RequiresAdministrator => false;
 
+    // WMI query strings are hoisted so CollectorWmiSelectionTests can pin
+    // the SELECT list to the properties this collector reads (hardening
+    // item 7, F9 bug class): WmiRow only carries the properties the query
+    // asked for, so a read of an unselected property always returns null.
+    internal const string ComputerSystemQuery = "SELECT CSName, Manufacturer, Model, SystemFamily, SystemSKUNumber FROM Win32_ComputerSystem";
+    internal const string BiosQuery = "SELECT SerialNumber, ReleaseDate, SMBIOSBIOSVersion, SMBIOSMajorVersion, SMBIOSMinorVersion, Version, Manufacturer FROM Win32_BIOS";
+    internal const string OperatingSystemQuery = "SELECT CSName, Caption, BuildNumber, InstallDate, LastBootUpTime, OSArchitecture, Version FROM Win32_OperatingSystem";
+    internal const string EnclosureQuery = "SELECT ChassisTypes, SerialNumber FROM Win32_SystemEnclosure";
+    internal const string DeviceGuardQuery = "SELECT VirtualizationBasedSecurityStatus FROM Win32_DeviceGuard";
+    internal const string TpmQuery = "SELECT SpecVersion, IsEnabled_InitialValue FROM Win32_Tpm";
+    internal const string EncryptableVolumeQuery = "SELECT DriveLetter, ProtectionStatus FROM Win32_EncryptableVolume";
+
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var computer = Wmi.Query("root\\cimv2", "SELECT CSName, Manufacturer, Model, SystemFamily, SystemSKUNumber FROM Win32_ComputerSystem").FirstOrDefault();
-        var bios = Wmi.Query("root\\cimv2", "SELECT SerialNumber, ReleaseDate, SMBIOSBIOSVersion, SMBIOSMajorVersion, SMBIOSMinorVersion, Version FROM Win32_BIOS").FirstOrDefault();
-        var os = Wmi.Query("root\\cimv2", "SELECT CSName, Caption, BuildNumber, InstallDate, LastBootUpTime, OSArchitecture FROM Win32_OperatingSystem").FirstOrDefault();
-        var enclosure = Wmi.Query("root\\cimv2", "SELECT ChassisTypes, SerialNumber FROM Win32_SystemEnclosure").FirstOrDefault();
+        var computer = Wmi.Query("root\\cimv2", ComputerSystemQuery).FirstOrDefault();
+        var bios = Wmi.Query("root\\cimv2", BiosQuery).FirstOrDefault();
+        var os = Wmi.Query("root\\cimv2", OperatingSystemQuery).FirstOrDefault();
+        var enclosure = Wmi.Query("root\\cimv2", EnclosureQuery).FirstOrDefault();
 
         if (computer is null && bios is null && os is null)
         {
@@ -54,17 +66,17 @@ public sealed class SystemCollector : ICollector
         var chassisTypes = enclosure?.UInt16Array("ChassisTypes");
         var chassis = chassisTypes is { Length: > 0 }
             ? CollectorSupport.ChassisType(chassisTypes[0])
-            : CollectorSupport.NotReported;
+            : SpecLabels.NotReportedByHardware;
 
         var boot = os?.Date("LastBootUpTime");
         var uptime = boot is null
-            ? CollectorSupport.NotReported
+            ? SpecLabels.NotReportedByHardware
             : FormatUptime(DateTimeOffset.Now - boot.Value);
 
-        var installDate = os?.DateText("InstallDate") ?? CollectorSupport.NotReported;
-        var biosDate = bios?.DateText("ReleaseDate") ?? CollectorSupport.NotReported;
+        var installDate = os?.DateText("InstallDate") ?? SpecLabels.NotReportedByHardware;
+        var biosDate = bios?.DateText("ReleaseDate") ?? SpecLabels.NotReportedByHardware;
 
-        var smbios = CollectorSupport.NotReported;
+        var smbios = SpecLabels.NotReportedByHardware;
         if (bios?.UInt32("SMBIOSMajorVersion") is { } major)
         {
             var minor = bios?.UInt32("SMBIOSMinorVersion");
@@ -76,11 +88,15 @@ public sealed class SystemCollector : ICollector
         var tpm = ReadTpm();
         var deviceGuard = Wmi.Query(
             "root\\Microsoft\\Windows\\DeviceGuard",
-            "SELECT VirtualizationBasedSecurityStatus FROM Win32_DeviceGuard").FirstOrDefault();
+            DeviceGuardQuery).FirstOrDefault();
         var secureBoot = ReadSecureBoot();
         var bitLocker = ReadBitLocker();
 
-        var drivers = ReadDriverSignatureSummary();
+        // Driver signatures come from the shared enumeration
+        // (CollectorSupport): the same Win32_PnPSignedDriver list the
+        // Security collector counts, truncated honestly at the WMI row
+        // cap instead of silently counted (H2 defect class).
+        var drivers = CollectorSupport.ReadDriverSignatureSummary();
         // One open of the System event log for all three readings: three
         // separate walks (critical count, memory count, earliest entry)
         // were a large share of this collector's cost on a busy log.
@@ -103,7 +119,7 @@ public sealed class SystemCollector : ICollector
             CollectorSupport.Spec(SpecLabels.WindowsInstallDate, installDate, "CIM Win32_OperatingSystem.InstallDate"),
             CollectorSupport.Spec(SpecLabels.Uptime, uptime, "CIM Win32_OperatingSystem.LastBootUpTime"),
             CollectorSupport.Spec(SpecLabels.Architecture, os?.String("OSArchitecture"), "CIM Win32_OperatingSystem"),
-            CollectorSupport.Spec(SpecLabels.BIOSVendor, bios?.String("Manufacturer"), "CIM Win32_BIOS"),
+            CollectorSupport.Spec(SpecLabels.BIOSVendor, bios?.String("Manufacturer"), "CIM Win32_BIOS"), // Manufacturer must stay in BiosQuery (F9 class).
             CollectorSupport.Spec(SpecLabels.BIOSVersion, bios?.String("SMBIOSBIOSVersion") ?? bios?.String("Version"), "CIM Win32_BIOS"),
             CollectorSupport.Spec(SpecLabels.BIOSDate, biosDate, "CIM Win32_BIOS.ReleaseDate"),
             CollectorSupport.Spec(SpecLabels.SMBIOSVersion, smbios, "CIM Win32_BIOS"),
@@ -115,17 +131,13 @@ public sealed class SystemCollector : ICollector
             CollectorSupport.Spec(SpecLabels.CriticalErrorsEventLog, FormatCount(criticalErrors), "Windows Event Log (System)"),
             CollectorSupport.Spec(SpecLabels.MemoryErrorsEventLog, FormatCount(memoryErrors), "Windows Event Log (WHEA-Logger)"),
             CollectorSupport.Spec(SpecLabels.EarliestEventLogEntry, earliestLogEntry?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), "Windows Event Log (System)"),
-            CollectorSupport.Spec(SpecLabels.InstalledDrivers, FormatCount(drivers.Total), "CIM Win32_PnPSignedDriver"),
-            CollectorSupport.Spec(SpecLabels.UnsignedDrivers, FormatCount(drivers.Unsigned), "CIM Win32_PnPSignedDriver.IsSigned"),
-            CollectorSupport.Spec(SpecLabels.UnknownDriverSignature, FormatCount(drivers.Unknown), "CIM Win32_PnPSignedDriver.IsSigned"),
-            CollectorSupport.Spec(SpecLabels.SignedDriversOnly, drivers.Unknown switch
-            {
-                > 0 => CollectorSupport.NotReported,
-                0 when drivers.Unsigned == 0 => "Yes",
-                0 => "No",
-                _ => CollectorSupport.NotReported,
-            }, "CIM Win32_PnPSignedDriver.IsSigned"),
         };
+
+        // The driver-signature specs are built by a pure helper (same
+        // pattern as DriversCollector.BuildSnapshot, PR #12) so the
+        // truncation handling is unit-testable without live WMI. They
+        // are the last specs in the list.
+        specs.AddRange(DriverSignatureSpecs(drivers));
 
         return Task.FromResult(ComponentSnapshot.NotMeasurable(
             Id,
@@ -141,14 +153,14 @@ public sealed class SystemCollector : ICollector
     {
         if (os is null)
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         var version = os.String("Version");
         var build = os.String("BuildNumber");
         if (string.IsNullOrWhiteSpace(version) && string.IsNullOrWhiteSpace(build))
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         return string.Join(" ", new[] { version, build is null ? null : $"build {build}" }
@@ -159,7 +171,7 @@ public sealed class SystemCollector : ICollector
     {
         if (uptime < TimeSpan.Zero)
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         return uptime.Days > 0
@@ -167,14 +179,59 @@ public sealed class SystemCollector : ICollector
             : string.Create(CultureInfo.InvariantCulture, $"{uptime.Hours} hours, {uptime.Minutes} minutes");
     }
 
+    /// <summary>
+    /// Pure driver-signature specs, so the truncation handling is
+    /// unit-testable without live WMI (same pattern as
+    /// DriversCollector.BuildSnapshot, PR #12). The counts are the rows
+    /// actually read, qualified by the truncation note right after the
+    /// installed-drivers count when the list was truncated. "Signed
+    /// drivers only" is never "Yes" from a partial list: with unknown
+    /// signatures it is already not reported, and with a truncated list
+    /// it is not reported too, because unsigned drivers may sit beyond
+    /// the first 1000 rows.
+    /// </summary>
+    internal static List<SpecValue> DriverSignatureSpecs(CollectorSupport.DriverSignatureSummary summary)
+    {
+        var specs = new List<SpecValue>
+        {
+            CollectorSupport.Spec(SpecLabels.InstalledDrivers, FormatCount(summary.Total), "CIM Win32_PnPSignedDriver"),
+            CollectorSupport.Spec(SpecLabels.UnsignedDrivers, FormatCount(summary.Unsigned), "CIM Win32_PnPSignedDriver.IsSigned"),
+            CollectorSupport.Spec(SpecLabels.UnknownDriverSignature, FormatCount(summary.Unknown), "CIM Win32_PnPSignedDriver.IsSigned"),
+            CollectorSupport.Spec(SpecLabels.SignedDriversOnly, SignedDriversOnly(summary), "CIM Win32_PnPSignedDriver.IsSigned"),
+        };
+
+        if (summary.Truncated)
+        {
+            specs.Insert(1, CollectorSupport.DriverListTruncationNote());
+        }
+
+        return specs;
+    }
+
+    private static string SignedDriversOnly(CollectorSupport.DriverSignatureSummary summary)
+    {
+        if (summary.Truncated)
+        {
+            return SpecLabels.NotReportedByHardware;
+        }
+
+        return summary.Unknown switch
+        {
+            > 0 => SpecLabels.NotReportedByHardware,
+            0 when summary.Unsigned == 0 => "Yes",
+            0 => "No",
+            _ => SpecLabels.NotReportedByHardware,
+        };
+    }
+
     private static string FormatCount(int? value) =>
-        value is null ? CollectorSupport.NotReported : value.Value.ToString(CultureInfo.InvariantCulture);
+        value is null ? SpecLabels.NotReportedByHardware : value.Value.ToString(CultureInfo.InvariantCulture);
 
     private static string DeviceGuardText(WmiRow? deviceGuard)
     {
         if (deviceGuard is null)
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
 
         return deviceGuard.UInt32("VirtualizationBasedSecurityStatus") switch
@@ -182,16 +239,16 @@ public sealed class SystemCollector : ICollector
             0 => "Off",
             1 => "Enabled, not running",
             2 => "Running",
-            _ => CollectorSupport.NotReported,
+            _ => SpecLabels.NotReportedByHardware,
         };
     }
 
     private static (string? Version, string? Enabled) ReadTpm()
     {
-        var rows = Wmi.Query("root\\CIMV2\\Security\\MicrosoftTpm", "SELECT SpecVersion, IsEnabled_InitialValue FROM Win32_Tpm");
+        var rows = Wmi.Query("root\\CIMV2\\Security\\MicrosoftTpm", TpmQuery);
         if (rows.Count == 0)
         {
-            rows = Wmi.Query("root\\cimv2", "SELECT SpecVersion, IsEnabled_InitialValue FROM Win32_Tpm");
+            rows = Wmi.Query("root\\cimv2", TpmQuery);
         }
 
         var tpm = rows.FirstOrDefault();
@@ -226,13 +283,13 @@ public sealed class SystemCollector : ICollector
             return value switch
             {
                 int number => number == 1 ? "On" : "Off",
-                null => CollectorSupport.NotReported,
-                _ => CollectorSupport.NotReported,
+                null => SpecLabels.NotReportedByHardware,
+                _ => SpecLabels.NotReportedByHardware,
             };
         }
         catch
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
     }
 
@@ -242,10 +299,10 @@ public sealed class SystemCollector : ICollector
         {
             var rows = Wmi.Query(
                 "root\\CIMV2\\Security\\MicrosoftVolumeEncryption",
-                "SELECT DriveLetter, ProtectionStatus FROM Win32_EncryptableVolume");
+                EncryptableVolumeQuery);
             if (rows.Count == 0)
             {
-                return CollectorSupport.NotReported;
+                return SpecLabels.NotReportedByHardware;
             }
 
             var systemVolume = rows.FirstOrDefault(r =>
@@ -257,33 +314,13 @@ public sealed class SystemCollector : ICollector
                 0 => "Off",
                 1 => "On",
                 2 => "Unknown",
-                _ => CollectorSupport.NotReported,
+                _ => SpecLabels.NotReportedByHardware,
             };
         }
         catch
         {
-            return CollectorSupport.NotReported;
+            return SpecLabels.NotReportedByHardware;
         }
     }
 
-    private static (int? Total, int? Unsigned, int? Unknown) ReadDriverSignatureSummary()
-    {
-        // Only IsSigned is ever read from these rows: DeviceName was
-        // fetched and thrown away. Win32_PnPSignedDriver has hundreds of
-        // rows and every returned property is materialised per row, so
-        // asking for one column is measurably cheaper — and this query runs
-        // in three collectors (System, Security, Drivers).
-        var rows = Wmi.Query(
-            "root\\cimv2",
-            "SELECT IsSigned FROM Win32_PnPSignedDriver");
-        if (rows.Count == 0)
-        {
-            return (null, null, null);
-        }
-
-        var unsigned = rows.Count(r => r.Bool("IsSigned") is false);
-        var unknown = rows.Count(r => r.Bool("IsSigned") is null);
-
-        return (rows.Count, unsigned, unknown);
-    }
 }
