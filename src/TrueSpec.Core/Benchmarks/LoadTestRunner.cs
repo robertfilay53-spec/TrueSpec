@@ -20,6 +20,12 @@ using TrueSpec.Core.Sensors;
 /// leave a thread running after cancel or abort. See
 /// <see cref="ActiveWorkerCount"/>.</item>
 /// </list>
+/// Sampling is 1 Hz best-effort: when a sensor sweep takes longer than the
+/// sample interval (LibreHardwareMonitor sweeps can take seconds on a
+/// virtual machine), the next sample waits for the read to finish instead
+/// of piling up overlapping reads, so a slow machine records fewer samples
+/// rather than fabricated ones. The temperature abort is checked after
+/// every sample, so its latency is at most one sweep.
 /// </summary>
 public sealed class LoadTestRunner
 {
@@ -86,13 +92,29 @@ public sealed class LoadTestRunner
         using var workerCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var workerToken = workerCts.Token;
 
-        StartWorkers(workerToken);
+        // Memory and disk run beside the burn on their own dedicated
+        // background threads, started BEFORE the burn: the burn saturates
+        // every core, and thread-pool work queued after it can starve long
+        // enough that the run ends before it starts (the 256 MB check then
+        // reports "did not verify" for a scheduling reason, not a memory
+        // reason). Dedicated threads are always scheduled, and they still
+        // stop cooperatively on cancel.
+        var memoryVerified = false;
+        double? diskMbps = null;
+        var memoryThread = new Thread(() => { memoryVerified = VerifyMemoryPattern(workerToken); })
+        {
+            IsBackground = true,
+            Name = "TrueSpec load test memory",
+        };
+        var diskThread = new Thread(() => { diskMbps = MeasureDisk(workerToken); })
+        {
+            IsBackground = true,
+            Name = "TrueSpec load test disk",
+        };
+        memoryThread.Start();
+        diskThread.Start();
 
-        // Memory and disk run beside the burn on the thread pool, never on
-        // the sampling thread: a slow disk must not delay the 1 Hz samples
-        // or the temperature abort.
-        var memoryTask = Task.Run(() => VerifyMemoryPattern(workerToken), workerToken);
-        var diskTask = Task.Run(() => MeasureDisk(workerToken), workerToken);
+        StartWorkers(workerToken);
 
         try
         {
@@ -165,16 +187,16 @@ public sealed class LoadTestRunner
             JoinWorkers();
         }
 
-        var memoryVerified = WaitFor(memoryTask, TimeSpan.FromSeconds(10), defaultValue: false);
-        var diskMbps = WaitFor(diskTask, TimeSpan.FromSeconds(10), defaultValue: (double?)null);
+        var memoryVerifiedResult = JoinWithTimeout(memoryThread, TimeSpan.FromSeconds(10)) ? memoryVerified : false;
+        var diskMbpsResult = JoinWithTimeout(diskThread, TimeSpan.FromSeconds(10)) ? diskMbps : null;
 
         return LoadTestAnalyzer.Analyze(
             samples,
             config.RatedMaxMHz,
             abortReason,
             config.DurationSeconds,
-            memoryVerified,
-            diskMbps);
+            memoryVerifiedResult,
+            diskMbpsResult);
     }
 
     private void StartWorkers(CancellationToken workerToken)
@@ -356,15 +378,15 @@ public sealed class LoadTestRunner
         }
     }
 
-    private static T WaitFor<T>(Task<T> task, TimeSpan timeout, T defaultValue)
+    private static bool JoinWithTimeout(Thread thread, TimeSpan timeout)
     {
         try
         {
-            return task.Wait(timeout) ? task.Result : defaultValue;
+            return thread.Join(timeout);
         }
         catch
         {
-            return defaultValue;
+            return false;
         }
     }
 }

@@ -171,7 +171,7 @@ public class LoadTestAnalyzerTests
         Assert.Null(result.PeakTempC);
         Assert.False(result.Throttled);
         Assert.False(result.PowerLimited);
-        Assert.Contains("no temperature reading", result.VerdictText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("no temperature was reported", result.VerdictText, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

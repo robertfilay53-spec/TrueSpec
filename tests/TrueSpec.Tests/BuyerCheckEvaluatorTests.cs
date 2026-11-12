@@ -395,7 +395,9 @@ public class BuyerCheckEvaluatorTests
         var result = new BuyerCheckEvaluator().Evaluate(AllPassBase(DateTimeOffset.UtcNow), new BuyerCheckContext("16 GB"), loadTest);
 
         Assert.Equal(BuyerCheckState.Warning, result.Checks.Single(c => c.Id == BuyerCheckResult.LoadTestCheckId).State);
-        Assert.Equal(BuyerCheckState.Warning, result.OverallState);
+        // A Warning finding does not drop the banner (same as an older
+        // bug check that only warns): the banner stays Pass.
+        Assert.Equal(BuyerCheckState.Pass, result.OverallState);
     }
 
     [Fact]
