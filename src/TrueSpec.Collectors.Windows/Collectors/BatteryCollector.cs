@@ -26,11 +26,11 @@ public sealed class BatteryCollector : ICollector
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var battery = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_Battery").FirstOrDefault();
-        var staticData = Wmi.Query("root\\wmi", "SELECT * FROM BatteryStaticData").FirstOrDefault();
-        var fullData = Wmi.Query("root\\wmi", "SELECT * FROM BatteryFullChargedCapacity").FirstOrDefault();
-        var cycleData = Wmi.Query("root\\wmi", "SELECT * FROM BatteryCycleCount").FirstOrDefault();
-        var status = Wmi.Query("root\\wmi", "SELECT * FROM BatteryStatus").FirstOrDefault();
+        var battery = Wmi.Query("root\\cimv2", "SELECT DesignCapacity, FullChargeCapacity, EstimatedChargeRemaining, EstimatedRunTime, Chemistry FROM Win32_Battery").FirstOrDefault();
+        var staticData = Wmi.Query("root\\wmi", "SELECT DesignedCapacity, Chemistry, ManufactureName, DeviceName, SerialNumber FROM BatteryStaticData").FirstOrDefault();
+        var fullData = Wmi.Query("root\\wmi", "SELECT FullChargedCapacity FROM BatteryFullChargedCapacity").FirstOrDefault();
+        var cycleData = Wmi.Query("root\\wmi", "SELECT CycleCount FROM BatteryCycleCount").FirstOrDefault();
+        var status = Wmi.Query("root\\wmi", "SELECT Voltage, ChargeRate, DischargeRate FROM BatteryStatus").FirstOrDefault();
 
         if (battery is null && staticData is null)
         {
@@ -81,29 +81,29 @@ public sealed class BatteryCollector : ICollector
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec("Design capacity", FormatCapacity(design), "CIM root\\WMI BatteryStaticData.DesignedCapacity"),
-            CollectorSupport.Spec("Full charge capacity", FormatCapacity(full), "CIM root\\WMI BatteryFullChargedCapacity.FullChargedCapacity"),
-            CollectorSupport.Spec("Health", health is null ? null : string.Create(CultureInfo.InvariantCulture, $"{health.Value:0.0}%"), "Full charge capacity / design capacity"),
-            CollectorSupport.Spec("Wear", wear is null ? null : string.Create(CultureInfo.InvariantCulture, $"{wear.Value:0.0}%"), "100 - health"),
-            CollectorSupport.Spec("Health band", HardwareMath.BatteryBandText(health), "Battery health bands (80/60)"),
-            CollectorSupport.Spec("Cycle count", cycles?.ToString(CultureInfo.InvariantCulture), "CIM root\\WMI BatteryCycleCount"),
-            CollectorSupport.Spec("Chemistry", chemistry, "CIM BatteryStaticData / Win32_Battery"),
-            CollectorSupport.Spec("Manufacturer", staticData?.String("ManufactureName"), "CIM root\\WMI BatteryStaticData"),
-            CollectorSupport.Spec("Device name", staticData?.String("DeviceName"), "CIM root\\WMI BatteryStaticData"),
-            CollectorSupport.Spec("Serial number", staticData?.String("SerialNumber"), "CIM root\\WMI BatteryStaticData"),
-            CollectorSupport.Spec("Current charge", currentCharge is null
+            CollectorSupport.Spec(SpecLabels.DesignCapacity, FormatCapacity(design), "CIM root\\WMI BatteryStaticData.DesignedCapacity"),
+            CollectorSupport.Spec(SpecLabels.FullChargeCapacity, FormatCapacity(full), "CIM root\\WMI BatteryFullChargedCapacity.FullChargedCapacity"),
+            CollectorSupport.Spec(SpecLabels.Health, health is null ? null : string.Create(CultureInfo.InvariantCulture, $"{health.Value:0.0}%"), "Full charge capacity / design capacity"),
+            CollectorSupport.Spec(SpecLabels.Wear, wear is null ? null : string.Create(CultureInfo.InvariantCulture, $"{wear.Value:0.0}%"), "100 - health"),
+            CollectorSupport.Spec(SpecLabels.HealthBand, HardwareMath.BatteryBandText(health), "Battery health bands (80/60)"),
+            CollectorSupport.Spec(SpecLabels.CycleCount, cycles?.ToString(CultureInfo.InvariantCulture), "CIM root\\WMI BatteryCycleCount"),
+            CollectorSupport.Spec(SpecLabels.Chemistry, chemistry, "CIM BatteryStaticData / Win32_Battery"),
+            CollectorSupport.Spec(SpecLabels.Manufacturer, staticData?.String("ManufactureName"), "CIM root\\WMI BatteryStaticData"),
+            CollectorSupport.Spec(SpecLabels.DeviceName, staticData?.String("DeviceName"), "CIM root\\WMI BatteryStaticData"),
+            CollectorSupport.Spec(SpecLabels.SerialNumber, staticData?.String("SerialNumber"), "CIM root\\WMI BatteryStaticData"),
+            CollectorSupport.Spec(SpecLabels.CurrentCharge, currentCharge is null
                 ? null
                 : string.Create(CultureInfo.InvariantCulture, $"{currentCharge.Value}%"), "CIM Win32_Battery.EstimatedChargeRemaining"),
-            CollectorSupport.Spec("Voltage", status?.UInt32("Voltage") is { } millivolts && millivolts > 0
+            CollectorSupport.Spec(SpecLabels.Voltage, status?.UInt32("Voltage") is { } millivolts && millivolts > 0
                 ? string.Create(CultureInfo.InvariantCulture, $"{millivolts / 1000d:0.000} V")
                 : null, "CIM root\\WMI BatteryStatus.Voltage"),
-            CollectorSupport.Spec("Charge rate", status?.UInt32("ChargeRate") is { } chargeRate && chargeRate > 0
+            CollectorSupport.Spec(SpecLabels.ChargeRate, status?.UInt32("ChargeRate") is { } chargeRate && chargeRate > 0
                 ? string.Create(CultureInfo.InvariantCulture, $"{chargeRate / 1000d:0.0} W")
                 : null, "CIM root\\WMI BatteryStatus.ChargeRate"),
-            CollectorSupport.Spec("Discharge rate", status?.UInt32("DischargeRate") is { } dischargeRate && dischargeRate > 0
+            CollectorSupport.Spec(SpecLabels.DischargeRate, status?.UInt32("DischargeRate") is { } dischargeRate && dischargeRate > 0
                 ? string.Create(CultureInfo.InvariantCulture, $"{dischargeRate / 1000d:0.0} W")
                 : null, "CIM root\\WMI BatteryStatus.DischargeRate"),
-            CollectorSupport.Spec("Estimated runtime", runtime is null
+            CollectorSupport.Spec(SpecLabels.EstimatedRuntime, runtime is null
                 ? null
                 : FormatRuntime(runtime.Value), "CIM Win32_Battery.EstimatedRunTime"),
         };

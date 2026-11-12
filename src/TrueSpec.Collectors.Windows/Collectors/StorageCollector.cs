@@ -30,7 +30,7 @@ public sealed class StorageCollector : ICollector
 
         var disks = Wmi.QueryRaw(
             "root\\Microsoft\\Windows\\Storage",
-            "SELECT * FROM MSFT_PhysicalDisk",
+            "SELECT DeviceId, FriendlyName, SerialNumber, FirmwareVersion, Size, BusType, MediaType, HealthStatus, OperationalStatus FROM MSFT_PhysicalDisk",
             out var error);
 
         if (disks.Count == 0)
@@ -111,31 +111,31 @@ public sealed class StorageCollector : ICollector
 
             var bus = CollectorSupport.BusType(drive.BusType);
             var media = CollectorSupport.MediaType(drive.MediaType);
-            Add("Model", drive.Model, "CIM MSFT_PhysicalDisk");
-            Add("Serial number", drive.SerialNumber, "CIM MSFT_PhysicalDisk");
-            Add("Firmware", drive.FirmwareVersion, "CIM MSFT_PhysicalDisk");
-            Add("Interface", string.Join(" ", new[] { bus, media }.Where(v => v != CollectorSupport.NotReported)), "CIM MSFT_PhysicalDisk");
-            Add("Capacity", CollectorSupport.FormatBytes(CollectorSupport.NonZero(drive.Size)), "CIM MSFT_PhysicalDisk.Size");
-            Add("Health word", CollectorSupport.DiskHealth(drive.HealthStatus), "CIM MSFT_PhysicalDisk.HealthStatus");
-            Add("Operational status", Join(drive.OperationalStatus), "CIM MSFT_PhysicalDisk.OperationalStatus");
-            Add("Wear level", FormatPercent(drive.Wear), drive.WearSource);
-            Add("Power-on hours", drive.PowerOnHours?.ToString(CultureInfo.InvariantCulture), drive.PowerOnHoursSource);
-            Add("Power cycles", drive.PowerCycles?.ToString(CultureInfo.InvariantCulture), drive.PowerCyclesSource);
-            Add("Temperature", drive.Temperature is null
+            Add(SpecLabels.Model, drive.Model, "CIM MSFT_PhysicalDisk");
+            Add(SpecLabels.SerialNumber, drive.SerialNumber, "CIM MSFT_PhysicalDisk");
+            Add(SpecLabels.Firmware, drive.FirmwareVersion, "CIM MSFT_PhysicalDisk");
+            Add(SpecLabels.Interface, string.Join(" ", new[] { bus, media }.Where(v => v != CollectorSupport.NotReported)), "CIM MSFT_PhysicalDisk");
+            Add(SpecLabels.Capacity, CollectorSupport.FormatBytes(CollectorSupport.NonZero(drive.Size)), "CIM MSFT_PhysicalDisk.Size");
+            Add(SpecLabels.HealthWord, CollectorSupport.DiskHealth(drive.HealthStatus), "CIM MSFT_PhysicalDisk.HealthStatus");
+            Add(SpecLabels.OperationalStatus, Join(drive.OperationalStatus), "CIM MSFT_PhysicalDisk.OperationalStatus");
+            Add(SpecLabels.WearLevel, FormatPercent(drive.Wear), drive.WearSource);
+            Add(SpecLabels.PowerOnHours, drive.PowerOnHours?.ToString(CultureInfo.InvariantCulture), drive.PowerOnHoursSource);
+            Add(SpecLabels.PowerCycles, drive.PowerCycles?.ToString(CultureInfo.InvariantCulture), drive.PowerCyclesSource);
+            Add(SpecLabels.Temperature, drive.Temperature is null
                 ? null
                 : string.Create(CultureInfo.InvariantCulture, $"{drive.Temperature.Value:0} C"), drive.TemperatureSource);
-            Add("Read errors", drive.ReadErrors?.ToString(CultureInfo.InvariantCulture), "Get-StorageReliabilityCounter");
-            Add("Write errors", drive.WriteErrors?.ToString(CultureInfo.InvariantCulture), "Get-StorageReliabilityCounter");
-            Add("Uncorrected errors", drive.UncorrectedErrors?.ToString(CultureInfo.InvariantCulture), drive.UncorrectedSource);
-            Add("Data written", drive.DataWritten is null
+            Add(SpecLabels.ReadErrors, drive.ReadErrors?.ToString(CultureInfo.InvariantCulture), "Get-StorageReliabilityCounter");
+            Add(SpecLabels.WriteErrors, drive.WriteErrors?.ToString(CultureInfo.InvariantCulture), "Get-StorageReliabilityCounter");
+            Add(SpecLabels.UncorrectedErrors, drive.UncorrectedErrors?.ToString(CultureInfo.InvariantCulture), drive.UncorrectedSource);
+            Add(SpecLabels.DataWritten, drive.DataWritten is null
                 ? null
                 : CollectorSupport.FormatBytes(drive.DataWritten), "SATA SMART attribute 241 (total LBAs written)");
-            Add("Data read", drive.DataRead is null
+            Add(SpecLabels.DataRead, drive.DataRead is null
                 ? null
                 : CollectorSupport.FormatBytes(drive.DataRead), "SATA SMART attribute 242 (total LBAs read)");
-            Add("SMART warnings", drive.SmartWarnings, "SMART health, reallocated and pending sector counters");
-            Add("Rated endurance", "Not reported by hardware", "Drive endurance rating is not exposed by the drive");
-            Add("TRIM", "Not reported by hardware", "Windows does not expose TRIM state through MSFT_PhysicalDisk");
+            Add(SpecLabels.SMARTWarnings, drive.SmartWarnings, "SMART health, reallocated and pending sector counters");
+            Add(SpecLabels.RatedEndurance, "Not reported by hardware", "Drive endurance rating is not exposed by the drive");
+            Add(SpecLabels.TRIM, "Not reported by hardware", "Windows does not expose TRIM state through MSFT_PhysicalDisk");
         }
 
         var primaryWear = primary.Wear is null
@@ -188,7 +188,7 @@ public sealed class StorageCollector : ICollector
         if (volumes.Count == 0)
         {
             specs.Add(CollectorSupport.Spec(
-                "Volumes",
+                SpecLabels.Volumes,
                 null,
                 "CIM Win32_LogicalDisk (no local fixed disks reported)"));
             return;
@@ -198,21 +198,21 @@ public sealed class StorageCollector : ICollector
         {
             var letter = volume.DriveLetter;
             specs.Add(CollectorSupport.Spec(
-                $"Volume {letter} - Total space",
+                $"Volume {letter} - {SpecLabels.TotalSpace}",
                 CollectorSupport.FormatBytes(volume.TotalBytes),
                 "CIM Win32_LogicalDisk.Size"));
             specs.Add(CollectorSupport.Spec(
-                $"Volume {letter} - Free space",
+                $"Volume {letter} - {SpecLabels.FreeSpace}",
                 CollectorSupport.FormatBytes(volume.FreeBytes),
                 "CIM Win32_LogicalDisk.FreeSpace"));
             specs.Add(CollectorSupport.Spec(
-                $"Volume {letter} - Free space (%)",
+                $"Volume {letter} - {SpecLabels.FreeSpacePercent}",
                 volume.FreePercent is null
                     ? null
                     : string.Create(CultureInfo.InvariantCulture, $"{volume.FreePercent.Value:0.0}%"),
                 "Free space / total space (Win32_LogicalDisk)"));
             specs.Add(CollectorSupport.Spec(
-                $"Volume {letter} - Filesystem",
+                $"Volume {letter} - {SpecLabels.Filesystem}",
                 volume.FileSystem,
                 "CIM Win32_LogicalDisk.FileSystem"));
         }
@@ -239,7 +239,7 @@ public sealed class StorageCollector : ICollector
 
     private static int? ReadSystemDiskNumber()
     {
-        var partitions = Wmi.Query("root\\Microsoft\\Windows\\Storage", "SELECT * FROM MSFT_Partition");
+        var partitions = Wmi.Query("root\\Microsoft\\Windows\\Storage", "SELECT DriveLetter, DiskNumber FROM MSFT_Partition");
         foreach (var partition in partitions)
         {
             var letter = partition.String("DriveLetter");
@@ -273,7 +273,7 @@ public sealed class StorageCollector : ICollector
             // Older storage stacks do not expose the method; fall through to the class query.
         }
 
-        var rows = Wmi.Query("root\\Microsoft\\Windows\\Storage", "SELECT * FROM MSFT_StorageReliabilityCounter");
+        var rows = Wmi.Query("root\\Microsoft\\Windows\\Storage", "SELECT DeviceId, Wear, PowerOnHours, Temperature, ReadErrorsTotal, WriteErrorsTotal, ReadErrorsUncorrected, WriteErrorsUncorrected, StartStopCycleCount FROM MSFT_StorageReliabilityCounter");
         var match = rows.FirstOrDefault(r =>
             deviceId is not null &&
             string.Equals(r.String("DeviceId"), deviceId, StringComparison.OrdinalIgnoreCase));

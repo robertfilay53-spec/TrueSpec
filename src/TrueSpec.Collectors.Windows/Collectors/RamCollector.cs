@@ -24,7 +24,7 @@ public sealed class RamCollector : ICollector
 
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
-        var sticks = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_PhysicalMemory");
+        var sticks = Wmi.Query("root\\cimv2", "SELECT Capacity, Manufacturer, PartNumber, SerialNumber, BankLabel, DeviceLocator, FormFactor, SMBIOSMemoryType, MemoryType, ConfiguredClockSpeed, Speed FROM Win32_PhysicalMemory");
         if (sticks.Count == 0)
         {
             return Task.FromResult(ComponentSnapshot.NotAvailable(
@@ -35,8 +35,8 @@ public sealed class RamCollector : ICollector
                 "CIM did not return Win32_PhysicalMemory."));
         }
 
-        var array = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_PhysicalMemoryArray").FirstOrDefault();
-        var computer = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_ComputerSystem").FirstOrDefault();
+        var array = Wmi.Query("root\\cimv2", "SELECT MemoryDevices FROM Win32_PhysicalMemoryArray").FirstOrDefault();
+        var computer = Wmi.Query("root\\cimv2", "SELECT TotalPhysicalMemory FROM Win32_ComputerSystem").FirstOrDefault();
         var memoryErrors = WindowsEventLog.CountMemoryErrors(TimeSpan.FromDays(30));
 
         var totalBytes = sticks.Sum(s => (decimal)(s.UInt64("Capacity") ?? 0UL));
@@ -64,19 +64,19 @@ public sealed class RamCollector : ICollector
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec("Total memory", CollectorSupport.FormatBytesBinary(totalBytes <= 0 ? null : (ulong)totalBytes), "CIM Win32_PhysicalMemory capacity sum"),
-            CollectorSupport.Spec("Type", type, "CIM Win32_PhysicalMemory"),
-            CollectorSupport.Spec("Speed", speed is null ? null : string.Create(CultureInfo.InvariantCulture, $"{speed.Value} MT/s"), "CIM Win32_PhysicalMemory"),
-            CollectorSupport.Spec("Configured speed", CollectorSupport.NonZero(first.UInt32("ConfiguredClockSpeed")) is { } configured
+            CollectorSupport.Spec(SpecLabels.TotalMemory, CollectorSupport.FormatBytesBinary(totalBytes <= 0 ? null : (ulong)totalBytes), "CIM Win32_PhysicalMemory capacity sum"),
+            CollectorSupport.Spec(SpecLabels.Type, type, "CIM Win32_PhysicalMemory"),
+            CollectorSupport.Spec(SpecLabels.Speed, speed is null ? null : string.Create(CultureInfo.InvariantCulture, $"{speed.Value} MT/s"), "CIM Win32_PhysicalMemory"),
+            CollectorSupport.Spec(SpecLabels.ConfiguredSpeed, CollectorSupport.NonZero(first.UInt32("ConfiguredClockSpeed")) is { } configured
                 ? string.Create(CultureInfo.InvariantCulture, $"{configured} MT/s")
                 : null, "CIM Win32_PhysicalMemory"),
-            CollectorSupport.Spec("Form factor", CollectorSupport.FormFactor(first.UInt16("FormFactor")), "CIM Win32_PhysicalMemory"),
-            CollectorSupport.Spec("Slots used", slotsText, "CIM Win32_PhysicalMemoryArray.MemoryDevices"),
-            CollectorSupport.Spec("Memory errors", memoryErrors is null
+            CollectorSupport.Spec(SpecLabels.FormFactor, CollectorSupport.FormFactor(first.UInt16("FormFactor")), "CIM Win32_PhysicalMemory"),
+            CollectorSupport.Spec(SpecLabels.SlotsUsed, slotsText, "CIM Win32_PhysicalMemoryArray.MemoryDevices"),
+            CollectorSupport.Spec(SpecLabels.MemoryErrors, memoryErrors is null
                 ? null
                 : memoryErrors.Value.ToString(CultureInfo.InvariantCulture), "Windows Event Log (WHEA-Logger memory events, MemoryDiagnostic)"),
-            CollectorSupport.Spec("Memory test", "Not run", "Windows Memory Diagnostic"),
-            CollectorSupport.Spec("Life remaining", "Not reported by hardware", "No RAM life sensor exists"),
+            CollectorSupport.Spec(SpecLabels.MemoryTest, "Not run", "Windows Memory Diagnostic"),
+            CollectorSupport.Spec(SpecLabels.LifeRemaining, "Not reported by hardware", "No RAM life sensor exists"),
         };
 
         if (computer?.UInt64("TotalPhysicalMemory") is { } osTotal &&
@@ -84,7 +84,7 @@ public sealed class RamCollector : ICollector
             Math.Abs((decimal)osTotal - totalBytes) > 64UL * 1024UL * 1024UL)
         {
             specs.Add(CollectorSupport.Spec(
-                "Total memory reported by Windows",
+                SpecLabels.TotalMemoryReportedByWindows,
                 CollectorSupport.FormatBytesBinary(osTotal),
                 "CIM Win32_ComputerSystem.TotalPhysicalMemory"));
         }
@@ -93,11 +93,11 @@ public sealed class RamCollector : ICollector
         {
             var stick = sticks[i];
             var prefix = string.Create(CultureInfo.InvariantCulture, $"Stick {i + 1}");
-            specs.Add(CollectorSupport.Spec($"{prefix} - Manufacturer", stick.String("Manufacturer"), "CIM Win32_PhysicalMemory"));
-            specs.Add(CollectorSupport.Spec($"{prefix} - Part number", stick.String("PartNumber"), "CIM Win32_PhysicalMemory"));
-            specs.Add(CollectorSupport.Spec($"{prefix} - Serial number", stick.String("SerialNumber"), "CIM Win32_PhysicalMemory"));
-            specs.Add(CollectorSupport.Spec($"{prefix} - Capacity", CollectorSupport.FormatBytesBinary(CollectorSupport.NonZero(stick.UInt64("Capacity"))), "CIM Win32_PhysicalMemory"));
-            specs.Add(CollectorSupport.Spec($"{prefix} - Slot", stick.String("DeviceLocator") ?? stick.String("BankLabel"), "CIM Win32_PhysicalMemory"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.Manufacturer}", stick.String("Manufacturer"), "CIM Win32_PhysicalMemory"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.PartNumber}", stick.String("PartNumber"), "CIM Win32_PhysicalMemory"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.SerialNumber}", stick.String("SerialNumber"), "CIM Win32_PhysicalMemory"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.Capacity}", CollectorSupport.FormatBytesBinary(CollectorSupport.NonZero(stick.UInt64("Capacity"))), "CIM Win32_PhysicalMemory"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.Slot}", stick.String("DeviceLocator") ?? stick.String("BankLabel"), "CIM Win32_PhysicalMemory"));
         }
 
         return Task.FromResult(ComponentSnapshot.NotMeasurable(

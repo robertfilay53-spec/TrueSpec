@@ -36,8 +36,8 @@ public static class ComponentHealthRules
         {
             "storage" => Storage(component.Specs),
             "battery" => Battery(component.Specs),
-            "cpu" => Thermal(component.Specs, "Package temperature", "Package temperature (C)"),
-            "gpu" => Thermal(component.Specs, "GPU temperature", "GPU temperature (C)"),
+            "cpu" => Thermal(component.Specs, SpecLabels.PackageTemperature, SpecLabels.PackageTemperatureC),
+            "gpu" => Thermal(component.Specs, SpecLabels.GPUTemperature, SpecLabels.GPUTemperatureC),
             "ram" => Ram(component.Specs),
             "network" => Network(component.Specs, now ?? DateTimeOffset.UtcNow),
             _ => null,
@@ -46,7 +46,7 @@ public static class ComponentHealthRules
 
     private static double? Storage(IReadOnlyList<SpecValue> specs)
     {
-        var wear = SpecText.Number(specs, "Wear level");
+        var wear = SpecText.Number(specs, SpecLabels.WearLevel);
         var health = HardwareMath.StorageHealthPercent(wear);
         if (health is null)
         {
@@ -55,13 +55,13 @@ public static class ComponentHealthRules
 
         var result = health.Value;
 
-        var flags = SpecText.Value(specs, "SMART warnings");
+        var flags = SpecText.Value(specs, SpecLabels.SMARTWarnings);
         if (string.Equals(flags, "Yes", StringComparison.OrdinalIgnoreCase))
         {
             result = Math.Min(result, 60d);
         }
 
-        var healthWord = SpecText.Value(specs, "Health word");
+        var healthWord = SpecText.Value(specs, SpecLabels.HealthWord);
         if (string.Equals(healthWord, "Warning", StringComparison.OrdinalIgnoreCase))
         {
             result = Math.Min(result, 65d);
@@ -71,7 +71,7 @@ public static class ComponentHealthRules
             result = Math.Min(result, 25d);
         }
 
-        var uncorrected = SpecText.Number(specs, "Uncorrected errors");
+        var uncorrected = SpecText.Number(specs, SpecLabels.UncorrectedErrors);
         if (uncorrected is > 0d)
         {
             result = Math.Min(result, 40d);
@@ -82,8 +82,8 @@ public static class ComponentHealthRules
 
     private static double? Battery(IReadOnlyList<SpecValue> specs)
     {
-        var design = SpecText.Number(specs, "Design capacity");
-        var full = SpecText.Number(specs, "Full charge capacity");
+        var design = SpecText.Number(specs, SpecLabels.DesignCapacity);
+        var full = SpecText.Number(specs, SpecLabels.FullChargeCapacity);
         return HardwareMath.BatteryHealthPercent(design, full);
     }
 
@@ -105,7 +105,7 @@ public static class ComponentHealthRules
             _ => 20d,
         };
 
-        var throttled = SpecText.Value(specs, "Thermal throttle flag");
+        var throttled = SpecText.Value(specs, SpecLabels.ThermalThrottleFlag);
         if (string.Equals(throttled, "Yes", StringComparison.OrdinalIgnoreCase))
         {
             health -= 10d;
@@ -116,7 +116,7 @@ public static class ComponentHealthRules
 
     private static double? Ram(IReadOnlyList<SpecValue> specs)
     {
-        var errors = SpecText.Number(specs, "Memory errors");
+        var errors = SpecText.Number(specs, SpecLabels.MemoryErrors);
         if (errors is null)
         {
             return null;
@@ -129,7 +129,7 @@ public static class ComponentHealthRules
 
     private static double? Network(IReadOnlyList<SpecValue> specs, DateTimeOffset now)
     {
-        var driverDate = SpecText.Date(specs, "Driver date");
+        var driverDate = SpecText.Date(specs, SpecLabels.DriverDate);
         if (driverDate is null)
         {
             return null;
@@ -156,8 +156,8 @@ public static class ComponentHealthRules
 
     private static double? Drivers(IReadOnlyList<SpecValue> specs)
     {
-        var total = SpecText.Number(specs, "Installed drivers");
-        var old = SpecText.Number(specs, "Drivers older than 5 years");
+        var total = SpecText.Number(specs, SpecLabels.InstalledDrivers);
+        var old = SpecText.Number(specs, SpecLabels.DriversOlderThan5Years);
         if (total is null || old is null || total.Value <= 0d)
         {
             return null;

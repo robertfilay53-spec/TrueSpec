@@ -31,7 +31,7 @@ public sealed class GpuCollector : ICollector
 
     public async Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
-        var adapters = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_VideoController");
+        var adapters = Wmi.Query("root\\cimv2", "SELECT Name, AdapterCompatibility, AdapterRAM, DriverVersion, DriverDate, VideoProcessor, VideoModeDescription FROM Win32_VideoController");
         if (adapters.Count == 0)
         {
             return ComponentSnapshot.NotAvailable(
@@ -67,29 +67,29 @@ public sealed class GpuCollector : ICollector
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec("Model", adapter.String("Name"), "CIM Win32_VideoController"),
-            CollectorSupport.Spec("Vendor", adapter.String("AdapterCompatibility"), "CIM Win32_VideoController"),
-            CollectorSupport.Spec("Dedicated memory", CollectorSupport.FormatBytesBinary(dedicatedMemory), "CIM Win32_VideoController.AdapterRAM"),
-            CollectorSupport.Spec("Driver version", adapter.String("DriverVersion"), "CIM Win32_VideoController"),
-            CollectorSupport.Spec("Driver date", adapter.DateText("DriverDate"), "CIM Win32_VideoController.DriverDate"),
-            CollectorSupport.Spec("Video processor", adapter.String("VideoProcessor"), "CIM Win32_VideoController"),
-            CollectorSupport.Spec("Current mode", adapter.String("VideoModeDescription"), "CIM Win32_VideoController"),
-            CollectorSupport.Spec("DirectX support", "Not reported by hardware", "WMI does not expose the DirectX feature level"),
-            CollectorSupport.Spec("GPU temperature", FormatSensor(temperature, "C", 1), "LibreHardwareMonitor"),
-            CollectorSupport.Spec("Thermal throttle flag", throttle, "LibreHardwareMonitor temperature threshold (90 C)"),
-            CollectorSupport.Spec("GPU load", FormatSensor(load, "%", 1), "LibreHardwareMonitor"),
-            CollectorSupport.Spec("GPU power", FormatSensor(power, "W", 1), "LibreHardwareMonitor"),
-            CollectorSupport.Spec("GPU fan", FormatSensor(fan, "RPM", 0), "LibreHardwareMonitor"),
-            CollectorSupport.Spec("GPU voltage", FormatSensor(voltage, "V", 3), "LibreHardwareMonitor"),
-            CollectorSupport.Spec("GPU clock", FormatSensor(clock, "MHz", 0), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.Model, adapter.String("Name"), "CIM Win32_VideoController"),
+            CollectorSupport.Spec(SpecLabels.Vendor, adapter.String("AdapterCompatibility"), "CIM Win32_VideoController"),
+            CollectorSupport.Spec(SpecLabels.DedicatedMemory, CollectorSupport.FormatBytesBinary(dedicatedMemory), "CIM Win32_VideoController.AdapterRAM"),
+            CollectorSupport.Spec(SpecLabels.DriverVersion, adapter.String("DriverVersion"), "CIM Win32_VideoController"),
+            CollectorSupport.Spec(SpecLabels.DriverDate, adapter.DateText("DriverDate"), "CIM Win32_VideoController.DriverDate"),
+            CollectorSupport.Spec(SpecLabels.VideoProcessor, adapter.String("VideoProcessor"), "CIM Win32_VideoController"),
+            CollectorSupport.Spec(SpecLabels.CurrentMode, adapter.String("VideoModeDescription"), "CIM Win32_VideoController"),
+            CollectorSupport.Spec(SpecLabels.DirectXSupport, "Not reported by hardware", "WMI does not expose the DirectX feature level"),
+            CollectorSupport.Spec(SpecLabels.GPUTemperature, FormatSensor(temperature, "C", 1), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.ThermalThrottleFlag, throttle, "LibreHardwareMonitor temperature threshold (90 C)"),
+            CollectorSupport.Spec(SpecLabels.GPULoad, FormatSensor(load, "%", 1), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.GPUPower, FormatSensor(power, "W", 1), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.GPUFan, FormatSensor(fan, "RPM", 0), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.GPUVoltage, FormatSensor(voltage, "V", 3), "LibreHardwareMonitor"),
+            CollectorSupport.Spec(SpecLabels.GPUClock, FormatSensor(clock, "MHz", 0), "LibreHardwareMonitor"),
         };
 
         for (var i = 1; i < adapters.Count; i++)
         {
             var extra = adapters[i];
             var prefix = string.Create(CultureInfo.InvariantCulture, $"Adapter {i + 1}");
-            specs.Add(CollectorSupport.Spec($"{prefix} - Model", extra.String("Name"), "CIM Win32_VideoController"));
-            specs.Add(CollectorSupport.Spec($"{prefix} - Driver version", extra.String("DriverVersion"), "CIM Win32_VideoController"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.Model}", extra.String("Name"), "CIM Win32_VideoController"));
+            specs.Add(CollectorSupport.Spec($"{prefix} - {SpecLabels.DriverVersion}", extra.String("DriverVersion"), "CIM Win32_VideoController"));
         }
 
         return ComponentSnapshot.NotMeasurable(

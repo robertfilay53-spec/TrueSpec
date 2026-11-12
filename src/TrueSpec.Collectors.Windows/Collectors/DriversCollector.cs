@@ -58,12 +58,12 @@ public sealed class DriversCollector : ICollector
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec("Installed drivers", drivers.Count.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver"),
-            CollectorSupport.Spec("Unsigned drivers", unsigned.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver.IsSigned"),
-            CollectorSupport.Spec("Drivers older than 5 years", old.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver.DriverDate"),
-            CollectorSupport.Spec("Oldest driver date", oldest?.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver.DriverDate"),
-            CollectorSupport.Spec("Oldest driver device", oldest?.Row.String("DeviceName"), "CIM Win32_PnPSignedDriver"),
-            CollectorSupport.Spec("Very old driver flag", old switch
+            CollectorSupport.Spec(SpecLabels.InstalledDrivers, drivers.Count.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver"),
+            CollectorSupport.Spec(SpecLabels.UnsignedDrivers, unsigned.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver.IsSigned"),
+            CollectorSupport.Spec(SpecLabels.DriversOlderThan5Years, old.ToString(CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver.DriverDate"),
+            CollectorSupport.Spec(SpecLabels.OldestDriverDate, oldest?.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), "CIM Win32_PnPSignedDriver.DriverDate"),
+            CollectorSupport.Spec(SpecLabels.OldestDriverDevice, oldest?.Row.String("DeviceName"), "CIM Win32_PnPSignedDriver"),
+            CollectorSupport.Spec(SpecLabels.VeryOldDriverFlag, old switch
             {
                 0 => "No",
                 > 0 => "Yes",

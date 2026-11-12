@@ -24,10 +24,10 @@ public sealed class MotherboardCollector : ICollector
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var board = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_BaseBoard").FirstOrDefault();
-        var bios = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_BIOS").FirstOrDefault();
-        var enclosure = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_SystemEnclosure").FirstOrDefault();
-        var computer = Wmi.Query("root\\cimv2", "SELECT * FROM Win32_ComputerSystem").FirstOrDefault();
+        var board = Wmi.Query("root\\cimv2", "SELECT Manufacturer, Product, Version, SerialNumber FROM Win32_BaseBoard").FirstOrDefault();
+        var bios = Wmi.Query("root\\cimv2", "SELECT ReleaseDate, SMBIOSBIOSVersion, SerialNumber FROM Win32_BIOS").FirstOrDefault();
+        var enclosure = Wmi.Query("root\\cimv2", "SELECT ChassisTypes, SerialNumber FROM Win32_SystemEnclosure").FirstOrDefault();
+        var computer = Wmi.Query("root\\cimv2", "SELECT SystemFamily FROM Win32_ComputerSystem").FirstOrDefault();
 
         if (board is null && bios is null)
         {
@@ -51,20 +51,20 @@ public sealed class MotherboardCollector : ICollector
 
         var specs = new List<SpecValue>
         {
-            CollectorSupport.Spec("Manufacturer", manufacturer, "CIM Win32_BaseBoard"),
-            CollectorSupport.Spec("Model", product, "CIM Win32_BaseBoard"),
-            CollectorSupport.Spec("Version", board?.String("Version"), "CIM Win32_BaseBoard"),
-            CollectorSupport.Spec("Serial number", board?.String("SerialNumber"), "CIM Win32_BaseBoard"),
-            CollectorSupport.Spec("Chassis type", chassis, "CIM Win32_SystemEnclosure"),
-            CollectorSupport.Spec("Chassis serial", enclosure?.String("SerialNumber"), "CIM Win32_SystemEnclosure"),
-            CollectorSupport.Spec("System family", computer?.String("SystemFamily"), "CIM Win32_ComputerSystem"),
-            CollectorSupport.Spec("BIOS vendor", bios?.String("Manufacturer"), "CIM Win32_BIOS"),
-            CollectorSupport.Spec("BIOS version", bios?.String("SMBIOSBIOSVersion") ?? bios?.String("Version"), "CIM Win32_BIOS"),
-            CollectorSupport.Spec("BIOS date", bios?.DateText("ReleaseDate"), "CIM Win32_BIOS.ReleaseDate"),
-            CollectorSupport.Spec("PCIe slots", "Not reported by hardware", "Laptop and many desktop boards do not expose slot count through CIM"),
-            CollectorSupport.Spec("M.2 slots", "Not reported by hardware", "M.2 slot count is not exposed by CIM"),
-            CollectorSupport.Spec("RAM slots", "Not reported by hardware", "See the RAM page for the real slots-used reading"),
-            CollectorSupport.Spec("Life remaining", "Not reported by hardware", "No motherboard life sensor exists"),
+            CollectorSupport.Spec(SpecLabels.Manufacturer, manufacturer, "CIM Win32_BaseBoard"),
+            CollectorSupport.Spec(SpecLabels.Model, product, "CIM Win32_BaseBoard"),
+            CollectorSupport.Spec(SpecLabels.Version, board?.String("Version"), "CIM Win32_BaseBoard"),
+            CollectorSupport.Spec(SpecLabels.SerialNumber, board?.String("SerialNumber"), "CIM Win32_BaseBoard"),
+            CollectorSupport.Spec(SpecLabels.ChassisType, chassis, "CIM Win32_SystemEnclosure"),
+            CollectorSupport.Spec(SpecLabels.ChassisSerial, enclosure?.String("SerialNumber"), "CIM Win32_SystemEnclosure"),
+            CollectorSupport.Spec(SpecLabels.SystemFamily, computer?.String("SystemFamily"), "CIM Win32_ComputerSystem"),
+            CollectorSupport.Spec(SpecLabels.BIOSVendor, bios?.String("Manufacturer"), "CIM Win32_BIOS"),
+            CollectorSupport.Spec(SpecLabels.BIOSVersion, bios?.String("SMBIOSBIOSVersion") ?? bios?.String("Version"), "CIM Win32_BIOS"),
+            CollectorSupport.Spec(SpecLabels.BIOSDate, bios?.DateText("ReleaseDate"), "CIM Win32_BIOS.ReleaseDate"),
+            CollectorSupport.Spec(SpecLabels.PCIeSlots, "Not reported by hardware", "Laptop and many desktop boards do not expose slot count through CIM"),
+            CollectorSupport.Spec(SpecLabels.M2Slots, "Not reported by hardware", "M.2 slot count is not exposed by CIM"),
+            CollectorSupport.Spec(SpecLabels.RAMSlots, "Not reported by hardware", "See the RAM page for the real slots-used reading"),
+            CollectorSupport.Spec(SpecLabels.LifeRemaining, "Not reported by hardware", "No motherboard life sensor exists"),
         };
 
         return Task.FromResult(ComponentSnapshot.NotMeasurable(
