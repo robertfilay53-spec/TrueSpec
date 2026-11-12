@@ -75,7 +75,9 @@ public class LoadTestRunnerTests
     [Fact]
     public async Task SensorLost_ReadingsStopMidTest_AbortsWithSensorLostReason()
     {
-        var runner = new LoadTestRunner(new FakeSensorMonitor(50d, 3000d, goodReads: 2));
+        // goodReads 3: the warm-up read consumes one, then two good samples
+        // are recorded before the readings stop.
+        var runner = new LoadTestRunner(new FakeSensorMonitor(50d, 3000d, goodReads: 3));
         var config = new LoadTestConfig(DurationSeconds: 60, RatedMaxMHz: 4000d);
 
         var result = await runner.RunAsync(config);
