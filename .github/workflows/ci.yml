@@ -36,3 +36,9 @@ jobs:
       # with NU1201. Each runner tests the framework that matches its OS.
       - name: Test
         run: dotnet test TrueSpec.sln --configuration Release --verbosity normal -f ${{ matrix.os == 'windows-latest' && 'net10.0-windows' || 'net10.0' }}
+
+      # Dependency vulnerability scan: lists any package (including
+      # transitive) with a known vulnerability. Informational for now —
+      # the report appears in the job log.
+      - name: Check for vulnerable packages
+        run: dotnet list package --vulnerable --include-transitive
