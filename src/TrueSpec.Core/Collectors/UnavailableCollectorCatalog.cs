@@ -63,6 +63,7 @@ public static class UnavailableCollectorCatalog
         Create("drivers", "Drivers", "Security", "drivers", reason),
         Create("updates", "Windows Update", "Security", "updates", reason),
         Create("startup", "Startup", "System", "startup", reason),
+        Create("software", "Software", "System", "software", reason),
         Create("crash", "Crash history", "Diagnostics", "crash", reason),
     };
 

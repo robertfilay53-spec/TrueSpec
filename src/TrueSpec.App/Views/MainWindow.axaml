@@ -45,7 +45,7 @@
                 </StackPanel>
 
                 <!-- The rail scrolls and the scrollbar is always visible:
-                     there are 20 nav items and the rail fits about 16 at the
+                     there are 21 nav items and the rail fits about 16 at the
                      default 1280x800 window, so without a visible scrollbar
                      the last items (Settings) were below the fold and
                      effectively unreachable. A scrollable rail is the durable

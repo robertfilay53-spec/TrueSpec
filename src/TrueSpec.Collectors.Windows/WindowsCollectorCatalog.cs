@@ -28,6 +28,7 @@ public static class WindowsCollectorCatalog
         new DriversCollector(),
         new UpdatesCollector(),
         new StartupCollector(),
+        new SoftwareCollector(),
         new CrashCollector(),
     };
 

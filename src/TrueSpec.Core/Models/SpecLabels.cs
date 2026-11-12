@@ -99,6 +99,8 @@ public static class SpecLabels
     public const string HealthWord = "Health word";
     public const string IPAddress = "IP address";
     public const string InstalledDrivers = "Installed drivers";
+    public const string InstalledPrograms = "Installed programs";
+    public const string InstalledRuntimes = "Installed runtimes";
     public const string InstalledUpdatesHotfixes = "Installed updates (hotfixes)";
     public const string Interface = "Interface";
     public const string KeysRead = "Keys read";
@@ -106,6 +108,8 @@ public static class SpecLabels
     public const string L3Cache = "L3 cache";
     public const string LastSuccessfulUpdateCheck = "Last successful update check";
     public const string LastSuccessfulUpdateInstall = "Last successful update install";
+    public const string LicensedProduct = "Licensed product";
+    public const string LicenseChannel = "License channel";
     public const string LifeRemaining = "Life remaining";
     public const string LinkSpeed = "Link speed (negotiated rate at scan time)";
     public const string LiveCoreClock = "Live core clock";
@@ -186,6 +190,7 @@ public static class SpecLabels
     public const string TransmitRate = "Transmit rate";
     public const string Type = "Type";
     public const string UncorrectedErrors = "Uncorrected errors";
+    public const string UnreadableEntries = "Unreadable entries";
     public const string UnknownDriverSignature = "Unknown driver signature";
     public const string UnsignedDrivers = "Unsigned drivers";
     public const string UpdateManagement = "Update management";
@@ -205,6 +210,8 @@ public static class SpecLabels
     public const string WifiDriverAge = "Wi-Fi driver age";
     public const string WifiStandardNegotiated = "Wi-Fi standard (negotiated)";
     public const string WiFiVendor = "Wi-Fi vendor";
+    public const string DotNetFramework = ".NET Framework";
+    public const string WindowsActivation = "Windows activation";
     public const string WindowsBuild = "Windows build";
     public const string WindowsEdition = "Windows edition";
     public const string WindowsInstallDate = "Windows install date";

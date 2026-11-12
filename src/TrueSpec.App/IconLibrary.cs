@@ -28,6 +28,7 @@ public static class IconLibrary
         ["crash"] = "M12,3 L21,20 H3 Z M11,9 H13 V14 H11 Z M11,16 H13 V18 H11 Z",
         ["drivers"] = "M4,6 H20 V18 H4 Z M8,10 H16 M8,14 H13",
         ["updates"] = "M12,3 V14 M7,9 L12,14 L17,9 M4,17 H20 V21 H4 Z",
+        ["software"] = "M4,4 H9 V9 H4 Z M15,4 H20 V9 H15 Z M4,15 H9 V20 H4 Z M15,15 H20 V20 H15 Z",
         ["refresh"] = "M20,12 A8,8 0 1 1 17,6 M20,3 V7 H16",
         ["export"] = "M12,3 V15 M8,7 L12,3 L16,7 M4,14 V20 H20 V14",
         ["shield-check"] = "M12,3 L20,6 V12 C20,17 16,20 12,21 C8,20 4,17 4,12 V6 Z M8,12 L11,15 L16,9",
