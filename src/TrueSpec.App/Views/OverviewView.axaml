@@ -260,6 +260,33 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <TextBlock Text="{Binding SensorLogText}"
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding AlertSettingsText}"
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18" IsVisible="{Binding HasSensorAlert}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="TEMPERATURE ALERT" Classes="eyebrow" />
+                    <ItemsControl ItemsSource="{Binding SensorAlerts}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,4" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="Alerts fire only after the temperature stays above your threshold for the full duration you set. Change the threshold in Settings."
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 

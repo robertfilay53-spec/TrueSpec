@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -27,6 +28,10 @@ public sealed partial class SettingsViewModel : ViewModelBase
         _settings = main.Settings;
         RefreshIntervalSeconds = _settings.RefreshIntervalSeconds;
         ExportFolder = _settings.ExportFolder;
+        SensorLoggingEnabled = _settings.SensorLoggingEnabled;
+        CpuTemperatureAlertEnabled = _settings.CpuTemperatureThresholdC is not null;
+        CpuTemperatureThresholdText = _settings.CpuTemperatureThresholdC?.ToString("0.#", CultureInfo.InvariantCulture) ?? "90";
+        CpuTemperatureThresholdSeconds = _settings.CpuTemperatureThresholdSeconds;
         _main.PropertyChanged += OnMainPropertyChanged;
     }
 
@@ -69,6 +74,79 @@ public sealed partial class SettingsViewModel : ViewModelBase
     /// <summary>Explains a rejected folder pick; empty when nothing went wrong.</summary>
     [ObservableProperty]
     public partial string FolderMessage { get; set; } = string.Empty;
+
+    /// <summary>Whether live sensor readings are recorded to the local CSV log.</summary>
+    [ObservableProperty]
+    public partial bool SensorLoggingEnabled { get; set; } = true;
+
+    partial void OnSensorLoggingEnabledChanged(bool value)
+    {
+        Save();
+    }
+
+    /// <summary>Whether the CPU temperature alert is on. Off is the shipped default: no threshold implies a diagnosis.</summary>
+    [ObservableProperty]
+    public partial bool CpuTemperatureAlertEnabled { get; set; }
+
+    partial void OnCpuTemperatureAlertEnabledChanged(bool value)
+    {
+        OnPropertyChanged(nameof(AlertSummaryText));
+        Save();
+    }
+
+    /// <summary>The alert threshold in C, as typed. Only saved when it parses inside 30-120 C.</summary>
+    [ObservableProperty]
+    public partial string CpuTemperatureThresholdText { get; set; } = "90";
+
+    partial void OnCpuTemperatureThresholdTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(AlertSummaryText));
+        if (TryParseThreshold(value, out _))
+        {
+            ThresholdMessage = string.Empty;
+            Save();
+        }
+        else
+        {
+            ThresholdMessage = "Enter a temperature between 30 and 120 C.";
+        }
+    }
+
+    /// <summary>How long the temperature must stay at or above the threshold before alerting.</summary>
+    [ObservableProperty]
+    public partial int CpuTemperatureThresholdSeconds { get; set; } = AppSettings.DefaultCpuTemperatureThresholdSeconds;
+
+    partial void OnCpuTemperatureThresholdSecondsChanged(int value)
+    {
+        OnPropertyChanged(nameof(AlertSummaryText));
+        Save();
+    }
+
+    public IReadOnlyList<int> ThresholdDurationOptions { get; } = new[]
+    {
+        15, 30, 60, 120,
+    };
+
+    /// <summary>Explains a rejected threshold value; empty when nothing went wrong.</summary>
+    [ObservableProperty]
+    public partial string ThresholdMessage { get; set; } = string.Empty;
+
+    public string AlertSummaryText => CpuTemperatureAlertEnabled
+        ? $"Alert when the CPU temperature reaches {CpuTemperatureThresholdText} C for {CpuTemperatureThresholdSeconds} seconds."
+        : "No temperature alert set.";
+
+    private static bool TryParseThreshold(string text, out double threshold)
+    {
+        if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out threshold) &&
+            threshold >= AppSettings.MinCpuTemperatureThresholdC &&
+            threshold <= AppSettings.MaxCpuTemperatureThresholdC)
+        {
+            return true;
+        }
+
+        threshold = 0;
+        return false;
+    }
 
     public string ExportFolderText => string.IsNullOrWhiteSpace(ExportFolder)
         ? PathSafety.DefaultExportFolder() + " (default)"
@@ -141,10 +219,24 @@ public sealed partial class SettingsViewModel : ViewModelBase
             IsDarkTheme = IsDarkTheme,
             RefreshIntervalSeconds = RefreshIntervalSeconds,
             ExportFolder = ExportFolder,
+            SensorLoggingEnabled = SensorLoggingEnabled,
+            CpuTemperatureThresholdC = CpuTemperatureAlertEnabled && TryParseThreshold(CpuTemperatureThresholdText, out var threshold)
+                ? threshold
+                : null,
+            CpuTemperatureThresholdSeconds = CpuTemperatureThresholdSeconds,
         }.Sanitized();
 
         RefreshIntervalSeconds = _settings.RefreshIntervalSeconds;
         ExportFolder = _settings.ExportFolder;
+        SensorLoggingEnabled = _settings.SensorLoggingEnabled;
+        CpuTemperatureAlertEnabled = _settings.CpuTemperatureThresholdC is not null;
+        if (_settings.CpuTemperatureThresholdC is { } savedThreshold)
+        {
+            CpuTemperatureThresholdText = savedThreshold.ToString("0.#", CultureInfo.InvariantCulture);
+        }
+
+        CpuTemperatureThresholdSeconds = _settings.CpuTemperatureThresholdSeconds;
+        OnPropertyChanged(nameof(AlertSummaryText));
         _main.ApplySettings(_settings);
     }
 

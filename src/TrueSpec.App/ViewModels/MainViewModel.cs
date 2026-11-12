@@ -35,6 +35,8 @@ public partial class MainViewModel : ViewModelBase
 {
     private readonly MachineScanService _scanService;
     private readonly ISensorMonitor _sensorMonitor;
+    private readonly SensorLogWriter? _sensorLogWriter;
+    private readonly ThresholdAlertEvaluator _alertEvaluator;
     private readonly IBuyerCheckEvaluator _buyerCheckEvaluator;
     private readonly AppSettingsStore _settingsStore;
     private ISnapshotStore? _snapshotStore;
@@ -76,6 +78,15 @@ public partial class MainViewModel : ViewModelBase
         _settingsStore = new AppSettingsStore();
         _settings = _settingsStore.Load();
         IsDarkTheme = _settings.IsDarkTheme;
+
+        // The sensor log is a convenience, never a startup blocker: when
+        // the log file cannot be created, logging stays off for the session
+        // and the Overview says so.
+        _sensorLogWriter = SensorLogWriter.CreateDefault();
+        _alertEvaluator = new ThresholdAlertEvaluator(
+            ThresholdAlertEvaluator.CpuTemperatureLabel,
+            "C");
+        _alertEvaluator.Configure(_settings.CpuTemperatureThresholdC, _settings.CpuTemperatureThresholdSeconds);
 
         // Loading state only: the constructor must never run a scan or block.
         // The window has to appear immediately. The real scan starts after
@@ -300,6 +311,15 @@ public partial class MainViewModel : ViewModelBase
         _settingsStore.Save(_settings);
         IsDarkTheme = _settings.IsDarkTheme;
         Overview.SetRefreshInterval(TimeSpan.FromSeconds(_settings.RefreshIntervalSeconds));
+        Overview.ApplySensorSettings(_settings);
+        if (_pageCache.TryGetValue("history", out var page) && page is HistoryViewModel history)
+        {
+            history.ApplySensorSettings(
+                SensorLogWriter.DefaultFilePath(),
+                _settings.SensorLoggingEnabled,
+                _settings.CpuTemperatureThresholdC);
+        }
+
         OnPropertyChanged(nameof(Settings));
         OnPropertyChanged(nameof(ExportFolder));
     }
@@ -526,7 +546,10 @@ public partial class MainViewModel : ViewModelBase
         ExportJsonCommand,
         _sensorMonitor,
         TimeSpan.FromSeconds(_settings.RefreshIntervalSeconds),
-        isScanning);
+        isScanning,
+        _sensorLogWriter,
+        _alertEvaluator,
+        _settings);
 
     /// <summary>
     /// The load test finished on the Tests page. The result is saved into
@@ -596,7 +619,7 @@ public partial class MainViewModel : ViewModelBase
                 OnLoadTestCompleted)),
             "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: _scanRunning, exportPdfCommand: ExportPdfCommand)),
             "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot)),
-            "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand)),
+            "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand, SensorLogWriter.DefaultFilePath(), _settings.SensorLoggingEnabled, _settings.CpuTemperatureThresholdC)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
             _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key)),
         };

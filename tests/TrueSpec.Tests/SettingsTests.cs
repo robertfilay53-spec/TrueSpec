@@ -129,4 +129,101 @@ public class SettingsTests
             }
         }
     }
+
+    [Fact]
+    public void Sanitized_ThresholdDefaultsToOff()
+    {
+        var settings = AppSettings.Default.Sanitized();
+        Assert.Null(settings.CpuTemperatureThresholdC);
+        Assert.True(settings.SensorLoggingEnabled);
+        Assert.Equal(AppSettings.DefaultCpuTemperatureThresholdSeconds, settings.CpuTemperatureThresholdSeconds);
+    }
+
+    [Theory]
+    [InlineData(200, 120)]
+    [InlineData(10, 30)]
+    [InlineData(90, 90)]
+    [InlineData(85.5, 85.5)]
+    public void Sanitized_ClampsCpuTemperatureThreshold(double input, double expected)
+    {
+        var settings = new AppSettings { CpuTemperatureThresholdC = input }.Sanitized();
+        Assert.Equal(expected, settings.CpuTemperatureThresholdC);
+    }
+
+    [Fact]
+    public void Sanitized_NullOrNanThresholdStaysOff()
+    {
+        Assert.Null(new AppSettings { CpuTemperatureThresholdC = null }.Sanitized().CpuTemperatureThresholdC);
+        Assert.Null(new AppSettings { CpuTemperatureThresholdC = double.NaN }.Sanitized().CpuTemperatureThresholdC);
+        Assert.Null(new AppSettings { CpuTemperatureThresholdC = double.PositiveInfinity }.Sanitized().CpuTemperatureThresholdC);
+    }
+
+    [Theory]
+    [InlineData(0, 5)]
+    [InlineData(9999, 300)]
+    [InlineData(60, 60)]
+    public void Sanitized_ClampsCpuTemperatureThresholdSeconds(int input, int expected)
+    {
+        var settings = new AppSettings { CpuTemperatureThresholdSeconds = input }.Sanitized();
+        Assert.Equal(expected, settings.CpuTemperatureThresholdSeconds);
+    }
+
+    [Fact]
+    public void Store_RoundTripsSensorSettings()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(directory, "settings.json");
+
+        try
+        {
+            var store = new AppSettingsStore(path);
+            var saved = new AppSettings
+            {
+                IsDarkTheme = true,
+                RefreshIntervalSeconds = 5,
+                ExportFolder = string.Empty,
+                SensorLoggingEnabled = false,
+                CpuTemperatureThresholdC = 90,
+                CpuTemperatureThresholdSeconds = 60,
+            };
+            Assert.True(store.Save(saved));
+
+            var loaded = store.Load();
+            Assert.False(loaded.SensorLoggingEnabled);
+            Assert.Equal(90, loaded.CpuTemperatureThresholdC);
+            Assert.Equal(60, loaded.CpuTemperatureThresholdSeconds);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void Store_LoadsSensorDefaultsFromAnOldSettingsFile()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(directory, "settings.json");
+
+        try
+        {
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(path, "{\"isDarkTheme\":true,\"refreshIntervalSeconds\":2,\"exportFolder\":\"\"}");
+
+            var loaded = new AppSettingsStore(path).Load();
+            Assert.True(loaded.SensorLoggingEnabled);
+            Assert.Null(loaded.CpuTemperatureThresholdC);
+            Assert.Equal(AppSettings.DefaultCpuTemperatureThresholdSeconds, loaded.CpuTemperatureThresholdSeconds);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
 }
