@@ -53,6 +53,7 @@ public static class SpecLabels
     public const string DriverDate = "Driver date";
     public const string DriverVersion = "Driver version";
     public const string DriversOlderThan5Years = "Drivers older than 5 years";
+    public const string EarliestEventLogEntry = "Earliest event log entry";
     public const string Enabled = "Enabled";
     public const string EstimatedRuntime = "Estimated runtime";
     public const string EthernetDNSServers = "Ethernet DNS servers";
