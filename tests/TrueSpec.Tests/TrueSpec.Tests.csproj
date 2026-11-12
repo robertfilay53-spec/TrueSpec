@@ -39,6 +39,7 @@
   </ItemGroup>
 
   <!-- ScoreAgreementTests, NavigationTests, HistoryForecastViewModelTests,
+       HistoryValueComparisonViewModelTests,
        HistorySensorLogViewModelTests, LoadTestViewModelTests,
        SensorAlertViewModelTests, AdminNoticeViewModelTests and
        ExportConfirmationTests
@@ -53,6 +54,7 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <Compile Remove="ScoreAgreementTests.cs" />
     <Compile Remove="HistoryForecastViewModelTests.cs" />
+    <Compile Remove="HistoryValueComparisonViewModelTests.cs" />
     <Compile Remove="HistorySensorLogViewModelTests.cs" />
     <Compile Remove="LoadTestViewModelTests.cs" />
     <Compile Remove="SensorAlertViewModelTests.cs" />
