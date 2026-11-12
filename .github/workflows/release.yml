@@ -49,6 +49,20 @@ jobs:
           $version = "${{ inputs.tag }}" -replace '^v', ''
           Compress-Archive -Path publish\TrueSpec.App.exe -DestinationPath "TrueSpec-$version-portable.zip" -CompressionLevel Optimal
 
+      # Gate 6: every release ships SHA-256 checksums. Compute them here so
+      # the release carries a verifiable SHA256SUMS.txt alongside the assets.
+      - name: Compute SHA-256 checksums
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.tag }}" -replace '^v', ''
+          $installer = Get-Item installer\Output\TrueSpecSetup-*.exe | Select-Object -First 1
+          $zip = "TrueSpec-$version-portable.zip"
+          $installerHash = (Get-FileHash -Algorithm SHA256 $installer.FullName).Hash.ToLower()
+          $zipHash = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLower()
+          "$installerHash  $($installer.Name)" | Out-File -FilePath SHA256SUMS.txt -Encoding ascii
+          "$zipHash  $zip" | Out-File -FilePath SHA256SUMS.txt -Encoding ascii -Append
+          Get-Content SHA256SUMS.txt
+
       - name: Upload assets to release
         shell: pwsh
         env:
@@ -56,4 +70,4 @@ jobs:
         run: |
           $version = "${{ inputs.tag }}" -replace '^v', ''
           $installer = Get-Item installer\Output\TrueSpecSetup-*.exe | Select-Object -First 1
-          gh release upload ${{ inputs.tag }} $installer.FullName "TrueSpec-$version-portable.zip" --clobber
+          gh release upload ${{ inputs.tag }} $installer.FullName "TrueSpec-$version-portable.zip" SHA256SUMS.txt --clobber
