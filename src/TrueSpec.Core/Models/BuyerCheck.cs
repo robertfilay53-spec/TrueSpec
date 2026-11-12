@@ -52,6 +52,9 @@ public sealed record BuyerCheckResult(IReadOnlyList<BuyerCheck> Checks)
     /// <summary>Buyer-check id for the recent-crash finding (U3).</summary>
     public const string RecentCrashesCheckId = "recent-crashes";
 
+    /// <summary>Buyer-check id for the load-test finding (U2). The check only exists once a load test has run.</summary>
+    public const string LoadTestCheckId = "cpu-load-test";
+
     public BuyerCheckState OverallState
     {
         get
@@ -115,18 +118,17 @@ public sealed record BuyerCheckResult(IReadOnlyList<BuyerCheck> Checks)
     }
 
     /// <summary>
-    /// The overall state of the ordinary checks. The two findings-driven
-    /// entries (authenticity, recent crashes) are excluded here on purpose:
-    /// their banner effect is the one-grade drop in
-    /// <see cref="OverallState"/>, not the worst-state rule. A Warning
-    /// authenticity entry (a Watch finding, no Strong check) therefore
-    /// leaves the banner alone, and a Fail entry demotes it exactly one
-    /// grade instead of jumping straight to FAIL.
+    /// The overall state of the ordinary checks. The three findings-driven
+    /// entries (authenticity, recent crashes, load test) are excluded here on
+    /// purpose: their banner effect is the one-grade drop in
+    /// <see cref="OverallState"/>, not the worst-state rule. A throttling
+    /// machine can therefore still score 90 on passive health while the
+    /// banner shows the throttle finding separately.
     /// </summary>
     private BuyerCheckState BaseOverallState()
     {
         var baseChecks = Checks.Where(c =>
-            c.Id != AuthenticityCheckId && c.Id != RecentCrashesCheckId);
+            c.Id != AuthenticityCheckId && c.Id != RecentCrashesCheckId && c.Id != LoadTestCheckId);
 
         if (baseChecks.Any(c => c.State == BuyerCheckState.Fail))
         {
@@ -148,15 +150,16 @@ public sealed record BuyerCheckResult(IReadOnlyList<BuyerCheck> Checks)
         return BuyerCheckState.NotApplicable;
     }
 
-    /// <summary>One drop per Fail findings entry (authenticity, recent crashes).</summary>
+    /// <summary>One drop per Fail findings entry (authenticity, recent crashes, load test).</summary>
     private int FindingDrops() => Checks.Count(c =>
         c.State == BuyerCheckState.Fail &&
-        (c.Id == AuthenticityCheckId || c.Id == RecentCrashesCheckId));
+        (c.Id == AuthenticityCheckId || c.Id == RecentCrashesCheckId || c.Id == LoadTestCheckId));
 
     /// <summary>
-    /// The title of the strongest Fail findings entry, or null when neither
-    /// finding failed. Authenticity outranks crashes: a Strong authenticity
-    /// check is the finding the banner names when both fired.
+    /// The title of the strongest Fail findings entry, or null when no
+    /// finding failed. Authenticity outranks crashes, which outrank the
+    /// load test: a Strong authenticity check is the finding the banner
+    /// names when several fired.
     /// </summary>
     private string? StrongestFinding()
     {
@@ -167,7 +170,14 @@ public sealed record BuyerCheckResult(IReadOnlyList<BuyerCheck> Checks)
             return authenticity.Title;
         }
 
+        var crashes = Checks.FirstOrDefault(c =>
+            c.Id == RecentCrashesCheckId && c.State == BuyerCheckState.Fail);
+        if (crashes is not null)
+        {
+            return crashes.Title;
+        }
+
         return Checks.FirstOrDefault(c =>
-            c.Id == RecentCrashesCheckId && c.State == BuyerCheckState.Fail)?.Title;
+            c.Id == LoadTestCheckId && c.State == BuyerCheckState.Fail)?.Title;
     }
 }

@@ -1,3 +1,4 @@
+using TrueSpec.Core.Benchmarks;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Scoring;
 
@@ -332,5 +333,89 @@ public class BuyerCheckEvaluatorTests
         var crashScore = new ScoringEngine().Score(withCrashes);
 
         Assert.Equal(cleanScore.OverallScore, crashScore.OverallScore);
+    }
+
+    private static LoadTestResult GetLoadTestResult(double clockMHz, double tempC, string? abortReason = null)
+    {
+        var baseTime = new DateTimeOffset(2026, 11, 12, 12, 0, 0, TimeSpan.Zero);
+        var samples = Enumerable.Range(0, 35).Select(i => new LoadTestSample(
+            baseTime.AddSeconds(i),
+            tempC,
+            clockMHz,
+            clockMHz,
+            2400d,
+            45d,
+            55d,
+            false)).ToList();
+        return LoadTestAnalyzer.Analyze(samples, 4200d, abortReason, 60);
+    }
+
+    [Fact]
+    public void NoLoadTest_NoLoadTestRowIsShown()
+    {
+        var result = new BuyerCheckEvaluator().Evaluate(AllPassBase(DateTimeOffset.UtcNow), new BuyerCheckContext("16 GB"));
+
+        Assert.DoesNotContain(result.Checks, c => c.Id == BuyerCheckResult.LoadTestCheckId);
+    }
+
+    [Fact]
+    public void LoadTestClean_PassesTheRowAndKeepsTheBannerPass()
+    {
+        var loadTest = GetLoadTestResult(3900d, 70d);
+
+        var result = new BuyerCheckEvaluator().Evaluate(AllPassBase(DateTimeOffset.UtcNow), new BuyerCheckContext("16 GB"), loadTest);
+
+        var check = result.Checks.Single(c => c.Id == BuyerCheckResult.LoadTestCheckId);
+        Assert.Equal(BuyerCheckState.Pass, check.State);
+        Assert.Equal("CPU held rated clock under load", check.Title);
+        Assert.Equal(BuyerCheckState.Pass, result.OverallState);
+    }
+
+    [Fact]
+    public void LoadTestThrottled_FailsTheRowAndDropsTheBannerOneLevel_NotToFail()
+    {
+        var loadTest = GetLoadTestResult(1800d, 97d);
+
+        var result = new BuyerCheckEvaluator().Evaluate(AllPassBase(DateTimeOffset.UtcNow), new BuyerCheckContext("16 GB"), loadTest);
+
+        var check = result.Checks.Single(c => c.Id == BuyerCheckResult.LoadTestCheckId);
+        Assert.Equal(BuyerCheckState.Fail, check.State);
+        Assert.Equal("CPU throttled under load", check.Title);
+        // One-grade drop, like the other findings: a throttling machine can
+        // still score 90 on passive health, and the banner names the finding.
+        Assert.Equal(BuyerCheckState.Warning, result.OverallState);
+        Assert.Equal("WARNING - CPU throttled under load", result.BannerText);
+    }
+
+    [Fact]
+    public void LoadTestPowerLimited_WarnsTheRowButDoesNotFailIt()
+    {
+        var loadTest = GetLoadTestResult(1800d, 65d);
+
+        var result = new BuyerCheckEvaluator().Evaluate(AllPassBase(DateTimeOffset.UtcNow), new BuyerCheckContext("16 GB"), loadTest);
+
+        Assert.Equal(BuyerCheckState.Warning, result.Checks.Single(c => c.Id == BuyerCheckResult.LoadTestCheckId).State);
+        Assert.Equal(BuyerCheckState.Warning, result.OverallState);
+    }
+
+    [Fact]
+    public void LoadTestTemperatureAbort_FailsTheRow()
+    {
+        var loadTest = GetLoadTestResult(1800d, 96d, LoadTestResult.AbortTemperature);
+
+        var result = new BuyerCheckEvaluator().Evaluate(AllPassBase(DateTimeOffset.UtcNow), new BuyerCheckContext("16 GB"), loadTest);
+
+        Assert.Equal(BuyerCheckState.Fail, result.Checks.Single(c => c.Id == BuyerCheckResult.LoadTestCheckId).State);
+    }
+
+    [Fact]
+    public void LoadTestCancelled_IsNotApplicableNotAFailure()
+    {
+        var loadTest = GetLoadTestResult(3900d, 70d, LoadTestResult.AbortCancelled);
+
+        var result = new BuyerCheckEvaluator().Evaluate(AllPassBase(DateTimeOffset.UtcNow), new BuyerCheckContext("16 GB"), loadTest);
+
+        Assert.Equal(BuyerCheckState.NotApplicable, result.Checks.Single(c => c.Id == BuyerCheckResult.LoadTestCheckId).State);
+        Assert.Equal(BuyerCheckState.Pass, result.OverallState);
     }
 }

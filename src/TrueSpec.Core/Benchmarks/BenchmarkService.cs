@@ -45,7 +45,15 @@ public sealed class BenchmarkService : IBenchmarkService
         Task.Run(() => MeasureCpu(cancellationToken), cancellationToken);
 
     public Task<BenchmarkResult> RunDiskSequentialReadAsync(CancellationToken cancellationToken = default) =>
-        Task.Run(() => MeasureDisk(cancellationToken), cancellationToken);
+        Task.Run(() => MeasureDiskSequentialRead(DiskFileSizeBytes, cancellationToken), cancellationToken);
+
+    /// <summary>
+    /// Sequential read of a real temporary file of the given size. Shared by
+    /// the disk benchmark (64 MB) and the load test (128 MB) so both measure
+    /// the same way.
+    /// </summary>
+    public static BenchmarkResult MeasureDiskSequentialRead(int sizeBytes, CancellationToken cancellationToken) =>
+        MeasureDisk(sizeBytes, cancellationToken);
 
     private static BenchmarkResult MeasureCpu(CancellationToken cancellationToken)
     {
@@ -93,7 +101,12 @@ public sealed class BenchmarkService : IBenchmarkService
         }
     }
 
-    private static long RunCpuWorkload(int iterations, CancellationToken cancellationToken)
+    /// <summary>
+    /// The fixed xorshift workload. Public so the load test can burn the
+    /// same verified workload on all cores instead of duplicating it: the
+    /// checksum proves the work ran and keeps the JIT from eliminating it.
+    /// </summary>
+    public static long RunCpuWorkload(int iterations, CancellationToken cancellationToken)
     {
         ulong state = 0x9E3779B97F4A7C15UL;
         var sum = 0UL;
@@ -118,18 +131,18 @@ public sealed class BenchmarkService : IBenchmarkService
         return unchecked((long)sum);
     }
 
-    private static BenchmarkResult MeasureDisk(CancellationToken cancellationToken)
+    private static BenchmarkResult MeasureDisk(int sizeBytes, CancellationToken cancellationToken)
     {
         var path = Path.Combine(Path.GetTempPath(), $"truespec-bench-{Guid.NewGuid():N}.bin");
         try
         {
-            // The test writes a 64 MB temporary file. Check first that the
+            // The test writes a temporary file. Check first that the
             // temp drive can hold it: without the check a nearly-full drive
             // fails halfway through the write with a generic IOException,
             // and the user learns nothing. A drive that cannot be checked
             // (unknown root, permission error) falls through to the write,
             // which reports its own failure honestly.
-            var freeSpaceError = CheckTempDriveFreeSpace();
+            var freeSpaceError = CheckTempDriveFreeSpace(sizeBytes);
             if (freeSpaceError is not null)
             {
                 return BenchmarkResult.Failed("Disk sequential read", freeSpaceError, "Measured with a local temporary file");
@@ -146,10 +159,10 @@ public sealed class BenchmarkService : IBenchmarkService
                        DiskBufferSize,
                        FileOptions.WriteThrough))
             {
-                for (var written = 0; written < DiskFileSizeBytes; written += DiskBufferSize)
+                for (var written = 0; written < sizeBytes; written += DiskBufferSize)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    writer.Write(buffer, 0, Math.Min(DiskBufferSize, DiskFileSizeBytes - written));
+                    writer.Write(buffer, 0, Math.Min(DiskBufferSize, sizeBytes - written));
                 }
 
                 writer.Flush(true);
@@ -176,7 +189,7 @@ public sealed class BenchmarkService : IBenchmarkService
 
             stopwatch.Stop();
 
-            if (totalRead < DiskFileSizeBytes || stopwatch.Elapsed.TotalSeconds <= 0d)
+            if (totalRead < sizeBytes || stopwatch.Elapsed.TotalSeconds <= 0d)
             {
                 return BenchmarkResult.Failed(
                     "Disk sequential read",
@@ -232,12 +245,16 @@ public sealed class BenchmarkService : IBenchmarkService
     /// plain-language reason the benchmark did not run.
     /// </summary>
     public static string? FreeSpaceFailure(long availableFreeSpaceBytes) =>
-        availableFreeSpaceBytes < DiskFileSizeBytes
+        FreeSpaceFailure(availableFreeSpaceBytes, DiskFileSizeBytes);
+
+    /// <summary>Same check for an arbitrary test-file size (the load test uses 128 MB).</summary>
+    public static string? FreeSpaceFailure(long availableFreeSpaceBytes, long requiredBytes) =>
+        availableFreeSpaceBytes < requiredBytes
             ? FormattableString.Invariant(
-                $"Not enough free space on the temporary drive to run the disk test: it needs {DiskFileSizeBytes / 1024 / 1024} MB free and {availableFreeSpaceBytes / 1024 / 1024} MB is available. Free some space and try again.")
+                $"Not enough free space on the temporary drive to run the disk test: it needs {requiredBytes / 1024 / 1024} MB free and {availableFreeSpaceBytes / 1024 / 1024} MB is available. Free some space and try again.")
             : null;
 
-    private static string? CheckTempDriveFreeSpace()
+    private static string? CheckTempDriveFreeSpace(long requiredBytes)
     {
         try
         {
@@ -247,7 +264,7 @@ public sealed class BenchmarkService : IBenchmarkService
                 return null;
             }
 
-            return FreeSpaceFailure(new DriveInfo(root).AvailableFreeSpace);
+            return FreeSpaceFailure(new DriveInfo(root).AvailableFreeSpace, requiredBytes);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {

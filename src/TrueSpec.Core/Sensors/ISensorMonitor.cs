@@ -68,6 +68,25 @@ public sealed record SensorSnapshot(
 
     public SensorReading? CpuLoad() => Find(SensorKind.Load, "CPU", "CPU Total", "Total");
 
+    /// <summary>Every per-core clock reading with a value, for the load test's average/max clock.</summary>
+    public IReadOnlyList<SensorReading> CpuClocks() => Readings
+        .Where(r => r.Kind == SensorKind.Clock && r.HasValue)
+        .Where(r => r.Hardware.Contains("CPU", StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    /// <summary>Average of the per-core clocks, or null when no core clock reported.</summary>
+    public double? CpuClockMHz()
+    {
+        var clocks = CpuClocks();
+        return clocks.Count == 0 ? null : clocks.Average(r => r.Value!.Value);
+    }
+
+    /// <summary>CPU fan speed in RPM, or null when no CPU fan sensor reported.</summary>
+    public double? CpuFanRpm() => Find(SensorKind.Fan, "CPU", "CPU Fan", "Fan")?.Value;
+
+    /// <summary>CPU package power in watts, or null when no CPU power sensor reported.</summary>
+    public double? CpuPowerW() => Find(SensorKind.Power, "CPU", "Package", "CPU Package")?.Value;
+
     public SensorReading? BatteryPower() => Find(SensorKind.Power, "Battery", "Battery Power", "Charge Rate", "Discharge Rate");
 }
 

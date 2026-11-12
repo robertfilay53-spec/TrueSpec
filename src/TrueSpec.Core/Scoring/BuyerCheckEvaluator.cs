@@ -1,6 +1,7 @@
 namespace TrueSpec.Core.Scoring;
 
 using System.Globalization;
+using TrueSpec.Core.Benchmarks;
 using TrueSpec.Core.Collectors;
 using TrueSpec.Core.Health;
 using TrueSpec.Core.History;
@@ -8,7 +9,7 @@ using TrueSpec.Core.Models;
 
 public interface IBuyerCheckEvaluator
 {
-    BuyerCheckResult Evaluate(IEnumerable<ComponentSnapshot> components, BuyerCheckContext? context = null);
+    BuyerCheckResult Evaluate(IEnumerable<ComponentSnapshot> components, BuyerCheckContext? context = null, LoadTestResult? loadTest = null);
 }
 
 /// <summary>
@@ -18,7 +19,7 @@ public interface IBuyerCheckEvaluator
 /// </summary>
 public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
 {
-    public BuyerCheckResult Evaluate(IEnumerable<ComponentSnapshot> components, BuyerCheckContext? context = null)
+    public BuyerCheckResult Evaluate(IEnumerable<ComponentSnapshot> components, BuyerCheckContext? context = null, LoadTestResult? loadTest = null)
     {
         ArgumentNullException.ThrowIfNull(components);
 
@@ -42,7 +43,81 @@ public sealed class BuyerCheckEvaluator : IBuyerCheckEvaluator
             CheckRecentCrashes(byId),
         };
 
+        // The load-test check only exists once a load test has actually run:
+        // a machine that never ran the test is "not tested", not a pass and
+        // not a failure, so no row is shown for it.
+        if (loadTest is not null)
+        {
+            checks.Add(CheckLoadTest(loadTest));
+        }
+
         return new BuyerCheckResult(checks);
+    }
+
+    /// <summary>
+    /// The load test is NotMeasurable for the health score (it is a
+    /// user-initiated test, not a passive measurement), but it is a buyer
+    /// finding: a throttling machine can score 90 on passive health while
+    /// the New Laptop Check banner shows this finding separately (one-grade
+    /// drop, same as the authenticity and crash findings).
+    /// </summary>
+    private static BuyerCheck CheckLoadTest(LoadTestResult loadTest)
+    {
+        const string title = "CPU held rated clock under load";
+
+        if (loadTest.AbortReason == LoadTestResult.AbortCancelled)
+        {
+            return new BuyerCheck(BuyerCheckResult.LoadTestCheckId, title,
+                "The load test was cancelled before it finished, so it proves nothing about throttling.",
+                BuyerCheckState.NotApplicable,
+                "Run the 60-second load test from the Tests page and let it finish.");
+        }
+
+        if (loadTest.AbortReason == LoadTestResult.AbortSensorLost)
+        {
+            return new BuyerCheck(BuyerCheckResult.LoadTestCheckId, title,
+                "The sensors stopped reporting during the load test, so throttling could not be judged.",
+                BuyerCheckState.NotApplicable,
+                "Ask the seller whether the sensors work, and run the load test again.");
+        }
+
+        if (loadTest.AbortReason == LoadTestResult.AbortTemperature)
+        {
+            return new BuyerCheck(BuyerCheckResult.LoadTestCheckId, "CPU throttled under load",
+                FormattableString.Invariant(
+                    $"The load test stopped automatically at {loadTest.PeakTempC:0.#} C, above the 95 C safety limit. The cooling could not keep up with a full load."),
+                BuyerCheckState.Fail,
+                "Ask why the machine overheats under load, and whether the cooling has been serviced.");
+        }
+
+        if (loadTest.Throttled)
+        {
+            return new BuyerCheck(BuyerCheckResult.LoadTestCheckId, "CPU throttled under load",
+                loadTest.VerdictText,
+                BuyerCheckState.Fail,
+                "Ask why the machine slows down under load, and whether the cooling has been serviced.");
+        }
+
+        if (loadTest.PowerLimited)
+        {
+            return new BuyerCheck(BuyerCheckResult.LoadTestCheckId, title,
+                loadTest.VerdictText,
+                BuyerCheckState.Warning,
+                "Ask whether the machine was on battery or in a power-saving mode during the test, and run it again on mains power.");
+        }
+
+        if (loadTest.AvgClockMHz is null || loadTest.ClockHeldPercent is null)
+        {
+            return new BuyerCheck(BuyerCheckResult.LoadTestCheckId, title,
+                loadTest.VerdictText,
+                BuyerCheckState.NotApplicable,
+                "Run the load test again: no clock reading was recorded, so throttling could not be judged.");
+        }
+
+        return new BuyerCheck(BuyerCheckResult.LoadTestCheckId, title,
+            loadTest.VerdictText,
+            BuyerCheckState.Pass,
+            "Nothing to ask.");
     }
 
     private static BuyerCheck CheckSsdWear(IReadOnlyDictionary<string, ComponentSnapshot> byId)

@@ -12,7 +12,9 @@ using CommunityToolkit.Mvvm.Input;
 using TrueSpec.App.Services;
 using TrueSpec.App.ViewModels;
 using TrueSpec.Core;
+using TrueSpec.Core.Benchmarks;
 using TrueSpec.Core.Collectors;
+using TrueSpec.Core.Health;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Reports;
 using TrueSpec.Core.Scoring;
@@ -346,6 +348,20 @@ public partial class MainViewModel : ViewModelBase
                 CancellationToken.None,
                 ScanTimeouts.Default,
                 StartupLog.Append);
+            // A refresh re-scans the passive hardware, but the load test was
+            // measured on this machine and stays valid: carry it forward
+            // with its own timestamps, and re-evaluate the buyer checks
+            // with it, so a throttle finding does not vanish on refresh.
+            if (_snapshot.LoadTest is { } previousLoadTest)
+            {
+                var checks = _buyerCheckEvaluator.Evaluate(snapshot.Components, _buyerContext, previousLoadTest);
+                snapshot = snapshot with
+                {
+                    LoadTest = previousLoadTest,
+                    BuyerChecks = checks,
+                    Score = snapshot.Score with { Verdict = ScoringEngine.CombineVerdict(snapshot.Score, checks) },
+                };
+            }
             // The scan is done: clear the flag before ApplySnapshot, so a
             // page rebuilt from the new snapshot does not read "scanning".
             _scanRunning = false;
@@ -512,6 +528,45 @@ public partial class MainViewModel : ViewModelBase
         TimeSpan.FromSeconds(_settings.RefreshIntervalSeconds),
         isScanning);
 
+    /// <summary>
+    /// The load test finished on the Tests page. The result is saved into
+    /// the snapshot (so history keeps it) and the buyer checks are
+    /// re-evaluated with it: a throttling machine keeps its passive health
+    /// score, but the New Laptop Check banner shows the finding separately.
+    /// </summary>
+    private void OnLoadTestCompleted(LoadTestResult result)
+    {
+        var checks = _buyerCheckEvaluator.Evaluate(_snapshot.Components, _buyerContext, result);
+        _snapshot = _snapshot with
+        {
+            LoadTest = result,
+            BuyerChecks = checks,
+            Score = _snapshot.Score with { Verdict = ScoringEngine.CombineVerdict(_snapshot.Score, checks) },
+        };
+        Overview.UpdateSnapshot(_snapshot, isScanning: false);
+        _pageCache.Remove("report");
+        _ = SaveSnapshotAsync(_snapshot);
+        StatusMessage = "Load test complete. The result is saved in this scan.";
+    }
+
+    /// <summary>
+    /// Rated max clock in MHz from the CPU collector's "Max clock" spec
+    /// (Win32_Processor MaxClockSpeed), or null when it was not reported.
+    /// A missing value is never guessed: the verdict then says throttling
+    /// could not be judged.
+    /// </summary>
+    private static double? RatedMaxFromSnapshot(SystemSnapshot snapshot) =>
+        SpecText.Number(snapshot.Find("cpu")?.Specs ?? Array.Empty<SpecValue>(), SpecLabels.MaxClock);
+
+    /// <summary>
+    /// True when the battery is discharging (a "Discharge rate" above zero
+    /// was reported). A desktop, a machine on mains power, or a battery
+    /// that does not report a discharge rate reads as not on battery.
+    /// </summary>
+    private static bool IsOnBattery(SystemSnapshot snapshot) =>
+        SpecText.Number(snapshot.Find("battery")?.Specs ?? Array.Empty<SpecValue>(), SpecLabels.DischargeRate) is { } watts
+        && watts > 0d;
+
     private void OnBuyerChecksChanged(BuyerCheckResult checks, string? advertisedRam)
     {
         // The verdict is a function of the score AND the buyer checks
@@ -534,7 +589,11 @@ public partial class MainViewModel : ViewModelBase
         {
             "overview" => Overview,
             "crash" => GetOrCreate("crash", () => new CrashHistoryViewModel(_snapshot)),
-            "tests" => GetOrCreate("tests", () => new TestsViewModel()),
+            "tests" => GetOrCreate("tests", () => new TestsViewModel(
+                _sensorMonitor,
+                RatedMaxFromSnapshot(_snapshot),
+                IsOnBattery(_snapshot),
+                OnLoadTestCompleted)),
             "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: _scanRunning, exportPdfCommand: ExportPdfCommand)),
             "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot)),
             "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand)),
