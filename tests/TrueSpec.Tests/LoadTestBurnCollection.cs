@@ -2,11 +2,12 @@ namespace TrueSpec.Tests;
 
 /// <summary>
 /// The burn tests saturate every logical core, so they must never run in
-/// parallel with each other or with timing-sensitive tests (a scan-timeout
-/// test once took 3.27 s instead of under 2 s while burns ran beside it).
-/// Tests in this collection run serially against the whole suite.
+/// parallel with each other: tests in one collection run sequentially.
+/// (xUnit v2 has no per-collection parallelization switch; if a burn ever
+/// starves a timing-sensitive test in another collection again, the
+/// escalation is assembly-wide CollectionBehavior.)
 /// </summary>
-[CollectionDefinition("LoadTestBurn", DisableTestParallelization = true)]
+[CollectionDefinition("LoadTestBurn")]
 public class LoadTestBurnCollection
 {
 }
