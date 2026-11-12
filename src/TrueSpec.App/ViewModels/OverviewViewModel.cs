@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using TrueSpec.Core.Health;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Sensors;
+using TrueSpec.Core.Settings;
 
 namespace TrueSpec.App.ViewModels;
 
@@ -27,6 +28,8 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
 {
     private readonly DispatcherTimer _timer;
     private readonly ISensorMonitor _sensorMonitor;
+    private readonly SensorLogWriter? _sensorLogWriter;
+    private readonly ThresholdAlertEvaluator? _alertEvaluator;
     private readonly Action<string> _openComponent;
     private IReadOnlyList<SpecValue> _cpuSpecs = Array.Empty<SpecValue>();
     private bool _refreshing;
@@ -38,13 +41,19 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         ICommand exportCommand,
         ISensorMonitor sensorMonitor,
         TimeSpan? refreshInterval = null,
-        bool isScanning = false)
+        bool isScanning = false,
+        SensorLogWriter? sensorLogWriter = null,
+        ThresholdAlertEvaluator? alertEvaluator = null,
+        AppSettings? settings = null)
     {
         _sensorMonitor = sensorMonitor;
+        _sensorLogWriter = sensorLogWriter;
+        _alertEvaluator = alertEvaluator;
         _openComponent = openComponent;
         NewLaptopCheckCommand = newLaptopCheckCommand;
         ExportCommand = exportCommand;
         Cards = new ObservableCollection<ComponentCardViewModel>();
+        SensorAlerts = new ObservableCollection<string>();
         LiveMetrics = new ObservableCollection<LiveMetricViewModel>
         {
             new("CPU temp", "C"),
@@ -59,6 +68,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         UpdateSnapshot(snapshot, isScanning);
 
         StatusMessage = sensorMonitor.StatusText;
+        ApplySensorSettings(settings ?? AppSettings.Default);
 
         _timer = new DispatcherTimer { Interval = refreshInterval ?? TimeSpan.FromSeconds(2) };
         RefreshText = BuildRefreshText(_timer.Interval);
@@ -121,8 +131,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
-    /// Called by the shell when the user changes the refresh interval in
-    /// settings. The timer is updated live; the sensor read itself already
+    /// Called by the shell when the user changes a setting. The timer is updated live; the sensor read itself already
     /// runs off the UI thread (Task.Run inside the monitor).
     /// </summary>
     public void SetRefreshInterval(TimeSpan interval)
@@ -131,6 +140,36 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         _timer.Interval = clamped;
         RefreshText = BuildRefreshText(clamped);
         OnPropertyChanged(nameof(RefreshText));
+    }
+
+    /// <summary>
+    /// Applies the sensor settings live: logging on/off and the CPU
+    /// temperature alert threshold. Called by the shell whenever settings
+    /// change, and once from the constructor with the loaded settings.
+    /// Reconfiguring the threshold resets any crossing in progress: the
+    /// old threshold is no longer being watched.
+    /// </summary>
+    public void ApplySensorSettings(AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        if (_sensorLogWriter is not null)
+        {
+            _sensorLogWriter.Enabled = settings.SensorLoggingEnabled;
+        }
+
+        _alertEvaluator?.Configure(settings.CpuTemperatureThresholdC, settings.CpuTemperatureThresholdSeconds);
+
+        SensorLogText = _sensorLogWriter is null
+            ? "Sensor logging is unavailable on this machine."
+            : settings.SensorLoggingEnabled
+                ? $"Sensor readings are recorded to {_sensorLogWriter.FilePath}. The chart is on the History page."
+                : "Sensor logging is off. Turn it on in Settings to record readings.";
+        AlertSettingsText = settings.CpuTemperatureThresholdC is { } threshold
+            ? $"Alert when the CPU temperature reaches {threshold.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} C for {settings.CpuTemperatureThresholdSeconds} seconds. Set it in Settings."
+            : "No temperature alert set. TrueSpec ships with no threshold; set one in Settings if you want an alert.";
+        OnPropertyChanged(nameof(SensorLogText));
+        OnPropertyChanged(nameof(AlertSettingsText));
     }
 
     private static string BuildRefreshText(TimeSpan interval)
@@ -178,6 +217,24 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
 
     public ObservableCollection<LiveMetricViewModel> LiveMetrics { get; }
 
+    /// <summary>Threshold alerts fired this session, newest first, capped at 10.</summary>
+    public ObservableCollection<string> SensorAlerts { get; }
+
+    /// <summary>The latest threshold alert, if any. Empty when no alert has fired.</summary>
+    [ObservableProperty]
+    public partial string LatestSensorAlertText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool HasSensorAlert { get; set; }
+
+    /// <summary>Where the sensor log lives, or why there is none.</summary>
+    [ObservableProperty]
+    public partial string SensorLogText { get; set; } = string.Empty;
+
+    /// <summary>What the temperature alert is set to, or that none is set.</summary>
+    [ObservableProperty]
+    public partial string AlertSettingsText { get; set; } = string.Empty;
+
     public ICommand NewLaptopCheckCommand { get; }
 
     public ICommand ExportCommand { get; }
@@ -208,10 +265,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
                 ? $"Live sensors updated {DateTime.Now:HH:mm:ss}"
                 : snapshot.StatusText;
 
-            UpdateMetric("CPU temp", snapshot.CpuTemperature()?.Value);
-            UpdateMetric("GPU temp", snapshot.GpuTemperature()?.Value);
-            UpdateMetric("CPU usage", snapshot.CpuLoad()?.Value);
-            UpdateMetric("Battery power", snapshot.BatteryPower()?.Value);
+            ProcessSensorSnapshot(snapshot);
         }
         catch (Exception exception)
         {
@@ -220,6 +274,41 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         finally
         {
             _refreshing = false;
+        }
+    }
+
+    /// <summary>
+    /// Handles one live sensor snapshot: updates the strip, appends the
+    /// sample to the sensor log, and evaluates the temperature threshold.
+    /// Public so tests can drive it deterministically without waiting on
+    /// the refresh timer. Never throws: logging and alerting must never
+    /// break the live strip.
+    /// </summary>
+    public void ProcessSensorSnapshot(SensorSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        UpdateMetric("CPU temp", snapshot.CpuTemperature()?.Value);
+        UpdateMetric("GPU temp", snapshot.GpuTemperature()?.Value);
+        UpdateMetric("CPU usage", snapshot.CpuLoad()?.Value);
+        UpdateMetric("Battery power", snapshot.BatteryPower()?.Value);
+
+        _sensorLogWriter?.Append(snapshot);
+
+        if (_alertEvaluator is not null)
+        {
+            var alert = _alertEvaluator.Evaluate(snapshot.CpuTemperature()?.Value, snapshot.CapturedAt);
+            if (alert is not null)
+            {
+                SensorAlerts.Insert(0, alert.Text);
+                while (SensorAlerts.Count > 10)
+                {
+                    SensorAlerts.RemoveAt(SensorAlerts.Count - 1);
+                }
+
+                LatestSensorAlertText = alert.Text;
+                HasSensorAlert = true;
+            }
         }
     }
 

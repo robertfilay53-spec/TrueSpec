@@ -138,6 +138,44 @@ public static class PathSafety
     }
 
     /// <summary>
+    /// Validates a sensor log file path. The file must live inside the given
+    /// base folder (the app data folder) after resolving every ".." segment,
+    /// and must end in .csv: a log file must never end in an executable
+    /// extension.
+    /// </summary>
+    public static string? ValidateSensorLogPath(string? logPath, string baseFolder)
+    {
+        if (string.IsNullOrWhiteSpace(logPath) || string.IsNullOrWhiteSpace(baseFolder))
+        {
+            return null;
+        }
+
+        string fullPath;
+        string fullBase;
+        try
+        {
+            fullPath = Path.GetFullPath(logPath.Trim());
+            fullBase = Path.GetFullPath(baseFolder.Trim());
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+
+        if (!fullPath.StartsWith(fullBase.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (!string.Equals(Path.GetExtension(fullPath), ".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return fullPath;
+    }
+
+    /// <summary>
     /// Builds a safe file name for a report export. Strips directory
     /// separators and invalid characters, and never lets a caller inject a
     /// path through the file name. Only the report formats the app actually

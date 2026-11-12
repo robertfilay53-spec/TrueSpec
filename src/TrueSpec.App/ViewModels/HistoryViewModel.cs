@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -9,6 +10,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TrueSpec.Core.History;
 using TrueSpec.Core.Models;
+using TrueSpec.Core.Sensors;
 using TrueSpec.Core.Storage;
 
 namespace TrueSpec.App.ViewModels;
@@ -23,17 +25,27 @@ namespace TrueSpec.App.ViewModels;
 /// </summary>
 public sealed partial class HistoryViewModel : ViewModelBase
 {
+    /// <summary>Newest samples kept for the log chart, so a very long session does not slow the render.</summary>
+    public const int MaxLogChartPoints = 2000;
+
     private readonly ISnapshotStore? _store;
     private readonly SystemSnapshot _current;
     private int _loadGeneration;
     private string? _displayedMachine;
     private bool _suppressSelectionReload;
+    private string? _sensorLogPath;
+    private bool _sensorLoggingEnabled;
+    private double? _cpuTemperatureThresholdC;
 
-    public HistoryViewModel(ISnapshotStore? store, SystemSnapshot current, ICommand? exportHistoryCsvCommand = null)
+    public HistoryViewModel(ISnapshotStore? store, SystemSnapshot current, ICommand? exportHistoryCsvCommand = null, string? sensorLogPath = null, bool sensorLoggingEnabled = true, double? cpuTemperatureThresholdC = null)
     {
         _store = store;
         _current = current;
         ExportHistoryCsvCommand = exportHistoryCsvCommand;
+        _sensorLogPath = sensorLogPath;
+        _sensorLoggingEnabled = sensorLoggingEnabled;
+        _cpuTemperatureThresholdC = cpuTemperatureThresholdC;
+        SensorLogThresholdC = cpuTemperatureThresholdC;
         MachineSubtitleText = $"How {current.MachineName} changes over time";
         _ = LoadAsync();
     }
@@ -53,6 +65,107 @@ public sealed partial class HistoryViewModel : ViewModelBase
     public ObservableCollection<string> MachineNames { get; } = new();
 
     public ObservableCollection<MachineComparisonRowViewModel> ComparisonRows { get; } = new();
+
+    /// <summary>CPU temperature samples from the sensor log, oldest first, gaps kept as null.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<double?>? CpuTemperatureLogValues { get; set; }
+
+    /// <summary>The user-set CPU temperature threshold, drawn as a dashed line on the log chart.</summary>
+    [ObservableProperty]
+    public partial double? SensorLogThresholdC { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasSensorLog { get; set; }
+
+    [ObservableProperty]
+    public partial string SensorLogSummaryText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string SensorLogStatusText { get; set; } = "Loading sensor log...";
+
+    /// <summary>
+    /// Applies new sensor-log settings live (the shell calls this when the
+    /// user changes a setting) and re-reads the log.
+    /// </summary>
+    public void ApplySensorSettings(string? sensorLogPath, bool sensorLoggingEnabled, double? cpuTemperatureThresholdC)
+    {
+        _sensorLogPath = sensorLogPath;
+        _sensorLoggingEnabled = sensorLoggingEnabled;
+        _cpuTemperatureThresholdC = cpuTemperatureThresholdC;
+        SensorLogThresholdC = cpuTemperatureThresholdC;
+        LoadSensorLog();
+    }
+
+    /// <summary>Re-reads the sensor log from disk (the Refresh chart button).</summary>
+    [RelayCommand]
+    private void RefreshSensorLog() => LoadSensorLog();
+
+    /// <summary>
+    /// Reads the local sensor log for the CPU temperature chart. Never
+    /// throws: a missing or unreadable log is an empty state, not an error.
+    /// Runs on the calling thread; the file is capped at 10,000 rows, so
+    /// the read is fast.
+    /// </summary>
+    public void LoadSensorLog()
+    {
+        HasSensorLog = false;
+        CpuTemperatureLogValues = null;
+        SensorLogSummaryText = string.Empty;
+
+        if (!_sensorLoggingEnabled)
+        {
+            SensorLogStatusText = "Sensor logging is off. Turn it on in Settings and the CPU temperature chart will appear here.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_sensorLogPath) || !File.Exists(_sensorLogPath))
+        {
+            SensorLogStatusText = "No sensor samples recorded yet. Leave TrueSpec running and the CPU temperature chart will appear here.";
+            return;
+        }
+
+        try
+        {
+            var columns = SensorLogReader.ReadColumns(_sensorLogPath);
+            var column = SensorLogReader.FindCpuTemperatureColumn(columns);
+            if (column is null)
+            {
+                SensorLogStatusText = "This machine's log has no CPU temperature sensor, so there is nothing to chart.";
+                return;
+            }
+
+            var series = SensorLogReader.Read(_sensorLogPath, column);
+            if (series.RowCount == 0)
+            {
+                SensorLogStatusText = "No sensor samples recorded yet. Leave TrueSpec running and the CPU temperature chart will appear here.";
+                return;
+            }
+
+            var points = series.Points;
+            if (points.Count > MaxLogChartPoints)
+            {
+                points = points.Skip(points.Count - MaxLogChartPoints).ToList();
+            }
+
+            CpuTemperatureLogValues = points.Select(p => p.Value).ToList();
+            HasSensorLog = true;
+            var first = series.FirstAt?.ToString("HH:mm", CultureInfo.InvariantCulture) ?? "?";
+            var last = series.LastAt?.ToString("HH:mm", CultureInfo.InvariantCulture) ?? "?";
+            var gapText = series.GapCount == 0
+                ? "no gaps"
+                : series.GapCount == 1
+                    ? "1 gap where the sensor did not report"
+                    : $"{series.GapCount} gaps where the sensor did not report";
+            SensorLogStatusText = $"CPU temperature, {series.RowCount} samples from {first} to {last}.";
+            SensorLogSummaryText = points.Count < series.Points.Count
+                ? $"Showing the newest {points.Count} of {series.RowCount} samples, {gapText}."
+                : $"{series.RowCount} samples, {gapText}.";
+        }
+        catch (Exception exception)
+        {
+            SensorLogStatusText = $"Sensor log could not be read: {exception.Message}";
+        }
+    }
 
     [ObservableProperty]
     public partial string StatusMessage { get; set; } = "Loading snapshot history...";
@@ -253,6 +366,10 @@ public sealed partial class HistoryViewModel : ViewModelBase
             IsMachinePickerEnabled = MachineNames.Count > 0;
             UpdateCompareState();
         }
+
+        // The sensor log does not depend on the snapshot store, so it loads
+        // even when history itself failed.
+        LoadSensorLog();
     }
 
     private async Task LoadTrendForMachineAsync(string machineName)

@@ -86,6 +86,34 @@
                 </Border>
             </Grid>
 
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                        <TextBlock Text="CPU temperature log" Classes="h3" VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Classes="secondary"
+                                Content="Refresh chart"
+                                Command="{Binding RefreshSensorLogCommand}" />
+                    </Grid>
+                    <TextBlock Text="{Binding SensorLogStatusText}" Classes="muted" TextWrapping="Wrap" />
+                    <controls:SensorLogChart Height="120"
+                                             Values="{Binding CpuTemperatureLogValues}"
+                                             ThresholdValue="{Binding SensorLogThresholdC}"
+                                             StrokeThickness="2"
+                                             IsVisible="{Binding HasSensorLog}" />
+                    <TextBlock Text="{Binding SensorLogSummaryText}"
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding HasSensorLog}" />
+                    <TextBlock Text="Gaps in the line are samples where the CPU temperature sensor did not report. The line never connects across a gap. The dashed line is your alert threshold, when one is set. The log is a local CSV under %LocalAppData%\TrueSpec; nothing is uploaded."
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding HasSensorLog}" />
+                </StackPanel>
+            </Border>
+
             <Border Classes="card" Padding="18" IsVisible="{Binding HasDriverAgeSummary}">
                 <StackPanel Spacing="8">
                     <TextBlock Text="DRIVER AGE" Classes="eyebrow" />
