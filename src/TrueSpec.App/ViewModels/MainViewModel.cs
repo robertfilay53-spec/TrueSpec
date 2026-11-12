@@ -118,6 +118,12 @@ public partial class MainViewModel : ViewModelBase
                 CancellationToken.None,
                 ScanTimeouts.Default,
                 StartupLog.Append);
+            // The scan is done: clear the flag before ApplySnapshot, so a
+            // page rebuilt from the new snapshot does not read "scanning".
+            // (Same pattern as RefreshAsync: the save below is persistence,
+            // not part of the scan, and must not keep the UI in "scanning"
+            // state after the Overview already shows the finished score.)
+            _scanRunning = false;
             ApplySnapshot(snapshot, "Real scan complete. Live sensors use LibreHardwareMonitor when available.", resetNavigation: true);
             await SaveSnapshotAsync(snapshot);
             StartupLog.Append("MainViewModel: initial scan complete");
