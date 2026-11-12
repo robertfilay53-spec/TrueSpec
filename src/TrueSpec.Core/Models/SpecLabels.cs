@@ -15,6 +15,7 @@ namespace TrueSpec.Core.Models;
 /// </summary>
 public static class SpecLabels
 {
+    public const string ActiveResolution = "Active resolution (Windows)";
     public const string Antivirus = "Antivirus";
     public const string Architecture = "Architecture";
     public const string BIOSDate = "BIOS date";
@@ -32,6 +33,7 @@ public static class SpecLabels
     public const string ChassisSerial = "Chassis serial";
     public const string ChassisType = "Chassis type";
     public const string Chemistry = "Chemistry";
+    public const string ColourDepth = "Colour depth";
     public const string ConfiguredSpeed = "Configured speed";
     public const string CoreVoltage = "Core voltage";
     public const string Cores = "Cores";
@@ -61,7 +63,7 @@ public static class SpecLabels
     public const string EthernetAdapter = "Ethernet adapter";
     public const string EthernetDriverDate = "Ethernet driver date";
     public const string EthernetGateway = "Ethernet gateway";
-    public const string EthernetLinkSpeed = "Ethernet link speed";
+    public const string EthernetLinkSpeed = "Ethernet link speed (negotiated rate at scan time)";
     public const string EthernetStatus = "Ethernet status";
     public const string Filesystem = "Filesystem";
     public const string Firewall = "Firewall";
@@ -93,7 +95,7 @@ public static class SpecLabels
     public const string LastSuccessfulUpdateCheck = "Last successful update check";
     public const string LastSuccessfulUpdateInstall = "Last successful update install";
     public const string LifeRemaining = "Life remaining";
-    public const string LinkSpeed = "Link speed";
+    public const string LinkSpeed = "Link speed (negotiated rate at scan time)";
     public const string LiveCoreClock = "Live core clock";
     public const string M2Slots = "M.2 slots";
     public const string MACAddress = "MAC address";
@@ -105,6 +107,7 @@ public static class SpecLabels
     public const string MemoryTest = "Memory test";
     public const string Model = "Model";
     public const string MonitorsDetected = "Monitors detected";
+    public const string NativeResolution = "Native resolution (panel)";
     public const string OldestDriverDate = "Oldest driver date";
     public const string OldestDriverDevice = "Oldest driver device";
     public const string OperatingSystem = "Operating system";
@@ -177,6 +180,8 @@ public static class SpecLabels
     public const string Wear = "Wear";
     public const string WearLevel = "Wear level";
     public const string WiFiAdapter = "Wi-Fi adapter";
+    public const string WifiDriverAge = "Wi-Fi driver age";
+    public const string WifiStandardNegotiated = "Wi-Fi standard (negotiated)";
     public const string WiFiVendor = "Wi-Fi vendor";
     public const string WindowsBuild = "Windows build";
     public const string WindowsEdition = "Windows edition";
