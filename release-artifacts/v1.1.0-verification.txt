@@ -1,0 +1,14 @@
+# TrueSpec v1.1.0 — release verification record
+
+- Tag: v1.1.0 at 5702c9e670cc76cfdf326c3c691a94dd7767e563 (verified via git ls-remote)
+- Release: https://github.com/robertfilay53-spec/TrueSpec/releases/tag/v1.1.0 (created 2026-11-11T21:47:39Z)
+- Release workflow run: 43106269043 — SUCCESS (build-windows, 2m35s; all steps passed: Test, Publish portable exe, Install Inno Setup, Compile installer, Zip portable exe, Upload assets to release). One non-blocking annotation: Node.js 20 deprecation warning on actions/checkout@v4 and actions/setup-dotnet@v4.
+- CI on the release commit: run 43099843714 GREEN (Windows 244 tests, Ubuntu 232 tests).
+- Assets (downloaded to release-artifacts/ and hash-verified):
+  - TrueSpecSetup-1.1.0.exe — 37,665,859 bytes — SHA256 70bd5dcface9c19757b5b7c84a5ed07e3ba762ead03a9db7c65454dc946da770
+  - TrueSpec-1.1.0-portable.zip — 50,123,247 bytes — SHA256 310b332f1a994fd2c276731b88b60aa3474bec4f3e5deaa3be902cc16e157456
+- Release notes updated with the verified hashes (confirmed via gh release view).
+- Release notes carry "Developed by Rana Jawad" and the 3-feature what's-new list.
+
+OPEN (not done by this coordinator — needs a browser task, which a generic subagent cannot launch):
+- Installer live test on the RELEASED installer (AppOnFly, free trial, no sign-in/payment/card). See the browser-task brief in the coordinator's final report to the parent agent.

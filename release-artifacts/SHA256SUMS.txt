@@ -1,0 +1,2 @@
+d4b7141524f35bd0c3dc5ead9b11b879b5f8b261c8d21ea699ee35af03af4365  TrueSpecSetup-1.4.0.exe
+f9b2950449b9c7b6dd309f09075e96e5520235acdb73d2a89c270c4ea5ae4324  TrueSpec-1.4.0-portable.zip

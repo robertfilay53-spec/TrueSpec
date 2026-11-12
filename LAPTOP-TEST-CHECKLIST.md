@@ -1,10 +1,23 @@
 # TrueSpec — Laptop Test Checklist (for Jawad's Windows laptop)
 
-Prepared Nov 10, 2026. P1-P3 build is done and pushed (commit 63254d8, public repo
-https://github.com/robertfilay53-spec/TrueSpec). The VM cannot test real sensors,
-so this run needs a real Windows machine. About 10 minutes.
+Prepared Nov 10, 2026, updated Nov 11, 2026. v1.0.0 is RELEASED and verified:
+https://github.com/robertfilay53-spec/TrueSpec/releases/tag/v1.0.0
+The VM cannot test real sensors, so this run needs a real Windows machine.
+About 10 minutes. No .NET SDK needed anymore, use the installer below.
 
-## Before you start
+## Easiest way: installer (no build, no SDK)
+
+1. Download **TrueSpecSetup-1.0.0.exe** (35 MB) from the release page above.
+   SHA256: 145ab36271ae18f2f0c7a03b477bac8ba979d0e7a8bef98efaaa4baa6c82887a
+   (Alternative, no install at all: **TrueSpec-1.0.0-portable.zip**, 47 MB,
+   SHA256: b3b1ff969a49ade513988adbb6bc0db93379a33303167f427d27393b619d7de1,
+   extract and run TrueSpec.App.exe.)
+2. Double-click the installer, install, run the app. No admin needed, no
+   account, 100% offline. The app opens on the Overview dashboard (dark
+   theme, score ring at the top).
+3. Then do the 10 checks below.
+
+## Fallback: build from source (only if the installer does not work)
 
 - Windows 10 or 11 laptop/PC with .NET 10 SDK installed.
   No SDK yet: install from https://dotnet.microsoft.com/download/dotnet/10.0
@@ -12,16 +25,13 @@ so this run needs a real Windows machine. About 10 minutes.
 - No admin rights needed to run, but run as Administrator if you want the full
   SMART + event-log readings.
 
-## Run it (3 commands)
-
 ```powershell
 git clone https://github.com/robertfilay53-spec/TrueSpec.git
 cd TrueSpec
 dotnet run --project src/TrueSpec.App
 ```
 
-First run restores and builds; it takes a minute or two. The app opens on the
-Overview dashboard (dark theme, score ring at the top).
+First run restores and builds; it takes a minute or two.
 
 ## What to check (tick off as you go)
 
@@ -58,10 +68,9 @@ Overview dashboard (dark theme, score ring at the top).
 
 ## After the test
 
-- Close the app. Nothing is installed system-wide and nothing is uploaded;
-  the app is 100% offline, no account, no telemetry.
-- If you want it gone from the laptop afterwards: delete the TrueSpec folder.
-- CI note for Ziggy (not your step): `.github/workflows/ci.yml` is ready on disk
-  at `~/workspace/production/pc-inspector/.github/workflows/ci.yml` but is NOT
-  in the repo yet (gh token lacks workflow scope). It goes in via the GitHub
-  web UI, then CI builds + tests on Ubuntu and Windows on every push.
+- Close the app. Nothing is uploaded; the app is 100% offline, no account,
+  no telemetry.
+- If you want it gone from the laptop afterwards: uninstall from Windows
+  Settings (verified clean Nov 11: install folder, app data, Start Menu entry
+  and registry key all removed; your exports in Documents\TrueSpec are never
+  deleted). Portable version: just delete the extracted folder.

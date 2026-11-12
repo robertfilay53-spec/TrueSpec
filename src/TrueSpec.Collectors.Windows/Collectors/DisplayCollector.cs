@@ -54,6 +54,7 @@ public sealed class DisplayCollector : ICollector
 
         var size = FormatPanelSize(basic);
         var resolution = FormatResolution(video);
+        var colourDepth = FormatColourDepth(video?.UInt32("CurrentBitsPerPixel"));
         var refresh = video?.UInt32("CurrentRefreshRate") is { } hz && hz > 0
             ? string.Create(CultureInfo.InvariantCulture, $"{hz} Hz")
             : CollectorSupport.NotReported;
@@ -73,7 +74,14 @@ public sealed class DisplayCollector : ICollector
             CollectorSupport.Spec("Panel name", friendly, "EDID WmiMonitorID.UserFriendlyName"),
             CollectorSupport.Spec("Manufacture date", manufactureDate, "EDID WmiMonitorID manufacture week/year"),
             CollectorSupport.Spec("Size", size, "EDID WmiMonitorBasicDisplayParams"),
-            CollectorSupport.Spec("Resolution", resolution, "CIM Win32_VideoController"),
+            // U11: the panel block (EDID) sits next to the active Windows
+            // resolution so a buyer can compare them. The panel's own native
+            // resolution is NOT shown as a number: EDID detailed timings are
+            // not exposed by WmiMonitorID, so it is reported as not available
+            // rather than guessed from the active resolution.
+            CollectorSupport.Spec("Active resolution (Windows)", resolution, "CIM Win32_VideoController (active display settings)"),
+            CollectorSupport.Spec("Native resolution (panel)", null, "EDID detailed timings are not exposed by WmiMonitorID"),
+            CollectorSupport.Spec("Colour depth", colourDepth, "CIM Win32_VideoController.CurrentBitsPerPixel"),
             CollectorSupport.Spec("Refresh rate", refresh, "CIM Win32_VideoController"),
             CollectorSupport.Spec("Monitors detected", monitors.Count.ToString(CultureInfo.InvariantCulture), "CIM WmiMonitorID"),
             CollectorSupport.Spec("HDR", "Not reported by hardware", "EDID extended block not exposed by WmiMonitorID"),
@@ -105,7 +113,7 @@ public sealed class DisplayCollector : ICollector
             Id,
             string.IsNullOrWhiteSpace(headline) ? "Display" : headline,
             specs,
-            "The panel block shows what screen is fitted. The manufacture date comes from the panel EDID itself. A panel made long before the laptop was sold can be a sign of a replaced screen. HDR and panel technology are only shown when the EDID exposes them."));
+            "The panel block shows what screen is fitted. The manufacture date comes from the panel EDID itself. A panel made long before the laptop was sold can be a sign of a replaced screen. The resolution shown is the one Windows is currently using; the panel's own native resolution is not exposed by WmiMonitorID, so it is reported as not available rather than guessed. HDR and panel technology are only shown when the EDID exposes them."));
     }
 
     private static string Decode(ushort[]? values)
@@ -122,6 +130,16 @@ public sealed class DisplayCollector : ICollector
 
         return chars.Length == 0 ? CollectorSupport.NotReported : new string(chars).Trim();
     }
+
+    /// <summary>
+    /// U11: colour depth from Win32_VideoController.CurrentBitsPerPixel, as
+    /// "32-bit". A missing or zero value is "Not reported by hardware":
+    /// 0 bits per pixel is not a real colour depth.
+    /// </summary>
+    internal static string FormatColourDepth(uint? bitsPerPixel) =>
+        bitsPerPixel is null or 0
+            ? CollectorSupport.NotReported
+            : string.Create(CultureInfo.InvariantCulture, $"{bitsPerPixel.Value}-bit");
 
     private static string FormatResolution(WmiRow? video)
     {

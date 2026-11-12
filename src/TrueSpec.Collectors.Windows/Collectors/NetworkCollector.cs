@@ -1,4 +1,5 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("TrueSpec.NetworkSmoke")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("TrueSpec.Tests")]
 
 namespace TrueSpec.Collectors.Windows.Collectors;
 
@@ -25,6 +26,12 @@ public sealed class NetworkCollector : ICollector
 {
     /// <summary>Source label used for every value read through NetworkInterface.</summary>
     internal const string NetworkInterfaceSource = "System.Net.NetworkInformation.NetworkInterface";
+
+    /// <summary>
+    /// U12: a Wi-Fi driver older than this many years is flagged in the
+    /// "Wi-Fi driver age" spec. The plan names two years as the threshold.
+    /// </summary>
+    internal const int WifiDriverStaleAgeYears = 2;
 
     public string Id => "network";
 
@@ -182,8 +189,9 @@ public sealed class NetworkCollector : ICollector
     /// (signal, band, channel, SSID, standards) have no NetworkInterface
     /// equivalent and stay CIM/netsh-only.
     /// </summary>
-    internal static List<SpecValue> BuildSpecs(NetworkReading reading, IReadOnlyList<InterfaceData> interfaces)
+    internal static List<SpecValue> BuildSpecs(NetworkReading reading, IReadOnlyList<InterfaceData> interfaces, DateTimeOffset? asOf = null)
     {
+        var referenceDate = asOf ?? DateTimeOffset.UtcNow;
         var wireless = PickWireless(interfaces);
         var wired = PickWired(interfaces);
 
@@ -208,11 +216,16 @@ public sealed class NetworkCollector : ICollector
             CollectorSupport.Spec("Standards", reading.Standards, "netsh wlan show drivers"),
             CollectorSupport.Spec("Driver version", reading.WifiDriverVersion, "CIM Win32_PnPSignedDriver"),
             CollectorSupport.Spec("Driver date", reading.WifiDriverDate, "CIM Win32_PnPSignedDriver"),
-            CollectorSupport.Spec("Link speed", FormatBitsPerSecond(wifiSpeed), wifiSpeed == reading.WifiSpeedBitsPerSecond ? "CIM Win32_NetworkAdapter.Speed" : NetworkInterfaceSource),
+            CollectorSupport.Spec("Wi-Fi driver age", FormatWifiDriverAge(reading.WifiDriverDate, referenceDate), "CIM Win32_PnPSignedDriver"),
+            // U12 honesty rule: this is the rate the adapter negotiated at
+            // scan time, not a throughput measurement. The label says so so
+            // the UI never has to.
+            CollectorSupport.Spec("Link speed (negotiated rate at scan time)", FormatBitsPerSecond(wifiSpeed), wifiSpeed == reading.WifiSpeedBitsPerSecond ? "CIM Win32_NetworkAdapter.Speed" : NetworkInterfaceSource),
             CollectorSupport.Spec("Signal", reading.Signal, "netsh wlan show interfaces"),
             CollectorSupport.Spec("Band", reading.Band, "netsh wlan show interfaces"),
             CollectorSupport.Spec("Channel", reading.Channel, "netsh wlan show interfaces"),
             CollectorSupport.Spec("Radio type", reading.RadioType, "netsh wlan show interfaces"),
+            CollectorSupport.Spec("Wi-Fi standard (negotiated)", MapNegotiatedStandard(reading.RadioType), "netsh wlan show interfaces"),
             CollectorSupport.Spec("Receive rate", reading.ReceiveRate, "netsh wlan show interfaces"),
             CollectorSupport.Spec("Transmit rate", reading.TransmitRate, "netsh wlan show interfaces"),
             CollectorSupport.Spec("SSID", reading.Ssid, "netsh wlan show interfaces"),
@@ -222,7 +235,7 @@ public sealed class NetworkCollector : ICollector
             CollectorSupport.Spec("DNS servers", wifiDns.Value, wifiDns.Source),
             CollectorSupport.Spec("Hardware manufacture date", "Not reported by hardware", "No Wi-Fi card or driver exposes a manufacture date"),
             CollectorSupport.Spec("Ethernet adapter", ethernetName.Value, ethernetName.Source),
-            CollectorSupport.Spec("Ethernet link speed", FormatBitsPerSecond(ethernetSpeed), ethernetSpeed == reading.EthernetSpeedBitsPerSecond ? "CIM Win32_NetworkAdapter.Speed" : NetworkInterfaceSource),
+            CollectorSupport.Spec("Ethernet link speed (negotiated rate at scan time)", FormatBitsPerSecond(ethernetSpeed), ethernetSpeed == reading.EthernetSpeedBitsPerSecond ? "CIM Win32_NetworkAdapter.Speed" : NetworkInterfaceSource),
             CollectorSupport.Spec("Ethernet status", wired?.Status, NetworkInterfaceSource),
             CollectorSupport.Spec("Ethernet MAC address", ethernetMac.Value, ethernetMac.Source),
             CollectorSupport.Spec("Ethernet driver date", reading.EthernetDriverDate, "CIM Win32_PnPSignedDriver"),
@@ -445,6 +458,86 @@ public sealed class NetworkCollector : ICollector
 
     private static string? Get(IReadOnlyDictionary<string, string> values, string key) =>
         values.TryGetValue(key, out var value) ? value : null;
+
+    /// <summary>
+    /// U12: the Wi-Fi generation the adapter actually negotiated, from the
+    /// netsh "Radio type" value (for example "802.11ax"). Highest standard
+    /// first: a radio-type string names one standard, but checking in
+    /// descending order keeps the mapping correct if a value ever names
+    /// more than one. Anything unrecognised is "Not reported by hardware",
+    /// never a guessed generation.
+    /// </summary>
+    internal static string MapNegotiatedStandard(string? radioType)
+    {
+        if (string.IsNullOrWhiteSpace(radioType))
+        {
+            return CollectorSupport.NotReported;
+        }
+
+        if (radioType.Contains("802.11be", StringComparison.OrdinalIgnoreCase))
+        {
+            return "802.11be (Wi-Fi 7)";
+        }
+
+        if (radioType.Contains("802.11ax", StringComparison.OrdinalIgnoreCase))
+        {
+            return "802.11ax (Wi-Fi 6)";
+        }
+
+        if (radioType.Contains("802.11ac", StringComparison.OrdinalIgnoreCase))
+        {
+            return "802.11ac (Wi-Fi 5)";
+        }
+
+        if (radioType.Contains("802.11n", StringComparison.OrdinalIgnoreCase))
+        {
+            return "802.11n (Wi-Fi 4)";
+        }
+
+        return CollectorSupport.NotReported;
+    }
+
+    /// <summary>
+    /// U12: plain-text age of the Wi-Fi driver from its driver date
+    /// ("yyyy-MM-dd" as written by WmiRow.DateText), for example
+    /// "Driver from 2024 (2 years old)". A driver older than
+    /// <see cref="WifiDriverStaleAgeYears"/> years is flagged in the same
+    /// value. A missing, unparseable or future date never produces a
+    /// negative age: a future date reads as 0 years old.
+    /// </summary>
+    internal static string FormatWifiDriverAge(string? driverDate, DateTimeOffset asOf)
+    {
+        if (string.IsNullOrWhiteSpace(driverDate) ||
+            !DateTimeOffset.TryParse(
+                driverDate,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var date))
+        {
+            return CollectorSupport.NotReported;
+        }
+
+        var years = asOf.Year - date.Year;
+        if (asOf.Month < date.Month || (asOf.Month == date.Month && asOf.Day < date.Day))
+        {
+            years--;
+        }
+
+        if (years < 0)
+        {
+            years = 0;
+        }
+
+        // The stale flag sits inside the same parentheses as the age, so
+        // the value reads as one sentence: "Driver from 2020 (6 years old,
+        // older than 2 years)".
+        var stale = years > WifiDriverStaleAgeYears
+            ? string.Create(CultureInfo.InvariantCulture, $", older than {WifiDriverStaleAgeYears} years")
+            : string.Empty;
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"Driver from {date.Year} ({years} year{(years == 1 ? string.Empty : "s")} old{stale})");
+    }
 
     private static string ReadStandards(string driverOutput)
     {
