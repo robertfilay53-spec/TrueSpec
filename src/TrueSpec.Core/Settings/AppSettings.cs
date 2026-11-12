@@ -31,7 +31,7 @@ public sealed record AppSettings
     [JsonPropertyName("refreshIntervalSeconds")]
     public int RefreshIntervalSeconds { get; init; } = DefaultRefreshSeconds;
 
-    /// <summary>Empty means the default Documents/TrueSpec folder.</summary>
+    /// <summary>Empty means the default Downloads folder (falling back to Documents/TrueSpec when Downloads does not exist).</summary>
     [JsonPropertyName("exportFolder")]
     public string ExportFolder { get; init; } = string.Empty;
 

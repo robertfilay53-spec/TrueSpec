@@ -221,21 +221,45 @@ public static class PathSafety
     private static readonly char[] WindowsInvalidFileNameChars = { '<', '>', ':', '"', '|', '?', '*' };
 
     /// <summary>
-    /// The default folder for reports and local data: Documents/TrueSpec for
-    /// reports, LocalApplicationData/TrueSpec for the snapshot database and
-    /// settings. Falls back to the user profile when a special folder is
-    /// unavailable.
+    /// The default folder for report exports: the user's Downloads folder,
+    /// which is where people look for a file they just saved. The v1.4.0
+    /// laptop test reported export as broken when the files were in fact
+    /// written to Documents/TrueSpec, because the user expected Downloads
+    /// and nothing told him otherwise. When Downloads does not exist (a
+    /// stripped or redirected profile), the previous default
+    /// Documents/TrueSpec is used, and when Documents is unavailable the
+    /// profile folder itself. A folder the user picked in Settings always
+    /// wins over this default: see MainViewModel.EffectiveExportFolder.
+    /// Local data (snapshot database, settings, sensor log) is unaffected:
+    /// it still lives under LocalApplicationData/TrueSpec.
     /// </summary>
-    public static string DefaultExportFolder()
+    public static string DefaultExportFolder() => ResolveDefaultExportFolder(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+
+    /// <summary>
+    /// Test seam for <see cref="DefaultExportFolder"/>: the same
+    /// resolution over explicit folders, so tests can build a profile
+    /// with or without a Downloads folder instead of depending on the
+    /// machine running the tests.
+    /// </summary>
+    internal static string ResolveDefaultExportFolder(string userProfileFolder, string? documentsFolder)
     {
-        var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        if (!string.IsNullOrWhiteSpace(documents))
+        if (!string.IsNullOrWhiteSpace(userProfileFolder))
         {
-            return Path.Combine(documents, "TrueSpec");
+            var downloads = Path.Combine(userProfileFolder, "Downloads");
+            if (Directory.Exists(downloads))
+            {
+                return downloads;
+            }
         }
 
-        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        return Path.Combine(profile, "TrueSpec");
+        if (!string.IsNullOrWhiteSpace(documentsFolder))
+        {
+            return Path.Combine(documentsFolder, "TrueSpec");
+        }
+
+        return Path.Combine(userProfileFolder, "TrueSpec");
     }
 
     public static string DefaultAppDataFolder()

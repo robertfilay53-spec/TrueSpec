@@ -132,7 +132,7 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="JSON, HTML, CSV and PDF exports are written to your Documents/TrueSpec folder. No upload, no cloud."
+            <TextBlock Text="Report exports are written to the folder shown above. No upload, no cloud."
                        Classes="muted"
                        FontSize="11" />
         </StackPanel>

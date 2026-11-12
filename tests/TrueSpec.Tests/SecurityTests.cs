@@ -12,6 +12,75 @@ namespace TrueSpec.Tests;
 public class SecurityTests
 {
     [Fact]
+    public void DefaultExportFolder_UsesDownloadsWhenItExists()
+    {
+        // v1.4.1 (F10): the default export folder is Downloads when it
+        // exists, because that is where people look for a file they just
+        // saved. The v1.4.0 laptop test reported export as broken when the
+        // files were in fact written to Documents/TrueSpec.
+        var profile = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var documents = Path.Combine(profile, "Documents");
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(profile, "Downloads"));
+
+            Assert.Equal(
+                Path.Combine(profile, "Downloads"),
+                PathSafety.ResolveDefaultExportFolder(profile, documents));
+        }
+        finally
+        {
+            if (Directory.Exists(profile))
+            {
+                Directory.Delete(profile, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void DefaultExportFolder_FallsBackToDocumentsWhenDownloadsIsMissing()
+    {
+        var profile = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var documents = Path.Combine(profile, "Documents");
+        try
+        {
+            Directory.CreateDirectory(documents);
+
+            Assert.Equal(
+                Path.Combine(documents, "TrueSpec"),
+                PathSafety.ResolveDefaultExportFolder(profile, documents));
+        }
+        finally
+        {
+            if (Directory.Exists(profile))
+            {
+                Directory.Delete(profile, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void DefaultExportFolder_FallsBackToProfileWhenDocumentsIsMissing()
+    {
+        var profile = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(profile);
+
+            Assert.Equal(
+                Path.Combine(profile, "TrueSpec"),
+                PathSafety.ResolveDefaultExportFolder(profile, null));
+        }
+        finally
+        {
+            if (Directory.Exists(profile))
+            {
+                Directory.Delete(profile, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void ValidateExportFolder_AcceptsAbsolutePaths()
     {
         var path = Path.Combine(Path.GetTempPath(), "TrueSpec");
