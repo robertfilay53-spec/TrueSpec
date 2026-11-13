@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using TrueSpec.Core.History;
@@ -106,6 +107,33 @@ public sealed class ExportOrchestrator
         catch (Exception exception)
         {
             _onFailed($"History export failed: {exception.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Exports the fleet table currently shown on the Fleet page as CSV.
+    /// With no fleet there is nothing to export, and the failure says so
+    /// instead of writing an empty file.
+    /// </summary>
+    public async Task ExportFleetCsvAsync(IReadOnlyList<FleetMachineRow>? rows)
+    {
+        if (rows is null || rows.Count == 0)
+        {
+            _onFailed("Fleet export failed: there is no fleet to export yet.");
+            return;
+        }
+
+        try
+        {
+            var folder = PrepareFolder();
+            var path = Path.Combine(folder, PathSafety.SafeReportFileName("TrueSpec-fleet", "csv", DateTime.Now));
+            await using var stream = File.Create(path);
+            await new FleetCsvExporter().ExportAsync(rows, stream);
+            _onExported(path, "Fleet");
+        }
+        catch (Exception exception)
+        {
+            _onFailed($"Fleet export failed: {exception.Message}");
         }
     }
 

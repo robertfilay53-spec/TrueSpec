@@ -339,6 +339,74 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
         return results;
     }
 
+    public async Task<IReadOnlyList<MachineLatestSummary>> GetLatestPerMachineAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        // One row per machine: the newest scan (ROW_NUMBER over the
+        // machine's rows) plus that machine's scan count. The window
+        // function orders by the stored ISO string, the same first cut
+        // GetHistoryAsync uses: two ISO strings can sort out of order
+        // across a DST change (different offsets), so a machine scanned
+        // twice inside the transition hour could show the second-latest
+        // scan as its latest. Both are real scans of the same machine,
+        // and the next scan fixes it; the fleet table never invents a
+        // row to cover the gap.
+        command.CommandText =
+            """
+            SELECT machine_name, id, captured_at, overall_score, verdict, scan_count
+            FROM (
+                SELECT machine_name, id, captured_at, overall_score, verdict,
+                       COUNT(*) OVER (PARTITION BY machine_name) AS scan_count,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY machine_name
+                           ORDER BY captured_at DESC, id DESC
+                       ) AS rn
+                FROM snapshots
+            )
+            WHERE rn = 1
+            ORDER BY machine_name;
+            """;
+
+        var results = new List<MachineLatestSummary>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            try
+            {
+                if (!Guid.TryParse(reader.GetString(1), out var id) ||
+                    !DateTimeOffset.TryParse(reader.GetString(2), CultureInfo.InvariantCulture, DateTimeStyles.None, out var capturedAt))
+                {
+                    continue;
+                }
+
+                var score = ReadScore(reader.GetValue(3));
+                if (score is null)
+                {
+                    continue;
+                }
+
+                var scanCount = reader.GetInt32(5);
+                results.Add(new MachineLatestSummary(
+                    reader.GetString(0),
+                    id,
+                    capturedAt,
+                    score.Value,
+                    reader.GetString(4),
+                    scanCount));
+            }
+            catch (Exception ex) when (ex is InvalidCastException or FormatException or IndexOutOfRangeException or InvalidOperationException)
+            {
+                continue;
+            }
+        }
+
+        return results;
+    }
+
     private static double? ReadScore(object value) => value switch
     {
         double score => double.IsFinite(score) && score is >= 0d and <= 100d ? score : null,

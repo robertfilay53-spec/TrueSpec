@@ -1,0 +1,88 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TrueSpec.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="TrueSpec.App.Views.FleetView"
+             x:DataType="vm:FleetViewModel">
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="18">
+            <StackPanel Spacing="6">
+                <TextBlock Text="FLEET" Classes="eyebrow" />
+                <TextBlock Text="Every machine in this data folder" Classes="h1" />
+                <TextBlock Text="Technician mode: carry the portable app on a USB stick, scan each machine, and every scan lands in the same store on the stick. This page lists each machine's latest scan, lowest score first, with the worst component named, so the machine that needs attention is at the top."
+                           Classes="muted"
+                           TextWrapping="Wrap"
+                           MaxWidth="720" />
+            </StackPanel>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding StatusMessage}" Classes="muted" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" IsVisible="{Binding HasFleet}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18" IsVisible="{Binding HasFleet}">
+                <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                        <TextBlock Text="Machines" Classes="h3" VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Classes="secondary"
+                                Content="Export fleet as CSV"
+                                Command="{Binding ExportFleetCsvCommand}"
+                                IsEnabled="{Binding HasFleet}" />
+                    </Grid>
+                    <TextBlock Text="Lowest score first. A dash means that scan did not report the value."
+                               Classes="muted"
+                               FontSize="11" />
+                    <Grid ColumnDefinitions="*,60,130,70,110,*" ColumnSpacing="10">
+                        <TextBlock Text="Machine" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="1" Text="Scans" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="2" Text="Last scan" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="3" Text="Score" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="4" Text="Verdict" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="5" Text="Worst component" Classes="muted" FontSize="11" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Rows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:FleetRowViewModel">
+                                <Border BorderBrush="{DynamicResource AppBorder}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="0,9">
+                                    <Grid ColumnDefinitions="*,60,130,70,110,*" ColumnSpacing="10">
+                                        <TextBlock Text="{Binding MachineName}"
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding ScanCountText}"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding LastScanText}"
+                                                   Classes="muted"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="3"
+                                                   Text="{Binding ScoreText}"
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="4"
+                                                   Text="{Binding VerdictText}"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Grid.Column="5"
+                                                   Text="{Binding WorstComponentText}"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

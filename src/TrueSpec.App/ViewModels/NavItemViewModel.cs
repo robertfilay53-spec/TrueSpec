@@ -44,6 +44,11 @@ public sealed record NavItemViewModel(string Key, string Label, string IconData)
         Create("tests", "Tests"),
         Create("report", "Report"),
         Create("compare", "Compare"),
+        // Technician mode (v2.0.3): the fleet table sits with the other
+        // multi-machine pages (History, Compare), after Compare and
+        // before Settings, so History keeps its visible slot (index
+        // 0-15, pinned by Navigation_HistoryIsWithinVisibleRegion).
+        Create("fleet", "Fleet"),
         Create("settings", "Settings"),
     };
 
