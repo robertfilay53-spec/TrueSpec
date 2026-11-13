@@ -8,5 +8,16 @@
          against the published assets to prove the binary matches the
          source. Verified by building twice and comparing SHA-256 hashes. -->
     <Deterministic>true</Deterministic>
+    <!-- Dependency vulnerability audit: a package with a known
+         vulnerability (NU1901-NU1905) fails restore, because
+         TreatWarningsAsErrors is on. Mode "all" audits transitive
+         packages too, not just direct references: the "Check for
+         vulnerable packages" CI step lists transitive packages, so the
+         build must enforce the same scope, or a transitive vulnerability
+         would only ever be informational. The tree is clean today (see
+         SECURITY.md); if a future audit flags a package, upgrade or
+         replace it before release. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
   </PropertyGroup>
 </Project>
