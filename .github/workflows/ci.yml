@@ -17,16 +17,39 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          # min-passed is the tripwire for a silently dropped test leg
+          # (a whole test file excluded, a TargetFramework change
+          # dropping the Windows-only tests): the floors sit just below
+          # the current totals (Ubuntu 805, Windows 1253), so a real
+          # drop fails the job while a small legitimate change does not.
+          # Update the floor when the suite grows or shrinks on purpose.
+          - os: ubuntu-latest
+            min-passed: 780
+          - os: windows-latest
+            min-passed: 1220
 
     steps:
+      # Actions are pinned to SHAs, not tags: a tag is mutable, a SHA is
+      # not, so a compromised or re-pointed tag cannot silently change
+      # what CI runs. Re-pin with `gh api repos/<owner>/<repo>/commits/v4
+      # --jq .sha` when the action needs an upgrade.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: 10.0.x
+
+      # Poppler (pdftotext) lets the real-reader PDF check run on the
+      # Windows leg too; without it the test skips visibly (see
+      # PdfReportExporterTests). Best-effort: if the install fails, the
+      # test skips exactly as it did before, and the job still passes.
+      - name: Install poppler
+        if: matrix.os == 'windows-latest'
+        continue-on-error: true
+        run: choco install poppler -y --no-progress
 
       # One step builds and tests: `dotnet test` restores and builds first.
       # There is no bare `dotnet restore` or `dotnet build` here on purpose:
@@ -34,11 +57,56 @@ jobs:
       # the app targets net10.0-windows on Windows and net10.0 elsewhere,
       # and a bare restore would try the wrong framework on Windows and fail
       # with NU1201. Each runner tests the framework that matches its OS.
+      # The trx log feeds the leg-totals check below; the coverage
+      # collection feeds the coverage report (coverlet.collector).
       - name: Test
-        run: dotnet test TrueSpec.sln --configuration Release --verbosity normal -f ${{ matrix.os == 'windows-latest' && 'net10.0-windows' || 'net10.0' }}
+        run: dotnet test TrueSpec.sln --configuration Release --verbosity normal -f ${{ matrix.os == 'windows-latest' && 'net10.0-windows' || 'net10.0' }} --logger trx --collect:"XPlat Code Coverage"
+
+      # A test leg that silently stops running (a file excluded from the
+      # build, a framework change) still exits 0 with fewer tests. Count
+      # the passed results in the trx files and fail below the floor.
+      - name: Check test totals
+        shell: bash
+        run: |
+          trx_files=$(find . -name '*.trx')
+          if [ -z "$trx_files" ]; then
+            echo "::error::No .trx result files found; the test run produced no results to count."
+            exit 1
+          fi
+          passed=$(grep -rho 'outcome="Passed"' $trx_files | wc -l)
+          echo "Passed tests: $passed (floor: ${{ matrix.min-passed }})"
+          if [ "$passed" -lt "${{ matrix.min-passed }}" ]; then
+            echo "::error::Only $passed tests passed, below the floor of ${{ matrix.min-passed }}. A test leg may have been silently dropped."
+            exit 1
+          fi
+
+      # Coverage is collected so it can no longer silently regress to
+      # nothing; the line rate is reported in the log. A floor belongs
+      # here once the rate is measured on a green run (see the PR that
+      # introduced collection).
+      - name: Report coverage
+        shell: bash
+        run: |
+          coverage_file=$(find . -name 'coverage.cobertura.xml' | head -1)
+          if [ -z "$coverage_file" ]; then
+            echo "::warning::No coverage.cobertura.xml found; coverage was not collected."
+            exit 0
+          fi
+          rate=$(grep -o 'line-rate="[0-9.]*"' "$coverage_file" | head -1 | grep -o '[0-9.]*')
+          echo "Line coverage: $rate"
 
       # Dependency vulnerability scan: lists any package (including
-      # transitive) with a known vulnerability. Informational for now —
-      # the report appears in the job log.
+      # transitive) with a known vulnerability. This step FAILS the build
+      # when a vulnerability is reported: an informational scan is a
+      # report nobody reads. The build itself also fails on a vulnerable
+      # package (NuGetAuditMode=all in Directory.Build.props), so this
+      # step is the readable report for the same gate.
       - name: Check for vulnerable packages
-        run: dotnet list package --vulnerable --include-transitive
+        shell: bash
+        run: |
+          dotnet list package --vulnerable --include-transitive | tee vulnerable-packages.txt
+          if grep -q "following vulnerable packages" vulnerable-packages.txt; then
+            echo "::error::Vulnerable packages found (see above). Upgrade or replace them before release; do not ship with a known vulnerable dependency."
+            exit 1
+          fi
+          echo "No vulnerable packages."
