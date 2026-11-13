@@ -285,6 +285,31 @@ data already existed; only the band rule and wording are new.
   a comment, and test-file exclusions — zero `PackageReference`
   changes), so the result carries forward.
 
+## v2.0.6 — in progress
+
+- **Windows Memory Diagnostic result on the RAM page.** The "Memory
+  test" row said "Not run" without ever checking the log — a hardcoded
+  label, not a measurement. It now reads the System event log
+  (provider `Microsoft-Windows-MemoryDiagnostics-Results`, result
+  events 1101 / 1201 for a pass, 1102 / 1202 for a failure, newest
+  first) and reports "Passed on &lt;date&gt;" or "Failed on
+  &lt;date&gt;". When the log holds no result event it says "Not run",
+  which is now a measured statement because the log was actually read;
+  when the log cannot be read it says "Not reported by hardware"
+  instead of guessing. Core: `MemoryDiagnosticParser` (pure, event id
+  + timestamp only, never message text); Windows: the RAM collector
+  reads the log with a provider-filtered, capped query (same pattern
+  as the crash collector). Tests: `MemoryDiagnosticParserTests`
+  (both legs), `RamCollectorTests` (Windows leg only, pins the honest
+  value shape).
+- **Dependency audit re-attested for v2.0.5.** `SECURITY.md` said
+  v2.0.4; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.0.4 and v2.0.5 (only the `<Version>` bump
+  and a test-file exclusion — zero `PackageReference` changes), so the
+  result carries forward.
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed

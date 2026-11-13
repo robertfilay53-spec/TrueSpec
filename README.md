@@ -37,6 +37,11 @@ The product rule is simple: every number is either **measured** (with its source
 - **Honest limits: the MemTest86 direction:** TrueSpec's memory check is a quick in-OS pattern exercise during the load test, not a definitive RAM test, and the product now says so on the RAM page instead of hiding it. When the pattern check does not verify, the load-test verdict tells the user to run MemTest86 (bootable) for a definitive RAM test. No in-OS tool can replace it.
 - **Dependency audit re-attested for v2.0.4:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.0.1 and v2.0.4.
 
+## What's new in v2.0.6
+
+- **Windows Memory Diagnostic result on the RAM page:** the "Memory test" row used to say "Not run" without ever checking. It now reads the System event log (provider Microsoft-Windows-MemoryDiagnostics-Results) and reports the newest result: "Passed on 2026-11-01" or "Failed on 2026-11-01". When the log holds no result event it says "Not run" — now a measured statement, because the log was actually read — and when the log cannot be read it says "Not reported by hardware" instead of guessing.
+- **Dependency audit re-attested for v2.0.5:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.0.4 and v2.0.5.
+
 ## Status
 
 Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.

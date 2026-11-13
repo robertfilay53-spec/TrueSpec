@@ -1,5 +1,6 @@
 namespace TrueSpec.Collectors.Windows.Collectors;
 
+using System.Diagnostics.Eventing.Reader;
 using System.Globalization;
 using TrueSpec.Collectors.Windows.Diagnostics;
 using TrueSpec.Collectors.Windows.Wmi;
@@ -45,6 +46,7 @@ public sealed class RamCollector : ICollector
         var array = Wmi.Query("root\\cimv2", PhysicalMemoryArrayQuery).FirstOrDefault();
         var computer = Wmi.Query("root\\cimv2", ComputerSystemQuery).FirstOrDefault();
         var memoryErrors = WindowsEventLog.CountMemoryErrors(TimeSpan.FromDays(30));
+        var memoryTest = TryReadMemoryDiagnosticResult();
 
         var totalBytes = sticks.Sum(s => (decimal)(CollectorSupport.NonZeroNonMax(s.UInt64("Capacity")) ?? 0UL));
         var first = sticks[0];
@@ -83,7 +85,7 @@ public sealed class RamCollector : ICollector
             CollectorSupport.Spec(SpecLabels.MemoryErrors, memoryErrors is null
                 ? null
                 : memoryErrors.Value.ToString(CultureInfo.InvariantCulture), "Windows Event Log (WHEA-Logger memory events, MemoryDiagnostic)", numericValue: (double?)memoryErrors, numericUnit: "errors"),
-            CollectorSupport.Spec(SpecLabels.MemoryTest, "Not run", "Windows Memory Diagnostic"),
+            CollectorSupport.Spec(SpecLabels.MemoryTest, memoryTest.Value, memoryTest.Source),
             CollectorSupport.Spec(SpecLabels.LifeRemaining, SpecLabels.NotReportedByHardware, "No RAM life sensor exists"),
         };
 
@@ -120,5 +122,68 @@ public sealed class RamCollector : ICollector
             "No RAM stick on any laptop exposes a life percentage, so TrueSpec does not invent one. It shows the real per-stick SPD data, the slot map and any memory errors from the Windows event log. Compare the installed size with the seller listing. " +
             "When Windows sees a different amount than the sticks add up to, the difference is shown as \"Memory visible to Windows\": that is the memory Windows currently sees, and on a virtual machine with dynamic memory it can move between scans, while the stick sum above is the installed total. " +
             "TrueSpec's memory check is a quick in-OS pattern exercise during the load test, not a definitive RAM test. No in-OS tool can replace the bootable MemTest86. If crashes point at RAM, run MemTest86."));
+    }
+
+    /// <summary>
+    /// The Windows Memory Diagnostic result, read from the System event log
+    /// (provider Microsoft-Windows-MemoryDiagnostics-Results, newest result
+    /// event first). "Not run" now means the log was read and holds no
+    /// result event; an unreadable log is "Not reported by hardware", never
+    /// a guessed "Not run". A collector never fails the scan: any failure
+    /// here degrades to the honest unreadable value. The query is
+    /// provider-filtered and capped, so it reads at most a handful of rows
+    /// instead of walking the log.
+    /// </summary>
+    private static (string Value, string Source) TryReadMemoryDiagnosticResult()
+    {
+        const string source = "Windows Memory Diagnostic";
+        try
+        {
+            var query = new EventLogQuery("System", PathType.LogName,
+                "*[System[Provider[@Name='Microsoft-Windows-MemoryDiagnostics-Results'] and (EventID=1101 or EventID=1102 or EventID=1201 or EventID=1202)]]")
+            {
+                ReverseDirection = true,
+            };
+
+            using var reader = new EventLogReader(query);
+            var rows = new List<MemoryDiagnosticParser.RawMemoryDiagnosticEvent>();
+            var read = 0;
+
+            while (read < MemoryDiagnosticParser.MaxRowsRead)
+            {
+                EventRecord record;
+                try
+                {
+                    record = reader.ReadEvent()!;
+                }
+                catch
+                {
+                    break;
+                }
+
+                if (record is null)
+                {
+                    break;
+                }
+
+                using (record)
+                {
+                    if (record.TimeCreated is { } timeCreated)
+                    {
+                        rows.Add(new MemoryDiagnosticParser.RawMemoryDiagnosticEvent(
+                            record.Id,
+                            new DateTimeOffset(timeCreated)));
+                        read++;
+                    }
+                }
+            }
+
+            var result = MemoryDiagnosticParser.Parse(rows);
+            return (MemoryDiagnosticParser.DisplayText(result), source);
+        }
+        catch
+        {
+            return (SpecLabels.NotReportedByHardware, "Windows Event Log (System)");
+        }
     }
 }
