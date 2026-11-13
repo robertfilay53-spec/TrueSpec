@@ -41,6 +41,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly AppSettingsStore _settingsStore;
     private readonly IExportFileOpener _fileOpener;
     private readonly ExportOrchestrator _exporter;
+
+    // --- v2.0 U7 (UI wiring only) ---
+    // The DNA verifier behind the Report page's "Verify this machine"
+    // action and the Compare page's DNA row: the real comparer over the
+    // snapshot's stored DNA (Core MachineDnaComparer). A snapshot saved
+    // before DNA existed honestly reports "not recorded".
+    private readonly IMachineDnaVerifier _dnaVerifier = MachineDnaVerifier.Instance;
+
+    // The last verification result, carried into the rebuilt Report page
+    // after a verification re-scan (ApplySnapshot clears the page cache).
+    private MachineDnaVerification? _lastDnaVerification;
+    // --- end v2.0 U7 ---
+
     private ISnapshotStore? _snapshotStore;
     private CancellationTokenSource? _scanCts;
     private bool _disposed;
@@ -57,7 +70,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         : this(
             CollectorRegistry.CreateCollectors(),
             CollectorRegistry.CreateSensorMonitor(),
-            new BuyerCheckEvaluator())
+            new BuyerCheckEvaluator(),
+            CollectorRegistry.CreateMachineDnaProvider())
     {
     }
 
@@ -65,7 +79,21 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         IEnumerable<ICollector> collectors,
         ISensorMonitor sensorMonitor,
         IBuyerCheckEvaluator buyerCheckEvaluator)
-        : this(MachineScanService.Create(collectors), sensorMonitor, buyerCheckEvaluator)
+        : this(collectors, sensorMonitor, buyerCheckEvaluator, null)
+    {
+    }
+
+    /// <summary>
+    /// The DNA provider is optional: production passes the Windows
+    /// collector so every scan records the fingerprint; callers that pass
+    /// null (tests, non-Windows) scan without DNA.
+    /// </summary>
+    public MainViewModel(
+        IEnumerable<ICollector> collectors,
+        ISensorMonitor sensorMonitor,
+        IBuyerCheckEvaluator buyerCheckEvaluator,
+        IMachineDnaProvider? dnaProvider)
+        : this(MachineScanService.Create(collectors, dnaProvider), sensorMonitor, buyerCheckEvaluator)
     {
     }
 
@@ -319,7 +347,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial bool IsScanRunning { get; set; }
 
-    partial void OnIsScanRunningChanged(bool value) => CancelScanCommand.NotifyCanExecuteChanged();
+    /// <summary>True while a "Verify this machine" re-scan is running: the Verify button stays disabled so it cannot be double-run.</summary>
+    [ObservableProperty]
+    public partial bool IsVerifyingMachine { get; set; }
+
+    partial void OnIsScanRunningChanged(bool value)
+    {
+        CancelScanCommand.NotifyCanExecuteChanged();
+        VerifyMachineCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnIsVerifyingMachineChanged(bool value) => VerifyMachineCommand.NotifyCanExecuteChanged();
 
     public bool HistoryAvailable => _snapshotStore is not null;
 
@@ -529,6 +567,58 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private Task ExportPdfAsync() => _exporter.ExportReportAsync(ReportFormat.Pdf);
 
+    // --- v2.0 U7 (UI wiring only) ---
+    /// <summary>
+    /// Buyer certificate (one-page PDF) via
+    /// <see cref="ExportOrchestrator.ExportBuyerCertificateAsync"/>: the
+    /// banner, score, five key numbers, DNA hash and scan date, as a
+    /// separate file from the full report. The button stays visible and
+    /// the export reports honestly when the scan has no DNA.
+    /// </summary>
+    [RelayCommand]
+    private Task ExportCertificateAsync() => _exporter.ExportBuyerCertificateAsync();
+
+    /// <summary>
+    /// "Verify this machine": re-scans the hardware and compares the new
+    /// scan's DNA against the snapshot the Report page was showing, so a
+    /// part swapped since that scan is named. The re-scan is a normal
+    /// refresh (it saves to history and carries the load test forward);
+    /// the verification result is stored here so it survives ApplySnapshot
+    /// clearing the page cache, and the Report page is rebuilt from it.
+    /// DNA is identity, not health: the result never touches the score.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanVerifyMachine))]
+    private async Task VerifyMachineAsync()
+    {
+        if (IsScanRunning || IsVerifyingMachine)
+        {
+            return;
+        }
+
+        var before = _snapshot;
+        IsVerifyingMachine = true;
+        StatusMessage = "Verifying this machine, re-scanning hardware...";
+        try
+        {
+            await RefreshAsync();
+            _lastDnaVerification = _dnaVerifier.Compare(before, _snapshot);
+            _pageCache.Remove("report");
+            if (CurrentPage is ReportViewModel)
+            {
+                NavigateTo("report");
+            }
+
+            StatusMessage = _lastDnaVerification.SummaryText;
+        }
+        finally
+        {
+            IsVerifyingMachine = false;
+        }
+    }
+
+    private bool CanVerifyMachine => !IsScanRunning && !IsVerifyingMachine;
+    // --- end v2.0 U7 ---
+
     /// <summary>
     /// Exports the trend currently shown on the History page as CSV, to the
     /// configured export folder, exactly like the other exports: no dialog,
@@ -594,7 +684,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            var databasePath = Path.Combine(PathSafety.DefaultAppDataFolder(), "history.db");
+            var databasePath = AppDataRoot.Resolve().DatabasePath;
             var store = new SqliteSnapshotStore(databasePath);
             await store.InitializeAsync();
             return store;
@@ -734,8 +824,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 RatedMaxFromSnapshot(_snapshot),
                 IsOnBattery(_snapshot),
                 OnLoadTestCompleted)),
-            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: IsScanRunning, exportPdfCommand: ExportPdfCommand)),
-            "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot)),
+            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: IsScanRunning, exportPdfCommand: ExportPdfCommand, exportCertificateCommand: ExportCertificateCommand, verifyMachineCommand: VerifyMachineCommand, dnaVerification: _lastDnaVerification, isVerifyingMachine: IsVerifyingMachine)),
+            "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot, _dnaVerifier)),
             "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand, SensorLogWriter.DefaultFilePath(), _settings.SensorLoggingEnabled, _settings.CpuTemperatureThresholdC)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
             _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key)),

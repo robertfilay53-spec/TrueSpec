@@ -18,13 +18,15 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
     };
 
     /// <summary>
-    /// Snapshots kept per database. Reads were always clamped, but saves
+    /// Snapshots kept per machine. Reads were always clamped, but saves
     /// only INSERTed, so rows accumulated unbounded; a machine scanned
     /// daily would grow the file forever. The cap mirrors the sensor log
     /// next door (<see cref="TrueSpec.Core.Sensors.SensorLogWriter"/>:
     /// 10,000 rows, trim to 8,000). 200 snapshots is years of weekly scans
     /// and far more than any comparison or trend ever reads (50 at most),
     /// so pruning the oldest beyond the cap loses nothing the UI shows.
+    /// Per machine: one history file can hold several machines, and a
+    /// global cap would evict another machine's whole history.
     /// </summary>
     public const int MaxSnapshots = 200;
 
@@ -68,12 +70,55 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
                 machine_name TEXT NOT NULL,
                 overall_score REAL NOT NULL,
                 verdict TEXT NOT NULL,
-                payload_json TEXT NOT NULL
+                payload_json TEXT NOT NULL,
+                machine_dna_hash TEXT,
+                machine_dna_parts TEXT
             );
             CREATE INDEX IF NOT EXISTS ix_snapshots_captured_at
                 ON snapshots (captured_at DESC);
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
+
+        // Databases created before the DNA columns existed need them
+        // added: CREATE TABLE IF NOT EXISTS leaves an old table alone.
+        await EnsureDnaColumnsAsync(connection, cancellationToken);
+    }
+
+    /// <summary>
+    /// Adds the DNA columns to a pre-existing snapshots table that was
+    /// created without them. Rows written before DNA existed keep NULL in
+    /// both columns and read as "DNA not recorded", never as a mismatch.
+    /// </summary>
+    private static async Task EnsureDnaColumnsAsync(
+        SqliteConnection connection, CancellationToken cancellationToken)
+    {
+        var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using (var pragma = connection.CreateCommand())
+        {
+            pragma.CommandText = "PRAGMA table_info(snapshots);";
+            await using var reader = await pragma.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                existing.Add(reader.GetString(1));
+            }
+        }
+
+        // Column names are constants, never user input.
+        foreach (var (column, type) in new[]
+                 {
+                     ("machine_dna_hash", "TEXT"),
+                     ("machine_dna_parts", "TEXT"),
+                 })
+        {
+            if (existing.Contains(column))
+            {
+                continue;
+            }
+
+            await using var alter = connection.CreateCommand();
+            alter.CommandText = $"ALTER TABLE snapshots ADD COLUMN {column} {type};";
+            await alter.ExecuteNonQueryAsync(cancellationToken);
+        }
     }
 
     public async Task SaveAsync(SystemSnapshot snapshot, CancellationToken cancellationToken = default)
@@ -88,14 +133,16 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
         await using var command = connection.CreateCommand();
         command.CommandText =
             """
-            INSERT INTO snapshots (id, captured_at, machine_name, overall_score, verdict, payload_json)
-            VALUES ($id, $capturedAt, $machineName, $score, $verdict, $payload)
+            INSERT INTO snapshots (id, captured_at, machine_name, overall_score, verdict, payload_json, machine_dna_hash, machine_dna_parts)
+            VALUES ($id, $capturedAt, $machineName, $score, $verdict, $payload, $dnaHash, $dnaParts)
             ON CONFLICT(id) DO UPDATE SET
                 captured_at = excluded.captured_at,
                 machine_name = excluded.machine_name,
                 overall_score = excluded.overall_score,
                 verdict = excluded.verdict,
-                payload_json = excluded.payload_json;
+                payload_json = excluded.payload_json,
+                machine_dna_hash = excluded.machine_dna_hash,
+                machine_dna_parts = excluded.machine_dna_parts;
             """;
         command.Parameters.AddWithValue("$id", snapshot.Id.ToString("D"));
         command.Parameters.AddWithValue("$capturedAt", snapshot.CapturedAt.ToString("O", CultureInfo.InvariantCulture));
@@ -103,25 +150,60 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
         command.Parameters.AddWithValue("$score", snapshot.Score.OverallScore);
         command.Parameters.AddWithValue("$verdict", snapshot.Score.Verdict.ToString());
         command.Parameters.AddWithValue("$payload", payload);
+        command.Parameters.AddWithValue("$dnaHash", snapshot.MachineDnaHash ?? (object)DBNull.Value);
+        // NULL parts means "DNA not recorded" (a snapshot from before DNA
+        // existed); an empty JSON array means a scan recorded DNA but no
+        // part reported a usable serial ("DNA not available"). The two
+        // states must stay distinguishable, so the column is NULL only
+        // when the snapshot carries no parts at all.
+        command.Parameters.AddWithValue("$dnaParts", snapshot.MachineDnaParts is null
+            ? DBNull.Value
+            : JsonSerializer.Serialize(snapshot.MachineDnaParts, JsonOptions));
 
         await command.ExecuteNonQueryAsync(cancellationToken);
 
-        // Retention: keep only the newest MaxSnapshots rows. The prune
-        // runs on every save so the file can never grow unbounded; the
-        // DELETE is a single indexed statement and the newest rows are
-        // the ones every reader (history list, comparison, trends) uses.
-        await using var prune = connection.CreateCommand();
-        prune.CommandText =
-            """
-            DELETE FROM snapshots
-            WHERE id NOT IN (
-                SELECT id FROM snapshots
-                ORDER BY captured_at DESC, id DESC
-                LIMIT $keep
-            );
-            """;
-        prune.Parameters.AddWithValue("$keep", MaxSnapshots);
-        await prune.ExecuteNonQueryAsync(cancellationToken);
+        // Retention: keep only the newest MaxSnapshots rows PER MACHINE.
+        // The prune runs on every save so the file can never grow
+        // unbounded; the DELETE is a single indexed statement per machine
+        // and the newest rows are the ones every reader (history list,
+        // comparison, trends) uses. Per-machine, not global: one history
+        // file can hold several machines (a buyer-kit USB stick scans many
+        // machines into the same database), and a global cap would evict
+        // another machine's whole history the moment one machine was
+        // scanned 200 times. History still keys on machine name today
+        // (a renamable string); this prune does not rework that keying.
+        var machineNames = new List<string>();
+        await using (var names = connection.CreateCommand())
+        {
+            names.CommandText = "SELECT DISTINCT machine_name FROM snapshots;";
+            await using var reader = await names.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                if (!reader.IsDBNull(0))
+                {
+                    machineNames.Add(reader.GetString(0));
+                }
+            }
+        }
+
+        foreach (var machine in machineNames)
+        {
+            await using var prune = connection.CreateCommand();
+            prune.CommandText =
+                """
+                DELETE FROM snapshots
+                WHERE machine_name = $machine
+                  AND id NOT IN (
+                      SELECT id FROM snapshots
+                      WHERE machine_name = $machine
+                      ORDER BY captured_at DESC, id DESC
+                      LIMIT $keep
+                  );
+                """;
+            prune.Parameters.AddWithValue("$machine", machine);
+            prune.Parameters.AddWithValue("$keep", MaxSnapshots);
+            await prune.ExecuteNonQueryAsync(cancellationToken);
+        }
     }
 
     public async Task<SystemSnapshot?> GetSnapshotAsync(

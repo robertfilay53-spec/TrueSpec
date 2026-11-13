@@ -18,9 +18,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        _statePath = Path.Combine(
-            PathSafety.DefaultAppDataFolder(),
-            "window-state.json");
+        _statePath = AppDataRoot.Resolve().WindowStatePath;
 
         Opened += (_, _) => RestoreWindowState();
         Opened += (_, _) => WindowsTaskbar.EnsureMainWindowVisible(this);

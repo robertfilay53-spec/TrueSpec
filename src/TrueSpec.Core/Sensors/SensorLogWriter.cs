@@ -67,19 +67,20 @@ public sealed class SensorLogWriter
         _trimToRows = trimToRows;
     }
 
-    /// <summary>The default log path: %LocalAppData%\TrueSpec\sensor-log.csv.</summary>
+    /// <summary>The default log path: the data root's sensor-log.csv (portable mode: next to the exe).</summary>
     public static string DefaultFilePath() =>
-        Path.Combine(Security.PathSafety.DefaultAppDataFolder(), DefaultFileName);
+        Security.AppDataRoot.Resolve().SensorLogPath;
 
     /// <summary>
     /// Builds the writer for the default path, or null when the path fails
     /// validation. Logging is a convenience: it must never block startup.
+    /// Validated against the resolved data root, so a portable root is
+    /// accepted the same way the default app-data folder is.
     /// </summary>
     public static SensorLogWriter? CreateDefault()
     {
-        var path = Security.PathSafety.ValidateSensorLogPath(
-            DefaultFilePath(),
-            Security.PathSafety.DefaultAppDataFolder());
+        var root = Security.AppDataRoot.Resolve();
+        var path = Security.PathSafety.ValidateSensorLogPath(root.SensorLogPath, root.Folder);
         if (path is null)
         {
             return null;

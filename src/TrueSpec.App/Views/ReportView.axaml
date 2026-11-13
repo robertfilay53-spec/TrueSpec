@@ -66,8 +66,44 @@
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center"
                                 IsVisible="{Binding HasPdfExport}" />
+                        <Button Classes="secondary"
+                                Content="Buyer certificate (PDF)"
+                                Command="{Binding ExportCertificateCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                IsVisible="{Binding HasCertificateExport}" />
+                        <Button Classes="secondary"
+                                Content="Verify this machine"
+                                Command="{Binding VerifyMachineCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                IsVisible="{Binding HasVerifyMachine}"
+                                IsEnabled="{Binding !IsVerifyingMachine}" />
                     </StackPanel>
                 </Grid>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Machine DNA" Classes="h3" />
+                    <TextBlock Text="{Binding DnaStateText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding DnaHashText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding VerifyResultText}" Classes="muted" TextWrapping="Wrap" />
+                    <TextBlock Text="Verifying this machine, re-scanning hardware..."
+                               Classes="muted"
+                               IsVisible="{Binding IsVerifyingMachine}" />
+                    <ItemsControl ItemsSource="{Binding DnaChangedParts}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="DNA is identity, not health: it never changes the score or the verdict above. It only certifies which machine the score belongs to. A standard-user scan without elevation still verifies, but parts that need elevation to read may show as unidentified instead of a match."
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+                </StackPanel>
             </Border>
 
             <TextBlock Text="{Binding ExportFolderText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />

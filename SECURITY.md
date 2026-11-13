@@ -149,11 +149,15 @@ Audit before every release:
 dotnet list package --vulnerable --include-transitive
 ```
 
-As of the last audit (Nov 12, 2026, TrueSpec v1.4.1, .NET 10):
+As of the last audit (Nov 13, 2026, TrueSpec v1.5.0, .NET 10):
 **no vulnerable packages** in any project, including transitive
-dependencies. No package version changed between v1.4.1 and this
-revision (only the version number itself), so the audit result carries
-forward. If the audit ever reports a vulnerability, upgrade or
+dependencies. The audit was run with
+`dotnet list package --vulnerable --include-transitive` on all four
+projects (TrueSpec.App, TrueSpec.Core, TrueSpec.Collectors.Windows,
+TrueSpec.Tests). No package version changed between v1.4.1 and v1.5.0
+(verified: `git diff v1.4.1 v1.5.0 -- '*csproj'` shows no
+`PackageReference` change), so the v1.4.1 audit result carries forward
+and was re-run for v1.5.0. If the audit ever reports a vulnerability, upgrade or
 replace the package before release; do not ship with a known vulnerable
 dependency.
 

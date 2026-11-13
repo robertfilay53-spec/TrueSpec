@@ -380,4 +380,61 @@ public static class PathSafety
         var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         return Path.Combine(profile, "TrueSpec");
     }
+
+    /// <summary>
+    /// Validates a data root (the folder all local state files live under),
+    /// including a portable root next to the exe. Returns the resolved
+    /// absolute path, or null when the folder is not safe to use as a data
+    /// root. A safe root is absolute, contains no ".." segment, and is not
+    /// a Windows system folder or a Program Files folder: state files must
+    /// never land in a protected location, and a portable install in
+    /// Program Files could not write its own data anyway. Unlike an export
+    /// folder, a drive root IS allowed: a buyer-kit USB stick often runs
+    /// with the exe at the drive root, and writing data files there is
+    /// the point of portable mode.
+    /// </summary>
+    public static string? ValidateAppDataRoot(string? folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder))
+        {
+            return null;
+        }
+
+        var trimmed = folder.Trim();
+        if (!Path.IsPathRooted(trimmed))
+        {
+            return null;
+        }
+
+        if (trimmed.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries)
+            .Any(segment => string.Equals(segment, "..", StringComparison.Ordinal)))
+        {
+            return null;
+        }
+
+        string fullPath;
+        try
+        {
+            fullPath = ResolveLinks(Path.GetFullPath(trimmed));
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+
+        if (!Path.IsPathRooted(fullPath))
+        {
+            return null;
+        }
+
+        if (IsWithin(Environment.GetFolderPath(Environment.SpecialFolder.Windows), fullPath) ||
+            IsWithin(Environment.GetFolderPath(Environment.SpecialFolder.System), fullPath) ||
+            IsWithin(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), fullPath) ||
+            IsWithin(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), fullPath))
+        {
+            return null;
+        }
+
+        return fullPath;
+    }
 }

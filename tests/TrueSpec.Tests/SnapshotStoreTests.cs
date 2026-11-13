@@ -1,4 +1,6 @@
+using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
+using TrueSpec.Core.Comparison;
 using TrueSpec.Core.Storage;
 
 namespace TrueSpec.Tests;
@@ -122,6 +124,176 @@ public class SnapshotStoreTests
             var names = await store.GetMachineNamesAsync();
 
             Assert.Empty(names);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SqliteStore_DnaRoundTripsThroughTheStore()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var dna = MachineDna.Build(new[]
+            {
+                (MachineDnaPartKind.Board, "Board", (string?)"BOARD123456789"),
+                (MachineDnaPartKind.Bios, "BIOS", (string?)"BIOS987654321"),
+                (MachineDnaPartKind.Disk, "Disk 0", (string?)"DISK-AAAA-1111"),
+            });
+            var snapshot = TestSnapshots.Healthy() with
+            {
+                MachineDnaHash = dna.Hash,
+                MachineDnaParts = dna.Parts,
+            };
+
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+            await store.SaveAsync(snapshot);
+
+            var loaded = await store.GetSnapshotAsync(snapshot.Id);
+            Assert.NotNull(loaded);
+            Assert.Equal(dna.Hash, loaded!.MachineDnaHash);
+            Assert.Equal(dna.Hash, loaded.MachineDnaStatus);
+            Assert.NotNull(loaded.MachineDnaParts);
+            var parts = loaded.MachineDnaParts!;
+            Assert.Equal(3, parts.Count);
+            // Only the truncated serial survives the round-trip: the full
+            // serial must never be stored or read back.
+            Assert.Equal("BOAR...6789", parts[0].SerialTruncated);
+            Assert.All(parts, p => Assert.DoesNotContain("BOARD123456789", p.SerialTruncated));
+
+            // The DNA columns carry the same values, so a future query can
+            // read identity without parsing the payload.
+            await using var connection = new SqliteConnection($"Data Source={databasePath};Pooling=false");
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT machine_dna_hash, machine_dna_parts FROM snapshots WHERE id = $id;";
+            command.Parameters.AddWithValue("$id", snapshot.Id.ToString("D"));
+            await using var reader = await command.ExecuteReaderAsync();
+            Assert.True(await reader.ReadAsync());
+            Assert.Equal(dna.Hash, reader.GetString(0));
+            Assert.Contains("BOAR...6789", reader.GetString(1));
+            Assert.DoesNotContain("BOARD123456789", reader.GetString(1));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SqliteStore_OldSnapshotWithoutDna_LoadsAsNotRecorded()
+    {
+        // A snapshot written before DNA existed: its payload has no DNA
+        // fields and its columns are NULL. It must load as "DNA not
+        // recorded", never as a mismatch against a later scan.
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var snapshot = TestSnapshots.Healthy();
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var payload = System.Text.Json.JsonSerializer.Serialize(
+                snapshot,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+            var node = JsonNode.Parse(payload)!.AsObject();
+            node.Remove("machineDnaHash");
+            node.Remove("machineDnaParts");
+
+            await using (var connection = new SqliteConnection($"Data Source={databasePath};Pooling=false"))
+            {
+                await connection.OpenAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText =
+                    """
+                    INSERT INTO snapshots (id, captured_at, machine_name, overall_score, verdict, payload_json)
+                    VALUES ($id, $capturedAt, $machineName, $score, $verdict, $payload);
+                    """;
+                command.Parameters.AddWithValue("$id", snapshot.Id.ToString("D"));
+                command.Parameters.AddWithValue("$capturedAt", snapshot.CapturedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+                command.Parameters.AddWithValue("$machineName", snapshot.MachineName);
+                command.Parameters.AddWithValue("$score", snapshot.Score.OverallScore);
+                command.Parameters.AddWithValue("$verdict", snapshot.Score.Verdict.ToString());
+                command.Parameters.AddWithValue("$payload", node.ToJsonString());
+                await command.ExecuteNonQueryAsync();
+            }
+
+            var loaded = await store.GetSnapshotAsync(snapshot.Id);
+            Assert.NotNull(loaded);
+            Assert.Null(loaded!.MachineDnaHash);
+            Assert.Null(loaded.MachineDnaParts);
+            Assert.Equal("DNA not recorded", loaded.MachineDnaStatus);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SqliteStore_PruneKeepsNewest200PerMachine()
+    {
+        // Hardening 6b, per-machine: one history file can hold several
+        // machines (a buyer-kit USB stick), and a global cap would evict
+        // another machine's whole history once one machine hit 200 scans.
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var oldestA = Guid.Empty;
+            for (var i = 0; i < 201; i++)
+            {
+                var snapshot = TestSnapshots.Healthy() with
+                {
+                    Id = Guid.NewGuid(),
+                    MachineName = "Machine A",
+                    CapturedAt = DateTimeOffset.UtcNow.AddMinutes(-201 + i),
+                };
+                if (i == 0)
+                {
+                    oldestA = snapshot.Id;
+                }
+
+                await store.SaveAsync(snapshot);
+            }
+
+            for (var i = 0; i < 3; i++)
+            {
+                await store.SaveAsync(TestSnapshots.Healthy() with
+                {
+                    Id = Guid.NewGuid(),
+                    MachineName = "Machine B",
+                    CapturedAt = DateTimeOffset.UtcNow.AddMinutes(i),
+                });
+            }
+
+            var history = await store.GetHistoryAsync(500);
+            Assert.Equal(SqliteSnapshotStore.MaxSnapshots + 3, history.Count);
+            Assert.Equal(SqliteSnapshotStore.MaxSnapshots, history.Count(h => h.MachineName == "Machine A"));
+            Assert.Equal(3, history.Count(h => h.MachineName == "Machine B"));
+            Assert.DoesNotContain(history, h => h.Id == oldestA);
+            Assert.Null(await store.GetSnapshotAsync(oldestA));
         }
         finally
         {

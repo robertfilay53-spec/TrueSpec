@@ -45,23 +45,30 @@ public class HonestyChokePointTests
         var offenders = new List<string>();
         foreach (var folder in new[] { "src", "tests" })
         {
-            foreach (var file in Directory.EnumerateFiles(
-                Path.Combine(root, folder), "*.cs", SearchOption.AllDirectories))
+            // Code and UI markup: a literal in an .axaml view would show
+            // the same text through a second copy, with the same drift risk.
+            // Docs (.md) are prose about the product rule, not code, and
+            // are deliberately out of scope here.
+            foreach (var pattern in new[] { "*.cs", "*.axaml" })
             {
-                var lines = File.ReadAllLines(file);
-                for (var i = 0; i < lines.Length; i++)
+                foreach (var file in Directory.EnumerateFiles(
+                    Path.Combine(root, folder), pattern, SearchOption.AllDirectories))
                 {
-                    if (!lines[i].Contains(Literal, StringComparison.Ordinal))
+                    var lines = File.ReadAllLines(file);
+                    for (var i = 0; i < lines.Length; i++)
                     {
-                        continue;
-                    }
+                        if (!lines[i].Contains(Literal, StringComparison.Ordinal))
+                        {
+                            continue;
+                        }
 
-                    // The one allowed occurrence: the constant definition.
-                    var isDefinition = Path.GetFileName(file) == "SpecLabels.cs" &&
-                        lines[i].Contains("public const string NotReportedByHardware", StringComparison.Ordinal);
-                    if (!isDefinition)
-                    {
-                        offenders.Add($"{Path.GetRelativePath(root, file)}:{i + 1}");
+                        // The one allowed occurrence: the constant definition.
+                        var isDefinition = Path.GetFileName(file) == "SpecLabels.cs" &&
+                            lines[i].Contains("public const string NotReportedByHardware", StringComparison.Ordinal);
+                        if (!isDefinition)
+                        {
+                            offenders.Add($"{Path.GetRelativePath(root, file)}:{i + 1}");
+                        }
                     }
                 }
             }

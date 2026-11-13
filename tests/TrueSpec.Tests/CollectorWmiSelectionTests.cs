@@ -122,6 +122,100 @@ public class CollectorWmiSelectionTests
     }
 
     [Fact]
+    public void MachineDnaCollector_SelectsEveryPropertyItReads()
+    {
+        // The F9 bug class, for the DNA collector: a property read but
+        // not selected comes back null, and a real serial would silently
+        // become "not reported" (or an unidentified part) on every machine.
+        AssertSelects(MachineDnaCollector.BaseBoardQuery, "SerialNumber");
+        AssertSelects(MachineDnaCollector.BiosQuery, "SerialNumber");
+        AssertSelects(MachineDnaCollector.DiskQuery, "DeviceID", "SerialNumber");
+        AssertSelects(MachineDnaCollector.MemoryQuery, "DeviceLocator", "SerialNumber");
+        AssertSelects(MachineDnaCollector.ProcessorQuery, "ProcessorId");
+    }
+
+    private static WmiRow Row(params (string Name, object? Value)[] values) =>
+        new(values.ToDictionary(v => v.Name, v => v.Value, StringComparer.OrdinalIgnoreCase));
+
+    [Fact]
+    public void MachineDnaCollector_Build_MapsRowsToPartsWithTruncatedSerials()
+    {
+        var dna = MachineDnaCollector.Build(
+            new[] { Row(("SerialNumber", "ABCD1234EFGH5678")) },
+            new[] { Row(("SerialNumber", "To be filled by O.E.M.")) },
+            new[] { Row(("DeviceID", @"\\.\PHYSICALDRIVE0"), ("SerialNumber", "DISK000111222333")) },
+            new[] { Row(("DeviceLocator", "DIMM 0"), ("SerialNumber", "MEM000111222333")) },
+            new[] { Row(("ProcessorId", "BFEBFBFF000906EA")) });
+
+        Assert.True(dna.IsAvailable);
+        Assert.NotNull(dna.Hash);
+        Assert.Equal(5, dna.Parts.Count);
+
+        var board = Assert.Single(dna.Parts, p => p.Kind == TrueSpec.Core.Comparison.MachineDnaPartKind.Board);
+        Assert.Equal("Base board", board.Label);
+        Assert.Equal("ABCD...5678", board.SerialTruncated);
+
+        // A placeholder BIOS serial stays in the parts list as an
+        // unidentified part: it is "not reported", never an identity.
+        var bios = Assert.Single(dna.Parts, p => p.Kind == TrueSpec.Core.Comparison.MachineDnaPartKind.Bios);
+        Assert.False(bios.IsIdentified);
+        Assert.Equal(SpecLabels.NotReportedByHardware, bios.SerialTruncated);
+
+        var disk = Assert.Single(dna.Parts, p => p.Kind == TrueSpec.Core.Comparison.MachineDnaPartKind.Disk);
+        Assert.Equal("Disk 0", disk.Label);
+        Assert.Equal("DISK...2333", disk.SerialTruncated);
+
+        var memory = Assert.Single(dna.Parts, p => p.Kind == TrueSpec.Core.Comparison.MachineDnaPartKind.Memory);
+        Assert.Equal("DIMM 0", memory.Label);
+
+        var cpu = Assert.Single(dna.Parts, p => p.Kind == TrueSpec.Core.Comparison.MachineDnaPartKind.Cpu);
+        Assert.Equal("Processor", cpu.Label);
+        Assert.Equal("BFEB...06EA", cpu.SerialTruncated);
+    }
+
+    [Fact]
+    public void MachineDnaCollector_Build_EmptyRows_GivesDnaNotAvailable()
+    {
+        var dna = MachineDnaCollector.Build(
+            Array.Empty<WmiRow>(),
+            Array.Empty<WmiRow>(),
+            Array.Empty<WmiRow>(),
+            Array.Empty<WmiRow>(),
+            Array.Empty<WmiRow>());
+
+        Assert.False(dna.IsAvailable);
+        Assert.Null(dna.Hash);
+        Assert.Empty(dna.Parts);
+    }
+
+    [Fact]
+    public void MachineDnaCollector_DiskLabel_FallsBackToTheRowIndex()
+    {
+        Assert.Equal("Disk 2", MachineDnaCollector.DiskLabel(Row(("SerialNumber", "X")), 2));
+        Assert.Equal("Disk 0", MachineDnaCollector.DiskLabel(Row(("DeviceID", @"\\.\PHYSICALDRIVE0"), ("SerialNumber", "X")), 3));
+        Assert.Equal("Memory 1", MachineDnaCollector.MemoryLabel(Row(("SerialNumber", "X")), 1));
+    }
+
+    [Fact]
+    public async Task Live_MachineDnaCollector_ReturnsDnaWithoutThrowing()
+    {
+        // A live read on the CI machine: the collector never throws for
+        // missing hardware, and any hash it reports is a real SHA-256.
+        // Whether this machine reports usable serials is hardware truth,
+        // not an assertion: a VM that reports only placeholders gives an
+        // unavailable DNA, which is the honest answer.
+        var dna = await new MachineDnaCollector().CollectAsync(CancellationToken.None);
+
+        Assert.NotNull(dna);
+        if (dna!.IsAvailable)
+        {
+            Assert.NotNull(dna.Hash);
+            Assert.Equal(64, dna.Hash!.Length);
+            Assert.NotEmpty(dna.Parts);
+        }
+    }
+
+    [Fact]
     public void SoftwareCollector_SelectsEveryPropertyItReads_AndNeverSelectsAKey()
     {
         AssertSelects(SoftwareCollector.LicensingProductQuery, "ApplicationID", "Description", "LicenseStatus", "Name");

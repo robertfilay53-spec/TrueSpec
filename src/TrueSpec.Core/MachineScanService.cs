@@ -1,7 +1,9 @@
 namespace TrueSpec.Core;
 
 using System.Diagnostics;
+using System.Globalization;
 using TrueSpec.Core.Collectors;
+using TrueSpec.Core.Comparison;
 using TrueSpec.Core.Health;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Scoring;
@@ -44,23 +46,32 @@ public sealed class MachineScanService
     private readonly IReadOnlyList<ICollector> _collectors;
     private readonly IScoringEngine _scoringEngine;
     private readonly IBuyerCheckEvaluator _buyerCheckEvaluator;
+    private readonly IMachineDnaProvider? _dnaProvider;
 
     public MachineScanService(
         IEnumerable<ICollector> collectors,
         IScoringEngine scoringEngine,
-        IBuyerCheckEvaluator buyerCheckEvaluator)
+        IBuyerCheckEvaluator buyerCheckEvaluator,
+        IMachineDnaProvider? dnaProvider = null)
     {
         _collectors = collectors.ToList();
         _scoringEngine = scoringEngine;
         _buyerCheckEvaluator = buyerCheckEvaluator;
+        _dnaProvider = dnaProvider;
     }
 
     public static MachineScanService CreateDefault() => Create(UnavailableCollectorCatalog.CreateAll());
 
-    public static MachineScanService Create(IEnumerable<ICollector> collectors) => new(
+    public static MachineScanService Create(IEnumerable<ICollector> collectors) =>
+        Create(collectors, null);
+
+    public static MachineScanService Create(
+        IEnumerable<ICollector> collectors,
+        IMachineDnaProvider? dnaProvider) => new(
         collectors,
         new ScoringEngine(),
-        new BuyerCheckEvaluator());
+        new BuyerCheckEvaluator(),
+        dnaProvider);
 
     public IReadOnlyList<ICollector> Collectors => _collectors;
 
@@ -92,6 +103,22 @@ public sealed class MachineScanService
         using var overallCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         overallCts.CancelAfter(budget.Overall);
         var overallToken = overallCts.Token;
+
+        // The machine fingerprint runs alongside the collectors, under the
+        // same per-collector budget: a slow or failing DNA read never
+        // blocks the scan, and a scan without a DNA provider (non-Windows,
+        // or a caller that did not supply one) simply records no DNA.
+        var dnaTask = _dnaProvider is null
+            ? null
+            : CollectDnaAsync(_dnaProvider, overallToken, budget.PerCollector, cancellationToken, log);
+
+        // Observe faults on the DNA task too, so a task abandoned by a
+        // caller-cancelled scan can never surface as unobserved.
+        _ = dnaTask?.ContinueWith(
+            task => _ = task.Exception,
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted,
+            TaskScheduler.Default);
 
         // One task per collector, all started up front: a slow collector
         // waits out its own budget on its own task while the rest finish.
@@ -195,6 +222,33 @@ public sealed class MachineScanService
         stopwatch.Stop();
         Log(log, $"Scan complete in {stopwatch.ElapsedMilliseconds} ms ({components.Count} components)");
 
+        // The fingerprint, when one was collected: the hash (full, in the
+        // snapshot only) and the truncated parts. A null DNA means the
+        // provider could not run at all, so the snapshot reads "DNA not
+        // recorded"; a DNA with no hash means it ran but no part reported
+        // a usable serial, so the snapshot reads "DNA not available".
+        // Neither state is a mismatch, and DNA never changes the score.
+        MachineDna? dna = null;
+        if (dnaTask is not null)
+        {
+            try
+            {
+                dna = await dnaTask;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                Log(log, $"Machine DNA collection failed: {exception.Message}");
+            }
+        }
+
+        Log(log, dna?.Hash is null
+            ? "Machine DNA not recorded for this scan"
+            : string.Create(CultureInfo.InvariantCulture, $"Machine DNA recorded ({dna.Parts.Count} parts)"));
+
         return new SystemSnapshot(
             Guid.NewGuid(),
             DateTimeOffset.Now,
@@ -202,7 +256,9 @@ public sealed class MachineScanService
             operatingSystem,
             components,
             score,
-            buyerChecks);
+            buyerChecks,
+            MachineDnaHash: dna?.Hash,
+            MachineDnaParts: dna?.Parts);
     }
 
     private static ScanTimeouts SanitizeTimeouts(ScanTimeouts timeouts)
@@ -267,6 +323,57 @@ public sealed class MachineScanService
         collectorStopwatch.Stop();
         Log(log, $"Collector {collector.Id} finished in {collectorStopwatch.ElapsedMilliseconds} ms");
         return component;
+    }
+
+    /// <summary>
+    /// Runs the DNA provider with its own timeout race, mirroring the
+    /// per-collector race above. A timeout or a provider failure is a
+    /// missing fingerprint (null), never an exception out of the scan and
+    /// never a fake value. Only a caller cancellation escapes.
+    /// </summary>
+    private static async Task<MachineDna?> CollectDnaAsync(
+        IMachineDnaProvider provider,
+        CancellationToken overallToken,
+        TimeSpan timeout,
+        CancellationToken callerToken,
+        Action<string>? log)
+    {
+        try
+        {
+            var collectTask = Task.Run(() => provider.CollectAsync(overallToken), overallToken);
+            var timeoutTask = Task.Delay(timeout, overallToken);
+            var completed = await Task.WhenAny(collectTask, timeoutTask);
+            if (completed == collectTask)
+            {
+                return await collectTask;
+            }
+
+            if (overallToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(overallToken);
+            }
+
+            _ = collectTask.ContinueWith(
+                task => _ = task.Exception,
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted,
+                TaskScheduler.Default);
+            Log(log, $"Machine DNA collection timed out after {timeout.TotalSeconds:0.#} s");
+            return null;
+        }
+        catch (OperationCanceledException) when (callerToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (Exception exception)
+        {
+            Log(log, $"Machine DNA collection failed: {exception.Message}");
+            return null;
+        }
     }
 
     private static async Task<ComponentSnapshot> CollectWithTimeoutAsync(

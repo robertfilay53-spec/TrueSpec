@@ -31,6 +31,14 @@ public sealed record ReportModel(
 
     public BuyerCheckResult BuyerChecks => Snapshot.BuyerChecks;
 
+    /// <summary>
+    /// The buyer certificate for this snapshot (Blueprint 4, U7): banner,
+    /// score, the five key numbers, the DNA hash and the scan date. The
+    /// JSON export carries it so a re-scan can be verified
+    /// programmatically; the other exporters ignore it.
+    /// </summary>
+    public BuyerCertificate Certificate => BuyerCertificate.FromSnapshot(Snapshot);
+
     public static ReportModel FromSnapshot(SystemSnapshot snapshot) =>
         new("1.0", DateTimeOffset.Now, snapshot);
 }

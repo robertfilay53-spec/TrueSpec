@@ -33,4 +33,7 @@ public static class WindowsCollectorCatalog
     };
 
     public static ISensorMonitor CreateSensorMonitor() => SensorMonitor;
+
+    /// <summary>The machine-DNA provider: the same serials the scan hashes into the snapshot.</summary>
+    public static IMachineDnaProvider CreateMachineDnaProvider() => new MachineDnaCollector();
 }
