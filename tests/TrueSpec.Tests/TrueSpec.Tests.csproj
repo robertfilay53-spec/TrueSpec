@@ -50,7 +50,7 @@
        CollectorWmiSelectionTests drives the Windows collectors.
        MachineDnaVerificationTests and ReportViewModelTests drive the
        App's DNA seam and Report page; DriverAgeRuleTests drives the
-       Windows collectors.
+       Windows collectors; FleetViewModelTests drives the Fleet page.
        Excluding the files (rather
        than #if-ing them) keeps the tests readable and the exclusion visible
        in the project file. -->
@@ -87,6 +87,7 @@
     <Compile Remove="MachineDnaVerificationTests.cs" />
     <Compile Remove="ReportViewModelTests.cs" />
     <Compile Remove="DriverAgeRuleTests.cs" />
+    <Compile Remove="FleetViewModelTests.cs" />
   </ItemGroup>
 
 </Project>

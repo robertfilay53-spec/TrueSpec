@@ -652,6 +652,24 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>
+    /// Exports the fleet table currently shown on the Fleet page as CSV,
+    /// to the configured export folder, exactly like the other exports:
+    /// no dialog, no cloud. The rows live on the Fleet page, so this
+    /// command reads them from the cached page; with no fleet there is
+    /// nothing to export.
+    /// </summary>
+    [RelayCommand]
+    private async Task ExportFleetCsvAsync()
+    {
+        var fleet = _pageCache.TryGetValue("fleet", out var page) ? page as FleetViewModel : null;
+        await _exporter.ExportFleetCsvAsync(fleet?.CurrentRows);
+        if (fleet is not null)
+        {
+            fleet.StatusMessage = StatusMessage;
+        }
+    }
+
     [RelayCommand]
     private Task ExportChecklistAsync() => _exporter.ExportChecklistAsync();
 
@@ -842,6 +860,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 OnLoadTestCompleted)),
             "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: IsScanRunning, exportPdfCommand: ExportPdfCommand, exportCertificateCommand: ExportCertificateCommand, verifyMachineCommand: VerifyMachineCommand, dnaVerification: _lastDnaVerification, isVerifyingMachine: IsVerifyingMachine)),
             "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot, _dnaVerifier)),
+            "fleet" => GetOrCreate("fleet", () => new FleetViewModel(_snapshotStore, ExportFleetCsvCommand)),
             "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand, SensorLogWriter.DefaultFilePath(), _settings.SensorLoggingEnabled, _settings.CpuTemperatureThresholdC)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
             _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key)),

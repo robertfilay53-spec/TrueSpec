@@ -55,6 +55,45 @@ public class NavigationTests
     }
 
     [Fact]
+    public void Navigation_ContainsFleetPage()
+    {
+        var items = NavItemViewModel.CreateDefault();
+        var fleet = items.FirstOrDefault(i => i.Key == "fleet");
+
+        Assert.NotNull(fleet);
+        Assert.Equal("Fleet", fleet.Label);
+    }
+
+    [Fact]
+    public void Navigation_FleetSitsAfterCompareSoHistoryStaysVisible()
+    {
+        // Technician mode (v2.0.3): the fleet table sits with the other
+        // multi-machine pages (History, Compare), after Compare, so
+        // History keeps its visible slot (index 0-15, pinned by
+        // Navigation_HistoryIsWithinVisibleRegion).
+        var items = NavItemViewModel.CreateDefault().ToList();
+        var history = items.FindIndex(i => i.Key == "history");
+        var compare = items.FindIndex(i => i.Key == "compare");
+        var fleet = items.FindIndex(i => i.Key == "fleet");
+
+        Assert.InRange(history, 0, 15);
+        Assert.True(fleet > compare, "Fleet must sit after Compare so History keeps its visible slot.");
+    }
+
+    [Fact]
+    public void Navigation_FleetRoutesToFleetViewModel()
+    {
+        var main = new MainViewModel(
+            MachineScanService.CreateDefault(),
+            new UnavailableSensorMonitor(),
+            new BuyerCheckEvaluator());
+
+        main.SelectedNavItem = main.NavItems.First(i => i.Key == "fleet");
+
+        Assert.IsType<FleetViewModel>(main.CurrentPage);
+    }
+
+    [Fact]
     public void Navigation_HistoryIsWithinVisibleRegion()
     {
         // The default window is 1280x800 and the rail fits about 16 items
@@ -189,6 +228,7 @@ public class NavigationTests
     [InlineData("tests", typeof(TestsViewModel))]
     [InlineData("report", typeof(ReportViewModel))]
     [InlineData("compare", typeof(ComparisonViewModel))]
+    [InlineData("fleet", typeof(FleetViewModel))]
     [InlineData("settings", typeof(SettingsViewModel))]
     public void Navigation_EveryItemRoutesToItsPage(string key, Type expectedPageType)
     {
@@ -305,7 +345,7 @@ public class NavigationTests
     public void Navigation_NavRailIsScrollable()
     {
         // The v1.4 recurrence of the v1.0.1 defect: Settings is the last
-        // of 21 nav items and the rail fits about 16 at the default
+        // of 22 nav items and the rail fits about 16 at the default
         // 1280x800 window, so it rendered below the fold and was
         // effectively unreachable. The rail must scroll, and the scrollbar
         // must be always visible (not auto/overlay) so the scrollability

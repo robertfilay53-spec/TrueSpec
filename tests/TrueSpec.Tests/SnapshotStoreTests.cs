@@ -354,4 +354,141 @@ public class SnapshotStoreTests
             }
         }
     }
+
+    [Fact]
+    public async Task GetLatestPerMachine_ReturnsLatestScanAndCountPerMachine()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var aOldest = TestSnapshots.Healthy() with
+            {
+                Id = Guid.NewGuid(),
+                CapturedAt = baseTime,
+                MachineName = "SHOP-PC-A",
+            };
+            var aMiddle = TestSnapshots.Healthy() with
+            {
+                Id = Guid.NewGuid(),
+                CapturedAt = baseTime.AddHours(1),
+                MachineName = "SHOP-PC-A",
+            };
+            var aLatest = TestSnapshots.Healthy() with
+            {
+                Id = Guid.NewGuid(),
+                CapturedAt = baseTime.AddHours(2),
+                MachineName = "SHOP-PC-A",
+            };
+            var bOlder = TestSnapshots.Healthy() with
+            {
+                Id = Guid.NewGuid(),
+                CapturedAt = baseTime,
+                MachineName = "SHOP-PC-B",
+            };
+            var bLatest = TestSnapshots.Healthy() with
+            {
+                Id = Guid.NewGuid(),
+                CapturedAt = baseTime.AddMinutes(30),
+                MachineName = "SHOP-PC-B",
+            };
+
+            await store.SaveAsync(aOldest);
+            await store.SaveAsync(aMiddle);
+            await store.SaveAsync(aLatest);
+            await store.SaveAsync(bOlder);
+            await store.SaveAsync(bLatest);
+
+            var latest = await store.GetLatestPerMachineAsync();
+
+            Assert.Equal(2, latest.Count);
+            Assert.Equal("SHOP-PC-A", latest[0].MachineName);
+            Assert.Equal(aLatest.Id, latest[0].Id);
+            Assert.Equal(baseTime.AddHours(2), latest[0].CapturedAt);
+            Assert.Equal(3, latest[0].ScanCount);
+            Assert.Equal("SHOP-PC-B", latest[1].MachineName);
+            Assert.Equal(bLatest.Id, latest[1].Id);
+            Assert.Equal(baseTime.AddMinutes(30), latest[1].CapturedAt);
+            Assert.Equal(2, latest[1].ScanCount);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GetLatestPerMachine_EmptyStoreGivesEmptyList()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            Assert.Empty(await store.GetLatestPerMachineAsync());
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GetLatestPerMachine_SavedOutOfOrderStillPicksNewest()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var newer = TestSnapshots.Healthy() with
+            {
+                Id = Guid.NewGuid(),
+                CapturedAt = baseTime.AddHours(5),
+                MachineName = "SHOP-PC-A",
+            };
+            var older = TestSnapshots.Healthy() with
+            {
+                Id = Guid.NewGuid(),
+                CapturedAt = baseTime,
+                MachineName = "SHOP-PC-A",
+            };
+
+            // Saved newest first, then the older scan: the query must
+            // still return the newest by captured time, not by save order.
+            await store.SaveAsync(newer);
+            await store.SaveAsync(older);
+
+            var latest = await store.GetLatestPerMachineAsync();
+
+            var only = Assert.Single(latest);
+            Assert.Equal(newer.Id, only.Id);
+            Assert.Equal(2, only.ScanCount);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
 }

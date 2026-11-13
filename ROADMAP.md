@@ -221,6 +221,25 @@ data already existed; only the band rule and wording are new.
   compared row by row (score, battery health, storage wear, oldest
   driver date).
 
+## v2.0.3 — shipped
+
+- **Technician mode: fleet summary.** The plan's Beyond v2.0 item 1,
+  first step: a Fleet page listing every machine in the local snapshot
+  store (latest score, worst component, last scan date, scan count),
+  lowest score first, with a CSV export of the table. Collection needs
+  no new code: the portable buyer kit already saves every machine's
+  scans into the same store on the stick, and the store already prunes
+  per machine (newest 200). Core: `TrueSpec.Core/History/FleetSummary.cs`
+  (pure functions; the worst component is the lowest-health row of the
+  score breakdown, null when nothing is measurable); store:
+  `ISnapshotStore.GetLatestPerMachineAsync` (one window-function query:
+  latest row per machine plus scan count); reports: `FleetCsvExporter`
+  (UTF-8 with BOM, same escaping as the History CSV). App:
+  `FleetViewModel` + `FleetView` (new nav item "Fleet" after Compare,
+  so History keeps its visible slot). Tests: `FleetSummaryTests`,
+  `FleetCsvExporterTests`, store tests for the new query,
+  `FleetViewModelTests`, navigation tests.
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed
