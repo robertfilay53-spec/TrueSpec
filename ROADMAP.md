@@ -544,7 +544,7 @@ data already existed; only the band rule and wording are new.
   changes in `git diff a31d021 0e6a153 -- '*csproj'`), so the result
   carries forward.
 
-## v2.1.4 — in progress
+## v2.1.4 — shipped
 
 - **Technician mode: export all machines.** The fleet could export
   the whole table as one CSV, or one machine at a time from its row,
@@ -586,6 +586,50 @@ data already existed; only the band rule and wording are new.
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.1.2 and v2.1.3 (zero `PackageReference`
   changes in `git diff 0e6a153 a31402b -- '*csproj'`), so the result
+  carries forward.
+
+## v2.1.5 — in progress
+
+- **Collector plug-ins, phase 1: versioned contract + manifest +
+  discovery.** The plan's Beyond v2.0 item 2, first slice: the
+  collector contract is now versioned (`CollectorContract.
+  CurrentVersion = 1`, the `ICollector` surface as shipped in
+  v2.1.4), and its shape is pinned by `CollectorContractTests`, so a
+  change to the interface breaks the test and forces a deliberate
+  version bump instead of a silent drift. A plug-in is described by
+  a plugin.json manifest (id, name, version, contract version,
+  assembly file, collectors) parsed by `PluginManifestParser` with
+  the same strictness as the report importer: unknown fields are
+  rejected, the assembly must be a plain .dll file name inside the
+  plug-in's own folder (a path, a parent-directory escape, or a
+  non-.dll file is rejected), collector ids follow the built-in
+  shape (lowercase letters, digits, dashes) and must be unique, and
+  manifests over 64 KB are refused without being read. `PluginDiscovery`
+  scans the data root's Plugins folder (installed mode:
+  `%LocalAppData%\TrueSpec\Plugins`; portable mode: the Plugins
+  folder next to the exe, so the stick carries its plug-ins) and
+  reports each folder as Ready, IncompatibleContract, InvalidManifest
+  or MissingAssembly, with a plain-English reason; a missing folder
+  reads as no plug-ins, never an error, and discovery never throws.
+  App: the Settings page gains a Plug-ins card showing the folder,
+  the count, each plug-in's name, version and status, and a Refresh
+  button; the list re-runs when portable mode is toggled, because
+  the toggle moves the data folder. Plug-ins are discovered but
+  never loaded in this version: only signed plug-ins load, and
+  plug-in signing is not set up yet. Loading is the next phase, once
+  the signing story is decided. Tests: `CollectorContractTests`
+  (version + interface shape pin), `PluginManifestTests` (every
+  validation rule, oversized file, never throws),
+  `PluginDiscoveryTests` (empty/missing folder, ready, incompatible,
+  invalid, missing assembly, folder order), and
+  `SettingsViewModelTests` (summary text, listing, refresh, toggle
+  moves the folder).
+- **Dependency audit re-attested for v2.1.4.** `SECURITY.md` said
+  v2.1.3; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.3 and v2.1.4 (zero `PackageReference`
+  changes in `git diff a31402b 3d7a59e -- '*csproj'`), so the result
   carries forward.
 
 ## Rejected

@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TrueSpec.Core.Plugins;
 using TrueSpec.Core.Security;
 using TrueSpec.Core.Settings;
 
@@ -27,6 +29,9 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private readonly string? _environmentValue;
     private PortableModeStatus _portableStatus;
 
+    /// <summary>Why the last plug-in discovery pass could not list plug-ins, if it could not.</summary>
+    private string? _pluginDiscoveryError;
+
     public SettingsViewModel(MainViewModel main, string? exeDirectory = null, string? environmentValue = null)
     {
         _main = main;
@@ -40,6 +45,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         CpuTemperatureAlertEnabled = _settings.CpuTemperatureThresholdC is not null;
         CpuTemperatureThresholdText = _settings.CpuTemperatureThresholdC?.ToString("0.#", CultureInfo.InvariantCulture) ?? "90";
         CpuTemperatureThresholdSeconds = _settings.CpuTemperatureThresholdSeconds;
+        RefreshPluginDiscovery();
         _main.PropertyChanged += OnMainPropertyChanged;
     }
 
@@ -193,6 +199,49 @@ public sealed partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     public partial string PortableModeMessage { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Collector plug-ins, phase 1 (plan Beyond v2.0 item 2): the folder
+    /// plug-ins live in, one subfolder per plug-in, under this run's data
+    /// folder. Installed mode reads %LocalAppData%\TrueSpec\Plugins;
+    /// portable mode reads the Plugins folder next to the exe, so the
+    /// stick carries its plug-ins.
+    /// </summary>
+    public string PluginFolderText => Path.Combine(_portableStatus.DataFolder, "Plugins");
+
+    /// <summary>The plug-ins the last discovery pass found, in folder-name order.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<DiscoveredPlugin> DiscoveredPlugins { get; set; } = Array.Empty<DiscoveredPlugin>();
+
+    /// <summary>
+    /// One line on what discovery found: how many plug-ins, or why none
+    /// could be listed. A missing plug-ins folder reads as "no plug-ins",
+    /// never as an error.
+    /// </summary>
+    public string PluginsSummaryText => _pluginDiscoveryError is not null
+        ? _pluginDiscoveryError
+        : DiscoveredPlugins.Count == 0
+            ? "No plug-ins found."
+            : DiscoveredPlugins.Count == 1
+                ? "1 plug-in found."
+                : $"{DiscoveredPlugins.Count} plug-ins found.";
+
+    /// <summary>
+    /// Re-runs discovery over the plug-ins folder and replaces the list.
+    /// Runs in the constructor, when the user refreshes, and when the
+    /// portable-mode toggle moves the data folder (and the plug-ins
+    /// folder with it).
+    /// </summary>
+    private void RefreshPluginDiscovery()
+    {
+        var result = PluginDiscovery.Discover(PluginFolderText);
+        DiscoveredPlugins = result.Plugins;
+        _pluginDiscoveryError = result.Error;
+        OnPropertyChanged(nameof(PluginsSummaryText));
+    }
+
+    [RelayCommand]
+    private void RefreshPlugins() => RefreshPluginDiscovery();
+
     [RelayCommand]
     private void TogglePortableMode()
     {
@@ -205,6 +254,8 @@ public sealed partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(DataFolderText));
         OnPropertyChanged(nameof(PortableModeSummaryText));
         OnPropertyChanged(nameof(PortableModeActionText));
+        OnPropertyChanged(nameof(PluginFolderText));
+        RefreshPluginDiscovery();
     }
 
     /// <summary>

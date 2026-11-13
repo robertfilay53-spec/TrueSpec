@@ -41,6 +41,15 @@ public sealed record AppDataRoot(string Folder, bool IsPortable)
 
     public string WindowStatePath => Path.Combine(Folder, "window-state.json");
 
+    /// <summary>
+    /// The folder plug-ins live in, one subfolder per plug-in, each with a
+    /// plugin.json manifest (plan Beyond v2.0 item 2, phase 1). It sits
+    /// under the data root, so installed mode reads
+    /// %LocalAppData%\TrueSpec\Plugins and portable mode reads the
+    /// Plugins folder next to the exe: the stick carries its plug-ins.
+    /// </summary>
+    public string PluginsFolder => Path.Combine(Folder, "Plugins");
+
     /// <summary>The default root: %LocalAppData%\TrueSpec, as before.</summary>
     public static AppDataRoot Default() => new(PathSafety.DefaultAppDataFolder(), false);
 
