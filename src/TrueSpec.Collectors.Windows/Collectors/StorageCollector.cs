@@ -24,13 +24,23 @@ public sealed class StorageCollector : ICollector
 
     public bool RequiresAdministrator => true;
 
+    // Hoisted so the selection can be pinned (F9 bug class): a property
+    // read but not selected comes back null, so a drive value the machine
+    // does have would silently show as not reported. The reliability
+    // counter query is used both as the fallback read and, through
+    // FromInstance, as the property list for the method-call path.
+    internal const string PhysicalDiskQuery = "SELECT DeviceId, FriendlyName, SerialNumber, FirmwareVersion, Size, BusType, MediaType, HealthStatus, OperationalStatus FROM MSFT_PhysicalDisk";
+    internal const string LogicalDiskQuery = "SELECT DeviceID, DriveType, Size, FreeSpace, FileSystem FROM Win32_LogicalDisk";
+    internal const string PartitionQuery = "SELECT DriveLetter, DiskNumber FROM MSFT_Partition";
+    internal const string StorageReliabilityCounterQuery = "SELECT DeviceId, Wear, PowerOnHours, Temperature, ReadErrorsTotal, WriteErrorsTotal, ReadErrorsUncorrected, WriteErrorsUncorrected, StartStopCycleCount FROM MSFT_StorageReliabilityCounter";
+
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var disks = Wmi.QueryRaw(
             "root\\Microsoft\\Windows\\Storage",
-            "SELECT DeviceId, FriendlyName, SerialNumber, FirmwareVersion, Size, BusType, MediaType, HealthStatus, OperationalStatus FROM MSFT_PhysicalDisk",
+            PhysicalDiskQuery,
             out var error);
 
         if (disks.Count == 0)
@@ -169,7 +179,7 @@ public sealed class StorageCollector : ICollector
     {
         var rows = Wmi.Query(
             "root\\cimv2",
-            "SELECT DeviceID, DriveType, Size, FreeSpace, FileSystem FROM Win32_LogicalDisk");
+            LogicalDiskQuery);
 
         var volumes = rows
             .Select(row => StorageVolumeParser.Build(
@@ -267,7 +277,7 @@ public sealed class StorageCollector : ICollector
 
     private static int? ReadSystemDiskNumber()
     {
-        var partitions = Wmi.Query("root\\Microsoft\\Windows\\Storage", "SELECT DriveLetter, DiskNumber FROM MSFT_Partition");
+        var partitions = Wmi.Query("root\\Microsoft\\Windows\\Storage", PartitionQuery);
         foreach (var partition in partitions)
         {
             var letter = partition.String("DriveLetter");
@@ -301,7 +311,7 @@ public sealed class StorageCollector : ICollector
             // Older storage stacks do not expose the method; fall through to the class query.
         }
 
-        var rows = Wmi.Query("root\\Microsoft\\Windows\\Storage", "SELECT DeviceId, Wear, PowerOnHours, Temperature, ReadErrorsTotal, WriteErrorsTotal, ReadErrorsUncorrected, WriteErrorsUncorrected, StartStopCycleCount FROM MSFT_StorageReliabilityCounter");
+        var rows = Wmi.Query("root\\Microsoft\\Windows\\Storage", StorageReliabilityCounterQuery);
         var match = rows.FirstOrDefault(r =>
             deviceId is not null &&
             string.Equals(r.String("DeviceId"), deviceId, StringComparison.OrdinalIgnoreCase));

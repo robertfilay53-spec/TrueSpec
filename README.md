@@ -42,6 +42,12 @@ The product rule is simple: every number is either **measured** (with its source
 - **Windows Memory Diagnostic result on the RAM page:** the "Memory test" row used to say "Not run" without ever checking. It now reads the System event log (provider Microsoft-Windows-MemoryDiagnostics-Results) and reports the newest result: "Passed on 2026-11-01" or "Failed on 2026-11-01". When the log holds no result event it says "Not run" — now a measured statement, because the log was actually read — and when the log cannot be read it says "Not reported by hardware" instead of guessing.
 - **Dependency audit re-attested for v2.0.5:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.0.4 and v2.0.5.
 
+## What's new in v2.0.7
+
+- **Every WMI query is now pinned:** the remaining collectors (Network, Display, Storage, Security, Crash, Updates) had their queries written inline, so a property read but not selected silently came back null and the value showed as not reported even though the machine has it. Their queries are now named constants, and a test pins each SELECT list against the properties the collector actually reads — the same guard that caught the BIOS-vendor defect.
+- **Export privacy note on the Report page:** an exported report is handed to a seller, and it contains this machine's hardware serials, MAC addresses, IP addresses and Wi-Fi network names. The Report page now says so before the export happens, instead of letting the buyer find out after.
+- **Dependency audit re-attested for v2.0.6:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.0.5 and v2.0.6.
+
 ## Status
 
 Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.

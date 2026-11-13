@@ -32,6 +32,11 @@ public sealed class UpdatesCollector : ICollector
     private const string ResultsBasePath =
         @"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\Results";
 
+    // Hoisted so the selection can be pinned (F9 bug class): a property
+    // read but not selected comes back null, so a hotfix the machine does
+    // have would silently drop out of the list.
+    internal const string HotfixQuery = "SELECT HotFixID, InstalledOn, Description FROM Win32_QuickFixEngineering";
+
     private const string PolicyPath =
         @"SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate";
 
@@ -49,7 +54,7 @@ public sealed class UpdatesCollector : ICollector
 
         var hotfixRows = Wmi.Query(
             "root\\cimv2",
-            "SELECT HotFixID, InstalledOn, Description FROM Win32_QuickFixEngineering",
+            HotfixQuery,
             out var hotfixError);
         // A truncation note with rows is partial data, not a failed query:
         // Wmi records the cut in `error` even when rows were returned.

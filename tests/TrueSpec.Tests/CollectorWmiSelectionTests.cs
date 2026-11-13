@@ -22,9 +22,12 @@ namespace TrueSpec.Tests;
 /// <para>
 /// Windows leg only (the collectors are Windows-only), like
 /// SystemCollectorTests: excluded from the net10.0 leg in the csproj.
-/// Network, Display, Storage, Security, Crash, Updates and Startup
-/// collectors are not covered by the pinning test: their queries are
-/// still inline, so hoisting them is follow-up work, not this batch.
+/// Every collector with a WMI query is covered: the earlier batch pinned
+/// System, Motherboard, CPU, Battery, GPU, RAM, Drivers, Machine DNA and
+/// Software; this batch hoisted the remaining inline queries (Network,
+/// Display, Storage, Security, Crash, Updates) into named constants and
+/// pinned them too. Startup has no WMI query (registry only), so there
+/// is nothing to pin for it.
 /// </para>
 /// </summary>
 public class CollectorWmiSelectionTests
@@ -119,6 +122,80 @@ public class CollectorWmiSelectionTests
     public void DriversCollector_SelectsEveryPropertyItReads()
     {
         AssertSelects(DriversCollector.SignedDriverQuery, "DeviceName", "DriverDate", "DriverVersion", "IsSigned");
+    }
+
+    [Fact]
+    public void NetworkCollector_SelectsEveryPropertyItReads()
+    {
+        AssertSelects(NetworkCollector.NetworkAdapterQuery,
+            "Name", "Manufacturer", "MACAddress", "Speed", "PNPDeviceID",
+            "NetConnectionID", "AdapterType", "Index", "PhysicalAdapter");
+        AssertSelects(NetworkCollector.NetworkAdapterConfigurationQuery,
+            "Index", "IPAddress", "DefaultIPGateway", "DNSServerSearchOrder");
+        // Only the row count is used for Bluetooth; PNPDeviceID is the
+        // property the query is about, and pinning it guards the SELECT
+        // against a future edit that drops it while keeping the filter.
+        AssertSelects(NetworkCollector.BluetoothDeviceQuery, "PNPDeviceID");
+        // Manufacturer is selected but never read from driver rows (the
+        // vendor comes from the adapter row); only the three properties
+        // FindDriver callers actually read are pinned.
+        AssertSelects(NetworkCollector.AdapterDriverQueryFormat, "DeviceID", "DriverVersion", "DriverDate");
+    }
+
+    [Fact]
+    public void DisplayCollector_SelectsEveryPropertyItReads()
+    {
+        AssertSelects(DisplayCollector.MonitorIdQuery,
+            "ManufacturerName", "ProductCodeID", "SerialNumberID", "UserFriendlyName",
+            "YearOfManufacture", "WeekOfManufacture");
+        AssertSelects(DisplayCollector.VideoControllerQuery,
+            "CurrentHorizontalResolution", "CurrentVerticalResolution",
+            "CurrentRefreshRate", "CurrentBitsPerPixel");
+        AssertSelects(DisplayCollector.MonitorBasicDisplayParamsQuery,
+            "MaxHorizontalImageSize", "MaxVerticalImageSize");
+    }
+
+    [Fact]
+    public void StorageCollector_SelectsEveryPropertyItReads()
+    {
+        AssertSelects(StorageCollector.PhysicalDiskQuery,
+            "DeviceId", "FriendlyName", "SerialNumber", "FirmwareVersion", "Size",
+            "BusType", "MediaType", "HealthStatus", "OperationalStatus");
+        AssertSelects(StorageCollector.LogicalDiskQuery,
+            "DeviceID", "DriveType", "Size", "FreeSpace", "FileSystem");
+        AssertSelects(StorageCollector.PartitionQuery, "DriveLetter", "DiskNumber");
+        // The same property names are read by FromRow (class-query
+        // fallback) and by FromInstance (method-call path).
+        AssertSelects(StorageCollector.StorageReliabilityCounterQuery,
+            "DeviceId", "Wear", "PowerOnHours", "Temperature", "ReadErrorsTotal",
+            "WriteErrorsTotal", "ReadErrorsUncorrected", "WriteErrorsUncorrected",
+            "StartStopCycleCount");
+    }
+
+    [Fact]
+    public void SecurityCollector_SelectsEveryPropertyItReads()
+    {
+        AssertSelects(SecurityCollector.DeviceGuardQuery, "VirtualizationBasedSecurityStatus");
+        AssertSelects(SecurityCollector.AntiVirusProductQuery, "displayName", "productState");
+        // productState stays selected for symmetry with the antivirus
+        // query but is not read: no per-product firewall state is shown,
+        // only the product names. Only displayName is pinned.
+        AssertSelects(SecurityCollector.FirewallProductQuery, "displayName");
+        AssertSelects(SecurityCollector.TpmQuery,
+            "SpecVersion", "IsEnabled_InitialValue", "IsActivated_InitialValue", "IsOwned_InitialValue");
+        AssertSelects(SecurityCollector.EncryptableVolumeQuery, "DriveLetter", "ProtectionStatus");
+    }
+
+    [Fact]
+    public void CrashCollector_SelectsEveryPropertyItReads()
+    {
+        AssertSelects(CrashCollector.OperatingSystemQuery, "InstallDate");
+    }
+
+    [Fact]
+    public void UpdatesCollector_SelectsEveryPropertyItReads()
+    {
+        AssertSelects(UpdatesCollector.HotfixQuery, "HotFixID", "InstalledOn", "Description");
     }
 
     [Fact]

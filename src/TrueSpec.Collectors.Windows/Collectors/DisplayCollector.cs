@@ -21,10 +21,17 @@ public sealed class DisplayCollector : ICollector
 
     public bool RequiresAdministrator => false;
 
+    // Hoisted so the selection can be pinned (F9 bug class): a property
+    // read but not selected comes back null, so the panel identity or the
+    // active resolution would silently show as not reported.
+    internal const string MonitorIdQuery = "SELECT ManufacturerName, ProductCodeID, SerialNumberID, UserFriendlyName, YearOfManufacture, WeekOfManufacture FROM WmiMonitorID";
+    internal const string VideoControllerQuery = "SELECT CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate, CurrentBitsPerPixel FROM Win32_VideoController";
+    internal const string MonitorBasicDisplayParamsQuery = "SELECT MaxHorizontalImageSize, MaxVerticalImageSize FROM WmiMonitorBasicDisplayParams";
+
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
-        var monitors = Wmi.Query("root\\wmi", "SELECT ManufacturerName, ProductCodeID, SerialNumberID, UserFriendlyName, YearOfManufacture, WeekOfManufacture FROM WmiMonitorID");
-        var video = Wmi.Query("root\\cimv2", "SELECT CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate, CurrentBitsPerPixel FROM Win32_VideoController").FirstOrDefault();
+        var monitors = Wmi.Query("root\\wmi", MonitorIdQuery);
+        var video = Wmi.Query("root\\cimv2", VideoControllerQuery).FirstOrDefault();
 
         if (monitors.Count == 0 && video is null)
         {
@@ -37,7 +44,7 @@ public sealed class DisplayCollector : ICollector
         }
 
         var monitor = monitors.FirstOrDefault();
-        var basic = Wmi.Query("root\\wmi", "SELECT MaxHorizontalImageSize, MaxVerticalImageSize FROM WmiMonitorBasicDisplayParams").FirstOrDefault();
+        var basic = Wmi.Query("root\\wmi", MonitorBasicDisplayParamsQuery).FirstOrDefault();
 
         var manufacturer = Decode(monitor?.UInt16Array("ManufacturerName"));
         var model = Decode(monitor?.UInt16Array("ProductCodeID"));

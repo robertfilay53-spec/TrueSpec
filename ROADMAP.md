@@ -285,7 +285,7 @@ data already existed; only the band rule and wording are new.
   a comment, and test-file exclusions — zero `PackageReference`
   changes), so the result carries forward.
 
-## v2.0.6 — in progress
+## v2.0.6 — shipped
 
 - **Windows Memory Diagnostic result on the RAM page.** The "Memory
   test" row said "Not run" without ever checking the log — a hardcoded
@@ -309,6 +309,37 @@ data already existed; only the band rule and wording are new.
   version changed between v2.0.4 and v2.0.5 (only the `<Version>` bump
   and a test-file exclusion — zero `PackageReference` changes), so the
   result carries forward.
+
+## v2.0.7 — in progress
+
+- **Every WMI query pinned.** The pinning tests (`CollectorWmiSelectionTests`)
+  covered System, Motherboard, CPU, Battery, GPU, RAM, Drivers, Machine
+  DNA and Software, but Network, Display, Storage, Security, Crash and
+  Updates still wrote their queries inline — the exact shape that let
+  the F9 BIOS-vendor defect happen (a property read but not selected
+  comes back null, and the value silently shows as not reported). Their
+  queries are now named `internal const string` constants on the
+  collector, and the pinning tests assert each SELECT list contains
+  every property the collector reads: Network (adapter, configuration,
+  Bluetooth, driver lookup), Display (EDID, video controller, basic
+  display params), Storage (physical disk, logical disk, partition,
+  reliability counter), Security (Device Guard, antivirus, firewall,
+  TPM, BitLocker volume), Crash (Windows install date), Updates
+  (hotfix list). The driver lookup keeps its interpolated WHERE clause
+  as a format string; the SELECT list is fixed. Startup has no WMI
+  query (registry only), so there is nothing to pin for it.
+- **Export privacy note on the Report page.** An exported report is
+  handed to a seller, and it contains hardware serials, MAC addresses,
+  IP addresses and Wi-Fi network names. The Report page now says so
+  under the export buttons (`ReportViewModel.ExportPrivacyNote`), so
+  the buyer knows before exporting. Tests: `ReportViewModelTests`
+  (the note names all four identifier kinds).
+- **Dependency audit re-attested for v2.0.6.** `SECURITY.md` said
+  v2.0.5; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.0.5 and v2.0.6 (only the `<Version>` bump
+  — zero `PackageReference` changes), so the result carries forward.
 
 ## Rejected
 

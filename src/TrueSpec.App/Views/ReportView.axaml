@@ -118,6 +118,8 @@
 
             <TextBlock Text="{Binding ExportFolderText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
 
+            <TextBlock Text="{Binding ExportPrivacyNote}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+
             <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
                 <Border Classes="card" Padding="16">
                     <StackPanel Spacing="5">
