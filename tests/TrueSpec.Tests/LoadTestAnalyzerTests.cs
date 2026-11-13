@@ -190,6 +190,19 @@ public class LoadTestAnalyzerTests
 
         Assert.False(result.MemoryPatternVerified);
         Assert.Contains("memory pattern check did not verify", result.VerdictText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("MemTest86", result.VerdictText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PassedMemoryCheck_DoesNotMentionMemTest86()
+    {
+        // The MemTest86 direction is for a failed check only: a passing
+        // in-OS pattern exercise must not send the user to a bootable test
+        // unprompted. The standing MemTest86 note lives on the RAM page.
+        var result = LoadTestAnalyzer.Analyze(GetSamples(3900d, 70d), 4200d, null, 60, memoryPatternVerified: true);
+
+        Assert.True(result.MemoryPatternVerified);
+        Assert.DoesNotContain("MemTest86", result.VerdictText, StringComparison.Ordinal);
     }
 
     [Fact]
