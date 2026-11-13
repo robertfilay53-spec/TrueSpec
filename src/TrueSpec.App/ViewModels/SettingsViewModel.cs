@@ -22,10 +22,18 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private readonly MainViewModel _main;
     private AppSettings _settings;
 
-    public SettingsViewModel(MainViewModel main)
+    /// <summary>Test seams for the portable-mode status: pass an explicit exe folder and env value instead of the real ones.</summary>
+    private readonly string? _exeDirectory;
+    private readonly string? _environmentValue;
+    private PortableModeStatus _portableStatus;
+
+    public SettingsViewModel(MainViewModel main, string? exeDirectory = null, string? environmentValue = null)
     {
         _main = main;
         _settings = main.Settings;
+        _exeDirectory = exeDirectory;
+        _environmentValue = environmentValue;
+        _portableStatus = PortableMode.GetStatus(_exeDirectory, _environmentValue);
         RefreshIntervalSeconds = _settings.RefreshIntervalSeconds;
         ExportFolder = _settings.ExportFolder;
         SensorLoggingEnabled = _settings.SensorLoggingEnabled;
@@ -153,6 +161,51 @@ public sealed partial class SettingsViewModel : ViewModelBase
         : ExportFolder;
 
     public string LanguageText => "English (locked in v1)";
+
+    /// <summary>The folder this run keeps its data in (settings, history, sensor log).</summary>
+    public string DataFolderText => _portableStatus.DataFolder;
+
+    /// <summary>
+    /// One sentence on the portable state: whether data is kept next to
+    /// the app or in the default folder, and which signal asked for it.
+    /// A marker in a protected folder reads as off with the reason named:
+    /// the marker is present but portable mode never activates there.
+    /// </summary>
+    public string PortableModeSummaryText => _portableStatus switch
+    {
+        { IsPortable: true, MarkerPresent: true, EnvRequested: true } =>
+            "Portable mode is on (marker file and environment variable). Data is kept next to the app.",
+        { IsPortable: true, MarkerPresent: true } =>
+            "Portable mode is on. Data is kept next to the app.",
+        { IsPortable: true } =>
+            "Portable mode is on through the TRUESPEC_PORTABLE environment variable. Data is kept next to the app.",
+        { MarkerPresent: true } =>
+            "The portable marker file is present, but this app folder is a system or protected folder, so portable mode is not active and data stays in the default folder.",
+        _ => "Portable mode is off. Data is kept in the default folder.",
+    };
+
+    /// <summary>The toggle acts on the marker file, never on the environment variable.</summary>
+    public string PortableModeActionText => _portableStatus.MarkerPresent
+        ? "Turn portable mode off"
+        : "Turn portable mode on";
+
+    /// <summary>Outcome of the last portable-mode change; empty when nothing was changed yet.</summary>
+    [ObservableProperty]
+    public partial string PortableModeMessage { get; set; } = string.Empty;
+
+    [RelayCommand]
+    private void TogglePortableMode()
+    {
+        var result = PortableMode.SetEnabled(
+            _exeDirectory ?? AppContext.BaseDirectory,
+            !_portableStatus.MarkerPresent,
+            _environmentValue);
+        _portableStatus = PortableMode.GetStatus(_exeDirectory, _environmentValue);
+        PortableModeMessage = result.Message;
+        OnPropertyChanged(nameof(DataFolderText));
+        OnPropertyChanged(nameof(PortableModeSummaryText));
+        OnPropertyChanged(nameof(PortableModeActionText));
+    }
 
     /// <summary>
     /// Set by the view: opens the native folder picker and returns the

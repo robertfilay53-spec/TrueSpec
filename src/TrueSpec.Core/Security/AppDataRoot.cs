@@ -54,6 +54,14 @@ public sealed record AppDataRoot(string Folder, bool IsPortable)
     }
 
     /// <summary>
+    /// True when the environment variable asks for portable mode.
+    /// <paramref name="environmentValue"/> is a seam for tests: pass an
+    /// explicit value instead of reading the real environment.
+    /// </summary>
+    internal static bool EnvRequestsPortable(string? environmentValue) =>
+        IsTruthy(environmentValue ?? Environment.GetEnvironmentVariable(PortableEnvironmentVariable));
+
+    /// <summary>
     /// Resolves the root for this run: portable when the marker file sits
     /// next to the exe or the environment variable asks for it, default
     /// otherwise. The parameters are seams for tests: pass an explicit
@@ -73,8 +81,7 @@ public sealed record AppDataRoot(string Folder, bool IsPortable)
             return Default();
         }
 
-        var envValue = environmentValue ?? Environment.GetEnvironmentVariable(PortableEnvironmentVariable);
-        var portableRequested = IsTruthy(envValue) ||
+        var portableRequested = EnvRequestsPortable(environmentValue) ||
             File.Exists(Path.Combine(fullExeFolder, PortableMarkerFileName));
 
         if (!portableRequested)

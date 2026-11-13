@@ -445,6 +445,42 @@ data already existed; only the band rule and wording are new.
   version changed between v2.0.8 and v2.0.9 (only the `<Version>` bump
   — zero `PackageReference` changes), so the result carries forward.
 
+## v2.1.1 — in progress
+
+- **Portable buyer kit works out of the box.** The released portable
+  zip shipped only the exe, so a buyer who extracted it to a USB stick
+  ran with installed-app behaviour: scans landed in
+  `%LocalAppData%\TrueSpec` on the seller's machine, not on the stick,
+  until someone hand-created an empty `TrueSpec.portable` file next to
+  the exe. There is now a switch in the app: Settings > Data location
+  shows the folder the app keeps its data in and whether portable mode
+  is on, and one button turns it on or off by creating or removing the
+  marker file next to the exe. It takes effect after a restart, and
+  scans already saved stay in the folder they were saved in. Enabling
+  is refused for a system or protected app folder (portable mode would
+  fall back to the default there anyway), and when the
+  `TRUESPEC_PORTABLE` environment variable still requests portable mode
+  after the marker is gone, the message says so instead of pretending
+  it is off. A manual portable publish (`win-x64-portable` profile)
+  now writes the marker into the publish folder, so copying that folder
+  to a stick is enough. Core: `PortableMode` (status + marker switch,
+  both legs); App: `SettingsViewModel` data-location section +
+  `SettingsView` card. Tests: `PortableModeTests` (status cases, enable
+  / disable, invalid folder refused, unwritable folder fails honestly,
+  env-var edge cases) and `SettingsViewModelTests` (status text, toggle
+  creates / removes the marker, env-var note) and the extended
+  `PortablePublishProfileTests` (marker target in the profile). One
+  honest gap remains, and it needs a workflow change, not code: the
+  released portable zip still ships only the exe, so a downloaded zip
+  needs the Settings switch flipped once, until the release workflow's
+  zip step is updated to include the marker.
+- **Dependency audit re-attested for v2.1.0.** `SECURITY.md` said
+  v2.0.9; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.0.9 and v2.1.0 (only the `<Version>` bump
+  — zero `PackageReference` changes), so the result carries forward.
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed
