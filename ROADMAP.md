@@ -261,6 +261,30 @@ data already existed; only the band rule and wording are new.
   percent text) is used by the Fleet and per-machine exporters. Tests:
   `FleetSummaryTests`, `FleetCsvExporterTests`.
 
+## v2.0.5 — shipped
+
+- **Honest limits: the MemTest86 direction.** The world-class plan
+  (section 8) says MemTest86 is the one tool this plan deliberately does
+  not replace, and the product should say that on the memory page rather
+  than hide it — that sentence is a feature, the proof the rest of the
+  claims are honest. The RAM page now says TrueSpec's memory check is a
+  quick in-OS pattern exercise during the load test, not a definitive RAM
+  test, and that no in-OS tool can replace the bootable MemTest86. When
+  the pattern check does not verify, the load-test verdict directs the
+  user to run MemTest86. Core: `LoadTestAnalyzer.BuildVerdict` (failed
+  note gains the MemTest86 direction; a passing check never mentions
+  it); Windows: the RAM collector's `WhatThisMeans` carries the standing
+  note. Tests: `LoadTestAnalyzerTests` (failed note names MemTest86,
+  passing verdict does not), `RamCollectorTests` (Windows leg only,
+  runs the real collector and pins the RAM page text).
+- **Dependency audit re-attested for v2.0.4.** `SECURITY.md` said
+  v2.0.1; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.0.1 and v2.0.4 (only the `<Version>` bump,
+  a comment, and test-file exclusions — zero `PackageReference`
+  changes), so the result carries forward.
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed

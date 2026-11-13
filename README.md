@@ -32,6 +32,11 @@ The product rule is simple: every number is either **measured** (with its source
 - **Per-machine CSV export (Technician mode):** every row of the Fleet table has an Export CSV button that writes that one machine's latest scan as its own file — the fleet table's values for the machine, then one row per scored component, lowest health first. Hand the file to a buyer or keep it with the machine's records.
 - **Fleet verdict text fixed:** the fleet table and its CSV now show the verdict the way the rest of the app shows it ("Used - healthy"), instead of the concatenated enum name ("UsedHealthy").
 
+## What's new in v2.0.5
+
+- **Honest limits: the MemTest86 direction:** TrueSpec's memory check is a quick in-OS pattern exercise during the load test, not a definitive RAM test, and the product now says so on the RAM page instead of hiding it. When the pattern check does not verify, the load-test verdict tells the user to run MemTest86 (bootable) for a definitive RAM test. No in-OS tool can replace it.
+- **Dependency audit re-attested for v2.0.4:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.0.1 and v2.0.4.
+
 ## Status
 
 Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.

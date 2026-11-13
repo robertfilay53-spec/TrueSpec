@@ -181,7 +181,7 @@ public static class LoadTestAnalyzer
     {
         var memoryNote = memoryPatternVerified
             ? string.Empty
-            : " The memory pattern check did not verify.";
+            : " The memory pattern check did not verify. Run MemTest86 (bootable) for a definitive RAM test. No in-OS check can replace it.";
 
         if (sampleCount == 0)
         {
