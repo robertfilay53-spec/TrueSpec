@@ -341,7 +341,7 @@ data already existed; only the band rule and wording are new.
   version changed between v2.0.5 and v2.0.6 (only the `<Version>` bump
   — zero `PackageReference` changes), so the result carries forward.
 
-## v2.0.8 — in progress
+## v2.0.8 — shipped
 
 - **History timestamps: latest scan by parsed time, not ISO string
   order.** A scan's capture time is stored as ISO with an offset, and
@@ -370,6 +370,44 @@ data already existed; only the band rule and wording are new.
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.0.6 and v2.0.7 (only the `<Version>` bump
+  — zero `PackageReference` changes), so the result carries forward.
+
+## v2.0.9 — in progress
+
+- **History sensor-log chart: time-proportional horizontal axis.** The
+  chart plotted samples by index, so its line lied about time: two
+  samples an hour apart (the app was closed, the machine slept) looked
+  adjacent, and a burst a second apart looked stretched. The chart now
+  positions samples by their timestamps, so the horizontal axis is time,
+  not sample count. The line breaks at a stretch where logging was not
+  running — more than 60 seconds between two consecutive measured
+  samples, twice the maximum 30-second refresh interval (`AppSettings.
+  MaxRefreshSeconds`) — in addition to the existing break where the
+  sensor did not report. The mapping is a pure function in Core
+  (`SensorLogChartMapper.BuildSegments`, `SensorLogChartPoint`):
+  points are sorted by time (a hand-edited row with an out-of-order
+  timestamp cannot invert the axis), fractions are clamped to the
+  measured span, a segment with fewer than two points is dropped, and
+  when every sample shares one instant the mapping falls back to even
+  spacing by order. The control (`SensorLogChart`) now takes segments
+  instead of values and renders each one as a single line; the
+  ViewModel exposes `CpuTemperatureLogSegments` and, when no segment
+  can be drawn (every reading stands alone across gaps), shows an
+  empty state that says so instead of a blank chart. The caption under
+  the chart now says the axis is time and names both kinds of gap.
+  Tests: `SensorLogChartMapperTests` (even and uneven spacing,
+  sensor-gap break, logging-gap break and its 60/61-second boundary,
+  single-point and empty input, all-timestamps-equal fallback,
+  unsorted input, values pass through exactly) and the updated
+  `HistorySensorLogViewModelTests` (partial gaps still chart with
+  time-proportional positions, readings too far apart show the empty
+  state) and `SensorAlertViewModelTests` (chart segments carry the
+  threshold test's values at 0, 0.5, 1).
+- **Dependency audit re-attested for v2.0.8.** `SECURITY.md` said
+  v2.0.7; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.0.7 and v2.0.8 (only the `<Version>` bump
   — zero `PackageReference` changes), so the result carries forward.
 
 ## Rejected

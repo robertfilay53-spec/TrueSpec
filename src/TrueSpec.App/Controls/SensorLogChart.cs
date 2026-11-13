@@ -3,21 +3,25 @@ using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using TrueSpec.Core.Sensors;
 
 namespace TrueSpec.App.Controls;
 
 /// <summary>
 /// A small temperature-over-time chart for the History page, built on the
 /// same rendering pattern as <see cref="Sparkline"/>. Two differences
-/// matter: values are nullable, so a gap (a sample where the sensor did not
-/// report) breaks the line instead of being connected across, and an
-/// optional threshold value draws a dashed line at that temperature.
-/// Samples are plotted in order; the line is never interpolated across a gap.
+/// matter: values are nullable in the source log, so a gap (a sample where
+/// the sensor did not report, or a stretch where logging was not running)
+/// breaks the line instead of being connected across, and an optional
+/// threshold value draws a dashed line at that temperature. Segments arrive
+/// pre-mapped by <see cref="SensorLogChartMapper"/>: the horizontal axis is
+/// time, not sample count, so two samples an hour apart do not look
+/// adjacent. The line is never interpolated across a gap.
 /// </summary>
 public sealed class SensorLogChart : Control
 {
-    public static readonly StyledProperty<IReadOnlyList<double?>?> ValuesProperty =
-        AvaloniaProperty.Register<SensorLogChart, IReadOnlyList<double?>?>(nameof(Values));
+    public static readonly StyledProperty<IReadOnlyList<IReadOnlyList<SensorLogChartPoint>>?> SegmentsProperty =
+        AvaloniaProperty.Register<SensorLogChart, IReadOnlyList<IReadOnlyList<SensorLogChartPoint>>?>(nameof(Segments));
 
     public static readonly StyledProperty<double?> ThresholdValueProperty =
         AvaloniaProperty.Register<SensorLogChart, double?>(nameof(ThresholdValue));
@@ -34,17 +38,17 @@ public sealed class SensorLogChart : Control
     static SensorLogChart()
     {
         AffectsRender<SensorLogChart>(
-            ValuesProperty,
+            SegmentsProperty,
             ThresholdValueProperty,
             StrokeProperty,
             ThresholdStrokeProperty,
             StrokeThicknessProperty);
     }
 
-    public IReadOnlyList<double?>? Values
+    public IReadOnlyList<IReadOnlyList<SensorLogChartPoint>>? Segments
     {
-        get => GetValue(ValuesProperty);
-        set => SetValue(ValuesProperty, value);
+        get => GetValue(SegmentsProperty);
+        set => SetValue(SegmentsProperty, value);
     }
 
     public double? ThresholdValue
@@ -73,8 +77,8 @@ public sealed class SensorLogChart : Control
 
     public override void Render(DrawingContext context)
     {
-        var values = Values;
-        if (values is null || Bounds.Width <= 1 || Bounds.Height <= 1)
+        var segments = Segments;
+        if (segments is null || Bounds.Width <= 1 || Bounds.Height <= 1)
         {
             return;
         }
@@ -82,16 +86,19 @@ public sealed class SensorLogChart : Control
         var measuredCount = 0;
         var min = double.MaxValue;
         var max = double.MinValue;
-        foreach (var value in values)
+        foreach (var segment in segments)
         {
-            if (value is null || double.IsNaN(value.Value) || double.IsInfinity(value.Value))
+            foreach (var point in segment)
             {
-                continue;
-            }
+                if (double.IsNaN(point.Value) || double.IsInfinity(point.Value))
+                {
+                    continue;
+                }
 
-            measuredCount++;
-            min = Math.Min(min, value.Value);
-            max = Math.Max(max, value.Value);
+                measuredCount++;
+                min = Math.Min(min, point.Value);
+                max = Math.Max(max, point.Value);
+            }
         }
 
         if (measuredCount < 2)
@@ -116,52 +123,36 @@ public sealed class SensorLogChart : Control
         var usableWidth = Math.Max(1d, width - (padding * 2d));
         var usableHeight = Math.Max(1d, height - (padding * 2d));
 
-        double X(int index) => padding + (usableWidth * index / (values.Count - 1d));
+        double X(double fraction) => padding + (usableWidth * Math.Clamp(fraction, 0d, 1d));
         double Y(double value) => padding + (usableHeight * (1d - ((value - min) / (max - min))));
 
         var stroke = Stroke ?? new SolidColorBrush(Color.Parse("#22C55E"));
         var pen = new Pen(stroke, StrokeThickness, lineCap: PenLineCap.Round);
 
-        // One geometry per run of measured samples: a gap ends the segment,
-        // so the line never connects across missing data.
-        var segment = new List<Point>();
-        void FlushSegment()
+        // Segments arrive pre-split at every gap, so each one draws as a
+        // single line. A segment with fewer than two points cannot draw
+        // and is skipped.
+        foreach (var segment in segments)
         {
             if (segment.Count < 2)
             {
-                segment.Clear();
-                return;
+                continue;
             }
 
             var line = new StreamGeometry();
             using (var stream = line.Open())
             {
-                stream.BeginFigure(segment[0], false);
+                stream.BeginFigure(new Point(X(segment[0].XFraction), Y(segment[0].Value)), false);
                 for (var i = 1; i < segment.Count; i++)
                 {
-                    stream.LineTo(segment[i]);
+                    stream.LineTo(new Point(X(segment[i].XFraction), Y(segment[i].Value)));
                 }
 
                 stream.EndFigure(false);
             }
 
             context.DrawGeometry(null, pen, line);
-            segment.Clear();
         }
-
-        for (var i = 0; i < values.Count; i++)
-        {
-            var value = values[i];
-            if (value is null || double.IsNaN(value.Value) || double.IsInfinity(value.Value))
-            {
-                FlushSegment();
-                continue;
-            }
-
-            segment.Add(new Point(X(i), Y(value.Value)));
-        }
-
-        FlushSegment();
 
         if (ThresholdValue is { } thresholdValue && !double.IsNaN(thresholdValue) && !double.IsInfinity(thresholdValue))
         {

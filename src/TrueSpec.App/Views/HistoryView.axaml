@@ -97,7 +97,7 @@
                     </Grid>
                     <TextBlock Text="{Binding SensorLogStatusText}" Classes="muted" TextWrapping="Wrap" />
                     <controls:SensorLogChart Height="120"
-                                             Values="{Binding CpuTemperatureLogValues}"
+                                             Segments="{Binding CpuTemperatureLogSegments}"
                                              ThresholdValue="{Binding SensorLogThresholdC}"
                                              StrokeThickness="2"
                                              IsVisible="{Binding HasSensorLog}" />
@@ -106,7 +106,7 @@
                                FontSize="11"
                                TextWrapping="Wrap"
                                IsVisible="{Binding HasSensorLog}" />
-                    <TextBlock Text="Gaps in the line are samples where the CPU temperature sensor did not report. The line never connects across a gap. The dashed line is your alert threshold, when one is set. The log is a local CSV under %LocalAppData%\TrueSpec; nothing is uploaded."
+                    <TextBlock Text="The horizontal axis is time, not sample count. Gaps in the line are samples where the CPU temperature sensor did not report, or stretches where logging was not running (the app was closed or the machine slept). The line never connects across a gap. The dashed line is your alert threshold, when one is set. The log is a local CSV under %LocalAppData%\TrueSpec; nothing is uploaded."
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap"

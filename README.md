@@ -53,6 +53,11 @@ The product rule is simple: every number is either **measured** (with its source
 - **History timestamps: the latest scan is picked by parsed time, not by ISO string order:** a scan's capture time is stored as ISO with an offset, and two such strings can sort out of order across a daylight-saving change — a scan at 01:30 at -04:00 (05:30 UTC) sorts after a scan at 01:15 at -05:00 (06:15 UTC) as text, even though it is older. The Fleet page's latest scan per machine and the retention prune both picked by string order, so a machine scanned twice inside the transition hour could show its second-latest scan as latest, and the prune could evict the truly-newest scan. Both now compare the parsed timestamps, the same rule the History list already used.
 - **Dependency audit re-attested for v2.0.7:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.0.6 and v2.0.7.
 
+## What's new in v2.0.9
+
+- **History sensor-log chart: the horizontal axis is now time, not sample count:** the chart used to plot samples by index, so two samples an hour apart (the app was closed, the machine slept) looked adjacent, and the line's shape lied about time. Samples are now positioned by their timestamps, and the line breaks where logging was not running at all — a stretch longer than 60 seconds between two measured samples, twice the maximum 30-second refresh interval — in addition to the existing break where the sensor did not report. If every reading stands alone across gaps, the History page says so plainly instead of showing a blank chart.
+- **Dependency audit re-attested for v2.0.8:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.0.7 and v2.0.8.
+
 ## Status
 
 Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.

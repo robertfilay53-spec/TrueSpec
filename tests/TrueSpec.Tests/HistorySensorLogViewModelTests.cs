@@ -70,7 +70,7 @@ public class HistorySensorLogViewModelTests
             viewModel.LoadSensorLog();
 
             Assert.False(viewModel.HasSensorLog);
-            Assert.Null(viewModel.CpuTemperatureLogValues);
+            Assert.Null(viewModel.CpuTemperatureLogSegments);
             Assert.Equal(
                 "No temperature readings were recorded in 3 samples: this machine's hardware does not report a CPU temperature sensor. This is expected on machines whose sensor is not exposed, so there is no CPU temperature chart to show.",
                 viewModel.SensorLogStatusText);
@@ -94,7 +94,7 @@ public class HistorySensorLogViewModelTests
             viewModel.LoadSensorLog();
 
             Assert.False(viewModel.HasSensorLog);
-            Assert.Null(viewModel.CpuTemperatureLogValues);
+            Assert.Null(viewModel.CpuTemperatureLogSegments);
             Assert.Equal(
                 "No sensor samples recorded yet. Leave TrueSpec running and the CPU temperature chart will appear here.",
                 viewModel.SensorLogStatusText);
@@ -135,7 +135,10 @@ public class HistorySensorLogViewModelTests
     {
         // Same log shape, but one gap among measured values: the chart
         // stays, the gap stays a gap, and the range is local time:
-        // 08:45-08:48 UTC is 13:45-13:48 in the UTC+5 zone.
+        // 08:45-08:46 UTC is 13:45-13:46 in the UTC+5 zone. The appended
+        // row lands 56 seconds after the previous one, inside the 60
+        // second logging gap, so the run after the sensor gap draws as
+        // one segment positioned by time (4 of 60 seconds, then the end).
         var path = TempFilePath();
         try
         {
@@ -143,22 +146,57 @@ public class HistorySensorLogViewModelTests
                 path,
                 new DateTimeOffset(2026, 11, 12, 8, 45, 0, TimeSpan.Zero),
                 70, null, 72);
-            // Stretch the last sample to 08:48 so the range spans minutes.
-            File.AppendAllText(path, "2026-11-12T08:48:00.0000000Z,73\n");
+            // Stretch the last sample to 08:46 so the range spans a minute.
+            File.AppendAllText(path, "2026-11-12T08:46:00.0000000Z,73\n");
 
             var viewModel = ViewModelFor(path);
             viewModel.LoadSensorLog();
 
             Assert.True(viewModel.HasSensorLog);
+            var onlySegment = Assert.Single(viewModel.CpuTemperatureLogSegments!);
+            Assert.Equal(2, onlySegment.Count);
+            Assert.Equal(4d / 60d, onlySegment[0].XFraction, precision: 10);
+            Assert.Equal(72d, onlySegment[0].Value);
+            Assert.Equal(1d, onlySegment[1].XFraction);
+            Assert.Equal(73d, onlySegment[1].Value);
             Assert.Equal(
-                new double?[] { 70, null, 72, 73 },
-                viewModel.CpuTemperatureLogValues);
-            Assert.Equal(
-                "CPU temperature, 4 samples from 13:45 to 13:48.",
+                "CPU temperature, 4 samples from 13:45 to 13:46.",
                 viewModel.SensorLogStatusText);
             Assert.Equal(
                 "4 samples, 1 gap where the sensor did not report.",
                 viewModel.SensorLogSummaryText);
+        }
+        finally
+        {
+            DeleteDirectory(path);
+        }
+    }
+
+    [Fact]
+    public void ReadingsTooFarApart_ShowsEmptyState()
+    {
+        // Every measured reading stands alone: the last sample lands 176
+        // seconds after the previous one, past the 60 second logging gap,
+        // and the first stands alone across the sensor gap. No line can
+        // be drawn, so it is an empty state with the reason, not a blank
+        // chart under a status line that claims one exists.
+        var path = TempFilePath();
+        try
+        {
+            WriteLog(
+                path,
+                new DateTimeOffset(2026, 11, 12, 8, 45, 0, TimeSpan.Zero),
+                70, null, 72);
+            File.AppendAllText(path, "2026-11-12T08:48:00.0000000Z,73\n");
+
+            var viewModel = ViewModelFor(path);
+            viewModel.LoadSensorLog();
+
+            Assert.False(viewModel.HasSensorLog);
+            Assert.Null(viewModel.CpuTemperatureLogSegments);
+            Assert.Equal(
+                "The temperature readings are too far apart in time to draw a line: each reading stands alone because logging was not running between them.",
+                viewModel.SensorLogStatusText);
         }
         finally
         {
