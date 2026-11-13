@@ -206,10 +206,15 @@ public class SensorAlertViewModelTests
             Assert.True(history.HasSensorLog);
             Assert.Equal(90, history.SensorLogThresholdC);
             Assert.NotNull(history.CpuTemperatureLogSegments);
+            // The Overview constructor refresh writes a 70-degree row at
+            // 14:30:00, 120 seconds before the first hot snapshot, so the
+            // span is 124 seconds and the hot run sits at its right end;
+            // the 120-second gap also breaks the segment, so the lone 70
+            // draws nothing.
             var onlySegment = Assert.Single(history.CpuTemperatureLogSegments!);
             Assert.Equal(3, onlySegment.Count);
-            Assert.Equal(0d, onlySegment[0].XFraction);
-            Assert.Equal(0.5d, onlySegment[1].XFraction);
+            Assert.Equal(120d / 124d, onlySegment[0].XFraction, precision: 10);
+            Assert.Equal(122d / 124d, onlySegment[1].XFraction, precision: 10);
             Assert.Equal(1d, onlySegment[2].XFraction);
             Assert.Equal(71d, onlySegment[0].Value);
             Assert.Equal(73d, onlySegment[2].Value);
