@@ -45,7 +45,7 @@ public sealed class PdfReportExporter : IReportExporter
     /// the overall score, the five most important numbers, the full DNA
     /// hash (a hash is not a serial, so the full hash belongs in the file)
     /// and the scan date. Full serials never appear in it. Honest states
-    /// throughout: an unmeasured number says "Not reported by hardware"
+    /// throughout: an unmeasured number says SpecLabels.NotReportedByHardware
     /// and a scan with no usable serial says "DNA not available".
     /// </summary>
     public async Task ExportCertificateAsync(

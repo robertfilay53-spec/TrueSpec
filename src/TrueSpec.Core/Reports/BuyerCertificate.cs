@@ -9,7 +9,7 @@ using TrueSpec.Core.Models;
 /// the overall score, the five most important numbers (SSD wear, battery
 /// health, cycle count, power-on hours, throttle result when a load test
 /// ran), the full DNA hash, and the scan date. Every unmeasured number
-/// renders "Not reported by hardware", never a zero or a guess; a load
+/// renders SpecLabels.NotReportedByHardware, never a zero or a guess; a load
 /// test that never ran says so instead of inventing a throttle result.
 /// The full DNA hash belongs in the certificate file (a hash is not a
 /// serial); full serials never appear here.

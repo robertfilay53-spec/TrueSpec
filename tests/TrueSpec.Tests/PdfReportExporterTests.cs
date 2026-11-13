@@ -206,7 +206,7 @@ public class PdfReportExporterTests
 
         var text = Encoding.ASCII.GetString(stream.ToArray());
         Assert.Equal(1, CountOccurrences(text, "/Type /Page "));
-        Assert.Contains("Not reported by hardware", text, StringComparison.Ordinal);
+        Assert.Contains(SpecLabels.NotReportedByHardware, text, StringComparison.Ordinal);
         Assert.Contains("DNA hash: DNA not recorded", text, StringComparison.Ordinal);
         Assert.Contains("Throttle result: Not tested - no load test has run", text, StringComparison.Ordinal);
     }
