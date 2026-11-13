@@ -25,7 +25,7 @@ public class CpuCollectorTests
     /// second hardcoded number.
     /// </summary>
     [Theory]
-    [InlineData(null, "Not reported by hardware")]
+    [InlineData(null, SpecLabels.NotReportedByHardware)]
     [InlineData(0d, "No")]
     [InlineData(94.9, "No")]
     [InlineData(95d, "Yes")]
