@@ -59,4 +59,16 @@ public interface ISnapshotStore
     /// </summary>
     Task<IReadOnlyList<MachineLatestSummary>> GetLatestPerMachineAsync(
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes every saved scan for one machine from the local store and
+    /// returns how many rows were removed. The match is the exact stored
+    /// machine name, the same key the fleet table groups by, so deleting
+    /// "SHOP-PC" never touches "SHOP-PC-2" or a machine whose name only
+    /// differs in case. Returns 0 when the store holds no scans for the
+    /// name. This only touches TrueSpec's own history file; it never
+    /// touches the machine itself, and it never deletes another
+    /// machine's scans.
+    /// </summary>
+    Task<int> DeleteMachineAsync(string machineName, CancellationToken cancellationToken = default);
 }

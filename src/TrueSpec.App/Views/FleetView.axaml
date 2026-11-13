@@ -12,7 +12,7 @@
             <StackPanel Spacing="6">
                 <TextBlock Text="FLEET" Classes="eyebrow" />
                 <TextBlock Text="Every machine in this data folder" Classes="h1" />
-                <TextBlock Text="Technician mode: carry the portable app on a USB stick, scan each machine, and every scan lands in the same store on the stick. This page lists each machine's latest scan, lowest score first, with the worst component named, so the machine that needs attention is at the top. Machines scanned with the installed app can be brought in with Import JSON reports, which reads the JSON files the Report page exports."
+                <TextBlock Text="Technician mode: carry the portable app on a USB stick, scan each machine, and every scan lands in the same store on the stick. This page lists each machine's latest scan, lowest score first, with the worst component named, so the machine that needs attention is at the top. Machines scanned with the installed app can be brought in with Import JSON reports, which reads the JSON files the Report page exports. To take a machine out of the fleet, use Remove on its row — it deletes all of that machine's saved scans from this data folder, in two clicks so a misclick cannot delete anything."
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
@@ -47,7 +47,7 @@
                     <TextBlock Text="Lowest score first. A dash means that scan did not report the value."
                                Classes="muted"
                                FontSize="11" />
-                    <Grid ColumnDefinitions="*,60,130,70,110,*,100" ColumnSpacing="10">
+                    <Grid ColumnDefinitions="*,60,130,70,110,*,100,110" ColumnSpacing="10">
                         <TextBlock Text="Machine" Classes="muted" FontSize="11" />
                         <TextBlock Grid.Column="1" Text="Scans" Classes="muted" FontSize="11" />
                         <TextBlock Grid.Column="2" Text="Last scan" Classes="muted" FontSize="11" />
@@ -55,6 +55,7 @@
                         <TextBlock Grid.Column="4" Text="Verdict" Classes="muted" FontSize="11" />
                         <TextBlock Grid.Column="5" Text="Worst component" Classes="muted" FontSize="11" />
                         <TextBlock Grid.Column="6" Text="Export" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="7" Text="Remove" Classes="muted" FontSize="11" />
                     </Grid>
                     <ItemsControl ItemsSource="{Binding Rows}">
                         <ItemsControl.ItemTemplate>
@@ -62,7 +63,7 @@
                                 <Border BorderBrush="{DynamicResource AppBorder}"
                                         BorderThickness="0,0,0,1"
                                         Padding="0,9">
-                                    <Grid ColumnDefinitions="*,60,130,70,110,*,100" ColumnSpacing="10">
+                                    <Grid ColumnDefinitions="*,60,130,70,110,*,100,110" ColumnSpacing="10">
                                         <TextBlock Text="{Binding MachineName}"
                                                    FontWeight="SemiBold"
                                                    VerticalAlignment="Center"
@@ -91,6 +92,13 @@
                                                 Content="Export CSV"
                                                 FontSize="11"
                                                 Command="{Binding ExportMachineCsvCommand}"
+                                                CommandParameter="{Binding}"
+                                                VerticalAlignment="Center" />
+                                        <Button Grid.Column="7"
+                                                Classes="secondary"
+                                                Content="{Binding RemoveButtonText}"
+                                                FontSize="11"
+                                                Command="{Binding RemoveMachineCommand}"
                                                 CommandParameter="{Binding}"
                                                 VerticalAlignment="Center" />
                                     </Grid>

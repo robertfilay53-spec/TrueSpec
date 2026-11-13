@@ -241,6 +241,27 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
         }
     }
 
+    public async Task<int> DeleteMachineAsync(
+        string machineName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(machineName);
+
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        // Parameterized, exact match on the stored name: the fleet groups
+        // by the same key (see GetLatestPerMachineAsync), so the rows
+        // deleted are exactly the rows the fleet shows for this machine —
+        // never a prefix ("SHOP-PC" must not delete "SHOP-PC-2") and
+        // never a case variant. The returned count is the store's own
+        // deleted-row count, so the caller can state what happened.
+        command.CommandText = "DELETE FROM snapshots WHERE machine_name = $machine;";
+        command.Parameters.AddWithValue("$machine", machineName);
+        return await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public async Task<SystemSnapshot?> GetSnapshotAsync(
         Guid id,
         CancellationToken cancellationToken = default)

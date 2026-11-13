@@ -307,4 +307,141 @@ public class FleetViewModelTests
             }
         }
     }
+
+    [Fact]
+    public async Task RemoveMachineCommand_FirstClickArms_SecondClickDeletes()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("SHOP-PC-GOOD", 92d, "8%", baseTime),
+                ("SHOP-PC-BAD", 55d, "45%", baseTime.AddHours(1)),
+                ("SHOP-PC-BAD", 58d, "42%", baseTime.AddHours(2)));
+
+            var viewModel = new FleetViewModel(store);
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (!viewModel.HasFleet && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.True(viewModel.HasFleet, "Fleet never loaded from the store.");
+            var badRow = viewModel.Rows[0];
+            Assert.Equal("SHOP-PC-BAD", badRow.MachineName);
+
+            // First click only arms: nothing is deleted, and the button
+            // now reads "Confirm remove".
+            await viewModel.RemoveMachineCommand.ExecuteAsync(badRow);
+
+            Assert.True(badRow.IsRemoveArmed);
+            Assert.Equal("Confirm remove", badRow.RemoveButtonText);
+            Assert.Equal(2, viewModel.Rows.Count);
+            Assert.Contains("SHOP-PC-BAD", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("2 saved scans", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Equal(2, (await store.GetLatestPerMachineAsync()).Count);
+
+            // Second click deletes both of the machine's scans and the
+            // fleet reloads: only the good machine remains.
+            await viewModel.RemoveMachineCommand.ExecuteAsync(badRow);
+
+            Assert.Single(viewModel.Rows);
+            Assert.Equal("SHOP-PC-GOOD", viewModel.Rows[0].MachineName);
+            Assert.Contains("Removed SHOP-PC-BAD (2 saved scans)", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Equal(new[] { "SHOP-PC-GOOD" }, await store.GetMachineNamesAsync());
+            Assert.Single(await store.GetLatestPerMachineAsync());
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RemoveMachineCommand_AlreadyGone_ReportsNothingToRemove()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("SHOP-PC-BAD", 55d, "45%", baseTime));
+
+            var viewModel = new FleetViewModel(store);
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (!viewModel.HasFleet && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            var row = viewModel.Rows[0];
+            await viewModel.RemoveMachineCommand.ExecuteAsync(row);
+            Assert.True(row.IsRemoveArmed);
+
+            // The scans vanish between the arm and the confirm (another
+            // copy of the app, or a re-import cycle): this direct delete
+            // removes the one saved scan, so the confirm that follows
+            // must say so honestly instead of claiming a deletion.
+            Assert.Equal(1, await store.DeleteMachineAsync("SHOP-PC-BAD"));
+            await viewModel.RemoveMachineCommand.ExecuteAsync(row);
+
+            Assert.False(viewModel.HasFleet);
+            Assert.Empty(viewModel.Rows);
+            Assert.Contains("Nothing to remove", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("SHOP-PC-BAD", viewModel.StatusMessage, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RemoveMachineCommand_NullStore_ReportsUnavailable()
+    {
+        var viewModel = new FleetViewModel(null);
+
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+        while (viewModel.StatusMessage == "Loading fleet..." && DateTimeOffset.UtcNow < deadline)
+        {
+            await Task.Delay(50);
+        }
+
+        // No store, so no rows exist: drive the command with a row built
+        // by hand, the way the view would pass one.
+        var row = new FleetRowViewModel(
+            new FleetMachineRow("SHOP-PC", 1, DateTimeOffset.UtcNow, 80d, "Used - healthy", null, null),
+            removeMachineCommand: viewModel.RemoveMachineCommand);
+
+        await viewModel.RemoveMachineCommand.ExecuteAsync(row);
+
+        Assert.Equal("Remove is unavailable: snapshot history is unavailable on this machine.", viewModel.StatusMessage);
+    }
+
+    [Fact]
+    public void FleetRowViewModel_RemoveButtonText_FollowsArmedState()
+    {
+        var row = new FleetRowViewModel(
+            new FleetMachineRow("SHOP-PC", 3, DateTimeOffset.UtcNow, 80d, "Used - healthy", null, null));
+
+        Assert.Equal("Remove", row.RemoveButtonText);
+        Assert.False(row.IsRemoveArmed);
+
+        row.IsRemoveArmed = true;
+
+        Assert.Equal("Confirm remove", row.RemoveButtonText);
+    }
 }
