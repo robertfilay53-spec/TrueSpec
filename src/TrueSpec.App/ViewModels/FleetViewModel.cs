@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -11,6 +12,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TrueSpec.Core.History;
 using TrueSpec.Core.Models;
+using TrueSpec.Core.Reports;
 using TrueSpec.Core.Storage;
 
 /// <summary>
@@ -18,15 +20,18 @@ using TrueSpec.Core.Storage;
 /// machine in the local snapshot store, lowest score first, with the
 /// worst component named. A technician carries the portable app on a USB
 /// stick, scans each machine, and every scan lands in the same store on
-/// the stick — this page is the fleet summary of that store. Every value
-/// comes from a real saved snapshot; a machine whose latest scan is
-/// unreadable is skipped, never shown with invented numbers.
+/// the stick — this page is the fleet summary of that store. Machines
+/// scanned with the installed app instead can be brought in with the
+/// Import button, which reads the JSON reports the Report page exports.
+/// Every value comes from a real saved snapshot; a machine whose latest
+/// scan is unreadable is skipped, never shown with invented numbers.
 /// </summary>
 public sealed partial class FleetViewModel : ViewModelBase
 {
     private readonly ISnapshotStore? _store;
     private readonly Func<FleetMachineRow, SystemSnapshot, Task>? _exportMachineCsv;
     private readonly Dictionary<string, SystemSnapshot> _snapshotsByMachine = new(StringComparer.OrdinalIgnoreCase);
+    private bool _importing;
 
     public FleetViewModel(
         ISnapshotStore? store,
@@ -37,8 +42,24 @@ public sealed partial class FleetViewModel : ViewModelBase
         _exportMachineCsv = exportMachineCsv;
         ExportFleetCsvCommand = exportFleetCsvCommand;
         ExportMachineCsvCommand = new AsyncRelayCommand<FleetRowViewModel>(ExportMachineCsvAsync);
+        ImportReportsCommand = new AsyncRelayCommand(ImportReportsAsync);
         _ = LoadAsync();
     }
+
+    /// <summary>
+    /// Supplied by the Fleet view (mirrors how SettingsViewModel receives
+    /// its folder picker): opens the file picker and returns the JSON
+    /// report paths the technician chose, or an empty list when the
+    /// picker was cancelled. Null until the view wires it up.
+    /// </summary>
+    public Func<Task<IReadOnlyList<string>>>? ReportFilePicker { get; set; }
+
+    /// <summary>
+    /// Imports the JSON reports the technician picked into this store,
+    /// then reloads the fleet. One bad file never stops the rest: each
+    /// file is reported by name in the status line.
+    /// </summary>
+    public IAsyncRelayCommand ImportReportsCommand { get; }
 
     /// <summary>
     /// Supplied by MainViewModel (mirrors how HistoryViewModel receives
@@ -103,7 +124,7 @@ public sealed partial class FleetViewModel : ViewModelBase
             HasFleet = rows.Count > 0;
             if (rows.Count == 0)
             {
-                StatusMessage = "No saved scans yet. Scan a machine, or run the portable app on each machine in the fleet, and its latest scan appears here.";
+                StatusMessage = "No saved scans yet. Scan a machine, or run the portable app on each machine in the fleet, and its latest scan appears here. You can also import JSON reports exported from other machines with the Import button.";
                 SummaryText = string.Empty;
                 return;
             }
@@ -143,5 +164,84 @@ public sealed partial class FleetViewModel : ViewModelBase
         }
 
         await _exportMachineCsv(rowViewModel.Row, snapshot);
+    }
+
+    /// <summary>
+    /// Technician mode import (v2.1.0): each picked JSON report is read
+    /// through <see cref="SnapshotReportImporter"/> and, when valid, saved
+    /// into this store. Saving uses the store's upsert, so importing the
+    /// same file twice stores one scan, never a duplicate. A file that
+    /// fails validation is named in the status line and the rest still
+    /// import. The fleet reloads afterwards so the new machines appear.
+    /// </summary>
+    private async Task ImportReportsAsync()
+    {
+        if (_importing)
+        {
+            return;
+        }
+
+        if (_store is null)
+        {
+            StatusMessage = "Import is unavailable: snapshot history is unavailable on this machine.";
+            return;
+        }
+
+        if (ReportFilePicker is null)
+        {
+            StatusMessage = "Import is unavailable: no file picker is available.";
+            return;
+        }
+
+        _importing = true;
+        try
+        {
+            var paths = await ReportFilePicker();
+            if (paths is null || paths.Count == 0)
+            {
+                return;
+            }
+
+            var importer = new SnapshotReportImporter();
+            var imported = new List<string>();
+            var skipped = new List<string>();
+            foreach (var path in paths)
+            {
+                var fileName = Path.GetFileName(path);
+                try
+                {
+                    await using var stream = File.OpenRead(path);
+                    var result = await importer.ImportAsync(stream);
+                    if (!result.Success || result.Snapshot is null)
+                    {
+                        skipped.Add($"{fileName}: {result.Error ?? "could not be imported."}");
+                        continue;
+                    }
+
+                    await _store.SaveAsync(result.Snapshot);
+                    imported.Add(result.Snapshot.MachineName);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    skipped.Add($"{fileName}: could not be read ({exception.Message}).");
+                }
+            }
+
+            await LoadAsync();
+            var summary = imported.Count > 0
+                ? $"Imported {imported.Count} report{(imported.Count == 1 ? string.Empty : "s")} ({string.Join(", ", imported)})"
+                : "Imported 0 reports";
+            summary += skipped.Count > 0
+                ? $". Skipped {skipped.Count}: {string.Join("; ", skipped)}"
+                : ".";
+            if (!StatusMessage.StartsWith("Fleet could not be read", StringComparison.Ordinal))
+            {
+                StatusMessage = summary;
+            }
+        }
+        finally
+        {
+            _importing = false;
+        }
     }
 }

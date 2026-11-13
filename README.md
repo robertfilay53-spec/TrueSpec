@@ -58,6 +58,11 @@ The product rule is simple: every number is either **measured** (with its source
 - **History sensor-log chart: the horizontal axis is now time, not sample count:** the chart used to plot samples by index, so two samples an hour apart (the app was closed, the machine slept) looked adjacent, and the line's shape lied about time. Samples are now positioned by their timestamps, and the line breaks where logging was not running at all — a stretch longer than 60 seconds between two measured samples, twice the maximum 30-second refresh interval — in addition to the existing break where the sensor did not report. If every reading stands alone across gaps, the History page says so plainly instead of showing a blank chart.
 - **Dependency audit re-attested for v2.0.8:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.0.7 and v2.0.8.
 
+## What's new in v2.1.0
+
+- **Technician mode: import JSON reports into the fleet (Beyond v2.0, item 1):** the Fleet page already summarized every machine scanned with the portable app on a USB stick, but a machine scanned with the installed app had no way in. The Fleet page now has an Import JSON reports button: pick the JSON files the Report page exported from other machines, and their scans join this store and appear in the fleet table. Each file is validated first (it must parse, carry report schema version 1.0, and hold a scan with a machine name and a finite score); a file that fails is named in the status line and the rest still import, and importing the same file twice stores one scan, never a duplicate. Files over 10 MB are refused without being read.
+- **Dependency audit re-attested for v2.0.9:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.0.8 and v2.0.9.
+
 ## Status
 
 Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.

@@ -12,7 +12,7 @@
             <StackPanel Spacing="6">
                 <TextBlock Text="FLEET" Classes="eyebrow" />
                 <TextBlock Text="Every machine in this data folder" Classes="h1" />
-                <TextBlock Text="Technician mode: carry the portable app on a USB stick, scan each machine, and every scan lands in the same store on the stick. This page lists each machine's latest scan, lowest score first, with the worst component named, so the machine that needs attention is at the top."
+                <TextBlock Text="Technician mode: carry the portable app on a USB stick, scan each machine, and every scan lands in the same store on the stick. This page lists each machine's latest scan, lowest score first, with the worst component named, so the machine that needs attention is at the top. Machines scanned with the installed app can be brought in with Import JSON reports, which reads the JSON files the Report page exports."
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
@@ -22,6 +22,15 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="{Binding StatusMessage}" Classes="muted" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" IsVisible="{Binding HasFleet}" />
+                    <Button Classes="secondary"
+                            Content="Import JSON reports"
+                            Command="{Binding ImportReportsCommand}"
+                            HorizontalAlignment="Left" />
+                    <TextBlock Text="Imports TrueSpec JSON reports exported from other machines, so their scans join this fleet. A file that is not a TrueSpec report is skipped, and importing the same file twice stores one scan."
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               MaxWidth="720" />
                 </StackPanel>
             </Border>
 
