@@ -3,7 +3,7 @@
   <!-- This manifest is used on Windows only.
        Don't remove it as it might cause problems with window transparency and embedded controls.
        For more details visit https://learn.microsoft.com/en-us/windows/win32/sbscs/application-manifests -->
-  <assemblyIdentity version="2.0.8.0" name="TrueSpec.App.Desktop"/>
+  <assemblyIdentity version="2.0.9.0" name="TrueSpec.App.Desktop"/>
 
   <!-- TrueSpec runs as the invoking user and never asks for elevation.
        Sensors that need administrator rights simply report "Not available"
