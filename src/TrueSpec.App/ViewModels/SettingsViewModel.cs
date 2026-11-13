@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TrueSpec.Core.Localization;
 using TrueSpec.Core.Plugins;
 using TrueSpec.Core.Security;
 using TrueSpec.Core.Settings;
@@ -45,6 +47,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         CpuTemperatureAlertEnabled = _settings.CpuTemperatureThresholdC is not null;
         CpuTemperatureThresholdText = _settings.CpuTemperatureThresholdC?.ToString("0.#", CultureInfo.InvariantCulture) ?? "90";
         CpuTemperatureThresholdSeconds = _settings.CpuTemperatureThresholdSeconds;
+        LanguageCode = _settings.LanguageCode;
         RefreshPluginDiscovery();
         _main.PropertyChanged += OnMainPropertyChanged;
     }
@@ -166,7 +169,39 @@ public sealed partial class SettingsViewModel : ViewModelBase
         ? PathSafety.DefaultExportFolder() + " (default)"
         : ExportFolder;
 
-    public string LanguageText => "English (locked in v1)";
+    /// <summary>The language codes the picker offers, in pack order (English first).</summary>
+    public IReadOnlyList<string> LanguageOptions { get; } =
+        LanguagePacks.All.Select(p => p.Code).ToList();
+
+    /// <summary>
+    /// The UI language. Picking one saves immediately and rebuilds the
+    /// navigation rail right away (through <see cref="Save"/> and the
+    /// main view model's settings apply). Only the rail and this card
+    /// are translated in v2.1.7; detail pages follow in later versions.
+    /// </summary>
+    [ObservableProperty]
+    public partial string LanguageCode { get; set; } = LanguagePacks.EnglishCode;
+
+    partial void OnLanguageCodeChanged(string value)
+    {
+        OnPropertyChanged(nameof(LanguageText));
+        OnPropertyChanged(nameof(LanguageTitleText));
+        OnPropertyChanged(nameof(LanguageDescriptionText));
+        OnPropertyChanged(nameof(LanguageNoteText));
+        Save();
+    }
+
+    /// <summary>The current language's own display name ("English", "Deutsch").</summary>
+    public string LanguageText => LanguagePacks.Get(LanguageCode).DisplayName;
+
+    /// <summary>The language card's own strings, in the current language.</summary>
+    public string LanguageTitleText => StringLocalizer.Get(AppStringKeys.LanguageTitle, LanguageCode);
+
+    /// <summary>The language card's own strings, in the current language.</summary>
+    public string LanguageDescriptionText => StringLocalizer.Get(AppStringKeys.LanguageDescription, LanguageCode);
+
+    /// <summary>The language card's own strings, in the current language.</summary>
+    public string LanguageNoteText => StringLocalizer.Get(AppStringKeys.LanguageNote, LanguageCode);
 
     /// <summary>The folder this run keeps its data in (settings, history, sensor log).</summary>
     public string DataFolderText => _portableStatus.DataFolder;
@@ -328,6 +363,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
                 ? threshold
                 : null,
             CpuTemperatureThresholdSeconds = CpuTemperatureThresholdSeconds,
+            LanguageCode = LanguageCode,
         }.Sanitized();
 
         RefreshIntervalSeconds = _settings.RefreshIntervalSeconds;
@@ -340,6 +376,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         }
 
         CpuTemperatureThresholdSeconds = _settings.CpuTemperatureThresholdSeconds;
+        LanguageCode = _settings.LanguageCode;
         OnPropertyChanged(nameof(AlertSummaryText));
         _main.ApplySettings(_settings);
     }

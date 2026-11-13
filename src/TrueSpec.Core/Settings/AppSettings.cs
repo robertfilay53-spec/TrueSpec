@@ -1,6 +1,7 @@
 namespace TrueSpec.Core.Settings;
 
 using System.Text.Json.Serialization;
+using TrueSpec.Core.Localization;
 
 /// <summary>
 /// User settings. Everything here is local: theme, live refresh interval and
@@ -52,6 +53,16 @@ public sealed record AppSettings
     public int CpuTemperatureThresholdSeconds { get; init; } = DefaultCpuTemperatureThresholdSeconds;
 
     /// <summary>
+    /// The UI language (BCP 47 code, for example "en" or "de"). Only the
+    /// navigation rail and the Settings language card are translated in
+    /// v2.1.7; detail pages stay English until later versions. A code
+    /// with no pack resolves to English on load, so a hand-edited file
+    /// can never select a language that does not exist.
+    /// </summary>
+    [JsonPropertyName("languageCode")]
+    public string LanguageCode { get; init; } = LanguagePacks.EnglishCode;
+
+    /// <summary>
     /// Schema version of this file. Version 1 is the first versioned
     /// schema; older files have no field and load as version 1. A future
     /// version can migrate on load instead of guessing what unknown fields
@@ -79,12 +90,17 @@ public sealed record AppSettings
             ? (double?)null
             : Math.Clamp(CpuTemperatureThresholdC.Value, MinCpuTemperatureThresholdC, MaxCpuTemperatureThresholdC);
         var duration = Math.Clamp(CpuTemperatureThresholdSeconds, MinCpuTemperatureThresholdSeconds, MaxCpuTemperatureThresholdSeconds);
+        // A code with no pack (including a region variant like "de-DE",
+        // which resolves to its base language) becomes the pack's own
+        // code; anything else becomes English.
+        var language = LanguagePacks.Get(LanguageCode).Code;
         return this with
         {
             RefreshIntervalSeconds = refresh,
             ExportFolder = folder,
             CpuTemperatureThresholdC = threshold,
             CpuTemperatureThresholdSeconds = duration,
+            LanguageCode = language,
             SchemaVersion = CurrentSchemaVersion,
         };
     }

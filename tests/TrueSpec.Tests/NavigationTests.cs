@@ -394,4 +394,76 @@ public class NavigationTests
             Assert.DoesNotContain(Environment.UserName, first, StringComparison.OrdinalIgnoreCase);
         }
     }
+
+    /// <summary>
+    /// Localisation, phase 1 (v2.1.7): the German rail carries the same
+    /// 22 items in the same order and with the same keys as the English
+    /// rail. Only the labels change: routing is by key, and a label
+    /// change must never re-route a page or move it below the fold.
+    /// </summary>
+    [Fact]
+    public void Navigation_GermanRail_HasSameKeysInSameOrder()
+    {
+        var english = NavItemViewModel.CreateDefault().ToList();
+        var german = NavItemViewModel.CreateForLanguage("de").ToList();
+
+        Assert.Equal(english.Count, german.Count);
+        Assert.Equal(english.Select(i => i.Key), german.Select(i => i.Key));
+        Assert.Equal(22, german.Count);
+    }
+
+    /// <summary>
+    /// Localisation, phase 1 (v2.1.7): every German label, pinned. A
+    /// changed label here is a deliberate translation decision, and the
+    /// test forces it to be made in this file, not silently in a pack.
+    /// </summary>
+    [Fact]
+    public void Navigation_GermanRail_TranslatesEveryLabel()
+    {
+        var expected = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["overview"] = "Übersicht",
+            ["system"] = "System",
+            ["cpu"] = "CPU",
+            ["ram"] = "RAM",
+            ["storage"] = "Speicher",
+            ["battery"] = "Akku",
+            ["gpu"] = "GPU",
+            ["display"] = "Anzeige",
+            ["network"] = "Netzwerk",
+            ["motherboard"] = "Mainboard",
+            ["security"] = "Sicherheit",
+            ["drivers"] = "Treiber",
+            ["updates"] = "Updates",
+            ["startup"] = "Autostart",
+            ["crash"] = "Absturzverlauf",
+            ["history"] = "Verlauf",
+            ["software"] = "Software",
+            ["tests"] = "Tests",
+            ["report"] = "Bericht",
+            ["compare"] = "Vergleich",
+            ["fleet"] = "Gerätepark",
+            ["settings"] = "Einstellungen",
+        };
+
+        var german = NavItemViewModel.CreateForLanguage("de").ToList();
+        Assert.Equal(expected.Count, german.Count);
+        foreach (var item in german)
+        {
+            Assert.Equal(expected[item.Key], item.Label);
+        }
+    }
+
+    /// <summary>
+    /// Localisation, phase 1 (v2.1.7): a code with no pack falls back to
+    /// the English rail, label for label, so a bad stored language can
+    /// never leave the rail blank or half-translated.
+    /// </summary>
+    [Fact]
+    public void Navigation_UnknownLanguage_FallsBackToEnglish()
+    {
+        var english = NavItemViewModel.CreateDefault().Select(i => i.Label);
+        var fallback = NavItemViewModel.CreateForLanguage("xx").Select(i => i.Label);
+        Assert.Equal(english, fallback);
+    }
 }

@@ -632,7 +632,7 @@ data already existed; only the band rule and wording are new.
   changes in `git diff a31402b 3d7a59e -- '*csproj'`), so the result
   carries forward.
 
-## v2.1.6 — in progress
+## v2.1.6 — shipped
 
 - **Linux collector parity study (Beyond v2.0, item 3).** The plan
   says study first, build only if a real user base asks for it, and
@@ -698,6 +698,53 @@ data already existed; only the band rule and wording are new.
   version changed between v2.1.4 and v2.1.5 (only the `<Version>` bump
   — zero `PackageReference` changes in
   `git diff 3d7a59e 526ed0a -- '*csproj'`), so the result carries
+  forward.
+
+## v2.1.7 — shipped
+
+- **Localisation, phase 1: the navigation rail in German (Beyond
+  v2.0, item 4).** The plan lists localisation after the feature set
+  is stable, and the set is stable now (U1–U12, technician mode,
+  plug-ins phase 1, the Linux study). The first slice is the
+  foundation plus one complete surface, not a half-translated app:
+  a string-key catalogue (`AppStringKeys`, 25 keys), strict pack
+  validation (`LanguagePack.Validate`: a missing key, an unknown key,
+  an empty translation or a malformed code all fail), built-in
+  English and German packs (`LanguagePacks`, in code like the Linux
+  parity catalogue), and a localizer (`StringLocalizer`) whose
+  fallback rule never shows a blank — a missing translation falls
+  back to English, an unknown key shows the key itself — and never
+  throws. The localizer never changes the thread culture, so measured
+  values keep the app's existing number and date formatting:
+  localisation touches chrome only, never a measurement, a unit or a
+  threshold. The translated surface is the navigation rail (all 22
+  items, same keys in the same order, only the labels change) and the
+  Settings language card itself, so picking a language switches the
+  card too. Settings has a Language picker (English / Deutsch); the
+  choice is saved in `AppSettings.LanguageCode` (sanitized to a
+  supported code, unknown codes fall back to English) and applies
+  right away — the main view model rebuilds the rail on settings
+  apply, re-selecting by key so the user stays on the same page, and
+  the rebuild never navigates (a guard flag), because re-selecting
+  during the Settings page's own construction would re-enter page
+  creation while `GetOrCreate` has not cached the page yet. Detail
+  pages stay English in this version and follow page by page in
+  later versions; the card says so. Tests: `LanguagePackTests`
+  (catalogue coverage in every pack, validation errors, fallback
+  rules, code normalization, the pinned German terms),
+  `SettingsTests` (language default/sanitize/round-trip),
+  `NavigationTests` (German rail keys, order and all 22 labels,
+  unknown-language fallback) and `SettingsViewModelTests` (picker
+  defaults, picking German rebuilds the rail and keeps the page,
+  persistence across a fresh shell, the construction guard, unknown
+  stored code).
+- **Dependency audit re-attested for v2.1.6.** `SECURITY.md` said
+  v2.1.5; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.5 and v2.1.6 (only the `<Version>` bump
+  — zero `PackageReference` changes in
+  `git diff 526ed0a 859308c -- '*csproj'`), so the result carries
   forward.
 
 ## Rejected
