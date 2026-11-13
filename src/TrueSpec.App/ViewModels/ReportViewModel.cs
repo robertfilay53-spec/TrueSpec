@@ -40,22 +40,36 @@ public sealed class ReportViewModel : ViewModelBase
         VerifyMachineCommand = verifyMachineCommand;
         IsVerifyingMachine = isVerifyingMachine;
         DnaVerification = dnaVerification;
+        // No verification has run yet: say whether this scan even carries
+        // DNA. A scan saved before DNA existed has none ("not recorded");
+        // a current scan does, and only the verification is still to run.
+        // The old text said "not recorded" for both, so a clean machine
+        // read as if it had no fingerprint at all.
+        var dnaRecorded = snapshot.MachineDnaParts is not null;
         DnaStateText = dnaVerification switch
         {
-            null => "DNA not recorded for this scan yet.",
+            null => dnaRecorded
+                ? "DNA recorded for this scan. Verify to check no part was swapped."
+                : "DNA not recorded for this scan yet.",
             { State: DnaVerificationState.Identical } => "Same machine, same parts.",
+            { State: DnaVerificationState.FingerprintMatches } => "Same machine — fingerprint matches.",
             { State: DnaVerificationState.Changed } => "Parts changed since the earlier scan.",
             { State: DnaVerificationState.Unverifiable } => "DNA could not be verified.",
             _ => "DNA not recorded for this scan.",
         };
         DnaHashText = dnaVerification?.HashDisplay is { } hash
             ? $"Machine DNA: {hash}"
-            : "Machine DNA: not recorded";
+            : snapshot.MachineDnaHash is { } ownHash
+                ? $"Machine DNA: {MachineDnaVerification.TruncateHash(ownHash)}"
+                : "Machine DNA: not recorded";
         VerifyResultText = dnaVerification?.SummaryText
-            ?? "Re-scan this machine and compare its DNA against this snapshot to check no part was swapped since the scan.";
+            ?? (dnaRecorded
+                ? "Re-scan this machine and compare its DNA against this snapshot to check no part was swapped since the scan."
+                : "This scan was saved before machine DNA existed, so it carries no fingerprint to verify against.");
         DnaChangedParts = dnaVerification?.ChangedParts
             .Select(p => $"{p.Kind} {p.Label}: {p.Detail}")
             .ToList() ?? new List<string>();
+        DnaUnidentifiedParts = dnaVerification?.UnidentifiedParts.ToList() ?? new List<string>();
         ExportFolderText = $"Exports are written to {exportFolder}. No upload, no cloud.";
         MachineName = snapshot.MachineName;
         OperatingSystem = snapshot.OperatingSystem;
@@ -145,6 +159,12 @@ public sealed class ReportViewModel : ViewModelBase
 
     /// <summary>Changed parts from the last verification, empty when the machine is identical or no verification ran.</summary>
     public IReadOnlyList<string> DnaChangedParts { get; }
+
+    /// <summary>Parts either scan could not identify, as "Kind Label" strings; empty when every part was identified or no verification ran.</summary>
+    public IReadOnlyList<string> DnaUnidentifiedParts { get; }
+
+    /// <summary>True when the last verification named a part it could not identify.</summary>
+    public bool HasDnaUnidentifiedParts => DnaUnidentifiedParts.Count > 0;
 
     public string ExportFolderText { get; }
 }

@@ -151,6 +151,54 @@ public class MachineDnaVerificationTests
     }
 
     [Fact]
+    public void Compare_MatchingFingerprintsWithUnidentifiedPart_SaysFingerprintMatchesAndNamesThePart()
+    {
+        // The AppOnFly v2.0.0 case: both scans carry the same stored
+        // hash and the same parts, but the board serial was never
+        // reported. The verdict is FingerprintMatches, not a failure,
+        // and the board is named.
+        var parts = new[] { Bios("ABCDEF1234567890"), Board(null) };
+        var before = WithDna(HashA, parts);
+        var after = WithDna(HashA, parts);
+
+        var result = MachineDnaVerifier.Instance.Compare(before, after);
+
+        Assert.Equal(DnaVerificationState.FingerprintMatches, result.State);
+        Assert.Contains("fingerprint matches", result.SummaryText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("could not be verified", result.SummaryText, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(result.UnidentifiedParts);
+        Assert.Contains("Board", result.UnidentifiedParts[0], StringComparison.Ordinal);
+        Assert.Empty(result.ChangedParts);
+    }
+
+    [Fact]
+    public void Compare_DifferentFingerprintsWithUnidentifiedPart_StaysUnverifiableAndNamesThePart()
+    {
+        var before = WithDna(HashA, new[] { Bios("ABCDEF1234567890"), Board("BOARD123456789") });
+        var after = WithDna(HashB, new[] { Bios("ABCDEF1234567890"), Board(null) });
+
+        var result = MachineDnaVerifier.Instance.Compare(before, after);
+
+        Assert.Equal(DnaVerificationState.Unverifiable, result.State);
+        Assert.Single(result.UnidentifiedParts);
+        Assert.Contains("Board", result.UnidentifiedParts[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FingerprintMatchesFactory_SaysFingerprintMatchesAndListsThePart()
+    {
+        var result = MachineDnaVerification.FingerprintMatches(
+            "abcdef12…34567890",
+            new[] { "Board Board" });
+
+        Assert.Equal(DnaVerificationState.FingerprintMatches, result.State);
+        Assert.Contains("fingerprint matches", result.SummaryText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("not a verified identity", result.SummaryText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(new[] { "Board Board" }, result.UnidentifiedParts);
+        Assert.Empty(result.ChangedParts);
+    }
+
+    [Fact]
     public void IdenticalFactory_SaysSameMachineSameParts()
     {
         var result = MachineDnaVerification.Identical("abcdef12…34567890");

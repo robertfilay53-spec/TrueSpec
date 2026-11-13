@@ -73,6 +73,7 @@ public static class SpecLabels
     public const string EthernetAdapter = "Ethernet adapter";
     public const string EthernetDriverAge = "Ethernet driver age";
     public const string EthernetDriverDate = "Ethernet driver date";
+    public const string EthernetDriverVersion = "Ethernet driver version";
     public const string EthernetGateway = "Ethernet gateway";
     public const string EthernetLinkSpeed = "Ethernet link speed (negotiated rate at scan time)";
     public const string EthernetStatus = "Ethernet status";
@@ -185,7 +186,15 @@ public static class SpecLabels
     public const string ThermalThrottleFlag = "Thermal throttle flag";
     public const string Threads = "Threads";
     public const string TotalMemory = "Total memory";
-    public const string TotalMemoryReportedByWindows = "Total memory reported by Windows";
+    /// <summary>
+    /// The memory Windows currently sees (Win32_ComputerSystem.
+    /// TotalPhysicalMemory). Deliberately not called a "total": on a
+    /// virtual machine with dynamic memory this reading moves between
+    /// scans of the same machine, while the installed total (the
+    /// Win32_PhysicalMemory stick sum) does not. A label that says
+    /// "total" must never change between scans.
+    /// </summary>
+    public const string TotalMemoryReportedByWindows = "Memory visible to Windows";
     public const string TotalSpace = "Total space";
     public const string TransmitRate = "Transmit rate";
     public const string Type = "Type";

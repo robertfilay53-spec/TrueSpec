@@ -143,4 +143,17 @@ public class CollectorLabelContractTests
 
         Assert.Equal(12400d, SpecText.Number(storage.Specs, SpecLabels.PowerOnHours));
     }
+
+    [Fact]
+    public void OsVisibleMemoryLabel_NeverClaimsToBeATotal()
+    {
+        // AppOnFly v2.0.0: Win32_ComputerSystem.TotalPhysicalMemory moved
+        // 2.0 GB -> 1.8 GB between scans of the same virtual machine, and
+        // the Compare page showed a "total" changing. The value is the
+        // memory Windows currently sees (dynamic memory on a VM moves
+        // it); only the Win32_PhysicalMemory stick sum is the installed
+        // total. The label must never say "total" again.
+        Assert.Equal("Memory visible to Windows", SpecLabels.TotalMemoryReportedByWindows);
+        Assert.DoesNotContain("Total", SpecLabels.TotalMemoryReportedByWindows, StringComparison.OrdinalIgnoreCase);
+    }
 }

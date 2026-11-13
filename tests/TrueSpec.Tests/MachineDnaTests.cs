@@ -282,6 +282,76 @@ public class MachineDnaTests
     }
 
     [Fact]
+    public void Compare_MatchingFingerprintsWithUnidentifiedPart_IsUnverifiableButFingerprintsMatch()
+    {
+        // The AppOnFly v2.0.0 case: the same machine scanned twice, with
+        // a BIOS serial the hardware never reports. The verdict stays
+        // Unverifiable (one unproven part means the identity is
+        // unproven), but the fingerprints match and the part is named, so
+        // the UI can say so instead of reading as a failure.
+        var one = MachineDna.Build(new[]
+        {
+            Board("BOARD123456789"),
+            Bios("To be filled by O.E.M."),
+            Disk("Disk 0", "DISK-AAAA-1111"),
+        });
+        var other = MachineDna.Build(new[]
+        {
+            Board("BOARD123456789"),
+            Bios("To be filled by O.E.M."),
+            Disk("Disk 0", "DISK-AAAA-1111"),
+        });
+
+        var result = MachineDnaComparer.Compare(one, other);
+
+        Assert.Equal(one.Hash, other.Hash);
+        Assert.Equal(MachineDnaVerdict.Unverifiable, result.Verdict);
+        Assert.True(result.FingerprintsMatch);
+        Assert.Empty(result.Added);
+        Assert.Empty(result.Removed);
+        Assert.Empty(result.Changed);
+        var part = Assert.Single(result.UnidentifiedParts);
+        Assert.Equal(MachineDnaPartKind.Bios, part.Kind);
+        Assert.Equal("BIOS", part.Label);
+    }
+
+    [Fact]
+    public void Compare_MatchingFingerprintsWithAllIdentified_IsIdenticalAndFingerprintsMatch()
+    {
+        var result = MachineDnaComparer.Compare(FullDna(), FullDna());
+
+        Assert.Equal(MachineDnaVerdict.Identical, result.Verdict);
+        Assert.True(result.FingerprintsMatch);
+        Assert.Empty(result.UnidentifiedParts);
+    }
+
+    [Fact]
+    public void Compare_DifferentFingerprintsWithUnidentifiedPart_FingerprintsDoNotMatch()
+    {
+        // The new scan lost the BIOS serial: the canonical part lists
+        // differ, so the hashes differ too, and the part is still named.
+        var old = FullDna();
+        var biosLost = MachineDna.Build(new[]
+        {
+            Board("BOARD123456789"),
+            Bios("To be filled by O.E.M."),
+            Disk("Disk 0", "DISK-AAAA-1111"),
+            Disk("Disk 1", "DISK-BBBB-2222"),
+            Memory("Slot 0", "MEM-CCCC-3333"),
+            Cpu("CPUID-0123456789ABCDEF"),
+        });
+
+        var result = MachineDnaComparer.Compare(old, biosLost);
+
+        Assert.Equal(MachineDnaVerdict.Unverifiable, result.Verdict);
+        Assert.False(result.FingerprintsMatch);
+        Assert.NotEqual(old.Hash, biosLost.Hash);
+        var part = Assert.Single(result.UnidentifiedParts);
+        Assert.Equal(MachineDnaPartKind.Bios, part.Kind);
+        Assert.Equal("BIOS", part.Label);
+    }
+
+    [Fact]
     public void Compare_UnidentifiedPartInEitherScan_IsUnverifiable()
     {
         // The new scan lost the BIOS serial: the machines may be the same

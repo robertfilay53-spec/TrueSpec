@@ -99,6 +99,16 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <TextBlock Text="Not identified in one of the scans:"
+                               Classes="muted" FontSize="11" FontWeight="SemiBold"
+                               IsVisible="{Binding HasDnaUnidentifiedParts}" />
+                    <ItemsControl ItemsSource="{Binding DnaUnidentifiedParts}" IsVisible="{Binding HasDnaUnidentifiedParts}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                     <TextBlock Text="DNA is identity, not health: it never changes the score or the verdict above. It only certifies which machine the score belongs to. A standard-user scan without elevation still verifies, but parts that need elevation to read may show as unidentified instead of a match."
                                Classes="muted"
                                FontSize="11"

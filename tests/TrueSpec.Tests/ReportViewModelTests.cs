@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using TrueSpec.App.Services;
 using TrueSpec.App.ViewModels;
+using TrueSpec.Core.Comparison;
 using TrueSpec.Core.Models;
 
 namespace TrueSpec.Tests;
@@ -28,9 +29,10 @@ public class ReportViewModelTests
     private static ReportViewModel Report(
         MachineDnaVerification? verification = null,
         ICommand? certificateCommand = null,
-        ICommand? verifyCommand = null) =>
+        ICommand? verifyCommand = null,
+        SystemSnapshot? snapshot = null) =>
         new(
-            TestSnapshots.Healthy(),
+            snapshot ?? TestSnapshots.Healthy(),
             new TestCommand(),
             new TestCommand(),
             new TestCommand(),
@@ -66,7 +68,46 @@ public class ReportViewModelTests
 
         Assert.Contains("not recorded", report.DnaStateText, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("not recorded", report.DnaHashText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("before machine DNA existed", report.VerifyResultText, StringComparison.Ordinal);
+        Assert.Empty(report.DnaChangedParts);
+    }
+
+    [Fact]
+    public void NoVerification_WithDnaRecorded_SaysDnaRecordedAndShowsItsHash()
+    {
+        // The AppOnFly v2.0.0 case: the Report page said "DNA not
+        // recorded for this scan yet" on a machine whose scan DID carry
+        // DNA — only the verification had not run yet.
+        const string hash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        var snapshot = TestSnapshots.Healthy() with
+        {
+            MachineDnaHash = hash,
+            MachineDnaParts = new[]
+            {
+                MachineDnaPart.FromSerial(MachineDnaPartKind.Bios, "BIOS", "ABCDEF1234567890"),
+            },
+        };
+        var report = Report(snapshot: snapshot);
+
+        Assert.Contains("DNA recorded", report.DnaStateText, StringComparison.Ordinal);
+        Assert.DoesNotContain("not recorded", report.DnaStateText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("01234567…89abcdef", report.DnaHashText, StringComparison.Ordinal);
         Assert.Contains("Re-scan", report.VerifyResultText, StringComparison.Ordinal);
+        Assert.False(report.HasDnaUnidentifiedParts);
+    }
+
+    [Fact]
+    public void FingerprintMatchesVerification_SaysFingerprintMatchesAndListsUnidentifiedPart()
+    {
+        var report = Report(MachineDnaVerification.FingerprintMatches(
+            "abcdef12…34567890",
+            new[] { "Board Board" }));
+
+        Assert.Equal("Same machine — fingerprint matches.", report.DnaStateText);
+        Assert.Contains("fingerprint matches", report.VerifyResultText, StringComparison.OrdinalIgnoreCase);
+        Assert.True(report.HasDnaUnidentifiedParts);
+        Assert.Single(report.DnaUnidentifiedParts);
+        Assert.Contains("Board", report.DnaUnidentifiedParts[0], StringComparison.Ordinal);
         Assert.Empty(report.DnaChangedParts);
     }
 
