@@ -388,10 +388,11 @@ public class FleetViewModelTests
             await viewModel.RemoveMachineCommand.ExecuteAsync(row);
             Assert.True(row.IsRemoveArmed);
 
-            // The scans vanished between the arm and the confirm (another
-            // copy of the app, or a re-import cycle): the confirm must
-            // say so honestly instead of claiming a deletion.
-            Assert.Equal(0, await store.DeleteMachineAsync("SHOP-PC-BAD"));
+            // The scans vanish between the arm and the confirm (another
+            // copy of the app, or a re-import cycle): this direct delete
+            // removes the one saved scan, so the confirm that follows
+            // must say so honestly instead of claiming a deletion.
+            Assert.Equal(1, await store.DeleteMachineAsync("SHOP-PC-BAD"));
             await viewModel.RemoveMachineCommand.ExecuteAsync(row);
 
             Assert.False(viewModel.HasFleet);
