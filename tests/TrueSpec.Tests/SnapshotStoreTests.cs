@@ -491,4 +491,160 @@ public class SnapshotStoreTests
             }
         }
     }
+
+    [Fact]
+    public async Task GetLatestPerMachine_DstTransition_ReturnsChronologicallyLatest()
+    {
+        // A DST fall-back hour writes two scans whose ISO strings sort
+        // out of order: 01:30 at -04:00 is 05:30 UTC, 01:15 at -05:00 is
+        // 06:15 UTC, but "01:30..." sorts after "01:15..." as a string.
+        // The old ROW_NUMBER over the stored string returned the 05:30
+        // scan as latest. The pick must be by parsed time, not by string.
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var earlierUtc = TestSnapshots.Healthy() with
+            {
+                Id = Guid.NewGuid(),
+                CapturedAt = new DateTimeOffset(2026, 11, 1, 1, 30, 0, TimeSpan.FromHours(-4)),
+                MachineName = "SHOP-PC-A",
+            };
+            var laterUtc = TestSnapshots.Healthy() with
+            {
+                Id = Guid.NewGuid(),
+                CapturedAt = new DateTimeOffset(2026, 11, 1, 1, 15, 0, TimeSpan.FromHours(-5)),
+                MachineName = "SHOP-PC-A",
+            };
+
+            // Saved newest first, then the older scan: neither save order
+            // nor string order may decide the pick.
+            await store.SaveAsync(laterUtc);
+            await store.SaveAsync(earlierUtc);
+
+            var latest = await store.GetLatestPerMachineAsync();
+
+            var only = Assert.Single(latest);
+            Assert.Equal(laterUtc.Id, only.Id);
+            Assert.Equal(laterUtc.CapturedAt, only.CapturedAt);
+            Assert.Equal(2, only.ScanCount);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GetLatestPerMachine_SameTimestampPicksLargestId()
+    {
+        // Two scans sharing a timestamp: the pick must be deterministic.
+        // The old SQL tie-break was id DESC, so the lexicographically
+        // largest id wins; the C# pick keeps that rule.
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var at = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var lowerId = TestSnapshots.Healthy() with
+            {
+                Id = new Guid("00000000-0000-0000-0000-000000000001"),
+                CapturedAt = at,
+                MachineName = "SHOP-PC-A",
+            };
+            var higherId = TestSnapshots.Healthy() with
+            {
+                Id = new Guid("00000000-0000-0000-0000-000000000002"),
+                CapturedAt = at,
+                MachineName = "SHOP-PC-A",
+            };
+
+            await store.SaveAsync(lowerId);
+            await store.SaveAsync(higherId);
+
+            var latest = await store.GetLatestPerMachineAsync();
+
+            var only = Assert.Single(latest);
+            Assert.Equal(higherId.Id, only.Id);
+            Assert.Equal(2, only.ScanCount);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SqliteStore_PruneKeepsChronologicallyNewest_AcrossDstTransition()
+    {
+        // The same DST string-ordering edge in the retention prune: 200
+        // scans at 01:16-01:19 at -04:00 (all before 05:20 UTC) sort
+        // lexicographically AFTER one scan at 01:15 at -05:00 (06:15 UTC,
+        // the true newest), so the old string-ordered prune evicted the
+        // newest scan and kept 200 older ones. The prune must keep by
+        // parsed time.
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var oldestId = Guid.Empty;
+            var baseTime = new DateTimeOffset(2026, 11, 1, 1, 16, 0, TimeSpan.FromHours(-4));
+            for (var i = 0; i < 200; i++)
+            {
+                var snapshot = TestSnapshots.Healthy() with
+                {
+                    Id = Guid.NewGuid(),
+                    MachineName = "Machine A",
+                    CapturedAt = baseTime.AddSeconds(i),
+                };
+                if (i == 0)
+                {
+                    oldestId = snapshot.Id;
+                }
+
+                await store.SaveAsync(snapshot);
+            }
+
+            var newest = TestSnapshots.Healthy() with
+            {
+                Id = Guid.NewGuid(),
+                MachineName = "Machine A",
+                CapturedAt = new DateTimeOffset(2026, 11, 1, 1, 15, 0, TimeSpan.FromHours(-5)),
+            };
+            await store.SaveAsync(newest);
+
+            var history = await store.GetHistoryAsync(500);
+
+            Assert.Equal(SqliteSnapshotStore.MaxSnapshots, history.Count);
+            Assert.Equal(newest.Id, history[0].Id);
+            Assert.DoesNotContain(history, h => h.Id == oldestId);
+            Assert.Null(await store.GetSnapshotAsync(oldestId));
+            Assert.NotNull(await store.GetSnapshotAsync(newest.Id));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
 }

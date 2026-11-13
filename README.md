@@ -48,6 +48,11 @@ The product rule is simple: every number is either **measured** (with its source
 - **Export privacy note on the Report page:** an exported report is handed to a seller, and it contains this machine's hardware serials, MAC addresses, IP addresses and Wi-Fi network names. The Report page now says so before the export happens, instead of letting the buyer find out after.
 - **Dependency audit re-attested for v2.0.6:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.0.5 and v2.0.6.
 
+## What's new in v2.0.8
+
+- **History timestamps: the latest scan is picked by parsed time, not by ISO string order:** a scan's capture time is stored as ISO with an offset, and two such strings can sort out of order across a daylight-saving change — a scan at 01:30 at -04:00 (05:30 UTC) sorts after a scan at 01:15 at -05:00 (06:15 UTC) as text, even though it is older. The Fleet page's latest scan per machine and the retention prune both picked by string order, so a machine scanned twice inside the transition hour could show its second-latest scan as latest, and the prune could evict the truly-newest scan. Both now compare the parsed timestamps, the same rule the History list already used.
+- **Dependency audit re-attested for v2.0.7:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.0.6 and v2.0.7.
+
 ## Status
 
 Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.

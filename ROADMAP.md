@@ -310,7 +310,7 @@ data already existed; only the band rule and wording are new.
   and a test-file exclusion — zero `PackageReference` changes), so the
   result carries forward.
 
-## v2.0.7 — in progress
+## v2.0.7 — shipped
 
 - **Every WMI query pinned.** The pinning tests (`CollectorWmiSelectionTests`)
   covered System, Motherboard, CPU, Battery, GPU, RAM, Drivers, Machine
@@ -339,6 +339,37 @@ data already existed; only the band rule and wording are new.
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.0.5 and v2.0.6 (only the `<Version>` bump
+  — zero `PackageReference` changes), so the result carries forward.
+
+## v2.0.8 — in progress
+
+- **History timestamps: latest scan by parsed time, not ISO string
+  order.** A scan's capture time is stored as ISO with an offset, and
+  two such strings sort lexicographically out of order across a DST
+  change: 01:30 at -04:00 (05:30 UTC) sorts after 01:15 at -05:00
+  (06:15 UTC) as text, even though it is older. Two readers picked by
+  string order and could get the wrong row: `GetLatestPerMachineAsync`
+  (the Fleet page's latest scan per machine — its own comment admitted
+  a machine scanned twice inside the transition hour could show its
+  second-latest scan as latest) and the retention prune in `SaveAsync`
+  (which could evict the truly-newest scan once a machine passed 200
+  rows). Both now compare parsed `DateTimeOffset` values in C#, the
+  same rule `GetHistoryAsync` already used for the History list: the
+  latest-per-machine read groups rows in C# and picks the max by
+  (parsed time, id string descending for a deterministic tie-break),
+  and the prune keeps the newest 200 by the same order, deleting the
+  rest in chunks. A timestamp that does not parse sorts as the oldest
+  in the prune (the app always writes round-trip ISO, so an
+  unparseable value is a hand-edited row). Core:
+  `SqliteSnapshotStore` (`CompareNewestFirst` + `TryParseCapturedAt`,
+  shared by both paths). Tests: `SnapshotStoreTests` (DST latest pick,
+  same-timestamp id tie-break, DST prune keeping the true newest over
+  200 older rows).
+- **Dependency audit re-attested for v2.0.7.** `SECURITY.md` said
+  v2.0.6; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.0.6 and v2.0.7 (only the `<Version>` bump
   — zero `PackageReference` changes), so the result carries forward.
 
 ## Rejected
