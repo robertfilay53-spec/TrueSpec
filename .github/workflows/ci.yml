@@ -84,15 +84,25 @@ jobs:
       # nothing; the line rate is reported in the log. A floor belongs
       # here once the rate is measured on a green run (see the PR that
       # introduced collection).
+      # NOTE: grep -m 1, never grep | head -1: head closes the pipe after
+      # the first line and the writing grep dies with "Broken pipe"
+      # (exit 2) under pipefail — that failed the Ubuntu leg on the
+      # first run of this workflow (run 43409131155). The step is
+      # informational only and never fails the job on a missing or
+      # unreadable rate.
       - name: Report coverage
         shell: bash
         run: |
-          coverage_file=$(find . -name 'coverage.cobertura.xml' | head -1)
+          coverage_file=$(find . -name 'coverage.cobertura.xml' -print -quit)
           if [ -z "$coverage_file" ]; then
             echo "::warning::No coverage.cobertura.xml found; coverage was not collected."
             exit 0
           fi
-          rate=$(grep -o 'line-rate="[0-9.]*"' "$coverage_file" | head -1 | grep -o '[0-9.]*')
+          rate=$(grep -o -m 1 'line-rate="[0-9.]*"' "$coverage_file" | grep -o '[0-9.]*' || true)
+          if [ -z "$rate" ]; then
+            echo "::warning::Could not read a line rate from $coverage_file."
+            exit 0
+          fi
           echo "Line coverage: $rate"
 
       # Dependency vulnerability scan: lists any package (including
