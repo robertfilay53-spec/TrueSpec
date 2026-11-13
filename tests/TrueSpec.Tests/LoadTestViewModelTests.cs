@@ -1,5 +1,6 @@
 using TrueSpec.App.ViewModels;
 using TrueSpec.Core.Benchmarks;
+using TrueSpec.Core.Sensors;
 
 namespace TrueSpec.Tests;
 
@@ -36,6 +37,24 @@ public class LoadTestViewModelTests
 
         Assert.Equal("Rated max clock: not reported by hardware", LoadTestViewModel.RatedMaxText(result));
         Assert.Equal("Held % of rated clock: not reported by hardware", LoadTestViewModel.HeldPercentText(result));
+    }
+
+    /// <summary>
+    /// The pre-start warning names the safety limit from the one shared
+    /// constant, not a second hardcoded number: if the default ever
+    /// changes, the warning still agrees with the temperature at which
+    /// the test aborts.
+    /// </summary>
+    [Fact]
+    public void WarningText_NamesTheSharedSafetyLimit()
+    {
+        var viewModel = new LoadTestViewModel(new UnavailableSensorMonitor(), null, false, null);
+
+        Assert.Contains(
+            $"{LoadTestConfig.DefaultAbortTemperatureC:0.#} C",
+            viewModel.WarningText,
+            StringComparison.Ordinal);
+        Assert.Contains("60 seconds", viewModel.WarningText, StringComparison.Ordinal);
     }
 
     private static LoadTestResult Result(double? ratedMaxMHz, double? clockHeldPercent) => new(

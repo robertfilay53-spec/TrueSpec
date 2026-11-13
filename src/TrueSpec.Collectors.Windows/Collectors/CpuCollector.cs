@@ -2,6 +2,7 @@ namespace TrueSpec.Collectors.Windows.Collectors;
 
 using System.Globalization;
 using TrueSpec.Collectors.Windows.Wmi;
+using TrueSpec.Core.Benchmarks;
 using TrueSpec.Core.Collectors;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Sensors;
@@ -63,12 +64,12 @@ public sealed class CpuCollector : ICollector
         var clock = sensors.CpuClocks().FirstOrDefault();
 
         var temperatureValue = temperature?.Value;
-        var throttle = temperatureValue switch
-        {
-            >= 95d => "Yes",
-            not null => "No",
-            _ => SpecLabels.NotReportedByHardware,
-        };
+        // The throttle flag shares the one safety-limit constant with the
+        // load test (LoadTestConfig.DefaultAbortTemperatureC): a second
+        // hardcoded 95 here would silently drift if the default ever
+        // changes, and the flag must agree with the temperature at which
+        // the load test aborts.
+        var throttle = ThrottleFlag(temperatureValue);
 
         var specs = new List<SpecValue>
         {
@@ -97,7 +98,7 @@ public sealed class CpuCollector : ICollector
             }, "CIM Win32_Processor"),
             CollectorSupport.Spec(SpecLabels.ProcessorID, cpu.String("ProcessorId"), "CIM Win32_Processor"),
             CollectorSupport.Spec(SpecLabels.PackageTemperature, FormatSensor(temperature, "C", 1), "LibreHardwareMonitor", numericValue: temperature is { HasValue: true } ? temperature.Value : null, numericUnit: "C"),
-            CollectorSupport.Spec(SpecLabels.ThermalThrottleFlag, throttle, "LibreHardwareMonitor temperature threshold (95 C)"),
+            CollectorSupport.Spec(SpecLabels.ThermalThrottleFlag, throttle, string.Create(CultureInfo.InvariantCulture, $"LibreHardwareMonitor temperature threshold ({LoadTestConfig.DefaultAbortTemperatureC:0.#} C)")),
             CollectorSupport.Spec(SpecLabels.PackagePower, FormatSensor(power, "W", 1), "LibreHardwareMonitor", numericValue: power is { HasValue: true } ? power.Value : null, numericUnit: "W"),
             CollectorSupport.Spec(SpecLabels.CPUFan, FormatSensor(fan, "RPM", 0), "LibreHardwareMonitor", numericValue: fan is { HasValue: true } ? fan.Value : null, numericUnit: "RPM"),
             CollectorSupport.Spec(SpecLabels.CoreVoltage, FormatSensor(voltage, "V", 3), "LibreHardwareMonitor", numericValue: voltage is { HasValue: true } ? voltage.Value : null, numericUnit: "V"),
@@ -117,6 +118,19 @@ public sealed class CpuCollector : ICollector
             specs,
             "CPU health is based on measured temperature and the thermal throttle flag, not on a life meter, because no CPU life sensor exists. The temperature comes from LibreHardwareMonitor and is only shown when the sensor is readable.");
     }
+
+    /// <summary>
+    /// The thermal throttle flag from a package temperature: at or above
+    /// the shared safety limit (<see cref="LoadTestConfig.DefaultAbortTemperatureC"/>)
+    /// the CPU is throttling; below it, it is not; no reading means no
+    /// judgement, never a guessed "No".
+    /// </summary>
+    internal static string ThrottleFlag(double? temperatureC) => temperatureC switch
+    {
+        >= LoadTestConfig.DefaultAbortTemperatureC => "Yes",
+        not null => "No",
+        _ => SpecLabels.NotReportedByHardware,
+    };
 
     private static string FormatMhz(uint? mhz) =>
         CollectorSupport.NonZero(mhz) is { } value ? string.Create(CultureInfo.InvariantCulture, $"{value} MHz") : SpecLabels.NotReportedByHardware;

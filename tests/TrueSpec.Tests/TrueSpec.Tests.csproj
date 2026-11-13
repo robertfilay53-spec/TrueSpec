@@ -75,6 +75,7 @@
     <Compile Remove="UpdatesCollectorTests.cs" />
     <Compile Remove="CollectorValueTests.cs" />
     <Compile Remove="StorageCollectorTests.cs" />
+    <Compile Remove="CpuCollectorTests.cs" />
     <Compile Remove="SystemCollectorTests.cs" />
     <Compile Remove="DisplayNetworkTruthTests.cs" />
     <Compile Remove="DriversCollectorTests.cs" />

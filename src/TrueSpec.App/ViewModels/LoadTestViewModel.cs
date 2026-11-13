@@ -17,9 +17,9 @@ namespace TrueSpec.App.ViewModels;
 /// result card with the throttle verdict and a temperature sparkline.
 ///
 /// The warnings are shown before Start, never after the fact: the test loads
-/// the CPU for the selected duration and stops automatically at 95 C, a
-/// short test is a functional check and not a burn-in certificate, and a
-/// machine on battery may report power-limited results.
+/// the CPU for the selected duration and stops automatically at the safety
+/// limit, a short test is a functional check and not a burn-in certificate,
+/// and a machine on battery may report power-limited results.
 /// </summary>
 public sealed partial class LoadTestViewModel : ViewModelBase
 {
@@ -51,10 +51,15 @@ public sealed partial class LoadTestViewModel : ViewModelBase
     [ObservableProperty]
     public partial int SelectedDurationSeconds { get; set; } = 60;
 
-    /// <summary>The warning shown before Start; it names the selected duration.</summary>
+    /// <summary>
+    /// The warning shown before Start; it names the selected duration and the
+    /// safety limit from the one shared constant
+    /// (<see cref="LoadTestConfig.DefaultAbortTemperatureC"/>), so the text
+    /// can never disagree with the temperature at which the test aborts.
+    /// </summary>
     public string WarningText => string.Create(
         CultureInfo.InvariantCulture,
-        $"This will load your CPU for {SelectedDurationSeconds} seconds. It stops automatically if the temperature exceeds 95 C.");
+        $"This will load your CPU for {SelectedDurationSeconds} seconds. It stops automatically if the temperature exceeds {LoadTestConfig.DefaultAbortTemperatureC:0.#} C.");
 
     public string FunctionalCheckText => string.Create(
         CultureInfo.InvariantCulture,
