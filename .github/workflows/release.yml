@@ -15,10 +15,15 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      # Actions are pinned to SHAs, not tags: a tag is mutable, a SHA is
+      # not, so a compromised or re-pointed tag cannot silently change
+      # what the release build runs. Re-pin with `gh api
+      # repos/<owner>/<repo>/commits/v4 --jq .sha` when the action needs
+      # an upgrade.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "10.0.x"
 
@@ -33,8 +38,13 @@ jobs:
       - name: Publish portable exe
         run: dotnet publish src/TrueSpec.App/TrueSpec.App.csproj -p:PublishProfile=win-x64 -o publish
 
+      # Inno Setup is pinned to 6.7.1, the version the release runners
+      # carry: an unpinned install silently follows whatever the feed
+      # serves next, and a major Inno Setup change could alter the
+      # installer the release ships. 6.7.1 is the version verified in the
+      # v2.0.1 release (run 43370949730).
       - name: Install Inno Setup
-        run: choco install innosetup --yes
+        run: choco install innosetup --version 6.7.1 --yes
 
       - name: Compile installer
         run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\TrueSpec.iss'
@@ -47,7 +57,13 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ inputs.tag }}" -replace '^v', ''
-          Compress-Archive -Path publish\TrueSpec.App.exe -DestinationPath "TrueSpec-$version-portable.zip" -CompressionLevel Optimal
+          # The portable zip must carry the TrueSpec.portable marker, so a
+          # buyer who extracts it to a USB stick gets portable behaviour
+          # (scans on the stick) instead of installed-app behaviour. The
+          # release publish uses the win-x64 profile, which does not write
+          # the marker, so it is created here before zipping.
+          New-Item -Path publish\TrueSpec.portable -ItemType File | Out-Null
+          Compress-Archive -Path publish\TrueSpec.App.exe, publish\TrueSpec.portable -DestinationPath "TrueSpec-$version-portable.zip" -CompressionLevel Optimal
 
       # Gate 6: every release ships SHA-256 checksums. Compute them here so
       # the release carries a verifiable SHA256SUMS.txt alongside the assets.
