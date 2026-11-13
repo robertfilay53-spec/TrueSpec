@@ -797,6 +797,56 @@ data already existed; only the band rule and wording are new.
   `git diff 859308c 233fbf0 -- '*csproj'`), so the result carries
   forward.
 
+## v2.1.9 — shipped
+
+- **Localisation, phase 3: the Core diagnostic strings in German
+  (Beyond v2.0, item 4).** Phase 2 translated the Settings page but
+  left two strings English, naming them honestly: the plug-in list's
+  per-item status/reason and the portable-toggle result message, both
+  produced by Core code that took no language parameter. This version
+  threads a language code through those APIs, so the whole Settings
+  page is translated now, with no string left behind. The catalogue
+  grows by 45 keys (74 to 119): 6 plug-in status texts, 5 plug-in
+  reasons, 2 discovery errors, 22 manifest-parser errors, and 10
+  portable-toggle messages, each in both packs, pinned by the
+  existing coverage test (a pack that misses a key fails). The
+  language parameter is optional everywhere and defaults to English,
+  so every existing caller and test keeps its exact English strings:
+  `PluginManifestParser.Parse(stream, languageCode)`,
+  `PluginDiscovery.Discover(folder, languageCode)`,
+  `PortableMode.SetEnabled(dir, enable, env, languageCode)`.
+  `DiscoveredPlugin` carries its language (`LanguageCode`, null reads
+  English) and its `StatusText` resolves from the status enum through
+  the localizer; the reason is formatted in the language at discovery
+  time, including the parser's error, which the parser now localizes
+  at the source. `PortableModeToggleResult` carries its message as a
+  key plus arguments (`MessageKey`, `MessageArgs`) with a computed
+  `Message`, so the Settings page can re-resolve it when the language
+  changes without toggling again (a `with { LanguageCode = ... }`
+  copy). The view model passes its language to discovery and to the
+  toggle, re-discovers the plug-ins when the language changes, and
+  re-resolves a toggle message shown before the switch. File names,
+  manifest field names, collector ids and the TRUESPEC_PORTABLE
+  variable name stay untranslated inside the sentences; numbers in a
+  translated template keep the invariant formatting. Tests:
+  `LanguagePackTests` (German core strings pinned, templates format
+  with invariant numbers), `PluginManifestTests` (German errors,
+  unknown-language fallback), `PluginDiscoveryTests` (German
+  status/reason for all four statuses, bad-manifest reason in
+  German, fallback), `PortableModeTests` (German toggle messages,
+  env-var case in German, fallback, re-resolution by `with` copy),
+  `SettingsViewModelTests` (the v2.1.8 test that pinned the status
+  staying English now pins it German; picking German re-discovers
+  the list in German; a toggle message re-resolves on the switch).
+- **Dependency audit re-attested for v2.1.8.** `SECURITY.md` said
+  v2.1.7; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.7 and v2.1.8 (only the `<Version>` bump
+  — zero `PackageReference` changes in
+  `git diff 233fbf0 1188692 -- '*csproj'`), so the result carries
+  forward.
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed

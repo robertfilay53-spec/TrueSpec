@@ -34,6 +34,11 @@ public sealed partial class SettingsViewModel : ViewModelBase
     /// <summary>Why the last plug-in discovery pass could not list plug-ins, if it could not.</summary>
     private string? _pluginDiscoveryError;
 
+    /// <summary>The last portable-mode toggle result, kept so its
+    /// message can be re-resolved when the language changes (the result
+    /// carries its message as a key, not a formatted string).</summary>
+    private PortableModeToggleResult? _lastToggleResult;
+
     public SettingsViewModel(MainViewModel main, string? exeDirectory = null, string? environmentValue = null)
     {
         _main = main;
@@ -238,8 +243,11 @@ public sealed partial class SettingsViewModel : ViewModelBase
     /// language. Called when the language changes; the two message
     /// properties (threshold, folder) are re-resolved too when they
     /// currently hold a message, so a rejection shown before the switch
-    /// does not stay in the old language. The portable-toggle message
-    /// is a Core string and stays English by design (see AppStringKeys).
+    /// does not stay in the old language. The plug-in list is
+    /// re-discovered in the new language (its status and reason are
+    /// Core diagnostic strings, resolved at discovery time), and the
+    /// portable-toggle message is re-resolved from its key when a
+    /// toggle has happened.
     /// </summary>
     private void RaiseLocalizedTextsChanged()
     {
@@ -294,6 +302,18 @@ public sealed partial class SettingsViewModel : ViewModelBase
         if (!string.IsNullOrEmpty(FolderMessage))
         {
             FolderMessage = StringLocalizer.Get(AppStringKeys.ExportFolderRejected, LanguageCode);
+        }
+
+        // The plug-in list's status/reason and the discovery error are
+        // resolved at discovery time, so the pass re-runs in the new
+        // language; the list is small (at most 100 folders) and the
+        // pass never throws. The constructor also calls
+        // RefreshPluginDiscovery explicitly, so a shell seeded with a
+        // non-default language discovers twice at startup — harmless.
+        RefreshPluginDiscovery();
+        if (_lastToggleResult is not null)
+        {
+            PortableModeMessage = (_lastToggleResult with { LanguageCode = LanguageCode }).Message;
         }
     }
 
@@ -360,9 +380,8 @@ public sealed partial class SettingsViewModel : ViewModelBase
     /// <summary>
     /// One line on what discovery found: how many plug-ins, or why none
     /// could be listed. A missing plug-ins folder reads as "no plug-ins",
-    /// never as an error. The count lines are localized; the discovery
-    /// error itself is a Core diagnostic string (PluginDiscovery) and
-    /// stays English in this version (see AppStringKeys).
+    /// never as an error. The count lines and the discovery error are
+    /// localized in the current language.
     /// </summary>
     public string PluginsSummaryText => _pluginDiscoveryError is not null
         ? _pluginDiscoveryError
@@ -388,7 +407,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
     /// </summary>
     private void RefreshPluginDiscovery()
     {
-        var result = PluginDiscovery.Discover(PluginFolderText);
+        var result = PluginDiscovery.Discover(PluginFolderText, LanguageCode);
         DiscoveredPlugins = result.Plugins;
         _pluginDiscoveryError = result.Error;
         OnPropertyChanged(nameof(PluginsSummaryText));
@@ -403,7 +422,9 @@ public sealed partial class SettingsViewModel : ViewModelBase
         var result = PortableMode.SetEnabled(
             _exeDirectory ?? AppContext.BaseDirectory,
             !_portableStatus.MarkerPresent,
-            _environmentValue);
+            _environmentValue,
+            LanguageCode);
+        _lastToggleResult = result;
         _portableStatus = PortableMode.GetStatus(_exeDirectory, _environmentValue);
         PortableModeMessage = result.Message;
         OnPropertyChanged(nameof(DataFolderText));

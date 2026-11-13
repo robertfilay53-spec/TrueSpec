@@ -217,4 +217,40 @@ public class PluginManifestTests
     {
         Assert.Throws<ArgumentNullException>(() => PluginManifestParser.Parse(null!));
     }
+
+    [Fact]
+    public void GermanLanguage_ReturnsGermanErrors()
+    {
+        // Localisation, phase 3 (v2.1.9): the parser takes a language
+        // code and its errors come back in that language. The field
+        // names and ids inside the sentences stay untranslated.
+        var missingId = PluginManifestParser.Parse(
+            Manifest(ValidJson(j => j.Replace("\"id\": \"com.example.gpuz\",", string.Empty))), "de");
+        Assert.False(missingId.Success);
+        Assert.Equal("Dem Manifest fehlt die 'id', daher wurde es übersprungen.", missingId.Error);
+
+        var unknownField = PluginManifestParser.Parse(
+            Manifest(ValidJson(j => j.Replace("\"version\": \"1.0.0\",", "\"version\": \"1.0.0\", \"surprise\": true,"))), "de");
+        Assert.False(unknownField.Success);
+        Assert.Equal("Das Manifest hat ein unbekanntes Feld 'surprise' und wurde daher übersprungen.", unknownField.Error);
+
+        var badId = PluginManifestParser.Parse(
+            Manifest(ValidJson(j => j.Replace("\"id\": \"gpu-extra\"", "\"id\": \"GPU-extra\""))), "de");
+        Assert.False(badId.Success);
+        Assert.Equal("Die Collector-ID 'GPU-extra' ist keine gültige ID (Kleinbuchstaben, Ziffern und Bindestriche, beginnend mit einem Buchstaben), daher wurde das Manifest übersprungen.", badId.Error);
+
+        var notJson = PluginManifestParser.Parse(Manifest("this is not json {{{"), "de");
+        Assert.False(notJson.Success);
+        Assert.Equal("Das Manifest ist kein gültiges JSON, daher wurde es übersprungen.", notJson.Error);
+    }
+
+    [Fact]
+    public void UnknownLanguage_FallsBackToEnglishErrors()
+    {
+        var result = PluginManifestParser.Parse(
+            Manifest(ValidJson(j => j.Replace("\"id\": \"com.example.gpuz\",", string.Empty))), "xx");
+
+        Assert.False(result.Success);
+        Assert.Equal("The manifest is missing its 'id', so it was skipped.", result.Error);
+    }
 }

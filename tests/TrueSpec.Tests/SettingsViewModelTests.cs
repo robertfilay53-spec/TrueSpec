@@ -565,11 +565,16 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public void Settings_German_PluginsSummaryCountsAndCoreStringsStayEnglish()
+    public void Settings_German_PluginsAreGerman()
     {
-        // Manual setup: the store is seeded German, and the marker file
-        // makes the temp dir the data folder, so the plug-ins folder
-        // under it is hermetic (same pattern as the v2.1.5 tests).
+        // Localisation, phase 3 (v2.1.9): the per-item status/reason
+        // are Core diagnostic strings that now take a language code,
+        // so a German shell lists German plug-ins. (v2.1.8 pinned the
+        // opposite: they stayed English then. This test replaces that
+        // pin.) Manual setup: the store is seeded German, and the
+        // marker file makes the temp dir the data folder, so the
+        // plug-ins folder under it is hermetic (same pattern as the
+        // v2.1.5 tests).
         var root = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         File.WriteAllText(Path.Combine(root, AppDataRoot.PortableMarkerFileName), string.Empty);
@@ -589,13 +594,87 @@ public class SettingsViewModelTests
 
             Assert.Equal("1 Plug-in gefunden.", settings.PluginsSummaryText);
             var plugin = Assert.Single(settings.DiscoveredPlugins);
-            // The per-item status/reason are Core diagnostic strings
-            // (PluginDiscovery): they stay English in this version.
-            Assert.Equal("Ready — not loaded yet", plugin.StatusText);
+            Assert.Equal("Bereit — noch nicht geladen", plugin.StatusText);
+            Assert.Equal("Manifest gültig. Noch nicht geladen: Nur signierte Plug-ins werden geladen, und die Plug-in-Signierung ist noch nicht eingerichtet.", plugin.Reason);
 
             AddPlugin(root, "gpuz2", ValidManifestJson.Replace("com.example.gpuz", "com.example.gpuz2"));
             settings.RefreshPluginsCommand.Execute(null);
             Assert.Equal("2 Plug-ins gefunden.", settings.PluginsSummaryText);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Settings_LanguageSwitch_ReDiscoversPluginsInGerman()
+    {
+        // Picking German after the page loaded re-runs discovery in
+        // German: the list must not stay in the language it was first
+        // discovered in. Manual setup (marker + plug-in before the
+        // shell is built, English store): the marker makes the temp
+        // dir the data folder, so the plug-ins folder under it is
+        // hermetic.
+        var root = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, AppDataRoot.PortableMarkerFileName), string.Empty);
+        AddPlugin(root, "nodll", ValidManifestJson, withAssembly: false);
+
+        try
+        {
+            var store = new AppSettingsStore(Path.Combine(root, "settings.json"));
+            Assert.True(store.Save(new AppSettings { LanguageCode = "en" }));
+            var main = new MainViewModel(
+                Array.Empty<ICollector>(),
+                new UnavailableSensorMonitor(),
+                new BuyerCheckEvaluator(),
+                store,
+                new ShellExportFileOpener());
+            var settings = new SettingsViewModel(main, exeDirectory: root);
+            Assert.Equal("Assembly missing", Assert.Single(settings.DiscoveredPlugins).StatusText);
+
+            settings.LanguageCode = "de";
+
+            var plugin = Assert.Single(settings.DiscoveredPlugins);
+            Assert.Equal("Assembly fehlt", plugin.StatusText);
+            Assert.Equal("Die Plug-in-Datei 'GpuZBridge.dll' fehlt in diesem Ordner.", plugin.Reason);
+            Assert.Equal("1 Plug-in gefunden.", settings.PluginsSummaryText);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Settings_LanguageSwitch_ReResolvesPortableToggleMessage()
+    {
+        // The toggle message is a Core string carried as a key, so a
+        // language switch after the toggle re-resolves it without
+        // toggling again. Manual setup: English store, marker present
+        // so the toggle turns portable mode off.
+        var root = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, AppDataRoot.PortableMarkerFileName), string.Empty);
+
+        try
+        {
+            var store = new AppSettingsStore(Path.Combine(root, "settings.json"));
+            Assert.True(store.Save(new AppSettings { LanguageCode = "en" }));
+            var main = new MainViewModel(
+                Array.Empty<ICollector>(),
+                new UnavailableSensorMonitor(),
+                new BuyerCheckEvaluator(),
+                store,
+                new ShellExportFileOpener());
+            var settings = new SettingsViewModel(main, exeDirectory: root);
+            settings.TogglePortableModeCommand.Execute(null);
+            Assert.Contains("Portable mode is off.", settings.PortableModeMessage, StringComparison.Ordinal);
+
+            settings.LanguageCode = "de";
+
+            Assert.Equal("Der tragbare Modus ist aus. Starten Sie TrueSpec neu: Von da an werden Daten im Standardordner gespeichert. Bereits neben der App gespeicherte Scans bleiben dort.", settings.PortableModeMessage);
         }
         finally
         {
