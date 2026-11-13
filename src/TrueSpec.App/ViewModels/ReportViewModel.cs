@@ -167,6 +167,13 @@ public sealed class ReportViewModel : ViewModelBase
     public bool HasDnaUnidentifiedParts => DnaUnidentifiedParts.Count > 0;
 
     public string ExportFolderText { get; }
+
+    /// <summary>
+    /// What an exported report contains that identifies this machine. A
+    /// buyer hands the file to a seller, so the page says so before the
+    /// export happens instead of after. The file itself is unchanged.
+    /// </summary>
+    public string ExportPrivacyNote { get; } = "Exported reports contain this machine's hardware serials, MAC addresses, IP addresses and Wi-Fi network names. Share them only with people you trust.";
 }
 
 public sealed record ReportComponentRow(string Name, string Headline, string HealthText, HealthStatus Status);

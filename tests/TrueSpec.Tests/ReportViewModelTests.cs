@@ -157,4 +157,19 @@ public class ReportViewModelTests
         Assert.Equal($"{snapshot.Score.OverallScore:0.#}", report.ScoreText);
         Assert.Equal(snapshot.Score.Verdict.ToDisplayText(), report.VerdictText);
     }
+
+    [Fact]
+    public void ExportPrivacyNote_NamesTheIdentifiersInTheFile()
+    {
+        // Review hardening item 6g: an exported report is handed to a
+        // seller, so the page must say before the export that the file
+        // contains identifiers — serials, MAC and IP addresses, Wi-Fi
+        // network names — instead of letting the buyer find out after.
+        var report = Report();
+
+        Assert.Contains("serial", report.ExportPrivacyNote, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("MAC address", report.ExportPrivacyNote, StringComparison.Ordinal);
+        Assert.Contains("IP address", report.ExportPrivacyNote, StringComparison.Ordinal);
+        Assert.Contains("Wi-Fi", report.ExportPrivacyNote, StringComparison.Ordinal);
+    }
 }

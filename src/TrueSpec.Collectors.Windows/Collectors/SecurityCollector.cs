@@ -22,6 +22,17 @@ public sealed class SecurityCollector : ICollector
 
     public bool RequiresAdministrator => false;
 
+    // Hoisted so the selection can be pinned (F9 bug class): a property
+    // read but not selected comes back null, so a security value the
+    // machine does have would silently show as not reported. The TPM
+    // query is one constant used for both namespaces (the secured
+    // namespace first, the plain CIM namespace as the fallback).
+    internal const string DeviceGuardQuery = "SELECT VirtualizationBasedSecurityStatus FROM Win32_DeviceGuard";
+    internal const string AntiVirusProductQuery = "SELECT displayName, productState FROM AntiVirusProduct";
+    internal const string FirewallProductQuery = "SELECT displayName, productState FROM FirewallProduct";
+    internal const string TpmQuery = "SELECT SpecVersion, IsEnabled_InitialValue, IsActivated_InitialValue, IsOwned_InitialValue FROM Win32_Tpm";
+    internal const string EncryptableVolumeQuery = "SELECT DriveLetter, ProtectionStatus FROM Win32_EncryptableVolume";
+
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -29,13 +40,13 @@ public sealed class SecurityCollector : ICollector
         var tpm = ReadTpm();
         var deviceGuard = Wmi.Query(
             "root\\Microsoft\\Windows\\DeviceGuard",
-            "SELECT VirtualizationBasedSecurityStatus FROM Win32_DeviceGuard").FirstOrDefault();
+            DeviceGuardQuery).FirstOrDefault();
         var antivirus = Wmi.Query(
             "root\\SecurityCenter2",
-            "SELECT displayName, productState FROM AntiVirusProduct");
+            AntiVirusProductQuery);
         var firewall = Wmi.Query(
             "root\\SecurityCenter2",
-            "SELECT displayName, productState FROM FirewallProduct");
+            FirewallProductQuery);
         // Driver signatures come from the shared enumeration
         // (CollectorSupport): the same Win32_PnPSignedDriver list the
         // System collector counts, truncated honestly at the WMI row cap
@@ -137,10 +148,10 @@ public sealed class SecurityCollector : ICollector
 
     private static (string? Version, string? Enabled, string? Activated, string? Owned)? ReadTpm()
     {
-        var rows = Wmi.Query("root\\CIMV2\\Security\\MicrosoftTpm", "SELECT SpecVersion, IsEnabled_InitialValue, IsActivated_InitialValue, IsOwned_InitialValue FROM Win32_Tpm");
+        var rows = Wmi.Query("root\\CIMV2\\Security\\MicrosoftTpm", TpmQuery);
         if (rows.Count == 0)
         {
-            rows = Wmi.Query("root\\cimv2", "SELECT SpecVersion, IsEnabled_InitialValue, IsActivated_InitialValue, IsOwned_InitialValue FROM Win32_Tpm");
+            rows = Wmi.Query("root\\cimv2", TpmQuery);
         }
 
         var tpm = rows.FirstOrDefault();
@@ -198,7 +209,7 @@ public sealed class SecurityCollector : ICollector
         {
             var rows = Wmi.Query(
                 "root\\CIMV2\\Security\\MicrosoftVolumeEncryption",
-                "SELECT DriveLetter, ProtectionStatus FROM Win32_EncryptableVolume");
+                EncryptableVolumeQuery);
             if (rows.Count == 0)
             {
                 return SpecLabels.NotReportedByHardware;

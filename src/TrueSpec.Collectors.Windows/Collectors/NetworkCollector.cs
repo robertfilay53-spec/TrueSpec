@@ -53,6 +53,15 @@ public sealed class NetworkCollector : ICollector
     // Miniport carries no such name and stays excluded.
     internal const string NetworkAdapterQuery = "SELECT Name, Manufacturer, MACAddress, Speed, PNPDeviceID, NetConnectionID, AdapterType, Index, PhysicalAdapter FROM Win32_NetworkAdapter";
 
+    // Hoisted with the adapter query (same F9 class): a property read
+    // but not selected comes back null, so the configuration values (IP,
+    // gateway, DNS) would silently show as not reported. The driver query
+    // is a format string because the WHERE clause is built from the
+    // adapter device IDs found at scan time; the SELECT list is fixed.
+    internal const string NetworkAdapterConfigurationQuery = "SELECT Index, IPAddress, DefaultIPGateway, DNSServerSearchOrder FROM Win32_NetworkAdapterConfiguration";
+    internal const string BluetoothDeviceQuery = "SELECT PNPDeviceID FROM Win32_PnPEntity WHERE PNPClass = 'Bluetooth'";
+    internal const string AdapterDriverQueryFormat = "SELECT DeviceID, DriverVersion, DriverDate, Manufacturer FROM Win32_PnPSignedDriver WHERE {0}";
+
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -63,7 +72,7 @@ public sealed class NetworkCollector : ICollector
         // A missing key must never crash the scan: two rows with no Index or
         // DeviceID would both map to "" and ToDictionary would throw. Keep
         // the first row for a key and carry on.
-        var configurations = Wmi.Query("root\\cimv2", "SELECT Index, IPAddress, DefaultIPGateway, DNSServerSearchOrder FROM Win32_NetworkAdapterConfiguration")
+        var configurations = Wmi.Query("root\\cimv2", NetworkAdapterConfigurationQuery)
             .GroupBy(r => r.String("Index") ?? string.Empty, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var wifi = adapters.FirstOrDefault(IsWifi);
@@ -91,7 +100,7 @@ public sealed class NetworkCollector : ICollector
         var driversOutput = ProcessRunner.Run("netsh", "wlan show drivers") ?? string.Empty;
         var standards = ReadStandards(driversOutput);
 
-        var bluetooth = Wmi.Query("root\\cimv2", "SELECT PNPDeviceID FROM Win32_PnPEntity WHERE PNPClass = 'Bluetooth'");
+        var bluetooth = Wmi.Query("root\\cimv2", BluetoothDeviceQuery);
         var ethernetDriver = ethernet is null ? null : FindDriver(drivers, ethernet);
         var ethernetConfig = ethernet is null ? null : FindConfiguration(configurations, ethernet);
 
@@ -631,7 +640,7 @@ public sealed class NetworkCollector : ICollector
                 $"DeviceID = '{id.Replace("'", "''", StringComparison.Ordinal)}'")));
         return Wmi.Query(
                 "root\\cimv2",
-                $"SELECT DeviceID, DriverVersion, DriverDate, Manufacturer FROM Win32_PnPSignedDriver WHERE {filter}")
+                string.Format(CultureInfo.InvariantCulture, AdapterDriverQueryFormat, filter))
             .GroupBy(r => r.String("DeviceID") ?? string.Empty, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
     }

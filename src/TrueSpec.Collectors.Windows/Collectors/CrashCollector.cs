@@ -190,9 +190,14 @@ public sealed class CrashCollector : ICollector
         }
     }
 
+    // Hoisted so the selection can be pinned (F9 bug class): InstallDate
+    // is the cleared-log rule's reference point, and a property read but
+    // not selected comes back null.
+    internal const string OperatingSystemQuery = "SELECT InstallDate FROM Win32_OperatingSystem";
+
     private static DateTimeOffset? ReadWindowsInstallDate()
     {
-        var os = Wmi.Query("root\\cimv2", "SELECT InstallDate FROM Win32_OperatingSystem")
+        var os = Wmi.Query("root\\cimv2", OperatingSystemQuery)
             .FirstOrDefault();
         return os?.Date("InstallDate");
     }
