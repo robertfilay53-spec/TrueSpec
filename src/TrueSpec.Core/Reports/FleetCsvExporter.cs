@@ -56,10 +56,10 @@ public sealed class FleetCsvExporter
                 row.MachineName,
                 row.ScanCount.ToString(CultureInfo.InvariantCulture),
                 row.LastScan.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
-                ScoreText(row.LatestScore),
+                CsvDisplayText.ScoreText(row.LatestScore),
                 row.Verdict,
                 row.WorstComponent ?? "Not reported",
-                PercentText(row.WorstComponentHealth)));
+                CsvDisplayText.PercentText(row.WorstComponentHealth)));
         }
 
         return builder.ToString();
@@ -67,12 +67,4 @@ public sealed class FleetCsvExporter
 
     private static string Row(params string[] cells) =>
         string.Join(",", cells.Select(CsvReportExporter.Escape));
-
-    private static string ScoreText(double? score) =>
-        score is null ? "Not measurable" : score.Value.ToString("0.#", CultureInfo.InvariantCulture);
-
-    private static string PercentText(double? value) =>
-        value is null
-            ? "Not reported"
-            : string.Create(CultureInfo.InvariantCulture, $"{value.Value:0.#}%");
 }

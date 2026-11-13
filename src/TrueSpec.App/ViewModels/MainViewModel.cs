@@ -15,6 +15,7 @@ using TrueSpec.Core;
 using TrueSpec.Core.Benchmarks;
 using TrueSpec.Core.Collectors;
 using TrueSpec.Core.Health;
+using TrueSpec.Core.History;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Reports;
 using TrueSpec.Core.Scoring;
@@ -670,6 +671,24 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>
+    /// Exports one fleet machine's latest scan as its own CSV, to the
+    /// configured export folder, exactly like the other exports: no
+    /// dialog, no cloud. The snapshot lives on the Fleet page (it loads
+    /// one per machine), so the page calls this with the row and its
+    /// snapshot. Mirrors the status line into the Fleet page afterwards,
+    /// like the fleet-table export does.
+    /// </summary>
+    private async Task ExportMachineCsvAsync(FleetMachineRow row, SystemSnapshot snapshot)
+    {
+        await _exporter.ExportMachineCsvAsync(row, snapshot.Score);
+        var fleet = _pageCache.TryGetValue("fleet", out var page) ? page as FleetViewModel : null;
+        if (fleet is not null)
+        {
+            fleet.StatusMessage = StatusMessage;
+        }
+    }
+
     [RelayCommand]
     private Task ExportChecklistAsync() => _exporter.ExportChecklistAsync();
 
@@ -860,7 +879,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 OnLoadTestCompleted)),
             "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: IsScanRunning, exportPdfCommand: ExportPdfCommand, exportCertificateCommand: ExportCertificateCommand, verifyMachineCommand: VerifyMachineCommand, dnaVerification: _lastDnaVerification, isVerifyingMachine: IsVerifyingMachine)),
             "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot, _dnaVerifier)),
-            "fleet" => GetOrCreate("fleet", () => new FleetViewModel(_snapshotStore, ExportFleetCsvCommand)),
+            "fleet" => GetOrCreate("fleet", () => new FleetViewModel(_snapshotStore, ExportFleetCsvCommand, ExportMachineCsvAsync)),
             "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand, SensorLogWriter.DefaultFilePath(), _settings.SensorLoggingEnabled, _settings.CpuTemperatureThresholdC)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
             _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key)),

@@ -27,6 +27,11 @@ The product rule is simple: every number is either **measured** (with its source
 
 - **Technician mode (Fleet):** one row per machine in the local snapshot store, lowest score first, with the worst component named. Carry the portable app on a USB stick, scan each machine, and every scan lands in the same store on the stick — the Fleet page is the summary of that store. The table exports as CSV.
 
+## What's new in v2.0.4
+
+- **Per-machine CSV export (Technician mode):** every row of the Fleet table has an Export CSV button that writes that one machine's latest scan as its own file — the fleet table's values for the machine, then one row per scored component, lowest health first. Hand the file to a buyer or keep it with the machine's records.
+- **Fleet verdict text fixed:** the fleet table and its CSV now show the verdict the way the rest of the app shows it ("Used - healthy"), instead of the concatenated enum name ("UsedHealthy").
+
 ## Status
 
 Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.
@@ -47,7 +52,7 @@ Implemented in this build:
 | Portable mode | Run from USB with a portable data root (marker file `TrueSpec.portable` or `TRUESPEC_PORTABLE=1`); no install, no elevation |
 | Compare | Compare any two saved snapshots side by side: score change, per-component health deltas, changed specs |
 | History | Every scan is saved to a local SQLite history, so comparisons work across visits; battery-health alerts when health drops a band or falls fast |
-| Fleet | Technician mode: one row per machine in the local store (latest score, worst component, last scan date, scan count), lowest score first, with a CSV export |
+| Fleet | Technician mode: one row per machine in the local store (latest score, worst component, last scan date, scan count), lowest score first, with a CSV export of the table and a per-machine CSV export on every row |
 | Settings | Theme, live sensor refresh rate (1-30s), export folder, all saved and applied immediately |
 | Security | Offline by design, no telemetry, parameterized SQLite, allowlisted external tools only |
 | Tests | Real CPU single-thread and local sequential disk read benchmarks |

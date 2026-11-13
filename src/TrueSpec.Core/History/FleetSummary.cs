@@ -84,7 +84,10 @@ public static class FleetSummary
                 input.Latest.ScanCount,
                 input.Latest.CapturedAt,
                 snapshot.Score.HasMeasurableComponents ? snapshot.Score.OverallScore : null,
-                snapshot.Score.Verdict.ToString(),
+                // Display text, not the enum name: the table and the CSV
+                // must show what the rest of the app shows ("Used -
+                // healthy"), never the concatenated "UsedHealthy".
+                snapshot.Score.Verdict.ToDisplayText(),
                 worstName,
                 worstHealth));
         }

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using TrueSpec.Core.History;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Reports;
+using TrueSpec.Core.Scoring;
 using TrueSpec.Core.Security;
 
 namespace TrueSpec.App.Services;
@@ -134,6 +135,35 @@ public sealed class ExportOrchestrator
         catch (Exception exception)
         {
             _onFailed($"Fleet export failed: {exception.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Exports one machine's latest scan as its own CSV. The machine name
+    /// goes through SafeReportFileName, so a hostile machine name cannot
+    /// inject a path through the file name. With no row or no score there
+    /// is nothing to export, and the failure says so instead of writing
+    /// an empty file.
+    /// </summary>
+    public async Task ExportMachineCsvAsync(FleetMachineRow? row, ScoreResult? score)
+    {
+        if (row is null || score is null)
+        {
+            _onFailed("Machine export failed: there is no machine to export yet.");
+            return;
+        }
+
+        try
+        {
+            var folder = PrepareFolder();
+            var path = Path.Combine(folder, PathSafety.SafeReportFileName($"TrueSpec-machine-{row.MachineName}", "csv", DateTime.Now));
+            await using var stream = File.Create(path);
+            await new MachineCsvExporter().ExportAsync(row, score, stream);
+            _onExported(path, "Machine");
+        }
+        catch (Exception exception)
+        {
+            _onFailed($"Machine export failed: {exception.Message}");
         }
     }
 
