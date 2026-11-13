@@ -897,7 +897,7 @@ public class DisplayNetworkTruthTests
     //
     // AppOnFly v2.0.1 (main e5316b7) found the Network screen still
     // Wi-Fi-only on a Hyper-V VM: header "Microsoft Hyper-V Network
-    // Adapter #2" but every row "Not reported by hardware", no wired
+    // Adapter #2" but every row reported nothing, no wired
     // buyer summary, no Ethernet driver version. The detection path had
     // never been tested end to end with a Hyper-V row: the v2.0-next
     // tests built InterfaceData/reading values directly and never ran the
