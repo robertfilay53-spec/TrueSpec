@@ -647,4 +647,135 @@ public class SnapshotStoreTests
             }
         }
     }
+
+    [Fact]
+    public async Task SqliteStore_DeleteMachine_RemovesOnlyThatMachine()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var first = TestSnapshots.Healthy() with { Id = Guid.NewGuid(), MachineName = "SHOP-PC", CapturedAt = baseTime };
+            var second = TestSnapshots.Healthy() with { Id = Guid.NewGuid(), MachineName = "SHOP-PC", CapturedAt = baseTime.AddHours(1) };
+            var prefixed = TestSnapshots.Healthy() with { Id = Guid.NewGuid(), MachineName = "SHOP-PC-2", CapturedAt = baseTime.AddHours(2) };
+            var cased = TestSnapshots.Healthy() with { Id = Guid.NewGuid(), MachineName = "shop-pc", CapturedAt = baseTime.AddHours(3) };
+            await store.SaveAsync(first);
+            await store.SaveAsync(second);
+            await store.SaveAsync(prefixed);
+            await store.SaveAsync(cased);
+
+            // Exact match only: the prefix machine and the case variant
+            // are different machines, and both keep their scans.
+            var removed = await store.DeleteMachineAsync("SHOP-PC");
+
+            Assert.Equal(2, removed);
+            Assert.Null(await store.GetSnapshotAsync(first.Id));
+            Assert.Null(await store.GetSnapshotAsync(second.Id));
+            Assert.NotNull(await store.GetSnapshotAsync(prefixed.Id));
+            Assert.NotNull(await store.GetSnapshotAsync(cased.Id));
+            var names = await store.GetMachineNamesAsync();
+            Assert.Equal(new[] { "SHOP-PC-2", "shop-pc" }, names);
+            var latest = await store.GetLatestPerMachineAsync();
+            Assert.Equal(2, latest.Count);
+            Assert.DoesNotContain(latest, m => m.MachineName == "SHOP-PC");
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SqliteStore_DeleteMachine_UnknownMachine_ReturnsZero()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var snapshot = TestSnapshots.Healthy() with { MachineName = "SHOP-PC" };
+            await store.SaveAsync(snapshot);
+
+            var removed = await store.DeleteMachineAsync("NO-SUCH-PC");
+
+            Assert.Equal(0, removed);
+            Assert.Single(await store.GetHistoryAsync());
+            Assert.NotNull(await store.GetSnapshotAsync(snapshot.Id));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SqliteStore_DeleteMachine_ThenReSave_WorksAgain()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var old = TestSnapshots.Healthy() with { Id = Guid.NewGuid(), MachineName = "SHOP-PC", CapturedAt = baseTime };
+            await store.SaveAsync(old);
+            Assert.Equal(1, await store.DeleteMachineAsync("SHOP-PC"));
+
+            // A later scan (or a re-import of the same report) brings
+            // the machine back: delete is not a ban.
+            var fresh = TestSnapshots.Healthy() with { Id = Guid.NewGuid(), MachineName = "SHOP-PC", CapturedAt = baseTime.AddDays(1) };
+            await store.SaveAsync(fresh);
+
+            var history = await store.GetHistoryAsync();
+            var saved = Assert.Single(history);
+            Assert.Equal(fresh.Id, saved.Id);
+            Assert.Single(await store.GetLatestPerMachineAsync());
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SqliteStore_DeleteMachine_BlankName_Throws()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+
+        try
+        {
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            await Assert.ThrowsAsync<ArgumentException>(() => store.DeleteMachineAsync("  "));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
 }

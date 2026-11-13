@@ -410,7 +410,7 @@ data already existed; only the band rule and wording are new.
   version changed between v2.0.7 and v2.0.8 (only the `<Version>` bump
   — zero `PackageReference` changes), so the result carries forward.
 
-## v2.1.0 — in progress
+## v2.1.0 — shipped
 
 - **Technician mode: import JSON reports into the fleet store.** The
   plan's Beyond v2.0 item 1, next step after the fleet table (v2.0.3)
@@ -445,7 +445,7 @@ data already existed; only the band rule and wording are new.
   version changed between v2.0.8 and v2.0.9 (only the `<Version>` bump
   — zero `PackageReference` changes), so the result carries forward.
 
-## v2.1.1 — in progress
+## v2.1.1 — shipped
 
 - **Portable buyer kit works out of the box.** The released portable
   zip shipped only the exe, so a buyer who extracted it to a USB stick
@@ -480,6 +480,35 @@ data already existed; only the band rule and wording are new.
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.0.9 and v2.1.0 (only the `<Version>` bump
   — zero `PackageReference` changes), so the result carries forward.
+
+## v2.1.2 — in progress
+
+- **Technician mode: remove a machine from the fleet.** The fleet
+  could import machines (v2.1.0) but never remove one: a wrong import,
+  or a machine the shop no longer services, stayed in the fleet
+  forever, because the store had no delete path at all. Every Fleet row
+  now has a Remove button. Core: `ISnapshotStore.DeleteMachineAsync`
+  (exact stored-name match, returns the deleted-row count; a prefix or
+  a case variant is a different machine and is never touched). App:
+  `FleetViewModel.RemoveMachineCommand` with a two-step confirm on the
+  row — the app has no modal confirm dialog, so the first click arms
+  the button to "Confirm remove" and names the scan count, and only
+  the second click deletes; the armed flag resets when the fleet
+  reloads. The status line states the store's own deleted-row count,
+  including 0 when the scans were already gone. Deleting touches only
+  TrueSpec's own history file, never the machine itself. Tests:
+  `SnapshotStoreTests` (exact-match only, unknown machine returns 0,
+  delete-then-resave works, blank name throws) and
+  `FleetViewModelTests` (arm then delete, already-gone reports
+  honestly, null store reports unavailable, button text follows the
+  armed state).
+- **Dependency audit re-attested for v2.1.1.** `SECURITY.md` said
+  v2.1.0; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.0 and v2.1.1 (zero `PackageReference`
+  changes in `git diff 38dc7d4 a31d021 -- '*csproj'`), so the result
+  carries forward.
 
 ## Rejected
 

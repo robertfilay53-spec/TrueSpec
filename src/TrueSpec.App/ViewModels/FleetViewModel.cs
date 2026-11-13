@@ -23,6 +23,9 @@ using TrueSpec.Core.Storage;
 /// the stick — this page is the fleet summary of that store. Machines
 /// scanned with the installed app instead can be brought in with the
 /// Import button, which reads the JSON reports the Report page exports.
+/// A machine leaves the fleet with the Remove button on its row (two
+/// clicks: arm, then confirm), which deletes all of that machine's
+/// saved scans from this data folder — the undo for a wrong import.
 /// Every value comes from a real saved snapshot; a machine whose latest
 /// scan is unreadable is skipped, never shown with invented numbers.
 /// </summary>
@@ -32,6 +35,7 @@ public sealed partial class FleetViewModel : ViewModelBase
     private readonly Func<FleetMachineRow, SystemSnapshot, Task>? _exportMachineCsv;
     private readonly Dictionary<string, SystemSnapshot> _snapshotsByMachine = new(StringComparer.OrdinalIgnoreCase);
     private bool _importing;
+    private bool _removing;
 
     public FleetViewModel(
         ISnapshotStore? store,
@@ -42,6 +46,7 @@ public sealed partial class FleetViewModel : ViewModelBase
         _exportMachineCsv = exportMachineCsv;
         ExportFleetCsvCommand = exportFleetCsvCommand;
         ExportMachineCsvCommand = new AsyncRelayCommand<FleetRowViewModel>(ExportMachineCsvAsync);
+        RemoveMachineCommand = new AsyncRelayCommand<FleetRowViewModel>(RemoveMachineAsync);
         ImportReportsCommand = new AsyncRelayCommand(ImportReportsAsync);
         _ = LoadAsync();
     }
@@ -75,6 +80,16 @@ public sealed partial class FleetViewModel : ViewModelBase
     /// page built while loading; the row alone cannot identify it.
     /// </summary>
     public IAsyncRelayCommand<FleetRowViewModel> ExportMachineCsvCommand { get; }
+
+    /// <summary>
+    /// Takes one machine out of the fleet, invoked from the Remove button
+    /// on that machine's row. Two clicks by design (see
+    /// <see cref="RemoveMachineAsync"/>): the app has no modal confirm
+    /// dialog, so the first click arms the row and only the second
+    /// deletes. The row alone identifies the machine, by its exact
+    /// stored name.
+    /// </summary>
+    public IAsyncRelayCommand<FleetRowViewModel> RemoveMachineCommand { get; }
 
     /// <summary>The rows currently shown on the page, for the CSV export command.</summary>
     public IReadOnlyList<FleetMachineRow>? CurrentRows { get; private set; }
@@ -118,7 +133,7 @@ public sealed partial class FleetViewModel : ViewModelBase
             Rows.Clear();
             foreach (var row in rows)
             {
-                Rows.Add(new FleetRowViewModel(row, ExportMachineCsvCommand));
+                Rows.Add(new FleetRowViewModel(row, ExportMachineCsvCommand, RemoveMachineCommand));
             }
 
             HasFleet = rows.Count > 0;
@@ -164,6 +179,65 @@ public sealed partial class FleetViewModel : ViewModelBase
         }
 
         await _exportMachineCsv(rowViewModel.Row, snapshot);
+    }
+
+    /// <summary>
+    /// Removes one machine from the fleet. Two clicks by design: the app
+    /// has no modal confirm dialog, so a single misclick must never
+    /// delete a machine's whole history. The first click arms the row
+    /// (its button reads "Confirm remove") and names how many scans
+    /// would go; the second click deletes every saved scan for that
+    /// machine from this data folder and reloads the fleet. The count in
+    /// the status line is the store's own deleted-row count, so the
+    /// message states what actually happened — including 0, when the
+    /// scans were already gone. Deleting never touches the machine
+    /// itself, only TrueSpec's own history file.
+    /// </summary>
+    private async Task RemoveMachineAsync(FleetRowViewModel? rowViewModel)
+    {
+        if (rowViewModel is null || _removing)
+        {
+            return;
+        }
+
+        if (_store is null)
+        {
+            StatusMessage = "Remove is unavailable: snapshot history is unavailable on this machine.";
+            return;
+        }
+
+        if (!rowViewModel.IsRemoveArmed)
+        {
+            rowViewModel.IsRemoveArmed = true;
+            var scans = rowViewModel.Row.ScanCount;
+            StatusMessage = string.Create(
+                CultureInfo.InvariantCulture,
+                $"Remove {rowViewModel.MachineName}? This deletes all {scans} saved scan{(scans == 1 ? string.Empty : "s")} for this machine from this data folder. Click 'Confirm remove' to delete — nothing is deleted until then.");
+            return;
+        }
+
+        _removing = true;
+        try
+        {
+            var removed = await _store.DeleteMachineAsync(rowViewModel.MachineName);
+            await LoadAsync();
+            if (!StatusMessage.StartsWith("Fleet could not be read", StringComparison.Ordinal))
+            {
+                StatusMessage = removed == 0
+                    ? $"Nothing to remove: no saved scans were found for {rowViewModel.MachineName}."
+                    : string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"Removed {rowViewModel.MachineName} ({removed} saved scan{(removed == 1 ? string.Empty : "s")}).");
+            }
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"Remove failed: {exception.Message}";
+        }
+        finally
+        {
+            _removing = false;
+        }
     }
 
     /// <summary>
