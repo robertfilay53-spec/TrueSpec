@@ -83,9 +83,15 @@ public sealed partial class HistoryViewModel : ViewModelBase
     /// <summary>U9 per-component winners for the two compared machines.</summary>
     public ObservableCollection<ValueWinnerRowViewModel> ValueComponentWinners { get; } = new();
 
-    /// <summary>CPU temperature samples from the sensor log, oldest first, gaps kept as null.</summary>
+    /// <summary>
+    /// CPU temperature chart segments from the sensor log, oldest first.
+    /// Positions are fractions of the measured time span (<see
+    /// cref="SensorLogChartMapper"/>), so the chart's horizontal axis is
+    /// time, not sample count; a segment breaks at a sensor gap and at a
+    /// stretch where logging was not running.
+    /// </summary>
     [ObservableProperty]
-    public partial IReadOnlyList<double?>? CpuTemperatureLogValues { get; set; }
+    public partial IReadOnlyList<IReadOnlyList<SensorLogChartPoint>>? CpuTemperatureLogSegments { get; set; }
 
     /// <summary>The user-set CPU temperature threshold, drawn as a dashed line on the log chart.</summary>
     [ObservableProperty]
@@ -126,7 +132,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
     public void LoadSensorLog()
     {
         HasSensorLog = false;
-        CpuTemperatureLogValues = null;
+        CpuTemperatureLogSegments = null;
         SensorLogSummaryText = string.Empty;
 
         if (!_sensorLoggingEnabled)
@@ -185,7 +191,20 @@ public sealed partial class HistoryViewModel : ViewModelBase
                 return;
             }
 
-            CpuTemperatureLogValues = points.Select(p => p.Value).ToList();
+            // Time-proportional segments: the chart's horizontal axis is
+            // time, so two samples an hour apart do not look adjacent.
+            CpuTemperatureLogSegments = SensorLogChartMapper.BuildSegments(points);
+            if (CpuTemperatureLogSegments.Count == 0)
+            {
+                // Every measured reading stands alone: each is separated
+                // from the next by a sensor gap or a stretch where
+                // logging was not running, so no line can be drawn. An
+                // empty state, not a blank chart that looks broken.
+                CpuTemperatureLogSegments = null;
+                SensorLogStatusText = "The temperature readings are too far apart in time to draw a line: each reading stands alone because logging was not running between them.";
+                return;
+            }
+
             HasSensorLog = true;
             // Sample timestamps are stored as UTC in sensor-log.csv; the
             // displayed range is local time.

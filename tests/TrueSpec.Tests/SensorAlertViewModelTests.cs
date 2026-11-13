@@ -205,9 +205,14 @@ public class SensorAlertViewModelTests
 
             Assert.True(history.HasSensorLog);
             Assert.Equal(90, history.SensorLogThresholdC);
-            Assert.NotNull(history.CpuTemperatureLogValues);
-            Assert.Contains(71d, history.CpuTemperatureLogValues!);
-            Assert.Contains(73d, history.CpuTemperatureLogValues!);
+            Assert.NotNull(history.CpuTemperatureLogSegments);
+            var onlySegment = Assert.Single(history.CpuTemperatureLogSegments!);
+            Assert.Equal(3, onlySegment.Count);
+            Assert.Equal(0d, onlySegment[0].XFraction);
+            Assert.Equal(0.5d, onlySegment[1].XFraction);
+            Assert.Equal(1d, onlySegment[2].XFraction);
+            Assert.Equal(71d, onlySegment[0].Value);
+            Assert.Equal(73d, onlySegment[2].Value);
             Assert.Contains("samples", history.SensorLogStatusText, StringComparison.OrdinalIgnoreCase);
         }
         finally
@@ -228,7 +233,7 @@ public class SensorAlertViewModelTests
         history.LoadSensorLog();
 
         Assert.False(history.HasSensorLog);
-        Assert.Null(history.CpuTemperatureLogValues);
+        Assert.Null(history.CpuTemperatureLogSegments);
         Assert.Contains("logging is off", history.SensorLogStatusText, StringComparison.OrdinalIgnoreCase);
     }
 }
