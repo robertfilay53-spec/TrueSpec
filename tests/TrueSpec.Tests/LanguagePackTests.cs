@@ -134,14 +134,16 @@ public sealed class LanguagePackTests
     [Fact]
     public void GetFormatted_NeverThrowsOnBadTemplateOrMissingArgs()
     {
-        // A broken translation shows its template instead of crashing
-        // the page: a missing argument leaves the placeholder in place.
+        // A broken translation returns its template instead of
+        // crashing the page: a placeholder past the arguments makes
+        // string.Format throw, and the localizer hands the template
+        // back untouched.
         var broken = new LanguagePack("de", "Deutsch", new Dictionary<string, string>
         {
             [AppStringKeys.AlertSummaryOn] = "Warnung {0} {1} {2}.",
         });
 
-        Assert.Equal("Warnung 90 30 {2}.", StringLocalizer.GetFormatted(AppStringKeys.AlertSummaryOn, broken, "90", 30));
+        Assert.Equal("Warnung {0} {1} {2}.", StringLocalizer.GetFormatted(AppStringKeys.AlertSummaryOn, broken, "90", 30));
         Assert.Equal("NoSuchKey", StringLocalizer.GetFormatted("NoSuchKey", "de", 1));
         Assert.Equal(string.Empty, StringLocalizer.GetFormatted(null, "de", 1));
         Assert.Equal("1 Plug-in gefunden.", StringLocalizer.GetFormatted(AppStringKeys.PluginsSummaryOne, "de"));
