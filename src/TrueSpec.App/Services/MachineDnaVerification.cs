@@ -104,14 +104,18 @@ public sealed record MachineDnaVerification(
 
     /// <summary>
     /// The two fingerprints are identical and no part changed, but a part
-    /// was unidentified in one of the scans, so this is not a verified
-    /// identity match. The summary says so in one sentence; the names
-    /// live in <see cref="UnidentifiedParts"/> for the UI to list.
+    /// was unidentified in one of the scans, so a full verified identity
+    /// match cannot be claimed. The summary reads consistently with the
+    /// headline: the fingerprint matches and no part changed; the
+    /// unidentified part is named as the reason, and its name lives in
+    /// <see cref="UnidentifiedParts"/> for the UI to list. The old text
+    /// ("so this is not a verified identity match") read as a failure on
+    /// an unchanged machine (the v2.0.1 AppOnFly finding).
     /// </summary>
     public static MachineDnaVerification FingerprintMatches(string? hashDisplay, IReadOnlyList<string> unidentifiedParts) => new(
         DnaVerificationState.FingerprintMatches,
         hashDisplay,
-        "Same machine — fingerprint matches. A part could not be identified in one of the scans, so this is not a verified identity match; the unidentified part is listed below.",
+        "Same machine — fingerprint matches. No part changed between the scans. A full verified identity match cannot be claimed because a part could not be identified in one of the scans; the unidentified part is listed below.",
         Array.Empty<DnaPartChange>())
     {
         UnidentifiedParts = unidentifiedParts,

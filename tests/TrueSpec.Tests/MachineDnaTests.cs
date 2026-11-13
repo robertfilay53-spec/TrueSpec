@@ -316,6 +316,38 @@ public class MachineDnaTests
     }
 
     [Fact]
+    public void Compare_MatchingFingerprintsWithUnidentifiedPart_SummaryReadsConsistentlyWithTheHeadline()
+    {
+        // v2.0.1 AppOnFly: the headline said "fingerprint matches" but
+        // the body still read as a failure ("could not be verified") on
+        // an unchanged machine. The summary now says the fingerprint
+        // matches and no part changed, with the unidentified part named
+        // as the only reason a full verified match cannot be claimed.
+        // The verdict stays Unverifiable: the text is honest, not a
+        // match the hardware did not prove.
+        var one = MachineDna.Build(new[]
+        {
+            Board("BOARD123456789"),
+            Bios("To be filled by O.E.M."),
+            Disk("Disk 0", "DISK-AAAA-1111"),
+        });
+        var other = MachineDna.Build(new[]
+        {
+            Board("BOARD123456789"),
+            Bios("To be filled by O.E.M."),
+            Disk("Disk 0", "DISK-AAAA-1111"),
+        });
+
+        var result = MachineDnaComparer.Compare(one, other);
+
+        Assert.Equal(MachineDnaVerdict.Unverifiable, result.Verdict);
+        Assert.Contains("fingerprint matches", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("No part changed", result.Summary, StringComparison.Ordinal);
+        Assert.Contains("cannot be claimed", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("could not be verified", result.Summary, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Compare_MatchingFingerprintsWithAllIdentified_IsIdenticalAndFingerprintsMatch()
     {
         var result = MachineDnaComparer.Compare(FullDna(), FullDna());

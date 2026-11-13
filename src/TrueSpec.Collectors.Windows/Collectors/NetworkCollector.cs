@@ -21,6 +21,10 @@ using TrueSpec.Core.Models;
 /// <see cref="NetworkInterface"/>: if CIM misses a value, the same field is
 /// read from the matching live adapter, and if CIM finds no adapter at all the
 /// screen is built from the live adapters instead of reporting nothing.
+/// The CIM read itself does not filter on PhysicalAdapter = TRUE: a virtual
+/// wired NIC reports that flag inconsistently across Windows builds, so the
+/// filter keeps physical adapters plus virtual wired NICs by name (see
+/// <see cref="IsUsableAdapter"/>).
 /// </summary>
 public sealed class NetworkCollector : ICollector
 {
@@ -37,13 +41,25 @@ public sealed class NetworkCollector : ICollector
 
     public bool RequiresAdministrator => false;
 
+    // The adapter query is hoisted so the selection can be pinned and so
+    // the PhysicalAdapter flag is available to the filter below: a virtual
+    // wired NIC (Hyper-V/VMware/VirtualBox/virtio) is real network
+    // hardware presented virtually, and on some Windows builds it reports
+    // PhysicalAdapter = FALSE, so a WHERE PhysicalAdapter = TRUE filter
+    // silently drops the machine's only network adapter (the v2.0.1
+    // AppOnFly case: a Hyper-V VM whose Network screen showed no wired
+    // adapter at all). The filter in code keeps physical adapters plus
+    // virtual wired NICs by name; a Wi-Fi Direct virtual adapter or WAN
+    // Miniport carries no such name and stays excluded.
+    internal const string NetworkAdapterQuery = "SELECT Name, Manufacturer, MACAddress, Speed, PNPDeviceID, NetConnectionID, AdapterType, Index, PhysicalAdapter FROM Win32_NetworkAdapter";
+
     public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var adapters = Wmi.Query(
-            "root\\cimv2",
-            "SELECT Name, Manufacturer, MACAddress, Speed, PNPDeviceID, NetConnectionID, AdapterType, Index FROM Win32_NetworkAdapter WHERE PhysicalAdapter = TRUE");
+        var adapters = Wmi.Query("root\\cimv2", NetworkAdapterQuery)
+            .Where(IsUsableAdapter)
+            .ToList();
         // A missing key must never crash the scan: two rows with no Index or
         // DeviceID would both map to "" and ToDictionary would throw. Keep
         // the first row for a key and carry on.
@@ -105,11 +121,7 @@ public sealed class NetworkCollector : ICollector
             EthernetIp: Join(ethernetConfig?.StringArray("IPAddress")),
             BluetoothCount: bluetooth.Count);
 
-        var headline = reading.WifiName
-            ?? reading.EthernetName
-            ?? PickWired(interfaces)?.DisplayName
-            ?? PickWireless(interfaces)?.DisplayName
-            ?? "Network";
+        var headline = BuildHeadline(reading, interfaces);
 
         return Task.FromResult(ComponentSnapshot.NotMeasurable(
             Id,
@@ -121,6 +133,20 @@ public sealed class NetworkCollector : ICollector
             "Network health is based on the age of the driver and the capability of the adapter. The card itself never reports a manufacture date, so this tool shows the driver date and says the hardware date is not reported instead of guessing. Wired adapters are also read through System.Net.NetworkInformation, so a wired-only machine still shows its real address and speed. " +
             BuildBuyerSummary(reading, interfaces)));
     }
+
+    /// <summary>
+    /// The screen headline: the Wi-Fi name, else the Ethernet name, else
+    /// the wired live adapter, else the wireless live adapter. Kept
+    /// separate from <see cref="CollectAsync"/> so the Hyper-V headline
+    /// (the wired adapter's name, never "Network" when a wired adapter
+    /// was found) is testable without Windows hardware.
+    /// </summary>
+    internal static string BuildHeadline(NetworkReading reading, IReadOnlyList<InterfaceData> interfaces) =>
+        reading.WifiName
+        ?? reading.EthernetName
+        ?? PickWired(interfaces)?.DisplayName
+        ?? PickWireless(interfaces)?.DisplayName
+        ?? "Network";
 
     /// <summary>
     /// U12 one-line buyer summary (plan line ~627): the negotiated standard,
@@ -359,10 +385,69 @@ public sealed class NetworkCollector : ICollector
         return result;
     }
 
-    /// <summary>Converts one live adapter to the fields this screen shows. Returns null for loopback and tunnel interfaces.</summary>
+    /// <summary>
+    /// Whether a CIM adapter row is a real network adapter: a physical
+    /// adapter, or a virtual wired NIC (Hyper-V/VMware/VirtualBox/virtio)
+    /// whose PhysicalAdapter flag is not TRUE on this Windows build. A
+    /// Wi-Fi Direct virtual adapter or WAN Miniport is neither: it carries
+    /// no virtual-NIC name and stays excluded, because it is not a network
+    /// adapter the machine actually uses.
+    /// </summary>
+    internal static bool IsUsableAdapter(WmiRow adapter) =>
+        adapter.Bool("PhysicalAdapter") == true || IsVirtualNicName(adapter.String("Name"));
+
+    /// <summary>
+    /// A Wi-Fi Direct / Hosted Network virtual adapter is not a real Wi-Fi
+    /// radio: it never carries an SSID, signal or IP of its own, but its
+    /// NetworkInterfaceType is Wireless80211, so without this it is picked
+    /// as the "wireless" adapter and the wired buyer summary never
+    /// appears on a wired-only machine that also has one. Treated like
+    /// loopback/tunnel: not a network adapter. A real Wi-Fi adapter
+    /// ("Intel(R) Wi-Fi 6 AX200") carries neither marker.
+    /// </summary>
+    internal static bool IsWifiDirectVirtualAdapter(string? text) =>
+        !string.IsNullOrWhiteSpace(text) &&
+        (text.Contains("wi-fi direct", StringComparison.OrdinalIgnoreCase) ||
+         text.Contains("hosted network", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// The wireless/wired classification of one live adapter, as a pure
+    /// function of its interface type and description, so the Hyper-V
+    /// detection path is testable without Windows hardware. A virtual
+    /// wired NIC (Hyper-V/VMware/VirtualBox/virtio) is wired even though
+    /// its description carries no "ethernet" marker.
+    /// </summary>
+    internal static (bool IsWireless, bool IsWired) ClassifyInterface(NetworkInterfaceType type, string? description)
+    {
+        var isWireless = type == NetworkInterfaceType.Wireless80211 ||
+            (!string.IsNullOrWhiteSpace(description) &&
+             (description.Contains("wi-fi", StringComparison.OrdinalIgnoreCase) ||
+              description.Contains("wifi", StringComparison.OrdinalIgnoreCase) ||
+              description.Contains("wireless", StringComparison.OrdinalIgnoreCase) ||
+              description.Contains("wlan", StringComparison.OrdinalIgnoreCase) ||
+              description.Contains("802.11", StringComparison.OrdinalIgnoreCase)));
+        var isWired = !isWireless &&
+            (type is NetworkInterfaceType.Ethernet
+                or NetworkInterfaceType.GigabitEthernet
+                or NetworkInterfaceType.FastEthernetFx
+                or NetworkInterfaceType.FastEthernetT ||
+             (!string.IsNullOrWhiteSpace(description) &&
+              (description.Contains("ethernet", StringComparison.OrdinalIgnoreCase) ||
+               description.Contains("802.3", StringComparison.OrdinalIgnoreCase) ||
+               IsVirtualNicName(description))));
+        return (isWireless, isWired);
+    }
+
+    /// <summary>Converts one live adapter to the fields this screen shows. Returns null for loopback, tunnel and Wi-Fi Direct virtual interfaces.</summary>
     internal static InterfaceData? FromNetworkInterface(NetworkInterface nic)
     {
         if (nic.NetworkInterfaceType is NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel)
+        {
+            return null;
+        }
+
+        var description = string.IsNullOrWhiteSpace(nic.Description) ? nic.Name : nic.Description;
+        if (IsWifiDirectVirtualAdapter(description))
         {
             return null;
         }
@@ -381,21 +466,7 @@ public sealed class NetworkCollector : ICollector
             .Where(v => !string.IsNullOrWhiteSpace(v))
             .ToArray();
 
-        var description = string.IsNullOrWhiteSpace(nic.Description) ? nic.Name : nic.Description;
-        var isWireless = nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 ||
-            description.Contains("wi-fi", StringComparison.OrdinalIgnoreCase) ||
-            description.Contains("wifi", StringComparison.OrdinalIgnoreCase) ||
-            description.Contains("wireless", StringComparison.OrdinalIgnoreCase) ||
-            description.Contains("wlan", StringComparison.OrdinalIgnoreCase) ||
-            description.Contains("802.11", StringComparison.OrdinalIgnoreCase);
-        var isWired = !isWireless &&
-            (nic.NetworkInterfaceType is NetworkInterfaceType.Ethernet
-                or NetworkInterfaceType.GigabitEthernet
-                or NetworkInterfaceType.FastEthernetFx
-                or NetworkInterfaceType.FastEthernetT ||
-             description.Contains("ethernet", StringComparison.OrdinalIgnoreCase) ||
-             description.Contains("802.3", StringComparison.OrdinalIgnoreCase) ||
-             IsVirtualNicName(description));
+        var (isWireless, isWired) = ClassifyInterface(nic.NetworkInterfaceType, description);
 
         return new InterfaceData(
             Name: nic.Name,
@@ -415,9 +486,15 @@ public sealed class NetworkCollector : ICollector
         interfaces.FirstOrDefault(i => i.IsWired && i.IsUp)
         ?? interfaces.FirstOrDefault(i => i.IsWired);
 
+    /// <summary>
+    /// The wireless pick, skipping Wi-Fi Direct virtual adapters by
+    /// description: one constructed directly (not through
+    /// <see cref="FromNetworkInterface"/>) must not shadow the wired
+    /// adapter either, or the wired buyer summary never appears.
+    /// </summary>
     internal static InterfaceData? PickWireless(IReadOnlyList<InterfaceData> interfaces) =>
-        interfaces.FirstOrDefault(i => i.IsWireless && i.IsUp)
-        ?? interfaces.FirstOrDefault(i => i.IsWireless);
+        interfaces.FirstOrDefault(i => i.IsWireless && i.IsUp && !IsWifiDirectVirtualAdapter(i.Description))
+        ?? interfaces.FirstOrDefault(i => i.IsWireless && !IsWifiDirectVirtualAdapter(i.Description));
 
     private static string? FormatMac(PhysicalAddress address)
     {
@@ -482,7 +559,12 @@ public sealed class NetworkCollector : ICollector
          text.Contains("virtualbox", StringComparison.OrdinalIgnoreCase) ||
          text.Contains("virtio", StringComparison.OrdinalIgnoreCase));
 
-    private static bool IsWifi(WmiRow adapter)
+    /// <summary>
+    /// Internal (not private) so the Hyper-V detection path is testable:
+    /// a CIM row named "Microsoft Hyper-V Network Adapter #2" must
+    /// classify as Ethernet, never Wi-Fi.
+    /// </summary>
+    internal static bool IsWifi(WmiRow adapter)
     {
         var text = string.Join(" ", new[]
         {
@@ -499,7 +581,14 @@ public sealed class NetworkCollector : ICollector
                text.Contains("802.11", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsEthernet(WmiRow adapter)
+    /// <summary>
+    /// Internal (not private) so the Hyper-V detection path is testable:
+    /// a CIM row named "Microsoft Hyper-V Network Adapter #2" must
+    /// classify as Ethernet. A virtual wired NIC carries no "ethernet"
+    /// marker in its name, so <see cref="IsVirtualNicName"/> is part of
+    /// the check.
+    /// </summary>
+    internal static bool IsEthernet(WmiRow adapter)
     {
         var text = string.Join(" ", new[]
         {

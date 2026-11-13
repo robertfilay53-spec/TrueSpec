@@ -165,6 +165,8 @@ public class MachineDnaVerificationTests
 
         Assert.Equal(DnaVerificationState.FingerprintMatches, result.State);
         Assert.Contains("fingerprint matches", result.SummaryText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("No part changed", result.SummaryText, StringComparison.Ordinal);
+        Assert.Contains("cannot be claimed", result.SummaryText, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("could not be verified", result.SummaryText, StringComparison.OrdinalIgnoreCase);
         Assert.Single(result.UnidentifiedParts);
         Assert.Contains("Board", result.UnidentifiedParts[0], StringComparison.Ordinal);
@@ -193,7 +195,13 @@ public class MachineDnaVerificationTests
 
         Assert.Equal(DnaVerificationState.FingerprintMatches, result.State);
         Assert.Contains("fingerprint matches", result.SummaryText, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("not a verified identity", result.SummaryText, StringComparison.OrdinalIgnoreCase);
+        // v2.0.1 AppOnFly: the body must read consistently with the
+        // headline (fingerprint matches, no part changed) instead of
+        // denying the match outright; the conservative stance stays
+        // (a full verified match cannot be claimed).
+        Assert.Contains("No part changed", result.SummaryText, StringComparison.Ordinal);
+        Assert.Contains("cannot be claimed", result.SummaryText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("could not be verified", result.SummaryText, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(new[] { "Board Board" }, result.UnidentifiedParts);
         Assert.Empty(result.ChangedParts);
     }

@@ -17,6 +17,12 @@ The product rule is simple: every number is either **measured** (with its source
 - **Portable buyer kit:** run TrueSpec from a USB stick with no install. See "Portable buyer kit" below.
 - **History:** keeps the newest 200 entries per machine.
 
+## What's fixed in v2.0.1
+
+- **Wired network on virtual machines:** a Hyper-V/VMware/VirtualBox/virtio wired adapter now surfaces with its Ethernet specs and a wired buyer summary, instead of the Network screen reading Wi-Fi-only.
+- **Motherboard navigation:** the Motherboard item in the left rail navigates to its detail page, and navigation during the first scan is no longer reset to Overview when the scan completes.
+- **Machine DNA wording:** when the fingerprint matches and no part changed, the verification now says so, and names the unidentified part as the only reason a full verified identity match cannot be claimed. The verdict itself stays conservative: an unidentified part is never reported as a verified match.
+
 ## Status
 
 Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.

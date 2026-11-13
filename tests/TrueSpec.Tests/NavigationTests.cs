@@ -1,6 +1,8 @@
 using TrueSpec.App.Services;
 using TrueSpec.App.ViewModels;
 using TrueSpec.Core;
+using TrueSpec.Core.Collectors;
+using TrueSpec.Core.Models;
 using TrueSpec.Core.Scoring;
 using TrueSpec.Core.Sensors;
 
@@ -139,6 +141,141 @@ public class NavigationTests
         main.SelectedNavItem = main.NavItems.First(i => i.Key == "software");
 
         Assert.IsType<ComponentDetailViewModel>(main.CurrentPage);
+    }
+
+    [Fact]
+    public void Navigation_MotherboardRoutesToComponentDetail()
+    {
+        // v2.0.1 AppOnFly: clicking Motherboard left Overview selected.
+        // The item is registered (CreateDefault) and the routing resolves
+        // it to the shared component detail page; this pins both the
+        // resolution and the selection the tester saw stuck on Overview.
+        var main = new MainViewModel(
+            MachineScanService.CreateDefault(),
+            new UnavailableSensorMonitor(),
+            new BuyerCheckEvaluator());
+
+        try
+        {
+            main.SelectedNavItem = main.NavItems.First(i => i.Key == "motherboard");
+
+            Assert.Equal("motherboard", main.SelectedNavItem?.Key);
+            Assert.IsType<ComponentDetailViewModel>(main.CurrentPage);
+        }
+        finally
+        {
+            main.Dispose();
+        }
+    }
+
+    [Theory]
+    [InlineData("overview", typeof(OverviewViewModel))]
+    [InlineData("system", typeof(ComponentDetailViewModel))]
+    [InlineData("cpu", typeof(ComponentDetailViewModel))]
+    [InlineData("ram", typeof(ComponentDetailViewModel))]
+    [InlineData("storage", typeof(ComponentDetailViewModel))]
+    [InlineData("battery", typeof(ComponentDetailViewModel))]
+    [InlineData("gpu", typeof(ComponentDetailViewModel))]
+    [InlineData("display", typeof(ComponentDetailViewModel))]
+    [InlineData("network", typeof(ComponentDetailViewModel))]
+    [InlineData("motherboard", typeof(ComponentDetailViewModel))]
+    [InlineData("security", typeof(ComponentDetailViewModel))]
+    [InlineData("drivers", typeof(ComponentDetailViewModel))]
+    [InlineData("updates", typeof(ComponentDetailViewModel))]
+    [InlineData("startup", typeof(ComponentDetailViewModel))]
+    [InlineData("crash", typeof(CrashHistoryViewModel))]
+    [InlineData("history", typeof(HistoryViewModel))]
+    [InlineData("software", typeof(ComponentDetailViewModel))]
+    [InlineData("tests", typeof(TestsViewModel))]
+    [InlineData("report", typeof(ReportViewModel))]
+    [InlineData("compare", typeof(ComparisonViewModel))]
+    [InlineData("settings", typeof(SettingsViewModel))]
+    public void Navigation_EveryItemRoutesToItsPage(string key, Type expectedPageType)
+    {
+        // Every rail item resolves, and the selection stays on the item
+        // clicked: the v2.0.1 Motherboard report was a selection that
+        // never left Overview, so the selection is asserted too, not
+        // just the page type.
+        var main = new MainViewModel(
+            MachineScanService.CreateDefault(),
+            new UnavailableSensorMonitor(),
+            new BuyerCheckEvaluator());
+
+        try
+        {
+            main.SelectedNavItem = main.NavItems.First(i => i.Key == key);
+
+            Assert.Equal(key, main.SelectedNavItem?.Key);
+            Assert.IsType(expectedPageType, main.CurrentPage);
+        }
+        finally
+        {
+            main.Dispose();
+        }
+    }
+
+    /// <summary>A collector that returns a motherboard component immediately, so the initial scan completes fast.</summary>
+    private sealed class InstantMotherboardCollector : ICollector
+    {
+        public string Id => "motherboard";
+
+        public string Name => "Motherboard";
+
+        public string Category => "Motherboard";
+
+        public TimeSpan RefreshInterval => TimeSpan.FromMinutes(10);
+
+        public bool RequiresAdministrator => false;
+
+        public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(ComponentSnapshot.NotMeasurable(
+                Id,
+                Name,
+                Category,
+                Id,
+                "Test Board",
+                new[] { new SpecValue(SpecLabels.Manufacturer, "Test", "Test") },
+                "Test motherboard."));
+    }
+
+    [Fact]
+    public async Task InitialScanCompletion_KeepsNavigationWhenUserNavigatedDuringScan()
+    {
+        // v2.0.1 AppOnFly: clicking Motherboard during the initial scan
+        // left Overview selected, because the scan completion reset
+        // navigation unconditionally. A user who navigated during the
+        // scan keeps their page once the scan completes (rebuilt from
+        // the new snapshot); only a user still on Overview is reset
+        // there.
+        var shell = new MainViewModel(
+            new[] { new InstantMotherboardCollector() },
+            new UnavailableSensorMonitor(),
+            new BuyerCheckEvaluator());
+        try
+        {
+            shell.SelectedNavItem = shell.NavItems.First(i => i.Key == "motherboard");
+            Assert.IsType<ComponentDetailViewModel>(shell.CurrentPage);
+
+            shell.BeginInitialScan();
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(15);
+            while (shell.IsScanRunning && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.False(shell.IsScanRunning, "The initial scan did not finish.");
+            // The scan must really have completed (not failed or been
+            // cancelled), or the navigation assertion would pass
+            // vacuously: a failed scan never resets navigation.
+            Assert.StartsWith("Last scan", shell.LastScanText, StringComparison.Ordinal);
+            Assert.Equal("motherboard", shell.SelectedNavItem?.Key);
+            Assert.IsType<ComponentDetailViewModel>(shell.CurrentPage);
+        }
+        finally
+        {
+            shell.Dispose();
+        }
     }
 
     [Fact]
