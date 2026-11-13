@@ -4,7 +4,7 @@
     <!-- Single source of truth for the displayed version: MainViewModel
          reads this from the assembly, so a release bump touches this one
          place (plus installer/TrueSpec.iss AppVersion and the git tag). -->
-    <Version>2.1.0</Version>
+    <Version>2.1.1</Version>
     <TargetFramework Condition="'$(OS)' == 'Windows_NT'">net10.0-windows</TargetFramework>
     <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFramework>
     <Nullable>enable</Nullable>
