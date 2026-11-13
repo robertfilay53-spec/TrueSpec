@@ -372,7 +372,7 @@ data already existed; only the band rule and wording are new.
   version changed between v2.0.6 and v2.0.7 (only the `<Version>` bump
   — zero `PackageReference` changes), so the result carries forward.
 
-## v2.0.9 — in progress
+## v2.0.9 — shipped
 
 - **History sensor-log chart: time-proportional horizontal axis.** The
   chart plotted samples by index, so its line lied about time: two
@@ -408,6 +408,41 @@ data already existed; only the band rule and wording are new.
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.0.7 and v2.0.8 (only the `<Version>` bump
+  — zero `PackageReference` changes), so the result carries forward.
+
+## v2.1.0 — in progress
+
+- **Technician mode: import JSON reports into the fleet store.** The
+  plan's Beyond v2.0 item 1, next step after the fleet table (v2.0.3)
+  and the per-machine CSV (v2.0.4): the portable stick already collects
+  scans into one store, but a machine scanned with the installed app
+  had no way into the fleet. The Fleet page now has an "Import JSON
+  reports" button that reads the JSON files the Report page exports
+  (`JsonReportExporter`, schema version "1.0") and saves each valid
+  scan into the local store, so those machines appear in the fleet
+  table. Core: `SnapshotReportImporter` (pure, runs on both legs):
+  the file must parse as a TrueSpec report, carry schema version
+  "1.0", hold a scan with a machine name and a finite score; a finite
+  score outside 0-100 is clamped into range (the same rule a component
+  snapshot applies to a health value) instead of rejecting the file
+  over one number; files over 10 MB are refused without being read.
+  A bad file is a failed import with a plain-English reason, never an
+  exception and never a partial scan. App: `FleetViewModel.
+  ImportReportsCommand` with a `ReportFilePicker` supplied by the
+  view (the same seam as the Settings folder picker); each file is
+  imported and saved in turn, so one bad file never stops the rest,
+  and the fleet reloads afterwards. Saving uses the store's upsert,
+  so importing the same file twice stores one scan. Tests:
+  `SnapshotReportImporterTests` (export round-trip with DNA parts,
+  wrong schema, missing scan, empty machine name, score clamping both
+  directions, oversized file, duplicate import into a real SQLite
+  store) and `FleetViewModelTests` (import of one good + one bad file,
+  no picker, cancelled picker).
+- **Dependency audit re-attested for v2.0.9.** `SECURITY.md` said
+  v2.0.8; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.0.8 and v2.0.9 (only the `<Version>` bump
   — zero `PackageReference` changes), so the result carries forward.
 
 ## Rejected

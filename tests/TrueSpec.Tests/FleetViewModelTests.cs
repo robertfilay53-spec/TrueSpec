@@ -182,30 +182,122 @@ public class FleetViewModelTests
     }
 
     [Fact]
-    public async Task ExportMachineCsvCommand_WithoutExportFunc_ReportsUnavailable()
+    public async Task ImportReportsCommand_ImportsPickedReportsIntoTheFleet()
     {
         var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
 
         try
         {
-            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
-            var store = await StoreWithAsync(
-                directory,
-                ("SHOP-PC-01", 80d, "10%", baseTime));
+            var databasePath = Path.Combine(directory, "snapshots.db");
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
 
-            var viewModel = new FleetViewModel(store);
+            var goodPath = Path.Combine(directory, "good.json");
+            var badPath = Path.Combine(directory, "bad.json");
+            Directory.CreateDirectory(directory);
+            var snapshot = TestSnapshots.Healthy() with { MachineName = "SHOP-PC-IMPORTED" };
+            await using (var stream = File.Create(goodPath))
+            {
+                await new TrueSpec.Core.Reports.JsonReportExporter().ExportAsync(
+                    TrueSpec.Core.Reports.ReportModel.FromSnapshot(snapshot), stream);
+            }
+
+            await File.WriteAllTextAsync(badPath, "not a report at all");
+            var viewModel = new FleetViewModel(store)
+            {
+                ReportFilePicker = () => Task.FromResult<IReadOnlyList<string>>(new[] { goodPath, badPath }),
+            };
 
             var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (viewModel.StatusMessage == "Loading fleet..." && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            await viewModel.ImportReportsCommand.ExecuteAsync(null);
+
+            deadline = DateTimeOffset.UtcNow.AddSeconds(10);
             while (!viewModel.HasFleet && DateTimeOffset.UtcNow < deadline)
             {
                 await Task.Delay(50);
             }
 
-            Assert.True(viewModel.HasFleet, "Fleet never loaded from the store.");
+            Assert.True(viewModel.HasFleet, "Imported machine never appeared in the fleet.");
+            Assert.Single(viewModel.Rows);
+            Assert.Equal("SHOP-PC-IMPORTED", viewModel.Rows[0].MachineName);
+            Assert.Contains("Imported 1 report", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("SHOP-PC-IMPORTED", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("Skipped 1", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("bad.json", viewModel.StatusMessage, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
 
-            await viewModel.ExportMachineCsvCommand.ExecuteAsync(viewModel.Rows[0]);
+    [Fact]
+    public async Task ImportReportsCommand_WithoutPicker_ReportsUnavailable()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
 
-            Assert.Equal("Machine export is unavailable.", viewModel.StatusMessage);
+        try
+        {
+            var databasePath = Path.Combine(directory, "snapshots.db");
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var viewModel = new FleetViewModel(store);
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (viewModel.StatusMessage == "Loading fleet..." && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            await viewModel.ImportReportsCommand.ExecuteAsync(null);
+
+            Assert.Equal("Import is unavailable: no file picker is available.", viewModel.StatusMessage);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ImportReportsCommand_CancelledPicker_LeavesFleetAlone()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var databasePath = Path.Combine(directory, "snapshots.db");
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var viewModel = new FleetViewModel(store)
+            {
+                ReportFilePicker = () => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()),
+            };
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (viewModel.StatusMessage == "Loading fleet..." && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            var before = viewModel.StatusMessage;
+            await viewModel.ImportReportsCommand.ExecuteAsync(null);
+
+            Assert.Equal(before, viewModel.StatusMessage);
+            Assert.False(viewModel.HasFleet);
         }
         finally
         {
