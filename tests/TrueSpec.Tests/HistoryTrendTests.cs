@@ -50,6 +50,28 @@ public class HistoryTrendTests
     }
 
     [Fact]
+    public void Analyze_SnapshotIds_MatchInputScansInPointOrder()
+    {
+        var before = SnapshotWith(90d, "90.0%", "10", "2%", "100", new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero));
+        var after = SnapshotWith(85d, "85.5%", "12", "5%", "250", new DateTimeOffset(2026, 11, 11, 9, 0, 0, TimeSpan.Zero));
+
+        var trend = HistoryTrendAnalyzer.Analyze(new[] { after, before });
+
+        // Oldest first, in the same order as the points, so the History
+        // table row at index i shows the scan named by SnapshotIds[i].
+        Assert.Equal(new[] { before.Id, after.Id }, trend.SnapshotIds);
+        Assert.Equal(before.CapturedAt, trend.ScorePoints[0].CapturedAt);
+        Assert.Equal(after.CapturedAt, trend.ScorePoints[1].CapturedAt);
+    }
+
+    [Fact]
+    public void EmptyHistory_SnapshotIdsAreEmpty()
+    {
+        Assert.Empty(HistoryTrendAnalyzer.Analyze(Array.Empty<SystemSnapshot>()).SnapshotIds);
+        Assert.Empty(HistoryTrend.Empty.SnapshotIds);
+    }
+
+    [Fact]
     public void UnreportedBatteryHealth_IsAGapNeverAZero()
     {
         var before = SnapshotWith(90d, "90.0%", "10", "2%", "100");

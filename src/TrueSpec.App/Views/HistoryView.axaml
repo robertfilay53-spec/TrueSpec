@@ -131,16 +131,17 @@
                                 Command="{Binding ExportHistoryCsvCommand}"
                                 IsEnabled="{Binding HasHistory}" />
                     </Grid>
-                    <TextBlock Text="Oldest first. A dash means that scan did not report the value."
+                    <TextBlock Text="Oldest first. A dash means that scan did not report the value. Remove deletes that one scan from this data folder — the first click asks, the second deletes."
                                Classes="muted"
-                               FontSize="11" />
+                               FontSize="11"
+                               TextWrapping="Wrap" />
                     <ItemsControl ItemsSource="{Binding Rows}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:HistoryRowViewModel">
                                 <Border BorderBrush="{DynamicResource AppBorder}"
                                         BorderThickness="0,0,0,1"
                                         Padding="0,9">
-                                    <Grid ColumnDefinitions="150,70,110,80,110,*" ColumnSpacing="10">
+                                    <Grid ColumnDefinitions="150,70,110,80,110,*,Auto" ColumnSpacing="10">
                                         <TextBlock Text="{Binding CapturedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
                                                    Classes="muted"
                                                    VerticalAlignment="Center" />
@@ -160,12 +161,19 @@
                                         <TextBlock Grid.Column="5"
                                                    Text="{Binding StorageHoursText}"
                                                    VerticalAlignment="Center" />
+                                        <Button Grid.Column="6"
+                                                Classes="secondary"
+                                                Content="{Binding RemoveButtonText}"
+                                                FontSize="11"
+                                                Command="{Binding RemoveScanCommand}"
+                                                CommandParameter="{Binding}"
+                                                VerticalAlignment="Center" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Grid ColumnDefinitions="150,70,110,80,110,*" ColumnSpacing="10">
+                    <Grid ColumnDefinitions="150,70,110,80,110,*,Auto" ColumnSpacing="10">
                         <TextBlock Text="Scanned" Classes="muted" FontSize="11" />
                         <TextBlock Grid.Column="1" Text="Score" Classes="muted" FontSize="11" />
                         <TextBlock Grid.Column="2" Text="Battery health" Classes="muted" FontSize="11" />

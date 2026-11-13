@@ -71,4 +71,15 @@ public interface ISnapshotStore
     /// machine's scans.
     /// </summary>
     Task<int> DeleteMachineAsync(string machineName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes one saved scan by its id and returns how many rows were
+    /// removed: 1 when the scan existed, 0 when it was already gone. A
+    /// scan id is never empty in practice (every scan is saved with a
+    /// fresh Guid), so an empty id is rejected rather than treated as a
+    /// no-op. Deleting one scan never touches any other scan, including
+    /// other scans of the same machine. This only touches TrueSpec's own
+    /// history file; it never touches the machine itself.
+    /// </summary>
+    Task<int> DeleteSnapshotAsync(Guid id, CancellationToken cancellationToken = default);
 }

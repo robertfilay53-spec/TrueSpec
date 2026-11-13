@@ -15,7 +15,10 @@ public sealed record TrendPoint(DateTimeOffset CapturedAt, double? Value);
 /// <summary>
 /// Score, battery-health and storage-wear trends across saved scans. Deltas
 /// are only computed when at least two scans actually reported the value;
-/// anything else stays null and the summary says so.
+/// anything else stays null and the summary says so. <see cref="SnapshotIds"/>
+/// names, in the same order as the points, the saved snapshot each point
+/// came from, so a row in the History table can be traced back to the exact
+/// scan it shows (and deleted without touching any other scan).
 /// </summary>
 public sealed record HistoryTrend(
     int SnapshotCount,
@@ -33,7 +36,8 @@ public sealed record HistoryTrend(
     string? BatteryAlert,
     IReadOnlyList<TrendPoint> DriverAgePoints,
     double? DriverAgeDelta,
-    string? DriverAgeSummary)
+    string? DriverAgeSummary,
+    IReadOnlyList<Guid> SnapshotIds)
 {
     public static HistoryTrend Empty { get; } = new(
         0,
@@ -51,7 +55,8 @@ public sealed record HistoryTrend(
         null,
         Array.Empty<TrendPoint>(),
         null,
-        null);
+        null,
+        Array.Empty<Guid>());
 }
 
 /// <summary>
@@ -121,7 +126,8 @@ public static class HistoryTrendAnalyzer
             BatteryHealthAlert(batteryHealthPoints),
             driverAgePoints,
             driverAgeDelta,
-            BuildDriverAgeSummary(driverAges, driverAgeDelta));
+            BuildDriverAgeSummary(driverAges, driverAgeDelta),
+            ordered.Select(s => s.Id).ToList());
     }
 
     /// <summary>

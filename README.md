@@ -73,6 +73,11 @@ The product rule is simple: every number is either **measured** (with its source
 - **Technician mode: remove a machine from the fleet (Beyond v2.0, item 1):** the Fleet page could import machines but never remove one — a wrong import, or a machine the shop no longer services, stayed in the fleet forever, because the store had no delete path at all. Every row now has a Remove button: the first click arms it ("Confirm remove") and names how many saved scans would go; the second click deletes all of that machine's saved scans from this data folder and reloads the fleet. The match is the exact stored machine name, so removing "SHOP-PC" never touches "SHOP-PC-2". The status line states the store's own deleted-row count, including 0 when the scans were already gone.
 - **Dependency audit re-attested for v2.1.1:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.0 and v2.1.1.
 
+## What's new in v2.1.3
+
+- **History: delete one saved scan (Beyond v2.0, item 1):** the Fleet page could remove a whole machine (v2.1.2), but the History table could not remove a single scan — a bad or duplicate scan stayed in the trend forever. Every row of the Saved scans table now has a Remove button: the first click arms it ("Confirm remove") and names the scan date, the second click deletes exactly that one scan from this data folder and reloads the trend, so the table, the chart and the CSV export all agree on what remains. The delete is by the scan's snapshot id, so it can never touch another scan of the same machine; the status line states the store's own deleted-row count, including 0 when the scan was already gone.
+- **Dependency audit re-attested for v2.1.2:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.1 and v2.1.2.
+
 ## Status
 
 Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.

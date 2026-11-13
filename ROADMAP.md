@@ -481,7 +481,7 @@ data already existed; only the band rule and wording are new.
   version changed between v2.0.9 and v2.1.0 (only the `<Version>` bump
   — zero `PackageReference` changes), so the result carries forward.
 
-## v2.1.2 — in progress
+## v2.1.2 — shipped
 
 - **Technician mode: remove a machine from the fleet.** The fleet
   could import machines (v2.1.0) but never remove one: a wrong import,
@@ -508,6 +508,40 @@ data already existed; only the band rule and wording are new.
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.1.0 and v2.1.1 (zero `PackageReference`
   changes in `git diff 38dc7d4 a31d021 -- '*csproj'`), so the result
+  carries forward.
+
+## v2.1.3 — in progress
+
+- **History: delete one saved scan.** The fleet could remove a whole
+  machine (v2.1.2), but the History table could not remove a single
+  scan: a bad or duplicate scan stayed in the trend forever, because
+  the store had no single-scan delete path. Every History row now has
+  a Remove button. Core: `ISnapshotStore.DeleteSnapshotAsync` (exact
+  id match, returns the deleted-row count; an empty id is rejected
+  rather than treated as a no-op) and `HistoryTrend.SnapshotIds`,
+  which names, in the same order as the points, the saved snapshot
+  each point came from, so a table row can never drift from its scan.
+  App: `HistoryViewModel.RemoveScanCommand` with the same two-step
+  confirm as the fleet — the first click arms the button to "Confirm
+  remove" and names the scan date, and only the second click deletes;
+  the armed flag resets when the trend reloads. The status line states
+  the store's own deleted-row count, including 0 when the scan was
+  already gone, and names how many scans remain. Deleting touches
+  only TrueSpec's own history file, never the machine itself. Tests:
+  `SnapshotStoreTests` (deletes only that scan, unknown id returns 0,
+  delete-then-resave works, empty id throws),
+  `HistoryTrendTests` (ids match the points in order; empty trend has
+  no ids) and `HistoryRemoveScanViewModelTests` (arm then delete,
+  already-gone reports honestly, last scan leaves the empty state,
+  null store reports unavailable, button text follows the armed
+  state). The CSV-agreement test now also asserts each row's id is
+  the trend's id at the same index.
+- **Dependency audit re-attested for v2.1.2.** `SECURITY.md` said
+  v2.1.1; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.1 and v2.1.2 (zero `PackageReference`
+  changes in `git diff a31d021 0e6a153 -- '*csproj'`), so the result
   carries forward.
 
 ## Rejected
