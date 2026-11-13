@@ -67,6 +67,7 @@
     <Compile Remove="ExportConfirmationTests.cs" />
     <Compile Remove="TestsViewModelTests.cs" />
     <Compile Remove="ComparisonViewModelTests.cs" />
+    <Compile Remove="ComponentDetailViewModelTests.cs" />
     <Compile Remove="LiveMetricViewModelTests.cs" />
     <Compile Remove="ScanCancelTests.cs" />
     <Compile Remove="ShellExportFileOpenerTests.cs" />

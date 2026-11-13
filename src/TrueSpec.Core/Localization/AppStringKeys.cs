@@ -161,6 +161,35 @@ public static class AppStringKeys
     public const string PortableToggleMarkerRemovedEnv = "PortableToggleMarkerRemovedEnv";
     public const string PortableToggleDisabled = "PortableToggleDisabled";
 
+    // Component detail pages (v2.1.10): the chrome of the shared
+    // detail view (ComponentDetailView), which every one of the 15
+    // component pages uses — one surface, all detail pages at once.
+    // The data the page shows stays English in this version: component
+    // names, headlines, health and status texts, spec labels, values
+    // and sources, and the "What this means" text are measured data
+    // produced by the collectors, not page chrome; translating them is
+    // a later slice. The "(ESTIMATE)" marker on a value is page chrome
+    // (an annotation the view adds), so it is a key: the value itself
+    // never changes, only the annotation. Templates carry the dynamic
+    // values ({0} = a captured date, a search string, or a count),
+    // formatted with the invariant culture by
+    // StringLocalizer.GetFormatted, so a number or date inside a German
+    // sentence keeps the app's existing formatting.
+    public const string DetailSpecificationsTitle = "DetailSpecificationsTitle";
+    public const string DetailSearchPlaceholder = "DetailSearchPlaceholder";
+    public const string DetailCopyHint = "DetailCopyHint";
+    public const string DetailAgeSignalsTitle = "DetailAgeSignalsTitle";
+    public const string DetailAgeSignalsIntro = "DetailAgeSignalsIntro";
+    public const string DetailWhatThisMeansTitle = "DetailWhatThisMeansTitle";
+    public const string DetailNotCollectedHeadline = "DetailNotCollectedHeadline";
+    public const string DetailNotCollectedText = "DetailNotCollectedText";
+    public const string DetailCaptured = "DetailCaptured";
+    public const string DetailNoSpecs = "DetailNoSpecs";
+    public const string DetailNoSpecsMatch = "DetailNoSpecsMatch";
+    public const string DetailAgeSignalsSkipped = "DetailAgeSignalsSkipped";
+    public const string DetailSignalUntrusted = "DetailSignalUntrusted";
+    public const string DetailEstimateSuffix = "DetailEstimateSuffix";
+
     /// <summary>Every key in the catalogue, in the order above.</summary>
     public static IReadOnlyList<string> All { get; } = new[]
     {
@@ -283,5 +312,19 @@ public static class AppStringKeys
         PortableToggleDisableFailed,
         PortableToggleMarkerRemovedEnv,
         PortableToggleDisabled,
+        DetailSpecificationsTitle,
+        DetailSearchPlaceholder,
+        DetailCopyHint,
+        DetailAgeSignalsTitle,
+        DetailAgeSignalsIntro,
+        DetailWhatThisMeansTitle,
+        DetailNotCollectedHeadline,
+        DetailNotCollectedText,
+        DetailCaptured,
+        DetailNoSpecs,
+        DetailNoSpecsMatch,
+        DetailAgeSignalsSkipped,
+        DetailSignalUntrusted,
+        DetailEstimateSuffix,
     };
 }

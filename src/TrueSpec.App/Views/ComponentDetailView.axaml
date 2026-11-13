@@ -45,10 +45,10 @@
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="12">
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="Specifications" Classes="h3" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding SpecificationsTitleText}" Classes="h3" VerticalAlignment="Center" />
                         <TextBox Grid.Column="1"
                                  Width="250"
-                                 PlaceholderText="Search specifications"
+                                 PlaceholderText="{Binding SearchPlaceholderText}"
                                  Text="{Binding SearchText, Mode=TwoWay}" />
                     </Grid>
 
@@ -93,7 +93,7 @@
                                IsVisible="{Binding !HasVisibleSpecs}" />
 
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="Click any value to copy it. Hover a value or source name to see where the reading came from."
+                        <TextBlock Text="{Binding CopyHintText}"
                                    Classes="muted"
                                    FontSize="11" />
                         <TextBlock Grid.Column="1"
@@ -107,8 +107,8 @@
 
             <Border Classes="card" Padding="20" IsVisible="{Binding HasAgeSignals}">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="Age signals" Classes="h3" />
-                    <TextBlock Text="The raw numbers behind the authenticity verdict. Each signal names where it was read from."
+                    <TextBlock Text="{Binding AgeSignalsTitleText}" Classes="h3" />
+                    <TextBlock Text="{Binding AgeSignalsIntroText}"
                                Classes="muted"
                                TextWrapping="Wrap" />
                     <ItemsControl ItemsSource="{Binding AgeSignals}">
@@ -153,7 +153,7 @@
 
             <Border Classes="card" Padding="20">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="What this means" Classes="h3" />
+                    <TextBlock Text="{Binding WhatThisMeansTitleText}" Classes="h3" />
                     <TextBlock Text="{Binding WhatThisMeans}"
                                TextWrapping="Wrap"
                                LineHeight="20" />

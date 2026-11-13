@@ -847,6 +847,54 @@ data already existed; only the band rule and wording are new.
   `git diff 233fbf0 1188692 -- '*csproj'`), so the result carries
   forward.
 
+## v2.1.10 — shipped
+
+- **Localisation, phase 4: the component detail pages in German
+  (Beyond v2.0, item 4).** Phases 1-3 translated the rail, the
+  Settings page and the Core diagnostic strings; this version
+  translates the next complete surface, the shared detail view
+  (`ComponentDetailView`), which every one of the 15 component pages
+  uses — one surface, all detail pages at once. The catalogue grows
+  by 14 keys (119 to 133): the six section labels (Specifications,
+  search placeholder, copy hint, Age signals title + intro, What this
+  means), the captured line, the two empty states (nothing collected,
+  no search match), the skipped-checks note, the untrusted-signal
+  warning, and the "(ESTIMATE)" suffix, each in both packs, pinned
+  by the existing coverage test (a pack that misses a key fails).
+  Templates carry their dynamic values through
+  `StringLocalizer.GetFormatted` with the invariant culture, so the
+  captured date ("2026-11-12 10:30:00"), the search string and the
+  skipped-check count keep the app's existing formatting inside a
+  German sentence. The view model takes an optional language code
+  (`ComponentDetailViewModel(snapshot, id, languageCode)`), exposes
+  every chrome string as a localized property, and re-renders in
+  place through `ApplyLanguage` (spec rows and age-signal rows are
+  rebuilt, the empty-state message recomputed for the current
+  search); the shell passes its language at both construction sites
+  and re-languages every cached detail page when settings are
+  applied, the same pattern it already used for the History page.
+  Deliberately NOT translated in this version, and named on the
+  page's own terms in the docs: component names, headlines, health
+  and status texts, spec labels, values and sources, and the "What
+  this means" text are measured data produced by the collectors —
+  translating them is a later slice. The language card's note now
+  says Navigation, Settings and component detail pages are
+  translated. Tests: `LanguagePackTests` (German detail terms
+  pinned, LanguageNote updated) and `ComponentDetailViewModelTests`
+  (English default, German-seeded whole page, switching both ways,
+  unknown-language fallback, data stays English, both empty states
+  in both languages, estimate suffix in both languages, age-signals
+  group chrome, skipped-checks note, untrusted-signal warning,
+  captured-date shape).
+- **Dependency audit re-attested for v2.1.9.** `SECURITY.md` said
+  v2.1.8; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.8 and v2.1.9 (only the `<Version>` bump
+  — zero `PackageReference` changes in
+  `git diff 1188692 a0b0326 -- '*csproj'`), so the result carries
+  forward.
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed

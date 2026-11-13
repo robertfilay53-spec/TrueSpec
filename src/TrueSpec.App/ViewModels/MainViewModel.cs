@@ -529,6 +529,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 _settings.CpuTemperatureThresholdC);
         }
 
+        // Cached component detail pages re-render in the new language in
+        // place (their chrome resolves at construction time, so a page
+        // built before the switch needs the same re-language call the
+        // Settings page gives itself). A page created after the switch
+        // is already built in the new language by its constructor.
+        foreach (var cached in _pageCache.Values)
+        {
+            if (cached is ComponentDetailViewModel detail)
+            {
+                detail.ApplyLanguage(_settings.LanguageCode);
+            }
+        }
+
         OnPropertyChanged(nameof(Settings));
         OnPropertyChanged(nameof(ExportFolder));
     }
@@ -945,7 +958,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             "fleet" => GetOrCreate("fleet", () => new FleetViewModel(_snapshotStore, ExportFleetCsvCommand, ExportMachineCsvAsync, ExportAllMachinesCsvAsync)),
             "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand, SensorLogWriter.DefaultFilePath(), _settings.SensorLoggingEnabled, _settings.CpuTemperatureThresholdC)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
-            _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key)),
+            _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key, _settings.LanguageCode)),
         };
     }
 
@@ -963,7 +976,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         SelectedNavItem = null;
         CurrentPage = GetOrCreate(
             $"component:{componentId}",
-            () => new ComponentDetailViewModel(_snapshot, componentId));
+            () => new ComponentDetailViewModel(_snapshot, componentId, _settings.LanguageCode));
     }
 
     private ViewModelBase GetOrCreate(string key, Func<ViewModelBase> factory)
