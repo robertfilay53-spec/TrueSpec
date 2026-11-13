@@ -94,6 +94,16 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                            <TextBlock Text="Not identified in one of the scans:"
+                                       Classes="muted" FontSize="11" FontWeight="SemiBold"
+                                       IsVisible="{Binding HasDnaUnidentifiedParts}" />
+                            <ItemsControl ItemsSource="{Binding DnaUnidentifiedParts}" IsVisible="{Binding HasDnaUnidentifiedParts}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                             <TextBlock Text="DNA is identity, not health: it never changes the score above. It only says whether the two scans are the same machine with the same parts."
                                        Classes="muted"
                                        FontSize="11"

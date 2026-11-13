@@ -208,6 +208,37 @@ public class ComparisonViewModelTests
     }
 
     [Fact]
+    public async Task DnaRow_FingerprintMatchesVerifier_SaysFingerprintMatchesAndListsUnidentifiedPart()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+        try
+        {
+            var fake = new FakeMachineDnaVerifier
+            {
+                DescribeResult = TrueSpec.App.Services.MachineDnaVerification.FingerprintMatches(
+                    "abcdef12…34567890", new[] { "Board Board" }),
+                CompareResult = TrueSpec.App.Services.MachineDnaVerification.FingerprintMatches(
+                    "abcdef12…34567890", new[] { "Board Board" }),
+            };
+            var viewModel = await ComparedPairAsync(databasePath, fake);
+
+            Assert.Equal("Same machine — fingerprint matches.", viewModel.DnaStateText);
+            Assert.True(viewModel.HasDnaUnidentifiedParts);
+            Assert.Single(viewModel.DnaUnidentifiedParts);
+            Assert.Contains("Board", viewModel.DnaUnidentifiedParts[0], StringComparison.Ordinal);
+            Assert.Empty(viewModel.DnaChangedParts);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task DnaRow_ChangedVerifier_NamesTheChangedParts()
     {
         var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));

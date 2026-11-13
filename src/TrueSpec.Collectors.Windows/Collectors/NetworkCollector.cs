@@ -100,6 +100,7 @@ public sealed class NetworkCollector : ICollector
             EthernetName: ethernet?.String("Name"),
             EthernetSpeedBitsPerSecond: NormalizeCimSpeed(ethernet?.UInt64("Speed")),
             EthernetMac: ethernet?.String("MACAddress"),
+            EthernetDriverVersion: ethernetDriver?.String("DriverVersion"),
             EthernetDriverDate: ethernetDriver?.DateText("DriverDate"),
             EthernetIp: Join(ethernetConfig?.StringArray("IPAddress")),
             BluetoothCount: bluetooth.Count);
@@ -130,6 +131,39 @@ public sealed class NetworkCollector : ICollector
     /// </summary>
     internal static string BuildBuyerSummary(NetworkReading reading, IReadOnlyList<InterfaceData> interfaces)
     {
+        var wireless = PickWireless(interfaces);
+        var wired = PickWired(interfaces);
+
+        // A wired-only machine has no Wi-Fi standard, speed or driver to
+        // report, and the old text said all three were "not reported" even
+        // when the wired adapter was right there: the summary read as if
+        // the machine had no network at all. Name the wired adapter
+        // instead, with the same negotiated-rate wording as Wi-Fi.
+        if (reading.WifiName is null && wireless is null &&
+            (reading.EthernetName is not null || wired is not null))
+        {
+            var wiredName = reading.EthernetName ?? wired?.DisplayName;
+            var namePart = wiredName is null
+                ? "wired adapter"
+                : string.Create(CultureInfo.InvariantCulture, $"wired adapter {wiredName}");
+            var wiredSpeed = FormatBitsPerSecond(
+                reading.EthernetSpeedBitsPerSecond ?? wired?.SpeedBitsPerSecond);
+            var wiredSpeedPart = string.Equals(wiredSpeed, SpecLabels.NotReportedByHardware, StringComparison.Ordinal)
+                ? "link speed not reported by hardware"
+                : string.Create(CultureInfo.InvariantCulture, $"linked at {wiredSpeed} (negotiated rate at scan time, not a speed test)");
+            var wiredDriverPart = DateTimeOffset.TryParse(
+                    reading.EthernetDriverDate,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                    out var wiredDriverDate)
+                ? string.Create(CultureInfo.InvariantCulture, $"driver from {wiredDriverDate.Year}")
+                : "driver date not reported by hardware";
+
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"Buyer check: {namePart}, {wiredSpeedPart}, {wiredDriverPart}.");
+        }
+
         var standard = MapNegotiatedStandard(reading.RadioType);
         var standardPart = string.Equals(standard, SpecLabels.NotReportedByHardware, StringComparison.Ordinal)
             ? "Wi-Fi standard not reported by hardware"
@@ -182,7 +216,10 @@ public sealed class NetworkCollector : ICollector
         string? EthernetMac,
         string? EthernetDriverDate,
         string? EthernetIp,
-        int BluetoothCount);
+        int BluetoothCount,
+        // Optional so older construction sites keep compiling; the
+        // collector always passes it (see CollectAsync).
+        string? EthernetDriverVersion = null);
 
     /// <summary>
     /// One live adapter as reported by <see cref="NetworkInterface"/>, reduced
@@ -261,6 +298,7 @@ public sealed class NetworkCollector : ICollector
             CollectorSupport.Spec(SpecLabels.EthernetLinkSpeed, FormatBitsPerSecond(ethernetSpeed), ethernetSpeed == reading.EthernetSpeedBitsPerSecond ? "CIM Win32_NetworkAdapter.Speed" : NetworkInterfaceSource),
             CollectorSupport.Spec(SpecLabels.EthernetStatus, wired?.Status, NetworkInterfaceSource),
             CollectorSupport.Spec(SpecLabels.EthernetMACAddress, ethernetMac.Value, ethernetMac.Source),
+            CollectorSupport.Spec(SpecLabels.EthernetDriverVersion, reading.EthernetDriverVersion, "CIM Win32_PnPSignedDriver"),
             CollectorSupport.Spec(SpecLabels.EthernetDriverDate, reading.EthernetDriverDate, "CIM Win32_PnPSignedDriver"),
             CollectorSupport.Spec(SpecLabels.EthernetDriverAge, CollectorSupport.FormatDriverAge(reading.EthernetDriverDate, referenceDate), "CIM Win32_PnPSignedDriver"),
             CollectorSupport.Spec(SpecLabels.EthernetIPAddress, ethernetIp.Value, ethernetIp.Source),
@@ -356,7 +394,8 @@ public sealed class NetworkCollector : ICollector
                 or NetworkInterfaceType.FastEthernetFx
                 or NetworkInterfaceType.FastEthernetT ||
              description.Contains("ethernet", StringComparison.OrdinalIgnoreCase) ||
-             description.Contains("802.3", StringComparison.OrdinalIgnoreCase));
+             description.Contains("802.3", StringComparison.OrdinalIgnoreCase) ||
+             IsVirtualNicName(description));
 
         return new InterfaceData(
             Name: nic.Name,
@@ -427,6 +466,22 @@ public sealed class NetworkCollector : ICollector
             ? string.Create(CultureInfo.InvariantCulture, $"{speed / 1_000_000d:0.#} Mbps")
             : SpecLabels.NotReportedByHardware;
 
+    /// <summary>
+    /// Names a virtual wired adapter uses. A Hyper-V, VMware, VirtualBox
+    /// or virtio NIC carries no "ethernet" marker in its CIM name or its
+    /// live description, so without this it is neither Wi-Fi nor Ethernet
+    /// and the wired details never surface — the exact failure on a
+    /// virtual machine. Matched case-insensitively; tunnel and loopback
+    /// interfaces are excluded before this runs, so a VPN adapter cannot
+    /// be mistaken for a wired one here.
+    /// </summary>
+    internal static bool IsVirtualNicName(string? text) =>
+        !string.IsNullOrWhiteSpace(text) &&
+        (text.Contains("hyper-v", StringComparison.OrdinalIgnoreCase) ||
+         text.Contains("vmware", StringComparison.OrdinalIgnoreCase) ||
+         text.Contains("virtualbox", StringComparison.OrdinalIgnoreCase) ||
+         text.Contains("virtio", StringComparison.OrdinalIgnoreCase));
+
     private static bool IsWifi(WmiRow adapter)
     {
         var text = string.Join(" ", new[]
@@ -456,7 +511,8 @@ public sealed class NetworkCollector : ICollector
         return !IsWifi(adapter) &&
                (text.Contains("ethernet", StringComparison.OrdinalIgnoreCase) ||
                 text.Contains("802.3", StringComparison.OrdinalIgnoreCase) ||
-                text.Contains("gbe", StringComparison.OrdinalIgnoreCase));
+                text.Contains("gbe", StringComparison.OrdinalIgnoreCase) ||
+                IsVirtualNicName(text));
     }
 
     /// <summary>

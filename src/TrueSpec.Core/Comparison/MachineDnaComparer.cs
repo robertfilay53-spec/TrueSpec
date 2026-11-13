@@ -24,12 +24,22 @@ public sealed record MachineDnaPartChange(MachineDnaPart Before, MachineDnaPart 
 /// The result of comparing two machine DNAs. Parts are matched by
 /// (Kind, Label): a part present only in the new DNA is Added, only in the
 /// old DNA is Removed, present in both with a different serial is Changed.
+/// <see cref="FingerprintsMatch"/> is true when both scans carry the same
+/// SHA-256 hash: the same identified serials and the same unidentified
+/// parts, in other words the same canonical part list. A matching
+/// fingerprint with an unidentified part still compares
+/// <see cref="MachineDnaVerdict.Unverifiable"/> (the verdict never
+/// reports a match the hardware did not prove), but the UI may say
+/// "fingerprint matches" instead of reading as a failure, and
+/// <see cref="UnidentifiedParts"/> names the part(s) it could not prove.
 /// </summary>
 public sealed record MachineDnaComparison(
     MachineDnaVerdict Verdict,
     IReadOnlyList<MachineDnaPart> Added,
     IReadOnlyList<MachineDnaPart> Removed,
-    IReadOnlyList<MachineDnaPartChange> Changed)
+    IReadOnlyList<MachineDnaPartChange> Changed,
+    bool FingerprintsMatch,
+    IReadOnlyList<MachineDnaPart> UnidentifiedParts)
 {
     public string Summary => Verdict switch
     {
@@ -62,7 +72,9 @@ public static class MachineDnaComparer
             MachineDnaVerdict.Unverifiable,
             Array.Empty<MachineDnaPart>(),
             Array.Empty<MachineDnaPart>(),
-            Array.Empty<MachineDnaPartChange>());
+            Array.Empty<MachineDnaPartChange>(),
+            FingerprintsMatch: false,
+            UnidentifiedParts: Array.Empty<MachineDnaPart>());
 
         if (old is null || @new is null || !old.IsAvailable || !@new.IsAvailable)
         {
@@ -75,23 +87,17 @@ public static class MachineDnaComparer
         var added = new List<MachineDnaPart>();
         var removed = new List<MachineDnaPart>();
         var changed = new List<MachineDnaPartChange>();
-        var unidentified = false;
 
-        foreach (var part in old.Parts)
-        {
-            if (!part.IsIdentified)
-            {
-                unidentified = true;
-            }
-        }
-
-        foreach (var part in @new.Parts)
-        {
-            if (!part.IsIdentified)
-            {
-                unidentified = true;
-            }
-        }
+        // Every part either scan could not identify, once per (Kind,
+        // Label): the UI names these so the user knows what the
+        // comparison could not prove, instead of only hearing "unverified".
+        var unidentified = old.Parts.Concat(@new.Parts)
+            .Where(p => !p.IsIdentified)
+            .GroupBy(Key)
+            .Select(g => g.First())
+            .OrderBy(p => p.Kind)
+            .ThenBy(p => p.Label, StringComparer.Ordinal)
+            .ToList();
 
         foreach (var part in @new.Parts)
         {
@@ -116,13 +122,22 @@ public static class MachineDnaComparer
             }
         }
 
-        var verdict = unidentified
+        // The verdict stays conservative: one unproven part means the
+        // identity is unproven, even when the fingerprints match. The
+        // hash is computed over the canonical part list (identified
+        // serials plus "not reported" for the rest), so equal hashes
+        // mean the same identified serials and the same unidentified
+        // parts: the UI may say so, but it must not call it a match.
+        var verdict = unidentified.Count > 0
             ? MachineDnaVerdict.Unverifiable
             : added.Count > 0 || removed.Count > 0 || changed.Count > 0
                 ? MachineDnaVerdict.Changed
                 : MachineDnaVerdict.Identical;
 
-        return new MachineDnaComparison(verdict, added, removed, changed);
+        var fingerprintsMatch = old.Hash is not null && @new.Hash is not null &&
+            string.Equals(old.Hash, @new.Hash, StringComparison.Ordinal);
+
+        return new MachineDnaComparison(verdict, added, removed, changed, fingerprintsMatch, unidentified);
     }
 
     private static (MachineDnaPartKind Kind, string Label) Key(MachineDnaPart part) =>

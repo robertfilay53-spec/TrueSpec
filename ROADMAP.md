@@ -198,20 +198,28 @@ data already existed; only the band rule and wording are new.
   health, both band drops, fast fall within one band, single scan,
   gaps, already-Replace, the 80% / 5-point boundaries).
 
-## v1.2 — later
+## v1.2 — shipped
 
 - **Driver age summary on the History page.** Driver dates are
   already collected; trending the oldest-driver date across scans
   shows whether a machine is being maintained. Its prerequisite (the
   Windows Update status above) shipped in v1.1, so it is unblocked.
+  Shipped as a summary card above the History table
+  (`HistoryTrends.BuildDriverAgeSummary`, surfaced by
+  `HistoryViewModel.DriverAgeSummaryText`).
 - **Export the history table as CSV.** The History page's table is
   the only view without an export. Small, but only useful once
-  people actually accumulate months of scans.
+  people actually accumulate months of scans. Shipped as an
+  "Export history as CSV" button on the History page
+  (`HistoryCsvExporter`, UTF-8 with BOM, one row per scan, agreeing
+  with the table row for row).
 - **Multi-machine history.** The store and the trend analyser
   already refuse to mix machines. Comparing two machines side by
-  side is a real buyer use case (two used laptops, one choice), but
-  it needs UI for picking machines and a clear "different machines"
-  presentation; it is a design task, not a data task.
+  side is a real buyer use case (two used laptops, one choice).
+  Shipped as a machine picker on the History page
+  (`MachineHistoryComparer`): the two machines' latest scans
+  compared row by row (score, battery health, storage wear, oldest
+  driver date).
 
 ## Rejected
 

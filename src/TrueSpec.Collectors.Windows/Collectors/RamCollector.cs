@@ -117,6 +117,7 @@ public sealed class RamCollector : ICollector
             Id,
             headline,
             specs,
-            "No RAM stick on any laptop exposes a life percentage, so TrueSpec does not invent one. It shows the real per-stick SPD data, the slot map and any memory errors from the Windows event log. Compare the installed size with the seller listing."));
+            "No RAM stick on any laptop exposes a life percentage, so TrueSpec does not invent one. It shows the real per-stick SPD data, the slot map and any memory errors from the Windows event log. Compare the installed size with the seller listing. " +
+            "When Windows sees a different amount than the sticks add up to, the difference is shown as \"Memory visible to Windows\": that is the memory Windows currently sees, and on a virtual machine with dynamic memory it can move between scans, while the stick sum above is the installed total."));
     }
 }

@@ -689,6 +689,7 @@ public class DisplayNetworkTruthTests
         Assert.Contains(snapshot.Specs, s => s.Label == SpecLabels.WifiStandardNegotiated);
         Assert.Contains(snapshot.Specs, s => s.Label == SpecLabels.WifiDriverAge);
         Assert.Contains(snapshot.Specs, s => s.Label == SpecLabels.EthernetDriverAge);
+        Assert.Contains(snapshot.Specs, s => s.Label == SpecLabels.EthernetDriverVersion);
         Assert.Contains(snapshot.Specs, s => s.Label == SpecLabels.LinkSpeed);
     }
 
@@ -769,6 +770,126 @@ public class DisplayNetworkTruthTests
         Assert.Equal(
             "Buyer check: Wi-Fi standard not reported by hardware, link speed not reported by hardware, driver date not reported by hardware.",
             summary);
+    }
+
+    // ---- v2.0-next: wired-only buyer summary ---------------------------
+
+    private static NetworkCollector.NetworkReading WiredReading(
+        string? ethernetName,
+        long? ethernetSpeedBitsPerSecond,
+        string? ethernetDriverDate) => new(
+            WifiName: null,
+            WifiVendor: null,
+            WifiDriverVersion: null,
+            WifiDriverDate: null,
+            WifiSpeedBitsPerSecond: null,
+            WifiMac: null,
+            WifiIp: null,
+            WifiGateway: null,
+            WifiDns: null,
+            Standards: SpecLabels.NotReportedByHardware,
+            Signal: null,
+            Band: null,
+            Channel: null,
+            RadioType: null,
+            ReceiveRate: null,
+            TransmitRate: null,
+            Ssid: null,
+            EthernetName: ethernetName,
+            EthernetSpeedBitsPerSecond: ethernetSpeedBitsPerSecond,
+            EthernetMac: "00:15:5D:12:34:56",
+            EthernetDriverVersion: "10.0.26100.1",
+            EthernetDriverDate: ethernetDriverDate,
+            EthernetIp: "10.0.0.4",
+            BluetoothCount: 0);
+
+    [Fact]
+    public void NetworkBuyerSummary_WiredOnly_NamesWiredAdapterLinkSpeedAndDriverYear()
+    {
+        var summary = NetworkCollector.BuildBuyerSummary(
+            WiredReading("Microsoft Hyper-V Network Adapter", 1_000_000_000, "2021-06-21"),
+            Array.Empty<NetworkCollector.InterfaceData>());
+
+        Assert.Equal(
+            "Buyer check: wired adapter Microsoft Hyper-V Network Adapter, linked at 1000 Mbps (negotiated rate at scan time, not a speed test), driver from 2021.",
+            summary);
+        Assert.DoesNotContain("Wi-Fi", summary, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NetworkBuyerSummary_WiredOnlyMissingDriver_SaysNotReportedInsteadOfGuessing()
+    {
+        var summary = NetworkCollector.BuildBuyerSummary(
+            WiredReading("Test Ethernet", null, null),
+            Array.Empty<NetworkCollector.InterfaceData>());
+
+        Assert.Equal(
+            "Buyer check: wired adapter Test Ethernet, link speed not reported by hardware, driver date not reported by hardware.",
+            summary);
+    }
+
+    [Fact]
+    public void NetworkBuyerSummary_WiredOnlyFromLiveInterface_NamesTheAdapter()
+    {
+        // No CIM Ethernet at all: the wired adapter is only known from
+        // the live NetworkInterface fallback, and the summary must still
+        // name it instead of reporting no network.
+        var reading = WiredReading(null, null, "2020-03-15");
+        var interfaces = new[]
+        {
+            new NetworkCollector.InterfaceData(
+                Name: "Ethernet",
+                Description: "Microsoft Hyper-V Network Adapter",
+                MacAddress: "00:15:5D:12:34:56",
+                Ipv4Addresses: "10.0.0.4",
+                Gateways: "10.0.0.1",
+                DnsServers: null,
+                SpeedBitsPerSecond: 1_000_000_000,
+                Status: "Up",
+                IsWireless: false,
+                IsWired: true,
+                IsUp: true),
+        };
+
+        var summary = NetworkCollector.BuildBuyerSummary(reading, interfaces);
+
+        Assert.Equal(
+            "Buyer check: wired adapter Microsoft Hyper-V Network Adapter, linked at 1000 Mbps (negotiated rate at scan time, not a speed test), driver from 2020.",
+            summary);
+    }
+
+    [Theory]
+    [InlineData("Microsoft Hyper-V Network Adapter")]
+    [InlineData("VMware Virtual Ethernet Adapter")]
+    [InlineData("VirtualBox Host-Only Ethernet Adapter")]
+    [InlineData("Red Hat VirtIO Ethernet Adapter")]
+    public void IsVirtualNicName_VirtualAdapters_AreWired(string name)
+    {
+        Assert.True(NetworkCollector.IsVirtualNicName(name));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("Intel(R) Wi-Fi 6 AX200")]
+    [InlineData("Realtek PCIe GbE Family Controller")]
+    public void IsVirtualNicName_PhysicalAdapters_AreNotVirtual(string? name)
+    {
+        Assert.False(NetworkCollector.IsVirtualNicName(name));
+    }
+
+    [Fact]
+    public void BuildSpecs_EthernetDriverVersion_IsShown()
+    {
+        var specs = NetworkCollector.BuildSpecs(
+            WiredReading("Test Ethernet", 100_000_000, "2019-06-06"),
+            Array.Empty<NetworkCollector.InterfaceData>(),
+            AsOf);
+
+        var version = Assert.Single(specs, s => s.Label == SpecLabels.EthernetDriverVersion);
+        Assert.Equal("10.0.26100.1", version.Value);
+        Assert.Equal("CIM Win32_PnPSignedDriver", version.Source);
     }
 
     [Fact]

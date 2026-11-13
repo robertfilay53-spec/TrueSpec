@@ -84,6 +84,13 @@ public sealed partial class ComparisonViewModel : ViewModelBase
     /// <summary>Changed parts between the two snapshots, one line each; empty when identical or not recorded.</summary>
     public ObservableCollection<string> DnaChangedParts { get; private set; } = new();
 
+    /// <summary>True when the last comparison named a part either scan could not identify.</summary>
+    [ObservableProperty]
+    public partial bool HasDnaUnidentifiedParts { get; set; }
+
+    /// <summary>Parts either scan could not identify, one "Kind Label" line each; empty when every part was identified.</summary>
+    public ObservableCollection<string> DnaUnidentifiedParts { get; private set; } = new();
+
     partial void OnSelectedBeforeChanged(SnapshotSummary? value) => CompareCommand.NotifyCanExecuteChanged();
 
     partial void OnSelectedAfterChanged(SnapshotSummary? value) => CompareCommand.NotifyCanExecuteChanged();
@@ -109,6 +116,9 @@ public sealed partial class ComparisonViewModel : ViewModelBase
             HasComparison = false;
             HasChanges = false;
             HasDnaComparison = false;
+            HasDnaUnidentifiedParts = false;
+            DnaUnidentifiedParts = new ObservableCollection<string>();
+            OnPropertyChanged(nameof(DnaUnidentifiedParts));
             DnaStateText = "No DNA comparison yet. Pick two snapshots and compare.";
             return;
         }
@@ -125,6 +135,9 @@ public sealed partial class ComparisonViewModel : ViewModelBase
                 HasComparison = false;
                 HasChanges = false;
                 HasDnaComparison = false;
+                HasDnaUnidentifiedParts = false;
+                DnaUnidentifiedParts = new ObservableCollection<string>();
+                OnPropertyChanged(nameof(DnaUnidentifiedParts));
                 DnaStateText = "DNA could not be compared: the snapshots could not be read.";
                 return;
             }
@@ -149,6 +162,7 @@ public sealed partial class ComparisonViewModel : ViewModelBase
             DnaStateText = dna.State switch
             {
                 DnaVerificationState.Identical => "Same machine, same parts.",
+                DnaVerificationState.FingerprintMatches => "Same machine — fingerprint matches.",
                 DnaVerificationState.Changed => "Parts changed between these two scans.",
                 DnaVerificationState.Unverifiable => "DNA could not be verified for these scans.",
                 _ => "DNA not recorded for one or both snapshots.",
@@ -158,6 +172,9 @@ public sealed partial class ComparisonViewModel : ViewModelBase
             DnaChangedParts = new ObservableCollection<string>(dna.ChangedParts.Select(p =>
                 $"{p.Kind} {p.Label}: {p.Detail}"));
             OnPropertyChanged(nameof(DnaChangedParts));
+            DnaUnidentifiedParts = new ObservableCollection<string>(dna.UnidentifiedParts);
+            OnPropertyChanged(nameof(DnaUnidentifiedParts));
+            HasDnaUnidentifiedParts = DnaUnidentifiedParts.Count > 0;
             HasDnaComparison = true;
         }
         catch (Exception exception)

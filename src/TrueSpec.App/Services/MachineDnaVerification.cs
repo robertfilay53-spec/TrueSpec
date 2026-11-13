@@ -18,6 +18,15 @@ public enum DnaVerificationState
     /// <summary>The DNA matches: same machine, same parts.</summary>
     Identical,
 
+    /// <summary>
+    /// The two fingerprints are identical and no part changed, but a part
+    /// was unidentified in one of the scans, so the match is not a
+    /// verified identity. The UI says "fingerprint matches" with the
+    /// unidentified part(s) named, instead of reading as a failure: on a
+    /// clean machine this is the normal outcome, not a swapped part.
+    /// </summary>
+    FingerprintMatches,
+
     /// <summary>The DNA differs: at least one part changed between the scans.</summary>
     Changed,
 }
@@ -37,6 +46,14 @@ public sealed record MachineDnaVerification(
     string SummaryText,
     IReadOnlyList<DnaPartChange> ChangedParts)
 {
+    /// <summary>
+    /// Parts either scan could not identify, as "Kind Label" display
+    /// strings ("Memory DIMM 0"). Empty when every part was identified.
+    /// The UI lists these next to the verdict so the user knows exactly
+    /// what the comparison could not prove.
+    /// </summary>
+    public IReadOnlyList<string> UnidentifiedParts { get; init; } = Array.Empty<string>();
+
     /// <summary>
     /// Truncates a full SHA-256 hex hash for display: first 8 and last 8
     /// characters. The full hash is only ever written into the local report
@@ -85,6 +102,21 @@ public sealed record MachineDnaVerification(
         "Same machine, same parts.",
         Array.Empty<DnaPartChange>());
 
+    /// <summary>
+    /// The two fingerprints are identical and no part changed, but a part
+    /// was unidentified in one of the scans, so this is not a verified
+    /// identity match. The summary says so in one sentence; the names
+    /// live in <see cref="UnidentifiedParts"/> for the UI to list.
+    /// </summary>
+    public static MachineDnaVerification FingerprintMatches(string? hashDisplay, IReadOnlyList<string> unidentifiedParts) => new(
+        DnaVerificationState.FingerprintMatches,
+        hashDisplay,
+        "Same machine — fingerprint matches. A part could not be identified in one of the scans, so this is not a verified identity match; the unidentified part is listed below.",
+        Array.Empty<DnaPartChange>())
+    {
+        UnidentifiedParts = unidentifiedParts,
+    };
+
     /// <summary>The two scans differ: the named parts changed.</summary>
     public static MachineDnaVerification Changed(IReadOnlyList<DnaPartChange> changedParts, string? hashDisplay) => new(
         DnaVerificationState.Changed,
@@ -125,7 +157,11 @@ public interface IMachineDnaVerifier
 /// existed ("not recorded", never a mismatch); a snapshot with parts but
 /// no hash recorded DNA but found no usable serial ("not available");
 /// a part unidentified in either scan makes the comparison
-/// Unverifiable even when the other parts match. The full hash is never
+/// Unverifiable even when the other parts match. When the fingerprints
+/// match and nothing changed, the record says FingerprintMatches
+/// instead: the same honest verdict underneath, worded so a clean
+/// machine does not read as a failure, with the unidentified part(s)
+/// named. The full hash is never
 /// exposed: the UI only ever sees <see cref="MachineDnaVerification.TruncateHash"/>.
 /// </summary>
 public sealed class MachineDnaVerifier : IMachineDnaVerifier
@@ -159,6 +195,23 @@ public sealed class MachineDnaVerifier : IMachineDnaVerifier
         var newDna = new MachineDna(after.MachineDnaParts, after.MachineDnaHash);
         var comparison = MachineDnaComparer.Compare(oldDna, newDna);
         var hashDisplay = MachineDnaVerification.TruncateHash(after.MachineDnaHash);
+        var unidentified = comparison.UnidentifiedParts
+            .Select(p => $"{p.Kind} {p.Label}")
+            .ToList();
+
+        // A matching fingerprint with an unidentified part is the normal
+        // outcome on a clean machine whose hardware does not report every
+        // serial: the verdict stays Unverifiable in the Core (never a
+        // match the hardware did not prove), but the UI says "fingerprint
+        // matches" with the part named instead of reading as a failure.
+        if (comparison.Verdict == MachineDnaVerdict.Unverifiable &&
+            comparison.FingerprintsMatch &&
+            comparison.Added.Count == 0 &&
+            comparison.Removed.Count == 0 &&
+            comparison.Changed.Count == 0)
+        {
+            return MachineDnaVerification.FingerprintMatches(hashDisplay, unidentified);
+        }
 
         return comparison.Verdict switch
         {
@@ -167,12 +220,18 @@ public sealed class MachineDnaVerifier : IMachineDnaVerifier
                 DnaVerificationState.Changed,
                 hashDisplay,
                 comparison.Summary,
-                DescribeChanges(comparison)),
+                DescribeChanges(comparison))
+            {
+                UnidentifiedParts = unidentified,
+            },
             _ => new MachineDnaVerification(
                 DnaVerificationState.Unverifiable,
                 hashDisplay,
                 comparison.Summary,
-                DescribeChanges(comparison)),
+                DescribeChanges(comparison))
+            {
+                UnidentifiedParts = unidentified,
+            },
         };
     }
 
