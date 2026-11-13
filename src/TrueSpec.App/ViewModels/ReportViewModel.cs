@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
+using TrueSpec.App.Services;
 using TrueSpec.Core.Models;
 
 namespace TrueSpec.App.ViewModels;
@@ -14,6 +15,10 @@ namespace TrueSpec.App.ViewModels;
 /// </summary>
 public sealed class ReportViewModel : ViewModelBase
 {
+    /// <param name="exportCertificateCommand">Null on older callers: the Buyer certificate button hides itself.</param>
+    /// <param name="verifyMachineCommand">Null on older callers: the Verify this machine button hides itself.</param>
+    /// <param name="dnaVerification">The result of the last "Verify this machine" run against this snapshot, or null when no verification has run yet.</param>
+    /// <param name="isVerifyingMachine">True while a verification re-scan is running: the Verify button stays disabled so it cannot be double-run.</param>
     public ReportViewModel(
         SystemSnapshot snapshot,
         ICommand exportJsonCommand,
@@ -21,12 +26,36 @@ public sealed class ReportViewModel : ViewModelBase
         ICommand exportCsvCommand,
         string exportFolder,
         bool isScanning = false,
-        ICommand? exportPdfCommand = null)
+        ICommand? exportPdfCommand = null,
+        ICommand? exportCertificateCommand = null,
+        ICommand? verifyMachineCommand = null,
+        MachineDnaVerification? dnaVerification = null,
+        bool isVerifyingMachine = false)
     {
         ExportJsonCommand = exportJsonCommand;
         ExportHtmlCommand = exportHtmlCommand;
         ExportCsvCommand = exportCsvCommand;
         ExportPdfCommand = exportPdfCommand;
+        ExportCertificateCommand = exportCertificateCommand;
+        VerifyMachineCommand = verifyMachineCommand;
+        IsVerifyingMachine = isVerifyingMachine;
+        DnaVerification = dnaVerification;
+        DnaStateText = dnaVerification switch
+        {
+            null => "DNA not recorded for this scan yet.",
+            { State: DnaVerificationState.Identical } => "Same machine, same parts.",
+            { State: DnaVerificationState.Changed } => "Parts changed since the earlier scan.",
+            { State: DnaVerificationState.Unverifiable } => "DNA could not be verified.",
+            _ => "DNA not recorded for this scan.",
+        };
+        DnaHashText = dnaVerification?.HashDisplay is { } hash
+            ? $"Machine DNA: {hash}"
+            : "Machine DNA: not recorded";
+        VerifyResultText = dnaVerification?.SummaryText
+            ?? "Re-scan this machine and compare its DNA against this snapshot to check no part was swapped since the scan.";
+        DnaChangedParts = dnaVerification?.ChangedParts
+            .Select(p => $"{p.Kind} {p.Label}: {p.Detail}")
+            .ToList() ?? new List<string>();
         ExportFolderText = $"Exports are written to {exportFolder}. No upload, no cloud.";
         MachineName = snapshot.MachineName;
         OperatingSystem = snapshot.OperatingSystem;
@@ -85,6 +114,37 @@ public sealed class ReportViewModel : ViewModelBase
     public ICommand? ExportPdfCommand { get; }
 
     public bool HasPdfExport => ExportPdfCommand is not null;
+
+    /// <summary>
+    /// One-page buyer certificate (PDF). Null on older callers: the button hides itself.
+    /// DNA is identity, not health: the certificate never changes the score or the verdict above.
+    /// </summary>
+    public ICommand? ExportCertificateCommand { get; }
+
+    public bool HasCertificateExport => ExportCertificateCommand is not null;
+
+    /// <summary>Re-scans this machine and compares its DNA against this snapshot. Null on older callers: the button hides itself.</summary>
+    public ICommand? VerifyMachineCommand { get; }
+
+    public bool HasVerifyMachine => VerifyMachineCommand is not null;
+
+    /// <summary>True while a verification re-scan is running.</summary>
+    public bool IsVerifyingMachine { get; }
+
+    /// <summary>The last verification result, or null when no verification has run yet.</summary>
+    public MachineDnaVerification? DnaVerification { get; }
+
+    /// <summary>One-line DNA state: "Same machine, same parts", "Parts changed", or "DNA not recorded". Never a mismatch for a scan with no DNA.</summary>
+    public string DnaStateText { get; }
+
+    /// <summary>Truncated DNA hash for display, or "Machine DNA: not recorded". The full hash is only ever written into the local report file.</summary>
+    public string DnaHashText { get; }
+
+    /// <summary>What the last verification concluded, in plain words; or what to do when no verification has run yet.</summary>
+    public string VerifyResultText { get; }
+
+    /// <summary>Changed parts from the last verification, empty when the machine is identical or no verification ran.</summary>
+    public IReadOnlyList<string> DnaChangedParts { get; }
 
     public string ExportFolderText { get; }
 }

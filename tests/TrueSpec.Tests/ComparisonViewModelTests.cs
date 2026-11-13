@@ -1,3 +1,4 @@
+using TrueSpec.App.Services;
 using TrueSpec.App.ViewModels;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Storage;
@@ -137,5 +138,103 @@ public class ComparisonViewModelTests
         Assert.Empty(viewModel.History);
         Assert.False(viewModel.HasComparison);
         Assert.Contains("unavailable", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // --- v2.0 U7: DNA row at the top of the comparison ---
+
+    private static async Task<ComparisonViewModel> ComparedPairAsync(
+        string databasePath, IMachineDnaVerifier? verifier = null)
+    {
+        var start = DateTimeOffset.UtcNow.AddDays(-30);
+        var older = TestSnapshots.HistorySnapshot(82, "90%", "120", "4", "12400", start);
+        var newer = TestSnapshots.HistorySnapshot(70, "75%", "300", "12", "45000", start.AddDays(30));
+        var store = await StoreWithTwoSnapshots(databasePath, older, newer);
+
+        var viewModel = new ComparisonViewModel(store, newer, verifier);
+        await WaitForAsync(() => viewModel.HasComparison, "Comparison never completed.");
+        return viewModel;
+    }
+
+    [Fact]
+    public async Task DnaRow_NoDnaRecorded_ReportsNotRecorded_NeverAMismatch()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+        try
+        {
+            var viewModel = await ComparedPairAsync(databasePath);
+
+            Assert.True(viewModel.HasDnaComparison);
+            Assert.Contains("not recorded", viewModel.DnaStateText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("DNA not recorded", viewModel.DnaHashBeforeText, StringComparison.Ordinal);
+            Assert.Contains("DNA not recorded", viewModel.DnaHashAfterText, StringComparison.Ordinal);
+            Assert.Empty(viewModel.DnaChangedParts);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DnaRow_IdenticalVerifier_SaysSameMachineSameParts()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+        try
+        {
+            var fake = new FakeMachineDnaVerifier
+            {
+                DescribeResult = TrueSpec.App.Services.MachineDnaVerification.Identical("abcdef12…34567890"),
+                CompareResult = TrueSpec.App.Services.MachineDnaVerification.Identical("abcdef12…34567890"),
+            };
+            var viewModel = await ComparedPairAsync(databasePath, fake);
+
+            Assert.Equal("Same machine, same parts.", viewModel.DnaStateText);
+            Assert.Contains("abcdef12…34567890", viewModel.DnaHashBeforeText, StringComparison.Ordinal);
+            Assert.Contains("abcdef12…34567890", viewModel.DnaHashAfterText, StringComparison.Ordinal);
+            Assert.Empty(viewModel.DnaChangedParts);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DnaRow_ChangedVerifier_NamesTheChangedParts()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(directory, "snapshots.db");
+        try
+        {
+            var changes = new[]
+            {
+                new TrueSpec.App.Services.DnaPartChange("Memory", "Slot 2", "serial changed since the earlier scan"),
+            };
+            var fake = new FakeMachineDnaVerifier
+            {
+                DescribeResult = TrueSpec.App.Services.MachineDnaVerification.Changed(changes, "abcdef12…34567890"),
+                CompareResult = TrueSpec.App.Services.MachineDnaVerification.Changed(changes, "abcdef12…34567890"),
+            };
+            var viewModel = await ComparedPairAsync(databasePath, fake);
+
+            Assert.Contains("changed", viewModel.DnaStateText, StringComparison.OrdinalIgnoreCase);
+            Assert.Single(viewModel.DnaChangedParts);
+            Assert.Contains("Slot 2", viewModel.DnaChangedParts[0], StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
     }
 }

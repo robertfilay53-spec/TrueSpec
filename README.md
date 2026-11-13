@@ -86,6 +86,21 @@ dotnet run --project src/TrueSpec.App -c Release
    This produces `installer\Output\TrueSpecSetup-<version>.exe`. The script only installs the published files, creates a Start Menu shortcut and an optional desktop shortcut, and never writes to the registry beyond the standard uninstall entry. It does not require administrator rights; run it elevated only if you want every sensor (some SMART and driver data needs elevation).
 3. Run the installer. Reports are stored under `Documents\TrueSpec` (or the folder you pick in Settings); settings, snapshot history and the startup log live under `%LocalAppData%\TrueSpec`. Requires Windows 10 version 1809 or later, or Windows 11, x64.
 
+### Portable buyer kit (USB stick, no install)
+
+For checking a laptop in a shop before paying, without installing anything on the seller's machine:
+
+```powershell
+dotnet publish src/TrueSpec.App/TrueSpec.App.csproj -p:PublishProfile=win-x64-portable -o publish-portable
+```
+
+This uses `src/TrueSpec.App/Properties/PublishProfiles/win-x64-portable.pubxml`, which publishes the same self-contained, single-file build as the installer profile: the .NET Desktop Runtime 10 is bundled inside `TrueSpec.App.exe`, so it runs on a machine with no .NET installed. Copy the whole `publish-portable` folder to a USB stick and double-click `TrueSpec.App.exe` on the machine you want to check. It never asks for elevation (asInvoker): a standard-user scan works, and parts that need elevation read as "Not reported by hardware" instead of failing the scan.
+
+Two honest limits, read before trusting a stick:
+
+- **Portable data lives next to the exe.** Put an empty file named `TrueSpec.portable` next to `TrueSpec.App.exe` (or set the environment variable `TRUESPEC_PORTABLE=1`) and the app keeps its data beside the exe instead of under `%LocalAppData%\TrueSpec`: `settings.json`, `history.db`, `sensor-log.csv`, `startup.log` and `window-state.json`, all in the same folder as the exe. Without the marker file the app behaves exactly as before and writes under `%LocalAppData%\TrueSpec`. If the exe folder fails validation (a system folder, Program Files), the app falls back to `%LocalAppData%\TrueSpec` instead of writing somewhere unsafe. The marker is only ever looked for next to the exe, never in the working directory.
+- **One stick's history mixes machines.** History is keyed by machine name (a renamable string), not by machine identity, so the history of one machine must never be read as proof about a different machine. The Report page's "Verify this machine" action compares the machine in front of you against the snapshot on screen; that is the check to use at the point of sale, not an old history file.
+
 ### Tests
 
 Tests are xUnit in `tests/TrueSpec.Tests`. They cover scoring, buyer checks, collectors, report exporters (JSON/HTML/CSV), the snapshot store, snapshot comparison, settings sanitization and the security validators. They run in CI on Ubuntu and Windows. On Linux, `dotnet test` compiles but the test host cannot connect in this environment (a VM limit, not a code failure); the build step above is the local check.

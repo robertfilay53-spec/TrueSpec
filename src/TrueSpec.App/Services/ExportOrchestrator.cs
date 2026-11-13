@@ -61,6 +61,28 @@ public sealed class ExportOrchestrator
     }
 
     /// <summary>
+    /// The buyer certificate (v2.0 U7, Blueprint 4): a one-page PDF from
+    /// <see cref="PdfReportExporter"/> with the banner, score, five key
+    /// numbers, DNA hash and scan date. It is a separate file from the
+    /// full report, never a relabelled copy of it.
+    /// </summary>
+    public async Task ExportBuyerCertificateAsync()
+    {
+        try
+        {
+            var folder = PrepareFolder();
+            var path = Path.Combine(folder, PathSafety.SafeReportFileName("TrueSpec-certificate", "pdf", DateTime.Now));
+            await using var stream = File.Create(path);
+            await new PdfReportExporter().ExportCertificateAsync(ReportModel.FromSnapshot(_snapshot()), stream);
+            _onExported(path, "Buyer certificate");
+        }
+        catch (Exception exception)
+        {
+            _onFailed($"Buyer certificate export failed: {exception.Message}");
+        }
+    }
+
+    /// <summary>
     /// Exports the trend currently shown on the History page as CSV. With
     /// no history there is nothing to export, and the failure says so
     /// instead of writing an empty file.

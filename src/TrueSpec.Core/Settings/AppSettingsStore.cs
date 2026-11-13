@@ -22,7 +22,7 @@ public sealed class AppSettingsStore
     }
 
     public static string DefaultFilePath() =>
-        Path.Combine(Security.PathSafety.DefaultAppDataFolder(), "settings.json");
+        Security.AppDataRoot.Resolve().SettingsPath;
 
     public string FilePath => _filePath;
 

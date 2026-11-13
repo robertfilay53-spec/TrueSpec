@@ -136,9 +136,9 @@ public class ReverseEngineeringAuditTests
 
             // A TEXT score must not read back as a fake 0.0, and an
             // out-of-range score is not a score this app ever writes.
-            await Exec($"INSERT INTO snapshots VALUES ('{Guid.NewGuid():D}', '2026-01-01T00:00:00+00:00', 'M', 'not-a-number', 'Worn', '{{}}')");
-            await Exec($"INSERT INTO snapshots VALUES ('{Guid.NewGuid():D}', '2026-01-02T00:00:00+00:00', 'M', 500, 'Worn', '{{}}')");
-            await Exec($"INSERT INTO snapshots VALUES ('not-a-guid', 'not-a-date', 'M', 50, 'Worn', '{{}}')");
+            await Exec($"INSERT INTO snapshots (id, captured_at, machine_name, overall_score, verdict, payload_json) VALUES ('{Guid.NewGuid():D}', '2026-01-01T00:00:00+00:00', 'M', 'not-a-number', 'Worn', '{{}}')");
+            await Exec($"INSERT INTO snapshots (id, captured_at, machine_name, overall_score, verdict, payload_json) VALUES ('{Guid.NewGuid():D}', '2026-01-02T00:00:00+00:00', 'M', 500, 'Worn', '{{}}')");
+            await Exec($"INSERT INTO snapshots (id, captured_at, machine_name, overall_score, verdict, payload_json) VALUES ('not-a-guid', 'not-a-date', 'M', 50, 'Worn', '{{}}')");
 
             var history = await store.GetHistoryAsync(50);
             Assert.Single(history);

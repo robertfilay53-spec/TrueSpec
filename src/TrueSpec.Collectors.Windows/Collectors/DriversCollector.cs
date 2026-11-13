@@ -80,7 +80,7 @@ public sealed class DriversCollector : ICollector
             .Select(r => new { Row = r, Date = r.Date("DriverDate") })
             .Where(x => x.Date is not null)
             .ToList();
-        var old = dated.Count(x => (now - x.Date!.Value).TotalDays > 365d * CollectorSupport.DriverStaleAgeYears);
+        var old = dated.Count(x => CollectorSupport.DriverAgeYears(x.Date!.Value, now) > CollectorSupport.DriverStaleAgeYears);
         var oldest = dated.OrderBy(x => x.Date!.Value).FirstOrDefault();
 
         // "All signed" is only true when every signature is known and
@@ -124,7 +124,7 @@ public sealed class DriversCollector : ICollector
         // collapse in the comparison view, so number repeats.
         var usedLabels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var item in dated
-                     .Where(x => (now - x.Date!.Value).TotalDays > 365d * CollectorSupport.DriverStaleAgeYears)
+                     .Where(x => CollectorSupport.DriverAgeYears(x.Date!.Value, now) > CollectorSupport.DriverStaleAgeYears)
                      .OrderBy(x => x.Date!.Value)
                      .Take(10))
         {

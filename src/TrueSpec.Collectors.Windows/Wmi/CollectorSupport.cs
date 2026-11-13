@@ -183,6 +183,30 @@ internal static class CollectorSupport
     public const int DriverStaleAgeYears = 5;
 
     /// <summary>
+    /// Whole calendar years between a driver date and a reference date:
+    /// the one age computation behind <see cref="DriverStaleAgeYears"/>.
+    /// <see cref="FormatDriverAge"/> (Wi-Fi, Ethernet, GPU pages) and
+    /// <c>DriversCollector.BuildSnapshot</c> (the "Drivers older than 5
+    /// years" count) both use this, so a driver is flagged stale on a
+    /// component page exactly when it is counted old on the Drivers page.
+    /// The two used to disagree at the boundary: the count used
+    /// <c>TotalDays &gt; 365 * 5</c> while the display used calendar years,
+    /// so a driver 1,826 days old but one day short of its 5th anniversary
+    /// was counted old but shown as 4 years old. A future date reads as
+    /// 0 years old, never negative.
+    /// </summary>
+    public static int DriverAgeYears(DateTimeOffset driverDate, DateTimeOffset asOf)
+    {
+        var years = asOf.Year - driverDate.Year;
+        if (asOf.Month < driverDate.Month || (asOf.Month == driverDate.Month && asOf.Day < driverDate.Day))
+        {
+            years--;
+        }
+
+        return Math.Max(0, years);
+    }
+
+    /// <summary>
     /// The one driver-signature query in the app: SystemCollector and
     /// SecurityCollector both enumerate Win32_PnPSignedDriver for its
     /// IsSigned column only (DriversCollector has its own wider query:
@@ -274,16 +298,7 @@ internal static class CollectorSupport
             return SpecLabels.NotReportedByHardware;
         }
 
-        var years = asOf.Year - date.Year;
-        if (asOf.Month < date.Month || (asOf.Month == date.Month && asOf.Day < date.Day))
-        {
-            years--;
-        }
-
-        if (years < 0)
-        {
-            years = 0;
-        }
+        var years = DriverAgeYears(date, asOf);
 
         // The stale flag sits inside the same parentheses as the age, so
         // the value reads as one sentence: "Driver from 2020 (6 years old,

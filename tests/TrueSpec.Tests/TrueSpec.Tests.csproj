@@ -48,6 +48,9 @@
        LiveMetricViewModelTests, ScanCancelTests and
        ShellExportFileOpenerTests do the same, and
        CollectorWmiSelectionTests drives the Windows collectors.
+       MachineDnaVerificationTests and ReportViewModelTests drive the
+       App's DNA seam and Report page; DriverAgeRuleTests drives the
+       Windows collectors.
        Excluding the files (rather
        than #if-ing them) keeps the tests readable and the exclusion visible
        in the project file. -->
@@ -80,6 +83,9 @@
     <Compile Remove="V13IntegrationTests.cs" />
     <Compile Remove="NavigationTests.cs" />
     <Compile Remove="HistoryCsvTableAgreementTests.cs" />
+    <Compile Remove="MachineDnaVerificationTests.cs" />
+    <Compile Remove="ReportViewModelTests.cs" />
+    <Compile Remove="DriverAgeRuleTests.cs" />
   </ItemGroup>
 
 </Project>

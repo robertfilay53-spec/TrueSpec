@@ -145,6 +145,139 @@ public class PdfReportExporterTests
         Assert.Equal("plain", PdfReportExporter.Escape("plain"));
     }
 
+    private static SystemSnapshot SnapshotWithDna()
+    {
+        var dna = TrueSpec.Core.Comparison.MachineDna.Build(new[]
+        {
+            (TrueSpec.Core.Comparison.MachineDnaPartKind.Board, "Base board", (string?)"ABCD1234EFGH5678"),
+            (TrueSpec.Core.Comparison.MachineDnaPartKind.Bios, "BIOS", (string?)"WXYZ9876QRST5432"),
+            (TrueSpec.Core.Comparison.MachineDnaPartKind.Disk, "Disk 0", (string?)"DISK000111222333"),
+        });
+        return TestSnapshots.Healthy() with
+        {
+            MachineDnaHash = dna.Hash,
+            MachineDnaParts = dna.Parts,
+        };
+    }
+
+    [Fact]
+    public async Task CertificatePdf_IsOnePageWithBannerHashAndFiveNumbers()
+    {
+        var snapshot = SnapshotWithDna();
+        var exporter = new PdfReportExporter();
+
+        await using var stream = new MemoryStream();
+        await exporter.ExportCertificateAsync(ReportModel.FromSnapshot(snapshot), stream);
+
+        var bytes = stream.ToArray();
+        var text = Encoding.ASCII.GetString(bytes);
+
+        Assert.StartsWith("%PDF-1.4", text, StringComparison.Ordinal);
+        Assert.Contains("%%EOF", text, StringComparison.Ordinal);
+        Assert.All(bytes, b => Assert.True(b < 128, "PDF body must stay plain ASCII"));
+        Assert.Equal(1, CountOccurrences(text, "/Type /Page "));
+        Assert.Contains("page 1 of 1", text, StringComparison.Ordinal);
+        Assert.Contains("TrueSpec buyer certificate", text, StringComparison.Ordinal);
+        Assert.Contains(snapshot.BuyerChecks.BannerText, text, StringComparison.Ordinal);
+        Assert.Contains("SSD wear: 0%", text, StringComparison.Ordinal);
+        Assert.Contains("Battery health: 90%", text, StringComparison.Ordinal);
+        Assert.Contains("Battery cycle count: 2", text, StringComparison.Ordinal);
+        Assert.Contains("Power-on hours: 0", text, StringComparison.Ordinal);
+        Assert.Contains("Throttle result: Not tested - no load test has run", text, StringComparison.Ordinal);
+        Assert.Contains(snapshot.MachineDnaHash!, text, StringComparison.Ordinal);
+        Assert.Contains(snapshot.CapturedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), text, StringComparison.Ordinal);
+        AssertXrefOffsetsAreValid(bytes, text);
+    }
+
+    [Fact]
+    public async Task CertificatePdf_HonestStatesWhenNothingWasMeasured()
+    {
+        var healthy = TestSnapshots.Healthy();
+        var snapshot = healthy with
+        {
+            Components = healthy.Components
+                .Where(c => c.Id != "storage" && c.Id != "battery")
+                .ToList(),
+        };
+        var exporter = new PdfReportExporter();
+
+        await using var stream = new MemoryStream();
+        await exporter.ExportCertificateAsync(ReportModel.FromSnapshot(snapshot), stream);
+
+        var text = Encoding.ASCII.GetString(stream.ToArray());
+        Assert.Equal(1, CountOccurrences(text, "/Type /Page "));
+        Assert.Contains(SpecLabels.NotReportedByHardware, text, StringComparison.Ordinal);
+        Assert.Contains("DNA hash: DNA not recorded", text, StringComparison.Ordinal);
+        Assert.Contains("Throttle result: Not tested - no load test has run", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CertificatePdf_NeverContainsAFullSerial()
+    {
+        var snapshot = SnapshotWithDna();
+        var exporter = new PdfReportExporter();
+
+        await using var stream = new MemoryStream();
+        await exporter.ExportCertificateAsync(ReportModel.FromSnapshot(snapshot), stream);
+
+        var text = Encoding.ASCII.GetString(stream.ToArray());
+        Assert.DoesNotContain("ABCD1234EFGH5678", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("WXYZ9876QRST5432", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("DISK000111222333", text, StringComparison.Ordinal);
+        // The full hash belongs in the file; the serials do not.
+        Assert.Contains(snapshot.MachineDnaHash!, text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CertificatePdf_RealReaderCheck_WithPdftotext_WhenAvailable()
+    {
+        // A real-reader check (poppler pdftotext) on top of the raw-byte
+        // checks above: when poppler is not installed the test ends here
+        // cleanly instead of failing the suite for a missing tool.
+        var snapshot = SnapshotWithDna();
+        var path = Path.Combine(Path.GetTempPath(), $"truespec-cert-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            await using (var file = File.Create(path))
+            {
+                await new PdfReportExporter().ExportCertificateAsync(ReportModel.FromSnapshot(snapshot), file);
+            }
+
+            string extracted;
+            try
+            {
+                var start = new System.Diagnostics.ProcessStartInfo("pdftotext", $"\"{path}\" -")
+                {
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                };
+                using var process = System.Diagnostics.Process.Start(start);
+                if (process is null)
+                {
+                    return;
+                }
+
+                extracted = await process.StandardOutput.ReadToEndAsync();
+                await process.WaitForExitAsync();
+            }
+            catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or FileNotFoundException)
+            {
+                return;
+            }
+
+            Assert.Contains("TrueSpec buyer certificate", extracted, StringComparison.Ordinal);
+            Assert.Contains(snapshot.BuyerChecks.BannerText, extracted, StringComparison.Ordinal);
+            Assert.Contains(snapshot.MachineDnaHash!, extracted, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
     /// <summary>
     /// Reads the xref table this exporter wrote and checks every live entry
     /// really points at the object it claims to: a wrong offset is the most

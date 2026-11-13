@@ -39,6 +39,103 @@ public sealed class PdfReportExporter : IReportExporter
         await destination.FlushAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// The buyer certificate (Blueprint 4, U7): a separate one-page PDF,
+    /// not the full report. One page, the PASS / WARNING / FAIL banner,
+    /// the overall score, the five most important numbers, the full DNA
+    /// hash (a hash is not a serial, so the full hash belongs in the file)
+    /// and the scan date. Full serials never appear in it. Honest states
+    /// throughout: an unmeasured number says SpecLabels.NotReportedByHardware
+    /// and a scan with no usable serial says "DNA not available".
+    /// </summary>
+    public async Task ExportCertificateAsync(
+        ReportModel report,
+        Stream destination,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        ArgumentNullException.ThrowIfNull(destination);
+
+        var bytes = BuildCertificate(report);
+        await destination.WriteAsync(bytes, cancellationToken);
+        await destination.FlushAsync(cancellationToken);
+    }
+
+    private static byte[] BuildCertificate(ReportModel report)
+    {
+        // Exactly one page by construction: the certificate is a fixed
+        // short list of lines, far below what one A4 page holds, so it is
+        // written as a single page object instead of going through the
+        // paginator (which could only ever split it if it grew).
+        var lines = CollectCertificateLines(report);
+        return WritePdf(new List<List<PdfLine>> { lines });
+    }
+
+    private static List<PdfLine> CollectCertificateLines(ReportModel report)
+    {
+        var snapshot = report.Snapshot;
+        var certificate = report.Certificate;
+        var lines = new List<PdfLine>
+        {
+            new("TrueSpec buyer certificate", Bold: true, Size: 16),
+            new(snapshot.MachineName, Bold: true, Size: 12),
+        };
+
+        if (HasReportedValue(report.OperatingSystem))
+        {
+            lines.Add(new(report.OperatingSystem, Bold: false, Size: 10));
+        }
+
+        lines.Add(new(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Scanned {snapshot.CapturedAt:yyyy-MM-dd HH:mm:ss}. Certificate generated {report.GeneratedAt:yyyy-MM-dd HH:mm:ss}."),
+            Bold: false, Size: 10));
+        lines.Add(PdfLine.Blank);
+        lines.Add(new(certificate.Banner, Bold: true, Size: 12));
+        lines.Add(new(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Score: {certificate.Score}"),
+            Bold: true, Size: 12));
+        lines.Add(PdfLine.Blank);
+        lines.Add(new("Key numbers", Bold: true, Size: 12));
+        lines.Add(new(string.Create(
+            CultureInfo.InvariantCulture,
+            $"SSD wear: {certificate.SsdWear}"),
+            Bold: false, Size: 10));
+        lines.Add(new(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Battery health: {certificate.BatteryHealth}"),
+            Bold: false, Size: 10));
+        lines.Add(new(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Battery cycle count: {certificate.CycleCount}"),
+            Bold: false, Size: 10));
+        lines.Add(new(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Power-on hours: {certificate.PowerOnHours}"),
+            Bold: false, Size: 10));
+        lines.Add(new(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Throttle result: {certificate.ThrottleResult}"),
+            Bold: false, Size: 10));
+        lines.Add(PdfLine.Blank);
+        lines.Add(new("Machine DNA", Bold: true, Size: 12));
+        lines.Add(new(
+            certificate.DnaHash is null
+                ? $"DNA hash: {certificate.DnaStatus}"
+                : string.Create(CultureInfo.InvariantCulture, $"DNA hash: {certificate.DnaHash}"),
+            Bold: false, Size: 10));
+        lines.Add(new(
+            "Verify this machine by re-scanning it in TrueSpec and comparing the DNA hash: the same machine with the same parts produces the same hash.",
+            Bold: false, Size: 10));
+        lines.Add(PdfLine.Blank);
+        lines.Add(new(
+            "TrueSpec is offline. This certificate was generated on this machine and was not uploaded anywhere. " +
+            $"Unmeasurable values say \"{SpecLabels.NotReportedByHardware}\" instead of showing a fake number.",
+            Bold: false, Size: 10));
+        return lines;
+    }
+
     private static byte[] Build(ReportModel report)
     {
         var lines = CollectLines(report);

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TrueSpec.App.Services;
 using TrueSpec.Core.Comparison;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Storage;
@@ -14,17 +15,22 @@ namespace TrueSpec.App.ViewModels;
 /// Compare two snapshots side by side: score delta, per-component health
 /// changes and every specification that changed. History comes from the
 /// local SQLite store; when there are fewer than two saved snapshots the
-/// page says so instead of inventing a comparison.
+/// page says so instead of inventing a comparison. The DNA row at the top
+/// of the result says whether the two scans are the same machine with the
+/// same parts; DNA is identity, not health, so it never changes the score.
 /// </summary>
 public sealed partial class ComparisonViewModel : ViewModelBase
 {
     private readonly ISnapshotStore? _store;
     private readonly SystemSnapshot _current;
+    private readonly IMachineDnaVerifier _dnaVerifier;
 
-    public ComparisonViewModel(ISnapshotStore? store, SystemSnapshot current)
+    /// <param name="dnaVerifier">The DNA comparer. Defaults to the real verifier over the snapshots' stored DNA; a snapshot saved before DNA existed honestly reports "not recorded".</param>
+    public ComparisonViewModel(ISnapshotStore? store, SystemSnapshot current, IMachineDnaVerifier? dnaVerifier = null)
     {
         _store = store;
         _current = current;
+        _dnaVerifier = dnaVerifier ?? MachineDnaVerifier.Instance;
         _ = LoadHistoryAsync();
     }
 
@@ -59,6 +65,25 @@ public sealed partial class ComparisonViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool IsComparing { get; set; }
 
+    /// <summary>True once a comparison ran and the DNA row has something to say.</summary>
+    [ObservableProperty]
+    public partial bool HasDnaComparison { get; set; }
+
+    /// <summary>One-line DNA verdict for the compared pair: identical, changed, unverifiable, or not recorded. Never a mismatch for a snapshot with no DNA.</summary>
+    [ObservableProperty]
+    public partial string DnaStateText { get; set; } = "No DNA comparison yet. Pick two snapshots and compare.";
+
+    /// <summary>Truncated DNA hash of the "before" snapshot, or "DNA not recorded".</summary>
+    [ObservableProperty]
+    public partial string DnaHashBeforeText { get; set; } = "DNA not recorded";
+
+    /// <summary>Truncated DNA hash of the "after" snapshot, or "DNA not recorded".</summary>
+    [ObservableProperty]
+    public partial string DnaHashAfterText { get; set; } = "DNA not recorded";
+
+    /// <summary>Changed parts between the two snapshots, one line each; empty when identical or not recorded.</summary>
+    public ObservableCollection<string> DnaChangedParts { get; private set; } = new();
+
     partial void OnSelectedBeforeChanged(SnapshotSummary? value) => CompareCommand.NotifyCanExecuteChanged();
 
     partial void OnSelectedAfterChanged(SnapshotSummary? value) => CompareCommand.NotifyCanExecuteChanged();
@@ -83,6 +108,8 @@ public sealed partial class ComparisonViewModel : ViewModelBase
             StatusMessage = "Pick two different snapshots to compare.";
             HasComparison = false;
             HasChanges = false;
+            HasDnaComparison = false;
+            DnaStateText = "No DNA comparison yet. Pick two snapshots and compare.";
             return;
         }
 
@@ -97,6 +124,8 @@ public sealed partial class ComparisonViewModel : ViewModelBase
                 StatusMessage = "One of the snapshots could not be read from history.";
                 HasComparison = false;
                 HasChanges = false;
+                HasDnaComparison = false;
+                DnaStateText = "DNA could not be compared: the snapshots could not be read.";
                 return;
             }
 
@@ -112,12 +141,32 @@ public sealed partial class ComparisonViewModel : ViewModelBase
             HasComparison = true;
             HasChanges = Rows.Count > 0 || AddedComponents.Count > 0 || RemovedComponents.Count > 0;
             StatusMessage = $"Compared {before.CapturedAt:yyyy-MM-dd HH:mm} with {after.CapturedAt:yyyy-MM-dd HH:mm}.";
+
+            // DNA row (v2.0 U7): identity, not health. A snapshot with no
+            // DNA reads as "not recorded", never as a mismatch, and the
+            // row never feeds the score or the summary above.
+            var dna = _dnaVerifier.Compare(before, after);
+            DnaStateText = dna.State switch
+            {
+                DnaVerificationState.Identical => "Same machine, same parts.",
+                DnaVerificationState.Changed => "Parts changed between these two scans.",
+                DnaVerificationState.Unverifiable => "DNA could not be verified for these scans.",
+                _ => "DNA not recorded for one or both snapshots.",
+            };
+            DnaHashBeforeText = "Before: " + (_dnaVerifier.Describe(before).HashDisplay ?? "DNA not recorded");
+            DnaHashAfterText = "After: " + (_dnaVerifier.Describe(after).HashDisplay ?? "DNA not recorded");
+            DnaChangedParts = new ObservableCollection<string>(dna.ChangedParts.Select(p =>
+                $"{p.Kind} {p.Label}: {p.Detail}"));
+            OnPropertyChanged(nameof(DnaChangedParts));
+            HasDnaComparison = true;
         }
         catch (Exception exception)
         {
             StatusMessage = $"Comparison failed: {exception.Message}";
             HasComparison = false;
             HasChanges = false;
+            HasDnaComparison = false;
+            DnaStateText = "DNA could not be compared: the snapshots could not be read.";
         }
         finally
         {

@@ -78,6 +78,28 @@
                 <StackPanel Spacing="10">
                     <TextBlock Text="Result" Classes="h3" />
                     <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                    <Border BorderBrush="{DynamicResource AppBorder}"
+                            BorderThickness="0,0,0,1"
+                            Padding="0,10"
+                            IsVisible="{Binding HasDnaComparison}">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Machine DNA" FontWeight="SemiBold" FontSize="11" Classes="muted" />
+                            <TextBlock Text="{Binding DnaStateText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding DnaHashBeforeText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding DnaHashAfterText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                            <ItemsControl ItemsSource="{Binding DnaChangedParts}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="DNA is identity, not health: it never changes the score above. It only says whether the two scans are the same machine with the same parts."
+                                       Classes="muted"
+                                       FontSize="11"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
                     <TextBlock Text="No component health changed and no specifications changed between these two snapshots."
                                Classes="muted"
                                TextWrapping="Wrap"

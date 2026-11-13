@@ -30,4 +30,17 @@ public static class CollectorRegistry
         return new UnavailableSensorMonitor();
 #endif
     }
+
+    /// <summary>
+    /// The machine-DNA provider on Windows; null everywhere else, so a
+    /// scan without one simply records no DNA instead of inventing it.
+    /// </summary>
+    public static IMachineDnaProvider? CreateMachineDnaProvider()
+    {
+#if TRUESPEC_WINDOWS
+        return WindowsCollectorCatalog.CreateMachineDnaProvider();
+#else
+        return null;
+#endif
+    }
 }
