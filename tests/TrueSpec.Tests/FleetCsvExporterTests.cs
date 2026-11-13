@@ -14,7 +14,7 @@ public class FleetCsvExporterTests
         string machine,
         int scans,
         double? score,
-        string verdict = "UsedHealthy",
+        string verdict = "Used - healthy",
         string? worst = "storage",
         double? worstHealth = 62d) =>
         new(
@@ -36,7 +36,7 @@ public class FleetCsvExporterTests
 
         var lines = csv.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal("Machine,Scans,Last scan,Score,Verdict,Worst component,Worst component health (%)", lines[0]);
-        Assert.Equal("SHOP-PC-01,3,2026-11-10 09:30,82.4,UsedHealthy,storage,62%", lines[1]);
+        Assert.Equal("SHOP-PC-01,3,2026-11-10 09:30,82.4,Used - healthy,storage,62%", lines[1]);
     }
 
     [Fact]
@@ -54,10 +54,10 @@ public class FleetCsvExporterTests
     {
         var csv = FleetCsvExporter.Build(new[]
         {
-            Row("NO-SCORE-PC", 1, null, "NotMeasurable", null, null),
+            Row("NO-SCORE-PC", 1, null, "Not measurable", null, null),
         });
 
-        Assert.Contains("NO-SCORE-PC,1,2026-11-10 09:30,Not measurable,NotMeasurable,Not reported,Not reported", csv, StringComparison.Ordinal);
+        Assert.Contains("NO-SCORE-PC,1,2026-11-10 09:30,Not measurable,Not measurable,Not reported,Not reported", csv, StringComparison.Ordinal);
     }
 
     [Fact]

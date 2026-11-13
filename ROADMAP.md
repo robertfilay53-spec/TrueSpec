@@ -240,6 +240,27 @@ data already existed; only the band rule and wording are new.
   `FleetCsvExporterTests`, store tests for the new query,
   `FleetViewModelTests`, navigation tests.
 
+## v2.0.4 — shipped
+
+- **Technician mode: per-machine CSV export.** The plan's Beyond v2.0 item 1,
+  second step: every row of the Fleet table has an Export CSV button that
+  writes that one machine's latest scan as its own file (header block with
+  the fleet table's values for the machine, then one row per scored
+  component, lowest health first). The machine name goes through
+  `SafeReportFileName`, so a hostile machine name cannot inject a path
+  through the file name. Core: `TrueSpec.Core/Reports/MachineCsvExporter.cs`
+  (UTF-8 with BOM, same escaping as the Fleet CSV); App:
+  `ExportOrchestrator.ExportMachineCsvAsync` plus a per-row command on
+  `FleetViewModel` (the row's snapshot comes from the map the page builds
+  while loading). Tests: `MachineCsvExporterTests`, `FleetViewModelTests`
+  (per-row command).
+- **Fleet verdict text fixed.** The fleet table and its CSV showed the raw
+  enum name ("UsedHealthy") instead of the display text the rest of the
+  app shows ("Used - healthy"). `FleetSummary.Build` now uses
+  `Verdict.ToDisplayText()`; the shared `CsvDisplayText` helper (score /
+  percent text) is used by the Fleet and per-machine exporters. Tests:
+  `FleetSummaryTests`, `FleetCsvExporterTests`.
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed

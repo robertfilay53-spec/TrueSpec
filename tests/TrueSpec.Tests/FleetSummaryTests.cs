@@ -134,7 +134,7 @@ public class FleetSummaryTests
         Assert.Equal(new[] { "SCORED-PC", "NO-SCORE-PC" }, rows.Select(r => r.MachineName));
         Assert.Equal(80d, rows[0].LatestScore);
         Assert.Null(rows[1].LatestScore);
-        Assert.Equal("NotMeasurable", rows[1].Verdict);
+        Assert.Equal("Not measurable", rows[1].Verdict);
         Assert.Null(rows[1].WorstComponent);
     }
 
@@ -185,6 +185,6 @@ public class FleetSummaryTests
         Assert.Equal(7, rows[0].ScanCount);
         Assert.Equal(at, rows[0].LastScan);
         Assert.Equal(82d, rows[0].LatestScore);
-        Assert.Equal("UsedHealthy", rows[0].Verdict);
+        Assert.Equal("Used - healthy", rows[0].Verdict);
     }
 }

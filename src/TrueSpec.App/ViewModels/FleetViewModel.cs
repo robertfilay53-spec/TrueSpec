@@ -8,7 +8,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using TrueSpec.Core.History;
+using TrueSpec.Core.Models;
 using TrueSpec.Core.Storage;
 
 /// <summary>
@@ -23,11 +25,18 @@ using TrueSpec.Core.Storage;
 public sealed partial class FleetViewModel : ViewModelBase
 {
     private readonly ISnapshotStore? _store;
+    private readonly Func<FleetMachineRow, SystemSnapshot, Task>? _exportMachineCsv;
+    private readonly Dictionary<string, SystemSnapshot> _snapshotsByMachine = new(StringComparer.OrdinalIgnoreCase);
 
-    public FleetViewModel(ISnapshotStore? store, ICommand? exportFleetCsvCommand = null)
+    public FleetViewModel(
+        ISnapshotStore? store,
+        ICommand? exportFleetCsvCommand = null,
+        Func<FleetMachineRow, SystemSnapshot, Task>? exportMachineCsv = null)
     {
         _store = store;
+        _exportMachineCsv = exportMachineCsv;
         ExportFleetCsvCommand = exportFleetCsvCommand;
+        ExportMachineCsvCommand = new AsyncRelayCommand<FleetRowViewModel>(ExportMachineCsvAsync);
         _ = LoadAsync();
     }
 
@@ -38,6 +47,13 @@ public sealed partial class FleetViewModel : ViewModelBase
     /// caller supplied one.
     /// </summary>
     public ICommand? ExportFleetCsvCommand { get; }
+
+    /// <summary>
+    /// One machine's latest scan as its own CSV, invoked from the Export
+    /// button on that machine's row. The snapshot comes from the map this
+    /// page built while loading; the row alone cannot identify it.
+    /// </summary>
+    public IAsyncRelayCommand<FleetRowViewModel> ExportMachineCsvCommand { get; }
 
     /// <summary>The rows currently shown on the page, for the CSV export command.</summary>
     public IReadOnlyList<FleetMachineRow>? CurrentRows { get; private set; }
@@ -65,10 +81,15 @@ public sealed partial class FleetViewModel : ViewModelBase
         {
             var latest = await _store.GetLatestPerMachineAsync();
             var inputs = new List<FleetMachineInput>();
+            _snapshotsByMachine.Clear();
             foreach (var summary in latest)
             {
                 var snapshot = await _store.GetSnapshotAsync(summary.Id);
                 inputs.Add(new FleetMachineInput(summary, snapshot));
+                if (snapshot is not null)
+                {
+                    _snapshotsByMachine[summary.MachineName] = snapshot;
+                }
             }
 
             var rows = FleetSummary.Build(inputs);
@@ -76,7 +97,7 @@ public sealed partial class FleetViewModel : ViewModelBase
             Rows.Clear();
             foreach (var row in rows)
             {
-                Rows.Add(new FleetRowViewModel(row));
+                Rows.Add(new FleetRowViewModel(row, ExportMachineCsvCommand));
             }
 
             HasFleet = rows.Count > 0;
@@ -100,5 +121,27 @@ public sealed partial class FleetViewModel : ViewModelBase
             StatusMessage = $"Fleet could not be read: {exception.Message}";
             HasFleet = false;
         }
+    }
+
+    private async Task ExportMachineCsvAsync(FleetRowViewModel? rowViewModel)
+    {
+        if (rowViewModel is null)
+        {
+            return;
+        }
+
+        if (_exportMachineCsv is null)
+        {
+            StatusMessage = "Machine export is unavailable.";
+            return;
+        }
+
+        if (!_snapshotsByMachine.TryGetValue(rowViewModel.MachineName, out var snapshot) || snapshot is null)
+        {
+            StatusMessage = $"Machine export failed: no saved scan was found for {rowViewModel.MachineName}.";
+            return;
+        }
+
+        await _exportMachineCsv(rowViewModel.Row, snapshot);
     }
 }

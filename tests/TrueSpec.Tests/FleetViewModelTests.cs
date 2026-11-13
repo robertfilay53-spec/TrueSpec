@@ -1,4 +1,6 @@
 using TrueSpec.App.ViewModels;
+using TrueSpec.Core.History;
+using TrueSpec.Core.Models;
 using TrueSpec.Core.Storage;
 
 namespace TrueSpec.Tests;
@@ -128,5 +130,89 @@ public class FleetViewModelTests
 
         Assert.False(viewModel.HasFleet);
         Assert.Contains("unavailable", viewModel.StatusMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExportMachineCsvCommand_CallsExportWithRowAndSnapshot()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("SHOP-PC-GOOD", 92d, "8%", baseTime),
+                ("SHOP-PC-BAD", 55d, "45%", baseTime.AddHours(1)));
+
+            var calls = new List<(FleetMachineRow Row, SystemSnapshot Snapshot)>();
+            var viewModel = new FleetViewModel(
+                store,
+                exportMachineCsv: (row, snapshot) =>
+                {
+                    calls.Add((row, snapshot));
+                    return Task.CompletedTask;
+                });
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (!viewModel.HasFleet && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.True(viewModel.HasFleet, "Fleet never loaded from the store.");
+            Assert.Equal(2, viewModel.Rows.Count);
+
+            // The row button exports that one machine: the lowest-score
+            // row first, with its own saved snapshot attached.
+            await viewModel.ExportMachineCsvCommand.ExecuteAsync(viewModel.Rows[0]);
+
+            var call = Assert.Single(calls);
+            Assert.Equal("SHOP-PC-BAD", call.Row.MachineName);
+            Assert.Equal("SHOP-PC-BAD", call.Snapshot.MachineName);
+            Assert.Equal(55d, call.Row.LatestScore);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ExportMachineCsvCommand_WithoutExportFunc_ReportsUnavailable()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("SHOP-PC-01", 80d, "10%", baseTime));
+
+            var viewModel = new FleetViewModel(store);
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (!viewModel.HasFleet && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.True(viewModel.HasFleet, "Fleet never loaded from the store.");
+
+            await viewModel.ExportMachineCsvCommand.ExecuteAsync(viewModel.Rows[0]);
+
+            Assert.Equal("Machine export is unavailable.", viewModel.StatusMessage);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
     }
 }
