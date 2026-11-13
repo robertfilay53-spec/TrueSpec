@@ -100,8 +100,44 @@ public sealed class LanguagePackTests
         Assert.Equal("{0} Plug-ins gefunden.", german[AppStringKeys.PluginsSummaryMany]);
         Assert.Equal("Datenschutz", german[AppStringKeys.PrivacyTitle]);
         Assert.Equal(
-            "Navigation und Einstellungen sind übersetzt. Andere Detailseiten sind noch auf Englisch und folgen in späteren Versionen.",
+            "Navigation, Einstellungen und Komponentendetailseiten sind übersetzt. Andere Seiten sind noch auf Englisch und folgen in späteren Versionen.",
             german[AppStringKeys.LanguageNote]);
+    }
+
+    [Fact]
+    public void GermanPack_DetailPageTerms()
+    {
+        // Localisation, phase 4 (v2.1.10): the shared component detail
+        // view — one surface, all 15 component pages. Same pinning rule
+        // as the rail, Settings and Core terms: changing one is a
+        // deliberate translation decision, not a typo fix. The data the
+        // page shows (names, headlines, spec labels and values) is not
+        // in this catalogue; only the page chrome is.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("Spezifikationen", german[AppStringKeys.DetailSpecificationsTitle]);
+        Assert.Equal("Spezifikationen durchsuchen", german[AppStringKeys.DetailSearchPlaceholder]);
+        Assert.Equal(
+            "Klicken Sie auf einen Wert, um ihn zu kopieren. Bewegen Sie die Maus über einen Wert oder Quellennamen, um zu sehen, woher der Messwert stammt.",
+            german[AppStringKeys.DetailCopyHint]);
+        Assert.Equal("Alterssignale", german[AppStringKeys.DetailAgeSignalsTitle]);
+        Assert.Equal(
+            "Die Rohwerte hinter dem Echtheitsurteil. Jedes Signal nennt seine Quelle.",
+            german[AppStringKeys.DetailAgeSignalsIntro]);
+        Assert.Equal("Was das bedeutet", german[AppStringKeys.DetailWhatThisMeansTitle]);
+        Assert.Equal("Nicht erfasst", german[AppStringKeys.DetailNotCollectedHeadline]);
+        Assert.Equal("Diese Komponente wurde noch nicht erfasst.", german[AppStringKeys.DetailNotCollectedText]);
+        Assert.Equal("Messwert erfasst {0}", german[AppStringKeys.DetailCaptured]);
+        Assert.Equal("Für diese Komponente wurden keine Spezifikationen erfasst.", german[AppStringKeys.DetailNoSpecs]);
+        Assert.Equal(
+            "Keine Spezifikationen passen zu „{0}\". Leeren Sie die Suche, um alle zu sehen.",
+            german[AppStringKeys.DetailNoSpecsMatch]);
+        Assert.Equal(
+            "{0} Echtheitsprüfung(en) konnte(n) nicht ausgeführt werden, weil ein Signal nicht gemeldet wurde.",
+            german[AppStringKeys.DetailAgeSignalsSkipped]);
+        Assert.Equal(
+            "Nicht vertrauenswürdig: Eine andere Prüfung hat bewiesen, dass dieses Datum unmöglich ist.",
+            german[AppStringKeys.DetailSignalUntrusted]);
+        Assert.Equal(" (geschätzt)", german[AppStringKeys.DetailEstimateSuffix]);
     }
 
     [Fact]

@@ -149,15 +149,15 @@ Audit before every release:
 dotnet list package --vulnerable --include-transitive
 ```
 
-As of the last audit (Nov 13, 2026, TrueSpec v2.1.8, .NET 10):
+As of the last audit (Nov 13, 2026, TrueSpec v2.1.9, .NET 10):
 **no vulnerable packages** in any project, including transitive
 dependencies. The audit was run with
 `dotnet list package --vulnerable --include-transitive` on all four
 projects (TrueSpec.App, TrueSpec.Core, TrueSpec.Collectors.Windows,
-TrueSpec.Tests). No package version changed between v2.1.7 and v2.1.8
-(verified: `git diff 233fbf0 1188692 -- '*csproj'` shows only the
-`<Version>` bump), so the v2.1.7 audit result carries forward
-and was re-run for v2.1.8. The build itself now
+TrueSpec.Tests). No package version changed between v2.1.8 and v2.1.9
+(verified: `git diff 1188692 a0b0326 -- '*csproj'` shows only the
+`<Version>` bump), so the v2.1.8 audit result carries forward
+and was re-run for v2.1.9. The build itself now
 fails on a vulnerable package (NuGetAuditMode=all in
 Directory.Build.props, with TreatWarningsAsErrors), and the CI
 "Check for vulnerable packages" step fails the job when the scan

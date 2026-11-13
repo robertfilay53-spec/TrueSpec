@@ -227,7 +227,8 @@ public sealed partial class SettingsViewModel : ViewModelBase
     /// navigation rail right away (through <see cref="Save"/> and the
     /// main view model's settings apply), and re-renders this page in
     /// the new language (v2.1.8 translates the whole Settings page).
-    /// Other detail pages follow in later versions.
+    /// Component detail pages re-render too (v2.1.10); the remaining
+    /// pages follow in later versions.
     /// </summary>
     [ObservableProperty]
     public partial string LanguageCode { get; set; } = LanguagePacks.EnglishCode;
