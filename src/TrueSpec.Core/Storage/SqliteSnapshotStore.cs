@@ -262,6 +262,31 @@ public sealed class SqliteSnapshotStore : ISnapshotStore
         return await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task<int> DeleteSnapshotAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("Snapshot id must not be empty.", nameof(id));
+        }
+
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        // Parameterized, exact match on the stored id (stored as a
+        // canonical "D" Guid string, see SaveAsync): the row deleted is
+        // exactly the scan the History table shows for that id, never
+        // another scan of the same machine. The returned count is the
+        // store's own deleted-row count, so the caller can state what
+        // happened. An empty id is never a real scan id, so it is
+        // rejected instead of silently matching nothing.
+        command.CommandText = "DELETE FROM snapshots WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", id.ToString("D"));
+        return await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public async Task<SystemSnapshot?> GetSnapshotAsync(
         Guid id,
         CancellationToken cancellationToken = default)

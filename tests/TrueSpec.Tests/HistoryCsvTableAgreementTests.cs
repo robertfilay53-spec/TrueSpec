@@ -29,12 +29,16 @@ public class HistoryCsvTableAgreementTests
         for (var i = 0; i < trend.ScorePoints.Count; i++)
         {
             var row = new HistoryRowViewModel(
+                trend.SnapshotIds[i],
                 trend.ScorePoints[i].CapturedAt,
                 trend.ScorePoints[i].Value,
                 trend.BatteryHealthPoints[i].Value,
                 trend.BatteryCyclePoints[i].Value,
                 trend.StorageWearPoints[i].Value,
                 trend.StoragePowerOnHoursPoints[i].Value);
+            // The row names the scan it shows: the id at the same index
+            // as the point is the scan that point came from.
+            Assert.Equal(trend.SnapshotIds[i], row.Id);
             var expected = string.Join(",", new[]
             {
                 row.CapturedAt.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture),

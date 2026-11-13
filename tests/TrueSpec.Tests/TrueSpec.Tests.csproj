@@ -59,6 +59,7 @@
     <Compile Remove="HistoryForecastViewModelTests.cs" />
     <Compile Remove="HistoryValueComparisonViewModelTests.cs" />
     <Compile Remove="HistorySensorLogViewModelTests.cs" />
+    <Compile Remove="HistoryRemoveScanViewModelTests.cs" />
     <Compile Remove="LoadTestViewModelTests.cs" />
     <Compile Remove="SensorAlertViewModelTests.cs" />
     <Compile Remove="AdminNoticeViewModelTests.cs" />

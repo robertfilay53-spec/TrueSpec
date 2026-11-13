@@ -33,6 +33,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
     private int _loadGeneration;
     private string? _displayedMachine;
     private bool _suppressSelectionReload;
+    private bool _removing;
     private string? _sensorLogPath;
     private bool _sensorLoggingEnabled;
     private double? _cpuTemperatureThresholdC;
@@ -52,6 +53,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
         _store = store;
         _current = current;
         ExportHistoryCsvCommand = exportHistoryCsvCommand;
+        RemoveScanCommand = new AsyncRelayCommand<HistoryRowViewModel>(RemoveScanAsync);
         _sensorLogPath = sensorLogPath;
         _sensorLoggingEnabled = sensorLoggingEnabled;
         _cpuTemperatureThresholdC = cpuTemperatureThresholdC;
@@ -67,6 +69,16 @@ public sealed partial class HistoryViewModel : ViewModelBase
     /// export folder via HistoryCsvExporter. Null when no caller supplied one.
     /// </summary>
     public ICommand? ExportHistoryCsvCommand { get; }
+
+    /// <summary>
+    /// Deletes one saved scan, invoked from the Remove button on that
+    /// scan's row. Two clicks by design (see
+    /// <see cref="RemoveScanAsync"/>): the app has no modal confirm
+    /// dialog, so the first click arms the row and only the second
+    /// deletes. The row identifies the scan by its snapshot id, so the
+    /// delete can never touch another scan of the same machine.
+    /// </summary>
+    public IAsyncRelayCommand<HistoryRowViewModel> RemoveScanCommand { get; }
 
     /// <summary>The trend currently shown on the page, for the CSV export command.</summary>
     public HistoryTrend? CurrentTrend { get; private set; }
@@ -542,12 +554,14 @@ public sealed partial class HistoryViewModel : ViewModelBase
             for (var i = 0; i < trend.ScorePoints.Count; i++)
             {
                 Rows.Add(new HistoryRowViewModel(
+                    trend.SnapshotIds[i],
                     trend.ScorePoints[i].CapturedAt,
                     trend.ScorePoints[i].Value,
                     trend.BatteryHealthPoints[i].Value,
                     trend.BatteryCyclePoints[i].Value,
                     trend.StorageWearPoints[i].Value,
-                    trend.StoragePowerOnHoursPoints[i].Value));
+                    trend.StoragePowerOnHoursPoints[i].Value,
+                    RemoveScanCommand));
             }
 
             HasHistory = true;
@@ -570,6 +584,68 @@ public sealed partial class HistoryViewModel : ViewModelBase
                 IsMachinePickerEnabled = true;
                 UpdateCompareState();
             }
+        }
+    }
+
+    /// <summary>
+    /// Deletes one saved scan from the History table. Two clicks by
+    /// design: the app has no modal confirm dialog, so the first click
+    /// arms the row (the button reads "Confirm remove" and the status
+    /// line names the scan date) and only the second click deletes.
+    /// The store deletes by the row's snapshot id, so the delete can
+    /// never touch another scan of the same machine; the status line
+    /// states the store's own deleted-row count, including 0 when the
+    /// scan was already gone. The trend reloads afterwards, so the
+    /// table, the chart and the CSV export all agree on what remains.
+    /// Deleting touches only TrueSpec's own history file, never the
+    /// machine itself.
+    /// </summary>
+    private async Task RemoveScanAsync(HistoryRowViewModel? rowViewModel)
+    {
+        if (rowViewModel is null || _removing)
+        {
+            return;
+        }
+
+        if (_store is null)
+        {
+            StatusMessage = "Remove is unavailable: snapshot history is unavailable on this machine.";
+            return;
+        }
+
+        var scanDate = rowViewModel.CapturedAt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+        if (!rowViewModel.IsRemoveArmed)
+        {
+            rowViewModel.IsRemoveArmed = true;
+            StatusMessage = string.Create(
+                CultureInfo.InvariantCulture,
+                $"Remove the scan from {scanDate}? This deletes that one saved scan from this data folder. Click 'Confirm remove' to delete — nothing is deleted until then.");
+            return;
+        }
+
+        _removing = true;
+        try
+        {
+            var removed = await _store.DeleteSnapshotAsync(rowViewModel.Id);
+            await LoadTrendForMachineAsync(_displayedMachine ?? _current.MachineName);
+            if (!StatusMessage.StartsWith("History could not be read", StringComparison.Ordinal))
+            {
+                StatusMessage = removed == 0
+                    ? "Nothing to remove: that scan was already gone."
+                    : CurrentTrend is null || CurrentTrend.SnapshotCount == 0
+                        ? string.Create(CultureInfo.InvariantCulture, $"Removed the scan from {scanDate}. No saved scans remain.")
+                        : string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"Removed the scan from {scanDate}. {CurrentTrend.SnapshotCount} scan{(CurrentTrend.SnapshotCount == 1 ? string.Empty : "s")} remain{(CurrentTrend.SnapshotCount == 1 ? "s" : string.Empty)}.");
+            }
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"Remove failed: {exception.Message}";
+        }
+        finally
+        {
+            _removing = false;
         }
     }
 
@@ -836,16 +912,28 @@ public sealed partial class HistoryViewModel : ViewModelBase
     }
 }
 
-public sealed class HistoryRowViewModel
+/// <summary>
+/// One row of the History table, pre-formatted for the view. The text
+/// matches the history CSV export exactly, so the file and the table
+/// agree. The row also carries its snapshot id and the remove command,
+/// so the Remove button on the row can delete exactly that one scan:
+/// the id comes from the trend's <c>SnapshotIds</c>, in the same order
+/// as the points, so the row and its scan can never drift apart.
+/// </summary>
+public sealed partial class HistoryRowViewModel : ViewModelBase
 {
     public HistoryRowViewModel(
+        Guid id,
         DateTimeOffset capturedAt,
         double? score,
         double? batteryHealth,
         double? batteryCycles,
         double? storageWear,
-        double? storagePowerOnHours)
+        double? storagePowerOnHours,
+        ICommand? removeScanCommand = null)
     {
+        Id = id;
+        RemoveScanCommand = removeScanCommand;
         CapturedAt = capturedAt;
         ScoreText = score is null ? "Not measurable" : score.Value.ToString("0.#", CultureInfo.InvariantCulture);
         BatteryHealthText = batteryHealth is null
@@ -862,6 +950,12 @@ public sealed class HistoryRowViewModel
             : storagePowerOnHours.Value.ToString("0", CultureInfo.InvariantCulture);
     }
 
+    /// <summary>The id of the saved snapshot this row shows. The remove command deletes this id, and no other scan.</summary>
+    public Guid Id { get; }
+
+    /// <summary>The per-scan remove command, supplied by the History page. Null when no caller supplied one.</summary>
+    public ICommand? RemoveScanCommand { get; }
+
     public DateTimeOffset CapturedAt { get; }
 
     public string ScoreText { get; }
@@ -873,6 +967,21 @@ public sealed class HistoryRowViewModel
     public string StorageWearText { get; }
 
     public string StorageHoursText { get; }
+
+    /// <summary>
+    /// True after the first click on Remove: the button reads "Confirm
+    /// remove" until the second click deletes the scan. The app has no
+    /// modal confirm dialog, so the two-step button IS the
+    /// confirmation — a single misclick can never delete a scan. The
+    /// flag resets whenever the trend reloads, which rebuilds the rows.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsRemoveArmed { get; set; }
+
+    /// <summary>"Remove" normally, "Confirm remove" once armed.</summary>
+    public string RemoveButtonText => IsRemoveArmed ? "Confirm remove" : "Remove";
+
+    partial void OnIsRemoveArmedChanged(bool value) => OnPropertyChanged(nameof(RemoveButtonText));
 }
 
 /// <summary>One facts-only row of the two-machine side-by-side table. No verdict.</summary>
