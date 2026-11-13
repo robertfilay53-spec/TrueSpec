@@ -12,7 +12,7 @@
             <StackPanel Spacing="6">
                 <TextBlock Text="FLEET" Classes="eyebrow" />
                 <TextBlock Text="Every machine in this data folder" Classes="h1" />
-                <TextBlock Text="Technician mode: carry the portable app on a USB stick, scan each machine, and every scan lands in the same store on the stick. This page lists each machine's latest scan, lowest score first, with the worst component named, so the machine that needs attention is at the top. Machines scanned with the installed app can be brought in with Import JSON reports, which reads the JSON files the Report page exports. To take a machine out of the fleet, use Remove on its row — it deletes all of that machine's saved scans from this data folder, in two clicks so a misclick cannot delete anything."
+                <TextBlock Text="Technician mode: carry the portable app on a USB stick, scan each machine, and every scan lands in the same store on the stick. This page lists each machine's latest scan, lowest score first, with the worst component named, so the machine that needs attention is at the top. Machines scanned with the installed app can be brought in with Import JSON reports, which reads the JSON files the Report page exports. Export all machines writes one CSV per machine into the export folder, so the whole fleet can be filed at once instead of one Export click per row. To take a machine out of the fleet, use Remove on its row — it deletes all of that machine's saved scans from this data folder, in two clicks so a misclick cannot delete anything."
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
@@ -36,9 +36,14 @@
 
             <Border Classes="card" Padding="18" IsVisible="{Binding HasFleet}">
                 <StackPanel Spacing="10">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14">
                         <TextBlock Text="Machines" Classes="h3" VerticalAlignment="Center" />
                         <Button Grid.Column="1"
+                                Classes="secondary"
+                                Content="Export all machines"
+                                Command="{Binding ExportAllMachinesCommand}"
+                                IsEnabled="{Binding HasFleet}" />
+                        <Button Grid.Column="2"
                                 Classes="secondary"
                                 Content="Export fleet as CSV"
                                 Command="{Binding ExportFleetCsvCommand}"

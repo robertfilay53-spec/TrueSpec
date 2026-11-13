@@ -510,7 +510,7 @@ data already existed; only the band rule and wording are new.
   changes in `git diff 38dc7d4 a31d021 -- '*csproj'`), so the result
   carries forward.
 
-## v2.1.3 — in progress
+## v2.1.3 — shipped
 
 - **History: delete one saved scan.** The fleet could remove a whole
   machine (v2.1.2), but the History table could not remove a single
@@ -542,6 +542,50 @@ data already existed; only the band rule and wording are new.
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.1.1 and v2.1.2 (zero `PackageReference`
   changes in `git diff a31d021 0e6a153 -- '*csproj'`), so the result
+  carries forward.
+
+## v2.1.4 — in progress
+
+- **Technician mode: export all machines.** The fleet could export
+  the whole table as one CSV, or one machine at a time from its row,
+  but a technician with a dozen machines clicked Export a dozen
+  times. The Machines card now has an "Export all machines" button.
+  App: `ExportOrchestrator.ExportAllMachinesCsvAsync` writes one CSV
+  per machine into the export folder, each written exactly like the
+  per-row export (same `MachineCsvExporter`, same file-name rule), so
+  the files agree with the table row for row; the result record names
+  the folder, the paths written, and every machine skipped with a
+  plain-English reason. A machine whose latest scan cannot be read,
+  or has no score, is skipped, never exported with invented numbers,
+  and a write failure for one machine never stops the rest. File
+  names go through `SafeReportFileName`, and a name that already
+  exists in the folder (two machines whose names sanitise
+  identically, exported in the same second) gets a -2, -3 suffix
+  instead of overwriting the first file. `FleetViewModel.
+  ExportAllMachinesCommand` has the same reentrancy guard as the
+  other commands, reports "Export all is unavailable." with no
+  delegate wired up, and renders the status line from the result:
+  how many machines were exported, the folder, and any machine
+  skipped by name with its reason. `MainViewModel` raises the same
+  unmissable export confirmation as the other exports — the banner
+  names the folder and the count, and "Open folder" opens the folder
+  the files landed in — with no banner when nothing was exported.
+  Tests: `ExportAllMachinesTests` (one CSV per machine with contents
+  agreeing with `MachineCsvExporter.Build`, no-score machine skipped
+  and the rest still export, missing snapshot skipped, same-second
+  name collision keeps both files, a second run never overwrites the
+  first, empty fleet exports nothing and creates no folder, export
+  folder as an existing file throws) and `FleetViewModelTests`
+  (delegate called once with the loaded rows and the snapshot map, no
+  delegate reports unavailable, empty fleet never calls the delegate,
+  partial export names the skipped machine and its reason, second
+  click while running does nothing).
+- **Dependency audit re-attested for v2.1.3.** `SECURITY.md` said
+  v2.1.2; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.2 and v2.1.3 (zero `PackageReference`
+  changes in `git diff 0e6a153 a31402b -- '*csproj'`), so the result
   carries forward.
 
 ## Rejected

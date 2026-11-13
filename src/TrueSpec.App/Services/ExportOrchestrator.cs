@@ -167,6 +167,90 @@ public sealed class ExportOrchestrator
         }
     }
 
+    /// <summary>
+    /// Exports every machine in the fleet as its own CSV (v2.1.4,
+    /// Technician mode: "Export all machines"): one file per machine in
+    /// the export folder, each written exactly like the per-row export,
+    /// so the files agree with the table row for row. A machine whose
+    /// latest scan cannot be read, or has no score, is skipped with a
+    /// plain-English reason, and a write failure for one machine never
+    /// stops the rest. File names go through SafeReportFileName, and a
+    /// name that already exists in the folder (two machines whose names
+    /// sanitise identically, exported in the same second) gets a -2, -3
+    /// suffix instead of overwriting the first file. Returns the outcome;
+    /// the caller renders the status line.
+    /// </summary>
+    public async Task<ExportAllMachinesResult> ExportAllMachinesCsvAsync(
+        IReadOnlyList<FleetMachineRow>? rows,
+        IReadOnlyDictionary<string, SystemSnapshot>? snapshotsByMachine)
+    {
+        var folder = _exportFolder();
+        var exported = new List<string>();
+        var skipped = new List<(string MachineName, string Reason)>();
+        if (rows is null || rows.Count == 0)
+        {
+            return new ExportAllMachinesResult(folder, exported, skipped);
+        }
+
+        Directory.CreateDirectory(folder);
+        foreach (var row in rows)
+        {
+            if (snapshotsByMachine is null ||
+                !snapshotsByMachine.TryGetValue(row.MachineName, out var snapshot) ||
+                snapshot is null)
+            {
+                skipped.Add((row.MachineName, "no saved scan was found"));
+                continue;
+            }
+
+            if (snapshot.Score is null)
+            {
+                skipped.Add((row.MachineName, "the latest scan has no score to export"));
+                continue;
+            }
+
+            try
+            {
+                var fileName = PathSafety.SafeReportFileName($"TrueSpec-machine-{row.MachineName}", "csv", DateTime.Now);
+                var path = UniquePath(folder, fileName);
+                await using var stream = File.Create(path);
+                await new MachineCsvExporter().ExportAsync(row, snapshot.Score, stream);
+                exported.Add(path);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                skipped.Add((row.MachineName, $"could not be written ({exception.Message})"));
+            }
+        }
+
+        return new ExportAllMachinesResult(folder, exported, skipped);
+    }
+
+    /// <summary>
+    /// A file name that already exists in the folder gets a -2, -3 suffix
+    /// before the extension instead of overwriting the file already there:
+    /// two machines whose names sanitise to the same file name, exported
+    /// in the same second, must each keep their own CSV.
+    /// </summary>
+    private static string UniquePath(string folder, string fileName)
+    {
+        var path = Path.Combine(folder, fileName);
+        if (!File.Exists(path))
+        {
+            return path;
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(fileName);
+        var extension = Path.GetExtension(fileName);
+        var suffix = 2;
+        while (File.Exists(path = Path.Combine(folder, $"{stem}-{suffix}{extension}")))
+        {
+            suffix++;
+        }
+
+        return path;
+    }
+
     /// <summary>Exports the buyer checklist for the current snapshot as HTML.</summary>
     public async Task ExportChecklistAsync()
     {
