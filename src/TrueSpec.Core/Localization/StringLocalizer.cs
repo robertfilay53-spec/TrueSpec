@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace TrueSpec.Core.Localization;
 
 /// <summary>
@@ -41,5 +43,47 @@ public static class StringLocalizer
         }
 
         return key;
+    }
+
+    /// <summary>
+    /// Resolves a template key for a language and fills its placeholders
+    /// ({0}, {1}) with <paramref name="args"/>. Numbers are formatted
+    /// with the invariant culture, never the thread culture, so a
+    /// translated sentence can never change how a number looks: the
+    /// placeholder order is part of the translation, the number format
+    /// is not. A template that cannot be formatted (a bad placeholder,
+    /// a missing argument) returns unformatted instead of throwing, so
+    /// a broken translation shows its template rather than crashing
+    /// the page. An unknown key returns the key itself, like
+    /// <see cref="Get(string?, string?)"/>.
+    /// </summary>
+    public static string GetFormatted(string? key, string? languageCode, params object?[] args)
+    {
+        var template = Get(key, languageCode);
+        return FormatTemplate(template, args);
+    }
+
+    /// <summary>Resolves a template for an explicit pack and fills its placeholders (see above).</summary>
+    public static string GetFormatted(string? key, LanguagePack? pack, params object?[] args)
+    {
+        var template = Get(key, pack);
+        return FormatTemplate(template, args);
+    }
+
+    private static string FormatTemplate(string template, object?[] args)
+    {
+        if (string.IsNullOrEmpty(template) || args.Length == 0)
+        {
+            return template;
+        }
+
+        try
+        {
+            return string.Format(CultureInfo.InvariantCulture, template, args);
+        }
+        catch (FormatException)
+        {
+            return template;
+        }
     }
 }

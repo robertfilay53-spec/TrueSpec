@@ -55,7 +55,6 @@
             <converters:BuyerCheckStateToBrushConverter x:Key="CheckBrush" />
             <converters:StringToGeometryConverter x:Key="Geometry" />
             <converters:HealthPercentToTextConverter x:Key="HealthText" />
-            <converters:RefreshSecondsToTextConverter x:Key="RefreshSecondsText" />
             <converters:LanguageCodeToNameConverter x:Key="LanguageCodeToName" />
         </ResourceDictionary>
     </Application.Resources>

@@ -114,7 +114,7 @@ public class SettingsViewModelTests
                 "Wählen Sie die Sprache für die Navigationsleiste. Die Sprache wird sofort angewendet.",
                 settings.LanguageDescriptionText);
             Assert.Equal(
-                "Die Navigation ist übersetzt. Detailseiten sind noch auf Englisch und folgen in späteren Versionen.",
+                "Navigation und Einstellungen sind übersetzt. Andere Detailseiten sind noch auf Englisch und folgen in späteren Versionen.",
                 settings.LanguageNoteText);
 
             var labels = main.NavItems.Select(i => i.Label).ToList();
@@ -436,6 +436,170 @@ public class SettingsViewModelTests
         finally
         {
             Directory.Delete(exeDir, recursive: true);
+        }
+    }
+
+    // Localisation, phase 2 (v2.1.8): the whole Settings page in German.
+    // A shell seeded with German renders every card the page owns; the
+    // only English leftovers are the Core diagnostic strings (the
+    // plug-in list's per-item status/reason and the portable-toggle
+    // result message), pinned here as the documented exception.
+    [Fact]
+    public void Settings_GermanSeed_RendersWholePageInGerman()
+    {
+        var (_, settings, root) = ViewModelWithTempStore(seedLanguage: "de");
+
+        try
+        {
+            Assert.Equal("EINSTELLUNGEN", settings.SettingsEyebrowText);
+            Assert.Equal("Einstellungen", settings.SettingsTitleText);
+            Assert.Equal(
+                "Kleine, ehrliche Einstellungen. Jede Änderung wird sofort gespeichert und angewendet. Nichts hier telefoniert nach Hause.",
+                settings.SettingsIntroText);
+
+            Assert.Equal("Darstellung", settings.AppearanceTitleText);
+            Assert.Equal("Dunkel ist das Standarddesign. Hell ist für helle Räume verfügbar.", settings.AppearanceNoteText);
+            Assert.Equal("Dunkel (Standard)", settings.ThemeText);
+            Assert.Equal("Dunkel", settings.ThemeDarkText);
+            Assert.Equal("Hell", settings.ThemeLightText);
+
+            Assert.Equal("Aktualisierungsrate der Live-Sensoren", settings.RefreshTitleText);
+            Assert.Equal("Wie oft der Live-Sensorstreifen neu liest. Schneller ist lebhafter, langsamer schont die CPU.", settings.RefreshNoteText);
+            Assert.Equal(new[] { "1 Sekunde", "2 Sekunden", "5 Sekunden", "10 Sekunden", "30 Sekunden" },
+                settings.RefreshRateOptions.Select(o => o.Text).ToList());
+            Assert.Equal(new[] { 1, 2, 5, 10, 30 },
+                settings.RefreshRateOptions.Select(o => o.Value).ToList());
+
+            Assert.Equal("Sensorprotokollierung und Warnungen", settings.LoggingTitleText);
+            Assert.Equal("Sensormesswerte aufzeichnen", settings.RecordTitleText);
+            Assert.Equal("Ein", settings.ToggleOnText);
+            Assert.Equal("Aus", settings.ToggleOffText);
+            Assert.Equal("Warnung bei CPU-Temperatur", settings.AlertTitleText);
+            Assert.Equal("Keine Temperaturwarnung eingestellt.", settings.AlertSummaryText);
+            Assert.Equal("Warnung oberhalb (°C)", settings.AlertAboveLabelText);
+            Assert.Equal("Muss darüber bleiben für", settings.AlertDurationLabelText);
+            Assert.Equal(new[] { "15 Sekunden", "30 Sekunden", "60 Sekunden", "120 Sekunden" },
+                settings.ThresholdDurationOptions.Select(o => o.Text).ToList());
+
+            Assert.Equal("Ordner für Berichtsexporte", settings.ExportTitleText);
+            Assert.EndsWith(" (Standard)", settings.ExportFolderText, StringComparison.Ordinal);
+            Assert.Equal("Ordner wählen...", settings.ExportChooseText);
+            Assert.Equal("Auf Standard zurücksetzen", settings.ExportResetText);
+
+            Assert.Equal("Datenspeicherort (tragbarer Modus)", settings.DataLocationTitleText);
+            Assert.Equal("Der tragbare Modus ist aus. Daten werden im Standardordner gespeichert.", settings.PortableModeSummaryText);
+            Assert.Equal("Tragbaren Modus einschalten", settings.PortableModeActionText);
+
+            Assert.Equal("Plug-ins", settings.PluginsTitleText);
+            Assert.Equal("Keine Plug-ins gefunden.", settings.PluginsSummaryText);
+            Assert.Equal("Plug-ins aktualisieren", settings.PluginsRefreshText);
+
+            Assert.Equal("Datenschutz", settings.PrivacyTitleText);
+            Assert.Contains("keine Telemetrie", settings.PrivacyText, StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Settings_PickingGerman_RerendersWholePageAndBack()
+    {
+        var (_, settings, root) = ViewModelWithTempStore();
+
+        try
+        {
+            Assert.Equal("Settings", settings.SettingsTitleText);
+            Assert.Equal("Dark (default)", settings.ThemeText);
+            Assert.Contains("5 seconds", settings.RefreshRateOptions.Select(o => o.Text));
+
+            settings.LanguageCode = "de";
+
+            Assert.Equal("Einstellungen", settings.SettingsTitleText);
+            Assert.Equal("Dunkel (Standard)", settings.ThemeText);
+            Assert.Contains("5 Sekunden", settings.RefreshRateOptions.Select(o => o.Text));
+            Assert.Equal("Keine Temperaturwarnung eingestellt.", settings.AlertSummaryText);
+            Assert.Equal("Keine Plug-ins gefunden.", settings.PluginsSummaryText);
+
+            settings.LanguageCode = "en";
+
+            Assert.Equal("Settings", settings.SettingsTitleText);
+            Assert.Equal("Dark (default)", settings.ThemeText);
+            Assert.Contains("5 seconds", settings.RefreshRateOptions.Select(o => o.Text));
+            Assert.Equal("No temperature alert set.", settings.AlertSummaryText);
+            Assert.Equal("No plug-ins found.", settings.PluginsSummaryText);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Settings_German_AlertSummaryShowsNumbers()
+    {
+        var (_, settings, root) = ViewModelWithTempStore(seedLanguage: "de");
+
+        try
+        {
+            settings.CpuTemperatureThresholdText = "90";
+            settings.CpuTemperatureThresholdSeconds = 30;
+            settings.CpuTemperatureAlertEnabled = true;
+
+            // Numbers keep the app's formatting inside the German
+            // sentence: 90 stays "90", never "90,0".
+            Assert.Equal(
+                "Warnung, wenn die CPU-Temperatur 90 °C für 30 Sekunden erreicht.",
+                settings.AlertSummaryText);
+
+            settings.CpuTemperatureThresholdText = "abc";
+            Assert.Equal(
+                "Geben Sie eine Temperatur zwischen 30 und 120 °C ein.",
+                settings.ThresholdMessage);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Settings_German_PluginsSummaryCountsAndCoreStringsStayEnglish()
+    {
+        // Manual setup: the store is seeded German, and the marker file
+        // makes the temp dir the data folder, so the plug-ins folder
+        // under it is hermetic (same pattern as the v2.1.5 tests).
+        var root = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, AppDataRoot.PortableMarkerFileName), string.Empty);
+        AddPlugin(root, "gpuz", ValidManifestJson);
+
+        try
+        {
+            var store = new AppSettingsStore(Path.Combine(root, "settings.json"));
+            Assert.True(store.Save(new AppSettings { LanguageCode = "de" }));
+            var main = new MainViewModel(
+                Array.Empty<ICollector>(),
+                new UnavailableSensorMonitor(),
+                new BuyerCheckEvaluator(),
+                store,
+                new ShellExportFileOpener());
+            var settings = new SettingsViewModel(main, exeDirectory: root);
+
+            Assert.Equal("1 Plug-in gefunden.", settings.PluginsSummaryText);
+            var plugin = Assert.Single(settings.DiscoveredPlugins);
+            // The per-item status/reason are Core diagnostic strings
+            // (PluginDiscovery): they stay English in this version.
+            Assert.Equal("Ready — not loaded yet", plugin.StatusText);
+
+            AddPlugin(root, "gpuz2", ValidManifestJson.Replace("com.example.gpuz", "com.example.gpuz2"));
+            settings.RefreshPluginsCommand.Execute(null);
+            Assert.Equal("2 Plug-ins gefunden.", settings.PluginsSummaryText);
+        }
+        finally
+        {
+            DeleteTree(root);
         }
     }
 
