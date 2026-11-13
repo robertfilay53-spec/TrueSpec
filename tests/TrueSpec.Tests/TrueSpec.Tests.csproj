@@ -89,6 +89,7 @@
     <Compile Remove="ReportViewModelTests.cs" />
     <Compile Remove="DriverAgeRuleTests.cs" />
     <Compile Remove="FleetViewModelTests.cs" />
+    <Compile Remove="SettingsViewModelTests.cs" />
   </ItemGroup>
 
 </Project>

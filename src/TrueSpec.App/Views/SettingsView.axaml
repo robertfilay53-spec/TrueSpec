@@ -145,6 +145,29 @@
             </Border>
 
             <Border Classes="card" Padding="18">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Data location (portable mode)" Classes="h3" />
+                    <TextBlock Text="{Binding PortableModeSummaryText}"
+                               Classes="muted"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding DataFolderText}"
+                               Classes="muted"
+                               TextWrapping="Wrap" />
+                    <Button Classes="secondary"
+                            Content="{Binding PortableModeActionText}"
+                            Command="{Binding TogglePortableModeCommand}" />
+                    <TextBlock Text="{Binding PortableModeMessage}"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Classes="muted" />
+                    <TextBlock Text="Takes effect after a restart. Scans already saved stay in the folder they were saved in; only new scans go to the new location."
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
                     <StackPanel Spacing="4" VerticalAlignment="Center">
                         <TextBlock Text="Language" Classes="h3" />

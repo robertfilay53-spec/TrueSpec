@@ -58,6 +58,22 @@ public class PortablePublishProfileTests
     }
 
     [Fact]
+    public void PortableProfile_WritesPortableMarkerIntoPublishFolder()
+    {
+        var profile = File.ReadAllText(RepoFile(
+            "src", "TrueSpec.App", "Properties", "PublishProfiles", "win-x64-portable.pubxml"));
+
+        // The buyer kit must work out of the box: the publish folder
+        // carries the marker, so copying the folder to a stick is enough.
+        // The marker is written by a Publish target into the publish
+        // folder only, never into the repo, and only this profile does
+        // it (the installer profile must never ship a marker).
+        Assert.Contains("WritePortableMarker", profile, StringComparison.Ordinal);
+        Assert.Contains("AfterTargets=\"Publish\"", profile, StringComparison.Ordinal);
+        Assert.Contains("TrueSpec.portable", profile, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Readme_DocumentsThePortableBuyerKit()
     {
         var readme = File.ReadAllText(RepoFile("README.md"));
