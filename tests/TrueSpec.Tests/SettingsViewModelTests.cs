@@ -1,9 +1,11 @@
+using TrueSpec.App.Services;
 using TrueSpec.App.ViewModels;
 using TrueSpec.Core;
 using TrueSpec.Core.Collectors;
 using TrueSpec.Core.Scoring;
 using TrueSpec.Core.Sensors;
 using TrueSpec.Core.Security;
+using TrueSpec.Core.Settings;
 
 namespace TrueSpec.Tests;
 
@@ -30,6 +32,168 @@ public class SettingsViewModelTests
             new UnavailableSensorMonitor(),
             new BuyerCheckEvaluator());
         return new SettingsViewModel(main, exeDirectory: exeDir, environmentValue: environmentValue);
+    }
+
+    /// <summary>
+    /// Localisation, phase 1 (v2.1.7): a shell wired to a temp settings
+    /// store, so a language change is fully isolated — the real settings
+    /// file is never touched. The store is pre-seeded with
+    /// <paramref name="seedLanguage"/> when one is given.
+    /// </summary>
+    private static (MainViewModel Main, SettingsViewModel Settings, string Root) ViewModelWithTempStore(string? seedLanguage = null)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var store = new AppSettingsStore(Path.Combine(root, "settings.json"));
+        if (seedLanguage is not null)
+        {
+            Assert.True(store.Save(new AppSettings { LanguageCode = seedLanguage }));
+        }
+
+        var main = new MainViewModel(
+            Array.Empty<ICollector>(),
+            new UnavailableSensorMonitor(),
+            new BuyerCheckEvaluator(),
+            store,
+            new ShellExportFileOpener());
+        var settings = new SettingsViewModel(main, exeDirectory: root);
+        return (main, settings, root);
+    }
+
+    /// <summary>A fresh shell built from an existing temp store (a restart).</summary>
+    private static (MainViewModel Main, SettingsViewModel Settings) ViewModelFromStore(string root)
+    {
+        var store = new AppSettingsStore(Path.Combine(root, "settings.json"));
+        var main = new MainViewModel(
+            Array.Empty<ICollector>(),
+            new UnavailableSensorMonitor(),
+            new BuyerCheckEvaluator(),
+            store,
+            new ShellExportFileOpener());
+        return (main, new SettingsViewModel(main, exeDirectory: root));
+    }
+
+    private static void DeleteTree(string root)
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Language_DefaultsToEnglish()
+    {
+        var (_, settings, root) = ViewModelWithTempStore();
+
+        try
+        {
+            Assert.Equal("en", settings.LanguageCode);
+            Assert.Equal("English", settings.LanguageText);
+            Assert.Equal(new[] { "en", "de" }, settings.LanguageOptions);
+            Assert.Equal("Language", settings.LanguageTitleText);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Language_PickingGerman_RebuildsRailInGermanAndKeepsThePage()
+    {
+        var (main, settings, root) = ViewModelWithTempStore();
+
+        try
+        {
+            settings.LanguageCode = "de";
+
+            Assert.Equal("Deutsch", settings.LanguageText);
+            Assert.Equal("Sprache", settings.LanguageTitleText);
+            Assert.Equal(
+                "Wählen Sie die Sprache für die Navigationsleiste. Die Sprache wird sofort angewendet.",
+                settings.LanguageDescriptionText);
+            Assert.Equal(
+                "Die Navigation ist übersetzt. Detailseiten sind noch auf Englisch und folgen in späteren Versionen.",
+                settings.LanguageNoteText);
+
+            var labels = main.NavItems.Select(i => i.Label).ToList();
+            Assert.Equal(22, labels.Count);
+            Assert.Contains("Übersicht", labels);
+            Assert.Contains("Einstellungen", labels);
+            Assert.DoesNotContain("Overview", labels);
+
+            // The user stays on the page they were on: the rail rebuild
+            // re-selects by key and never navigates away.
+            Assert.Equal("overview", main.SelectedNavItem?.Key);
+            Assert.IsType<OverviewViewModel>(main.CurrentPage);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Language_PickingGerman_PersistsAcrossRestart()
+    {
+        var (_, settings, root) = ViewModelWithTempStore();
+
+        try
+        {
+            settings.LanguageCode = "de";
+
+            var loaded = new AppSettingsStore(Path.Combine(root, "settings.json")).Load();
+            Assert.Equal("de", loaded.LanguageCode);
+
+            // A fresh shell built from the same store loads the German rail.
+            var (freshMain, _) = ViewModelFromStore(root);
+            Assert.Contains("Übersicht", freshMain.NavItems.Select(i => i.Label));
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Language_GermanStoredBeforeConstruction_LoadsGermanRailWithoutRecursion()
+    {
+        // The guard this pins: picking German fires the language hook
+        // while the Settings page is still being constructed (the hook
+        // saves, the save applies settings, the apply rebuilds the rail,
+        // and the rebuild re-selects — which must never re-enter page
+        // creation, because GetOrCreate caches a page only after its
+        // factory returns). Without the guard this test stack-overflows.
+        var (main, settings, root) = ViewModelWithTempStore(seedLanguage: "de");
+
+        try
+        {
+            Assert.Equal("de", settings.LanguageCode);
+            Assert.Contains("Übersicht", main.NavItems.Select(i => i.Label));
+            Assert.Contains("Einstellungen", main.NavItems.Select(i => i.Label));
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Language_UnknownStoredCode_FallsBackToEnglish()
+    {
+        var (main, settings, root) = ViewModelWithTempStore(seedLanguage: "xx");
+
+        try
+        {
+            Assert.Equal("en", settings.LanguageCode);
+            Assert.Contains("Overview", main.NavItems.Select(i => i.Label));
+            Assert.DoesNotContain("Übersicht", main.NavItems.Select(i => i.Label));
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
     }
 
     [Fact]

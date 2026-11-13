@@ -41,6 +41,64 @@ public class SettingsTests
     }
 
     [Fact]
+    public void Sanitized_LanguageDefaultsToEnglish()
+    {
+        Assert.Equal("en", AppSettings.Default.LanguageCode);
+        Assert.Equal("en", AppSettings.Default.Sanitized().LanguageCode);
+    }
+
+    [Theory]
+    [InlineData("de", "de")]
+    [InlineData("DE", "de")]
+    [InlineData(" de ", "de")]
+    [InlineData("de-DE", "de")]
+    public void Sanitized_NormalizesSupportedLanguageCode(string input, string expected)
+    {
+        var settings = new AppSettings { LanguageCode = input }.Sanitized();
+        Assert.Equal(expected, settings.LanguageCode);
+    }
+
+    [Theory]
+    [InlineData("xx")]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Sanitized_UnknownLanguageFallsBackToEnglish(string input)
+    {
+        var settings = new AppSettings { LanguageCode = input }.Sanitized();
+        Assert.Equal("en", settings.LanguageCode);
+    }
+
+    [Fact]
+    public void Sanitized_NullLanguageFallsBackToEnglish()
+    {
+        var settings = new AppSettings { LanguageCode = null! }.Sanitized();
+        Assert.Equal("en", settings.LanguageCode);
+    }
+
+    [Fact]
+    public void Store_RoundTripsLanguageCode()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(directory, "settings.json");
+
+        try
+        {
+            var store = new AppSettingsStore(path);
+            store.Save(new AppSettings { LanguageCode = "de" });
+
+            var loaded = store.Load();
+            Assert.Equal("de", loaded.LanguageCode);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void Store_RoundTripsSettings()
     {
         var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));

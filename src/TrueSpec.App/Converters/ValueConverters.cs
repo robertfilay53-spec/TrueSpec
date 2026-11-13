@@ -1,7 +1,9 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
+using TrueSpec.Core.Localization;
 using TrueSpec.Core.Models;
 
 namespace TrueSpec.App.Converters;
@@ -107,6 +109,32 @@ public sealed class RefreshSecondsToTextConverter : IValueConverter
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         value is int seconds ? seconds == 1 ? "1 second" : $"{seconds} seconds" : "2 seconds";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// <summary>
+/// Shows a language code as its own display name ("en" as "English",
+/// "de" as "Deutsch"). A code with no pack shows the code itself, never
+/// a blank, so a future pack never renders as an empty picker row.
+/// </summary>
+public sealed class LanguageCodeToNameConverter : IValueConverter
+{
+    public static readonly LanguageCodeToNameConverter Instance = new();
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not string code || string.IsNullOrWhiteSpace(code))
+        {
+            return string.Empty;
+        }
+
+        var normalized = LanguagePacks.Normalize(code);
+        var pack = LanguagePacks.All.FirstOrDefault(
+            p => string.Equals(p.Code, normalized, StringComparison.OrdinalIgnoreCase));
+        return pack?.DisplayName ?? code;
+    }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();

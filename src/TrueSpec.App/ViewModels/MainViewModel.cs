@@ -172,7 +172,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         // and updates the Overview in place when it completes.
         // (The loading snapshot itself is created above, before the
         // ExportOrchestrator, so the exporter's snapshot Func is never null.)
-        NavItems = new ObservableCollection<NavItemViewModel>(NavItemViewModel.CreateDefault());
+        NavItems = new ObservableCollection<NavItemViewModel>(NavItemViewModel.CreateForLanguage(_settings.LanguageCode));
         Overview = CreateOverview(isScanning: true);
 
         LastScanText = "Scanning hardware...";
@@ -447,7 +447,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     partial void OnSelectedNavItemChanged(NavItemViewModel? value)
     {
-        if (value is null)
+        if (value is null || _suppressNavNavigation)
         {
             return;
         }
@@ -472,6 +472,44 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
+    /// Rebuilds the navigation rail for the current language, keeping
+    /// the user on the same page: the selected item is re-selected by
+    /// key (its label changes, its routing does not), and a transient
+    /// page (no selected item) is left alone. Selection is cleared
+    /// first so the rail never briefly points at a removed item.
+    /// Re-selection never navigates: the page is already current, and
+    /// navigating here would re-enter page creation while the Settings
+    /// page itself is still being constructed (GetOrCreate caches a
+    /// page only after its factory returns).
+    /// </summary>
+    private void ApplyLanguage()
+    {
+        var selectedKey = SelectedNavItem?.Key;
+        _suppressNavNavigation = true;
+        try
+        {
+            SelectedNavItem = null;
+            NavItems.Clear();
+            foreach (var item in NavItemViewModel.CreateForLanguage(_settings.LanguageCode))
+            {
+                NavItems.Add(item);
+            }
+
+            if (selectedKey is not null)
+            {
+                SelectedNavItem = NavItems.FirstOrDefault(i => i.Key == selectedKey);
+            }
+        }
+        finally
+        {
+            _suppressNavNavigation = false;
+        }
+    }
+
+    /// <summary>True while the rail is being rebuilt for a language change; re-selection then never navigates.</summary>
+    private bool _suppressNavNavigation;
+
+    /// <summary>
     /// Called by the settings page whenever the user changes a setting.
     /// Saves to disk, applies the theme and the live refresh interval.
     /// </summary>
@@ -480,6 +518,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _settings = settings.Sanitized();
         _settingsStore.Save(_settings);
         IsDarkTheme = _settings.IsDarkTheme;
+        ApplyLanguage();
         Overview.SetRefreshInterval(TimeSpan.FromSeconds(_settings.RefreshIntervalSeconds));
         Overview.ApplySensorSettings(_settings);
         if (_pageCache.TryGetValue("history", out var page) && page is HistoryViewModel history)
