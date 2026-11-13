@@ -70,6 +70,86 @@ public sealed class LanguagePackTests
     }
 
     [Fact]
+    public void GermanPack_SettingsPageTerms()
+    {
+        // Localisation, phase 2 (v2.1.8): the whole Settings page.
+        // Same pinning rule as the rail terms above: changing one is a
+        // deliberate translation decision, not a typo fix.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("EINSTELLUNGEN", german[AppStringKeys.SettingsEyebrow]);
+        Assert.Equal("Einstellungen", german[AppStringKeys.SettingsTitle]);
+        Assert.Equal("Darstellung", german[AppStringKeys.AppearanceTitle]);
+        Assert.Equal("Dunkel (Standard)", german[AppStringKeys.ThemeDarkDefault]);
+        Assert.Equal("Hell", german[AppStringKeys.ThemeLight]);
+        Assert.Equal("Aktualisierungsrate der Live-Sensoren", german[AppStringKeys.RefreshTitle]);
+        Assert.Equal("1 Sekunde", german[AppStringKeys.SecondsOne]);
+        Assert.Equal("{0} Sekunden", german[AppStringKeys.SecondsMany]);
+        Assert.Equal("Sensorprotokollierung und Warnungen", german[AppStringKeys.LoggingTitle]);
+        Assert.Equal("Ein", german[AppStringKeys.ToggleOn]);
+        Assert.Equal("Aus", german[AppStringKeys.ToggleOff]);
+        Assert.Equal("Warnung bei CPU-Temperatur", german[AppStringKeys.AlertTitle]);
+        Assert.Equal("Keine Temperaturwarnung eingestellt.", german[AppStringKeys.AlertSummaryOff]);
+        Assert.Equal("Ordner für Berichtsexporte", german[AppStringKeys.ExportTitle]);
+        Assert.Equal("(Standard)", german[AppStringKeys.ExportDefaultSuffix]);
+        Assert.Equal("Datenspeicherort (tragbarer Modus)", german[AppStringKeys.DataLocationTitle]);
+        Assert.Equal("Der tragbare Modus ist aus. Daten werden im Standardordner gespeichert.", german[AppStringKeys.PortableSummaryOff]);
+        Assert.Equal("Tragbaren Modus einschalten", german[AppStringKeys.PortableActionOn]);
+        Assert.Equal("Plug-ins", german[AppStringKeys.PluginsTitle]);
+        Assert.Equal("Keine Plug-ins gefunden.", german[AppStringKeys.PluginsSummaryNone]);
+        Assert.Equal("1 Plug-in gefunden.", german[AppStringKeys.PluginsSummaryOne]);
+        Assert.Equal("{0} Plug-ins gefunden.", german[AppStringKeys.PluginsSummaryMany]);
+        Assert.Equal("Datenschutz", german[AppStringKeys.PrivacyTitle]);
+        Assert.Equal(
+            "Navigation und Einstellungen sind übersetzt. Andere Detailseiten sind noch auf Englisch und folgen in späteren Versionen.",
+            german[AppStringKeys.LanguageNote]);
+    }
+
+    [Fact]
+    public void GetFormatted_FillsPlaceholdersWithInvariantCulture()
+    {
+        // The number keeps the app's formatting in both languages:
+        // a German sentence never turns 90.5 into "90,5".
+        Assert.Equal(
+            "Alert when the CPU temperature reaches 90 C for 30 seconds.",
+            StringLocalizer.GetFormatted(AppStringKeys.AlertSummaryOn, "en", "90", 30));
+        Assert.Equal(
+            "Warnung, wenn die CPU-Temperatur 90 °C für 30 Sekunden erreicht.",
+            StringLocalizer.GetFormatted(AppStringKeys.AlertSummaryOn, "de", "90", 30));
+        Assert.Equal("5 Plug-ins gefunden.", StringLocalizer.GetFormatted(AppStringKeys.PluginsSummaryMany, "de", 5));
+    }
+
+    [Fact]
+    public void GetFormatted_FallsBackToEnglishTemplateForMissingKey()
+    {
+        var partial = new LanguagePack("de", "Deutsch", new Dictionary<string, string>
+        {
+            [AppStringKeys.NavOverview] = "Übersicht",
+        });
+
+        Assert.Equal(
+            "Alert when the CPU temperature reaches 90 C for 30 seconds.",
+            StringLocalizer.GetFormatted(AppStringKeys.AlertSummaryOn, partial, "90", 30));
+    }
+
+    [Fact]
+    public void GetFormatted_NeverThrowsOnBadTemplateOrMissingArgs()
+    {
+        // A broken translation returns its template instead of
+        // crashing the page: a placeholder past the arguments makes
+        // string.Format throw, and the localizer hands the template
+        // back untouched.
+        var broken = new LanguagePack("de", "Deutsch", new Dictionary<string, string>
+        {
+            [AppStringKeys.AlertSummaryOn] = "Warnung {0} {1} {2}.",
+        });
+
+        Assert.Equal("Warnung {0} {1} {2}.", StringLocalizer.GetFormatted(AppStringKeys.AlertSummaryOn, broken, "90", 30));
+        Assert.Equal("NoSuchKey", StringLocalizer.GetFormatted("NoSuchKey", "de", 1));
+        Assert.Equal(string.Empty, StringLocalizer.GetFormatted(null, "de", 1));
+        Assert.Equal("1 Plug-in gefunden.", StringLocalizer.GetFormatted(AppStringKeys.PluginsSummaryOne, "de"));
+    }
+
+    [Fact]
     public void Validate_CatchesMissingKey()
     {
         var partial = new LanguagePack("de", "Deutsch", new Dictionary<string, string>

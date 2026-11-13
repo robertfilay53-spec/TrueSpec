@@ -102,18 +102,6 @@ public sealed class HealthPercentToTextConverter : IValueConverter
         throw new NotSupportedException();
 }
 
-/// <summary>Formats a refresh interval in seconds ("1 second", "5 seconds").</summary>
-public sealed class RefreshSecondsToTextConverter : IValueConverter
-{
-    public static readonly RefreshSecondsToTextConverter Instance = new();
-
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is int seconds ? seconds == 1 ? "1 second" : $"{seconds} seconds" : "2 seconds";
-
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        throw new NotSupportedException();
-}
-
 /// <summary>
 /// Shows a language code as its own display name ("en" as "English",
 /// "de" as "Deutsch"). A code with no pack shows the code itself, never

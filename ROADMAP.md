@@ -747,6 +747,56 @@ data already existed; only the band rule and wording are new.
   `git diff 526ed0a 859308c -- '*csproj'`), so the result carries
   forward.
 
+## v2.1.8 — shipped
+
+- **Localisation, phase 2: the Settings page in German (Beyond
+  v2.0, item 4).** Phase 1 translated the rail; this version
+  translates the next complete surface, the page the picker itself
+  lives on, so picking German re-renders the whole Settings page
+  with no restart. All 49 new keys live in the catalogue
+  (`AppStringKeys`, now 74 keys) and in both packs, pinned by the
+  existing coverage test (a pack that misses a key fails). The
+  translated surface is every card the page owns: header, Appearance
+  (theme labels and the "Dark (default)" marker), refresh rate, sensor
+  logging and alerts, export folder, data location (all five portable
+  summaries and both toggle actions), plug-ins (card chrome and the
+  count lines), and Privacy. Two template strings carry numbers
+  (`AlertSummaryOn`, `PluginsSummaryMany`): they are formatted by
+  the new `StringLocalizer.GetFormatted`, which formats with the
+  invariant culture, so "90" stays "90" inside a German sentence,
+  and returns the template itself instead of throwing when a
+  translation's placeholders do not match. The refresh-rate and
+  duration pickers no longer use a converter: their options are
+  (value, text) pairs rebuilt for the current language
+  (`RefreshOption`), so the picker shows "5 Sekunden" and still saves
+  the number 5. The old `RefreshSecondsToTextConverter` is deleted —
+  it had no language to read, and a converter cannot see the view
+  model. When the language changes, the view model raises every
+  localized property, including the two option lists, and re-resolves
+  a rejection message shown before the switch, so no text stays in
+  the old language. Deliberately NOT translated in this version, and
+  named on the page's own terms in the docs: the plug-in list's
+  per-item status/reason and the portable-toggle result message are
+  diagnostic strings produced by Core (`PluginDiscovery`,
+  `PortableMode`), which take no language parameter; threading one
+  through those APIs is a later "Core strings" slice. The language
+  card's note now says Navigation and Settings are translated.
+  Tests: `LanguagePackTests` (German Settings terms pinned,
+  `GetFormatted` with invariant numbers, fallback to the English
+  template, never throws on a bad template) and
+  `SettingsViewModelTests` (a German-seeded shell renders the whole
+  page, picking German re-renders it and back again, the alert summary
+  shows its numbers in German, plug-in counts in German with the
+  per-item status still English).
+- **Dependency audit re-attested for v2.1.7.** `SECURITY.md` said
+  v2.1.6; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.6 and v2.1.7 (only the `<Version>` bump
+  — zero `PackageReference` changes in
+  `git diff 859308c 233fbf0 -- '*csproj'`), so the result carries
+  forward.
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed

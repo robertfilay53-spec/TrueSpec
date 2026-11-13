@@ -11,25 +11,25 @@
     <ScrollViewer>
         <StackPanel Margin="24" Spacing="18" MaxWidth="860" HorizontalAlignment="Left">
             <StackPanel Spacing="6">
-                <TextBlock Text="SETTINGS" Classes="eyebrow" />
-                <TextBlock Text="Settings" Classes="h1" />
-                <TextBlock Text="Small, honest controls. Every change saves immediately and applies right away. Nothing here phones home."
+                <TextBlock Text="{Binding SettingsEyebrowText}" Classes="eyebrow" />
+                <TextBlock Text="{Binding SettingsTitleText}" Classes="h1" />
+                <TextBlock Text="{Binding SettingsIntroText}"
                            Classes="muted" />
             </StackPanel>
 
             <Border Classes="card" Padding="18">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
                     <StackPanel Spacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="Appearance" Classes="h3" />
+                        <TextBlock Text="{Binding AppearanceTitleText}" Classes="h3" />
                         <TextBlock Text="{Binding ThemeText}" Classes="muted" />
-                        <TextBlock Text="Dark is the default theme. Light is available for bright rooms."
+                        <TextBlock Text="{Binding AppearanceNoteText}"
                                    Classes="muted"
                                    FontSize="11" />
                     </StackPanel>
                     <ToggleSwitch Grid.Column="1"
                                   IsChecked="{Binding IsDarkTheme, Mode=TwoWay}"
-                                  OnContent="Dark"
-                                  OffContent="Light"
+                                  OnContent="{Binding ThemeDarkText}"
+                                  OffContent="{Binding ThemeLightText}"
                                   VerticalAlignment="Center" />
                 </Grid>
             </Border>
@@ -37,18 +37,19 @@
             <Border Classes="card" Padding="18">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
                     <StackPanel Spacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="Live sensor refresh rate" Classes="h3" />
-                        <TextBlock Text="How often the live sensor strip re-reads. Faster is livelier; slower is calmer on the CPU."
+                        <TextBlock Text="{Binding RefreshTitleText}" Classes="h3" />
+                        <TextBlock Text="{Binding RefreshNoteText}"
                                    Classes="muted"
                                    FontSize="11" />
                     </StackPanel>
                     <ComboBox Grid.Column="1"
                               Width="170"
                               ItemsSource="{Binding RefreshRateOptions}"
-                              SelectedItem="{Binding RefreshIntervalSeconds, Mode=TwoWay}">
+                              SelectedValue="{Binding RefreshIntervalSeconds, Mode=TwoWay}"
+                              SelectedValueBinding="{Binding Value}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Converter={StaticResource RefreshSecondsText}}" />
+                                <TextBlock Text="{Binding Text}" />
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
@@ -57,56 +58,57 @@
 
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Sensor logging and alerts" Classes="h3" />
-                    <TextBlock Text="Live sensor readings are recorded to a local CSV log while TrueSpec runs. The log never leaves this machine."
+                    <TextBlock Text="{Binding LoggingTitleText}" Classes="h3" />
+                    <TextBlock Text="{Binding LoggingIntroText}"
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap" />
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
                         <StackPanel Spacing="4" VerticalAlignment="Center">
-                            <TextBlock Text="Record sensor readings" Classes="h3" />
-                            <TextBlock Text="One row per sample, at the refresh rate above. A sensor that stops reporting leaves its cell empty, never a zero."
+                            <TextBlock Text="{Binding RecordTitleText}" Classes="h3" />
+                            <TextBlock Text="{Binding RecordNoteText}"
                                        Classes="muted"
                                        FontSize="11"
                                        TextWrapping="Wrap" />
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1"
                                       IsChecked="{Binding SensorLoggingEnabled, Mode=TwoWay}"
-                                      OnContent="On"
-                                      OffContent="Off"
+                                      OnContent="{Binding ToggleOnText}"
+                                      OffContent="{Binding ToggleOffText}"
                                       VerticalAlignment="Center" />
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
                         <StackPanel Spacing="4" VerticalAlignment="Center">
-                            <TextBlock Text="CPU temperature alert" Classes="h3" />
+                            <TextBlock Text="{Binding AlertTitleText}" Classes="h3" />
                             <TextBlock Text="{Binding AlertSummaryText}" Classes="muted" />
-                            <TextBlock Text="TrueSpec ships with no alert set. The alert fires only after the temperature stays above your threshold for the full duration."
+                            <TextBlock Text="{Binding AlertNoteText}"
                                        Classes="muted"
                                        FontSize="11"
                                        TextWrapping="Wrap" />
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1"
                                       IsChecked="{Binding CpuTemperatureAlertEnabled, Mode=TwoWay}"
-                                      OnContent="On"
-                                      OffContent="Off"
+                                      OnContent="{Binding ToggleOnText}"
+                                      OffContent="{Binding ToggleOffText}"
                                       VerticalAlignment="Center" />
                     </Grid>
                     <StackPanel Spacing="10" IsVisible="{Binding CpuTemperatureAlertEnabled}">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                             <StackPanel Spacing="4">
-                                <TextBlock Text="Alert above (C)" Classes="h3" />
+                                <TextBlock Text="{Binding AlertAboveLabelText}" Classes="h3" />
                                 <TextBox Text="{Binding CpuTemperatureThresholdText, Mode=TwoWay}"
                                          Width="120"
                                          HorizontalAlignment="Left" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Spacing="4">
-                                <TextBlock Text="Must stay above for" Classes="h3" />
+                                <TextBlock Text="{Binding AlertDurationLabelText}" Classes="h3" />
                                 <ComboBox Width="170"
                                           ItemsSource="{Binding ThresholdDurationOptions}"
-                                          SelectedItem="{Binding CpuTemperatureThresholdSeconds, Mode=TwoWay}">
+                                          SelectedValue="{Binding CpuTemperatureThresholdSeconds, Mode=TwoWay}"
+                                          SelectedValueBinding="{Binding Value}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding Converter={StaticResource RefreshSecondsText}}" />
+                                            <TextBlock Text="{Binding Text}" />
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
@@ -122,23 +124,23 @@
 
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Report export folder" Classes="h3" />
+                    <TextBlock Text="{Binding ExportTitleText}" Classes="h3" />
                     <TextBlock Text="{Binding ExportFolderText}"
                                Classes="muted"
                                TextWrapping="Wrap" />
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <Button Classes="secondary"
-                                Content="Choose folder..."
+                                Content="{Binding ExportChooseText}"
                                 Command="{Binding PickExportFolderCommand}" />
                         <Button Classes="secondary"
-                                Content="Reset to default"
+                                Content="{Binding ExportResetText}"
                                 Command="{Binding ResetExportFolderCommand}" />
                     </StackPanel>
                     <TextBlock Text="{Binding FolderMessage}"
                                FontSize="11"
                                TextWrapping="Wrap"
                                Foreground="{DynamicResource ProblemBrush}" />
-                    <TextBlock Text="JSON, HTML, CSV reports and the printable buyer checklist are saved here. Nothing is uploaded."
+                    <TextBlock Text="{Binding ExportNoteText}"
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap" />
@@ -147,7 +149,7 @@
 
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Data location (portable mode)" Classes="h3" />
+                    <TextBlock Text="{Binding DataLocationTitleText}" Classes="h3" />
                     <TextBlock Text="{Binding PortableModeSummaryText}"
                                Classes="muted"
                                TextWrapping="Wrap" />
@@ -161,7 +163,7 @@
                                FontSize="11"
                                TextWrapping="Wrap"
                                Classes="muted" />
-                    <TextBlock Text="Takes effect after a restart. Scans already saved stay in the folder they were saved in; only new scans go to the new location."
+                    <TextBlock Text="{Binding DataLocationNoteText}"
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap" />
@@ -170,8 +172,8 @@
 
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Plug-ins" Classes="h3" />
-                    <TextBlock Text="A plug-in adds a collector — a new hardware source — without changing TrueSpec. Put each plug-in in its own folder under the folder below. Every folder needs a plugin.json manifest that names the plug-in, the collector contract version it was written for, and the collectors it provides."
+                    <TextBlock Text="{Binding PluginsTitleText}" Classes="h3" />
+                    <TextBlock Text="{Binding PluginsIntroText}"
                                Classes="muted"
                                TextWrapping="Wrap" />
                     <TextBlock Text="{Binding PluginFolderText}"
@@ -205,10 +207,10 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <Button Classes="secondary"
-                            Content="Refresh plug-ins"
+                            Content="{Binding PluginsRefreshText}"
                             Command="{Binding RefreshPluginsCommand}"
                             HorizontalAlignment="Left" />
-                    <TextBlock Text="Plug-ins are discovered here but never loaded in this version: only signed plug-ins load, and plug-in signing is not set up yet."
+                    <TextBlock Text="{Binding PluginsNotLoadedNoteText}"
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap" />
@@ -244,8 +246,8 @@
 
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Privacy" Classes="h3" />
-                    <TextBlock Text="TrueSpec has no telemetry, no account, and no network calls. Scans stay on this machine. There is no update check and no startup registration: an offline app does not promise network features."
+                    <TextBlock Text="{Binding PrivacyTitleText}" Classes="h3" />
+                    <TextBlock Text="{Binding PrivacyText}"
                                Classes="muted"
                                TextWrapping="Wrap" />
                 </StackPanel>

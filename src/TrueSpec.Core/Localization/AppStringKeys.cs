@@ -44,6 +44,66 @@ public static class AppStringKeys
     public const string LanguageDescription = "LanguageDescription";
     public const string LanguageNote = "LanguageNote";
 
+    // Settings page (v2.1.8): every string the page owns, in page order.
+    // The page is pure chrome — no measured value, no unit, no threshold
+    // appears as a literal; numbers the page shows (threshold, durations,
+    // counts, folder paths) are values formatted into a template, never
+    // part of the translated text itself. Two strings on the page are
+    // deliberately NOT keys: the plug-in list's per-item status/reason
+    // and the portable-toggle result message are diagnostic strings
+    // produced by Core (PluginDiscovery, PortableMode), which take no
+    // language parameter; they stay English until a later "Core strings"
+    // slice threads a language code through those APIs.
+    public const string SettingsEyebrow = "SettingsEyebrow";
+    public const string SettingsTitle = "SettingsTitle";
+    public const string SettingsIntro = "SettingsIntro";
+    public const string AppearanceTitle = "AppearanceTitle";
+    public const string AppearanceNote = "AppearanceNote";
+    public const string ThemeDark = "ThemeDark";
+    public const string ThemeLight = "ThemeLight";
+    public const string ThemeDarkDefault = "ThemeDarkDefault";
+    public const string RefreshTitle = "RefreshTitle";
+    public const string RefreshNote = "RefreshNote";
+    public const string SecondsOne = "SecondsOne";
+    public const string SecondsMany = "SecondsMany";
+    public const string LoggingTitle = "LoggingTitle";
+    public const string LoggingIntro = "LoggingIntro";
+    public const string RecordTitle = "RecordTitle";
+    public const string RecordNote = "RecordNote";
+    public const string ToggleOn = "ToggleOn";
+    public const string ToggleOff = "ToggleOff";
+    public const string AlertTitle = "AlertTitle";
+    public const string AlertSummaryOn = "AlertSummaryOn";
+    public const string AlertSummaryOff = "AlertSummaryOff";
+    public const string AlertNote = "AlertNote";
+    public const string AlertAboveLabel = "AlertAboveLabel";
+    public const string AlertDurationLabel = "AlertDurationLabel";
+    public const string ThresholdMessage = "ThresholdMessage";
+    public const string ExportTitle = "ExportTitle";
+    public const string ExportDefaultSuffix = "ExportDefaultSuffix";
+    public const string ExportChoose = "ExportChoose";
+    public const string ExportReset = "ExportReset";
+    public const string ExportFolderRejected = "ExportFolderRejected";
+    public const string ExportNote = "ExportNote";
+    public const string DataLocationTitle = "DataLocationTitle";
+    public const string PortableSummaryOnMarkerEnv = "PortableSummaryOnMarkerEnv";
+    public const string PortableSummaryOnMarker = "PortableSummaryOnMarker";
+    public const string PortableSummaryOnEnv = "PortableSummaryOnEnv";
+    public const string PortableSummaryMarkerBlocked = "PortableSummaryMarkerBlocked";
+    public const string PortableSummaryOff = "PortableSummaryOff";
+    public const string PortableActionOn = "PortableActionOn";
+    public const string PortableActionOff = "PortableActionOff";
+    public const string DataLocationNote = "DataLocationNote";
+    public const string PluginsTitle = "PluginsTitle";
+    public const string PluginsIntro = "PluginsIntro";
+    public const string PluginsSummaryNone = "PluginsSummaryNone";
+    public const string PluginsSummaryOne = "PluginsSummaryOne";
+    public const string PluginsSummaryMany = "PluginsSummaryMany";
+    public const string PluginsRefresh = "PluginsRefresh";
+    public const string PluginsNotLoadedNote = "PluginsNotLoadedNote";
+    public const string PrivacyTitle = "PrivacyTitle";
+    public const string PrivacyText = "PrivacyText";
+
     /// <summary>Every key in the catalogue, in the order above.</summary>
     public static IReadOnlyList<string> All { get; } = new[]
     {
@@ -72,5 +132,54 @@ public static class AppStringKeys
         LanguageTitle,
         LanguageDescription,
         LanguageNote,
+        SettingsEyebrow,
+        SettingsTitle,
+        SettingsIntro,
+        AppearanceTitle,
+        AppearanceNote,
+        ThemeDark,
+        ThemeLight,
+        ThemeDarkDefault,
+        RefreshTitle,
+        RefreshNote,
+        SecondsOne,
+        SecondsMany,
+        LoggingTitle,
+        LoggingIntro,
+        RecordTitle,
+        RecordNote,
+        ToggleOn,
+        ToggleOff,
+        AlertTitle,
+        AlertSummaryOn,
+        AlertSummaryOff,
+        AlertNote,
+        AlertAboveLabel,
+        AlertDurationLabel,
+        ThresholdMessage,
+        ExportTitle,
+        ExportDefaultSuffix,
+        ExportChoose,
+        ExportReset,
+        ExportFolderRejected,
+        ExportNote,
+        DataLocationTitle,
+        PortableSummaryOnMarkerEnv,
+        PortableSummaryOnMarker,
+        PortableSummaryOnEnv,
+        PortableSummaryMarkerBlocked,
+        PortableSummaryOff,
+        PortableActionOn,
+        PortableActionOff,
+        DataLocationNote,
+        PluginsTitle,
+        PluginsIntro,
+        PluginsSummaryNone,
+        PluginsSummaryOne,
+        PluginsSummaryMany,
+        PluginsRefresh,
+        PluginsNotLoadedNote,
+        PrivacyTitle,
+        PrivacyText,
     };
 }

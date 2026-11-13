@@ -69,12 +69,41 @@ public sealed partial class SettingsViewModel : ViewModelBase
         }
     }
 
-    public string ThemeText => IsDarkTheme ? "Dark (default)" : "Light";
+    public string ThemeText => IsDarkTheme
+        ? StringLocalizer.Get(AppStringKeys.ThemeDarkDefault, LanguageCode)
+        : StringLocalizer.Get(AppStringKeys.ThemeLight, LanguageCode);
 
-    public IReadOnlyList<int> RefreshRateOptions { get; } = new[]
-    {
-        1, 2, 5, 10, 30,
-    };
+    /// <summary>One refresh-rate / duration option: the seconds value and its localized text ("5 seconds" / "5 Sekunden").</summary>
+    public sealed record RefreshOption(int Value, string Text);
+
+    /// <summary>The page header and the Appearance card, in the current language.</summary>
+    public string SettingsEyebrowText => StringLocalizer.Get(AppStringKeys.SettingsEyebrow, LanguageCode);
+    public string SettingsTitleText => StringLocalizer.Get(AppStringKeys.SettingsTitle, LanguageCode);
+    public string SettingsIntroText => StringLocalizer.Get(AppStringKeys.SettingsIntro, LanguageCode);
+    public string AppearanceTitleText => StringLocalizer.Get(AppStringKeys.AppearanceTitle, LanguageCode);
+    public string AppearanceNoteText => StringLocalizer.Get(AppStringKeys.AppearanceNote, LanguageCode);
+
+    /// <summary>ToggleSwitch labels for the theme switch.</summary>
+    public string ThemeDarkText => StringLocalizer.Get(AppStringKeys.ThemeDark, LanguageCode);
+    public string ThemeLightText => StringLocalizer.Get(AppStringKeys.ThemeLight, LanguageCode);
+
+    /// <summary>The refresh-rate card, in the current language.</summary>
+    public string RefreshTitleText => StringLocalizer.Get(AppStringKeys.RefreshTitle, LanguageCode);
+    public string RefreshNoteText => StringLocalizer.Get(AppStringKeys.RefreshNote, LanguageCode);
+
+    /// <summary>
+    /// The refresh-rate options with their localized texts, rebuilt for
+    /// the current language. The ComboBox binds SelectedValue to the
+    /// seconds value, so picking an option still saves the number, not
+    /// the text. The old RefreshSecondsToTextConverter is gone: it had
+    /// no language to read, and a converter cannot see the view model.
+    /// </summary>
+    public IReadOnlyList<RefreshOption> RefreshRateOptions => BuildSecondOptions(new[] { 1, 2, 5, 10, 30 });
+
+    private IReadOnlyList<RefreshOption> BuildSecondOptions(int[] seconds) =>
+        seconds.Select(s => new RefreshOption(s, s == 1
+            ? StringLocalizer.Get(AppStringKeys.SecondsOne, LanguageCode)
+            : StringLocalizer.GetFormatted(AppStringKeys.SecondsMany, LanguageCode, s))).ToList();
 
     [ObservableProperty]
     public partial int RefreshIntervalSeconds { get; set; } = AppSettings.DefaultRefreshSeconds;
@@ -125,7 +154,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         }
         else
         {
-            ThresholdMessage = "Enter a temperature between 30 and 120 C.";
+            ThresholdMessage = StringLocalizer.Get(AppStringKeys.ThresholdMessage, LanguageCode);
         }
     }
 
@@ -139,18 +168,27 @@ public sealed partial class SettingsViewModel : ViewModelBase
         Save();
     }
 
-    public IReadOnlyList<int> ThresholdDurationOptions { get; } = new[]
-    {
-        15, 30, 60, 120,
-    };
+    public IReadOnlyList<RefreshOption> ThresholdDurationOptions => BuildSecondOptions(new[] { 15, 30, 60, 120 });
 
     /// <summary>Explains a rejected threshold value; empty when nothing went wrong.</summary>
     [ObservableProperty]
     public partial string ThresholdMessage { get; set; } = string.Empty;
 
+    /// <summary>The sensor-logging card and the alert card, in the current language.</summary>
+    public string LoggingTitleText => StringLocalizer.Get(AppStringKeys.LoggingTitle, LanguageCode);
+    public string LoggingIntroText => StringLocalizer.Get(AppStringKeys.LoggingIntro, LanguageCode);
+    public string RecordTitleText => StringLocalizer.Get(AppStringKeys.RecordTitle, LanguageCode);
+    public string RecordNoteText => StringLocalizer.Get(AppStringKeys.RecordNote, LanguageCode);
+    public string ToggleOnText => StringLocalizer.Get(AppStringKeys.ToggleOn, LanguageCode);
+    public string ToggleOffText => StringLocalizer.Get(AppStringKeys.ToggleOff, LanguageCode);
+    public string AlertTitleText => StringLocalizer.Get(AppStringKeys.AlertTitle, LanguageCode);
+    public string AlertNoteText => StringLocalizer.Get(AppStringKeys.AlertNote, LanguageCode);
+    public string AlertAboveLabelText => StringLocalizer.Get(AppStringKeys.AlertAboveLabel, LanguageCode);
+    public string AlertDurationLabelText => StringLocalizer.Get(AppStringKeys.AlertDurationLabel, LanguageCode);
+
     public string AlertSummaryText => CpuTemperatureAlertEnabled
-        ? $"Alert when the CPU temperature reaches {CpuTemperatureThresholdText} C for {CpuTemperatureThresholdSeconds} seconds."
-        : "No temperature alert set.";
+        ? StringLocalizer.GetFormatted(AppStringKeys.AlertSummaryOn, LanguageCode, CpuTemperatureThresholdText, CpuTemperatureThresholdSeconds)
+        : StringLocalizer.Get(AppStringKeys.AlertSummaryOff, LanguageCode);
 
     private static bool TryParseThreshold(string text, out double threshold)
     {
@@ -166,29 +204,97 @@ public sealed partial class SettingsViewModel : ViewModelBase
     }
 
     public string ExportFolderText => string.IsNullOrWhiteSpace(ExportFolder)
-        ? PathSafety.DefaultExportFolder() + " (default)"
+        ? PathSafety.DefaultExportFolder() + " " + StringLocalizer.Get(AppStringKeys.ExportDefaultSuffix, LanguageCode)
         : ExportFolder;
+
+    /// <summary>The export-folder card, in the current language.</summary>
+    public string ExportTitleText => StringLocalizer.Get(AppStringKeys.ExportTitle, LanguageCode);
+    public string ExportChooseText => StringLocalizer.Get(AppStringKeys.ExportChoose, LanguageCode);
+    public string ExportResetText => StringLocalizer.Get(AppStringKeys.ExportReset, LanguageCode);
+    public string ExportNoteText => StringLocalizer.Get(AppStringKeys.ExportNote, LanguageCode);
 
     /// <summary>The language codes the picker offers, in pack order (English first).</summary>
     public IReadOnlyList<string> LanguageOptions { get; } =
         LanguagePacks.All.Select(p => p.Code).ToList();
 
     /// <summary>
-    /// The UI language. Picking one saves immediately and rebuilds the
+    /// The UI language. Picking one saves immediately, rebuilds the
     /// navigation rail right away (through <see cref="Save"/> and the
-    /// main view model's settings apply). Only the rail and this card
-    /// are translated in v2.1.7; detail pages follow in later versions.
+    /// main view model's settings apply), and re-renders this page in
+    /// the new language (v2.1.8 translates the whole Settings page).
+    /// Other detail pages follow in later versions.
     /// </summary>
     [ObservableProperty]
     public partial string LanguageCode { get; set; } = LanguagePacks.EnglishCode;
 
     partial void OnLanguageCodeChanged(string value)
     {
+        RaiseLocalizedTextsChanged();
+        Save();
+    }
+
+    /// <summary>
+    /// Re-resolves every localized text on this page for the current
+    /// language. Called when the language changes; the two message
+    /// properties (threshold, folder) are re-resolved too when they
+    /// currently hold a message, so a rejection shown before the switch
+    /// does not stay in the old language. The portable-toggle message
+    /// is a Core string and stays English by design (see AppStringKeys).
+    /// </summary>
+    private void RaiseLocalizedTextsChanged()
+    {
+        OnPropertyChanged(nameof(SettingsEyebrowText));
+        OnPropertyChanged(nameof(SettingsTitleText));
+        OnPropertyChanged(nameof(SettingsIntroText));
+        OnPropertyChanged(nameof(AppearanceTitleText));
+        OnPropertyChanged(nameof(AppearanceNoteText));
+        OnPropertyChanged(nameof(ThemeText));
+        OnPropertyChanged(nameof(ThemeDarkText));
+        OnPropertyChanged(nameof(ThemeLightText));
+        OnPropertyChanged(nameof(RefreshTitleText));
+        OnPropertyChanged(nameof(RefreshNoteText));
+        OnPropertyChanged(nameof(RefreshRateOptions));
+        OnPropertyChanged(nameof(LoggingTitleText));
+        OnPropertyChanged(nameof(LoggingIntroText));
+        OnPropertyChanged(nameof(RecordTitleText));
+        OnPropertyChanged(nameof(RecordNoteText));
+        OnPropertyChanged(nameof(ToggleOnText));
+        OnPropertyChanged(nameof(ToggleOffText));
+        OnPropertyChanged(nameof(AlertTitleText));
+        OnPropertyChanged(nameof(AlertSummaryText));
+        OnPropertyChanged(nameof(AlertNoteText));
+        OnPropertyChanged(nameof(AlertAboveLabelText));
+        OnPropertyChanged(nameof(AlertDurationLabelText));
+        OnPropertyChanged(nameof(ThresholdDurationOptions));
+        OnPropertyChanged(nameof(ExportTitleText));
+        OnPropertyChanged(nameof(ExportFolderText));
+        OnPropertyChanged(nameof(ExportChooseText));
+        OnPropertyChanged(nameof(ExportResetText));
+        OnPropertyChanged(nameof(ExportNoteText));
+        OnPropertyChanged(nameof(DataLocationTitleText));
+        OnPropertyChanged(nameof(PortableModeSummaryText));
+        OnPropertyChanged(nameof(PortableModeActionText));
+        OnPropertyChanged(nameof(DataLocationNoteText));
+        OnPropertyChanged(nameof(PluginsTitleText));
+        OnPropertyChanged(nameof(PluginsIntroText));
+        OnPropertyChanged(nameof(PluginsSummaryText));
+        OnPropertyChanged(nameof(PluginsRefreshText));
+        OnPropertyChanged(nameof(PluginsNotLoadedNoteText));
+        OnPropertyChanged(nameof(PrivacyTitleText));
+        OnPropertyChanged(nameof(PrivacyText));
         OnPropertyChanged(nameof(LanguageText));
         OnPropertyChanged(nameof(LanguageTitleText));
         OnPropertyChanged(nameof(LanguageDescriptionText));
         OnPropertyChanged(nameof(LanguageNoteText));
-        Save();
+        if (!string.IsNullOrEmpty(ThresholdMessage))
+        {
+            ThresholdMessage = StringLocalizer.Get(AppStringKeys.ThresholdMessage, LanguageCode);
+        }
+
+        if (!string.IsNullOrEmpty(FolderMessage))
+        {
+            FolderMessage = StringLocalizer.Get(AppStringKeys.ExportFolderRejected, LanguageCode);
+        }
     }
 
     /// <summary>The current language's own display name ("English", "Deutsch").</summary>
@@ -212,23 +318,27 @@ public sealed partial class SettingsViewModel : ViewModelBase
     /// A marker in a protected folder reads as off with the reason named:
     /// the marker is present but portable mode never activates there.
     /// </summary>
+    /// <summary>The data-location card, in the current language.</summary>
+    public string DataLocationTitleText => StringLocalizer.Get(AppStringKeys.DataLocationTitle, LanguageCode);
+    public string DataLocationNoteText => StringLocalizer.Get(AppStringKeys.DataLocationNote, LanguageCode);
+
     public string PortableModeSummaryText => _portableStatus switch
     {
         { IsPortable: true, MarkerPresent: true, EnvRequested: true } =>
-            "Portable mode is on (marker file and environment variable). Data is kept next to the app.",
+            StringLocalizer.Get(AppStringKeys.PortableSummaryOnMarkerEnv, LanguageCode),
         { IsPortable: true, MarkerPresent: true } =>
-            "Portable mode is on. Data is kept next to the app.",
+            StringLocalizer.Get(AppStringKeys.PortableSummaryOnMarker, LanguageCode),
         { IsPortable: true } =>
-            "Portable mode is on through the TRUESPEC_PORTABLE environment variable. Data is kept next to the app.",
+            StringLocalizer.Get(AppStringKeys.PortableSummaryOnEnv, LanguageCode),
         { MarkerPresent: true } =>
-            "The portable marker file is present, but this app folder is a system or protected folder, so portable mode is not active and data stays in the default folder.",
-        _ => "Portable mode is off. Data is kept in the default folder.",
+            StringLocalizer.Get(AppStringKeys.PortableSummaryMarkerBlocked, LanguageCode),
+        _ => StringLocalizer.Get(AppStringKeys.PortableSummaryOff, LanguageCode),
     };
 
     /// <summary>The toggle acts on the marker file, never on the environment variable.</summary>
     public string PortableModeActionText => _portableStatus.MarkerPresent
-        ? "Turn portable mode off"
-        : "Turn portable mode on";
+        ? StringLocalizer.Get(AppStringKeys.PortableActionOff, LanguageCode)
+        : StringLocalizer.Get(AppStringKeys.PortableActionOn, LanguageCode);
 
     /// <summary>Outcome of the last portable-mode change; empty when nothing was changed yet.</summary>
     [ObservableProperty]
@@ -250,15 +360,25 @@ public sealed partial class SettingsViewModel : ViewModelBase
     /// <summary>
     /// One line on what discovery found: how many plug-ins, or why none
     /// could be listed. A missing plug-ins folder reads as "no plug-ins",
-    /// never as an error.
+    /// never as an error. The count lines are localized; the discovery
+    /// error itself is a Core diagnostic string (PluginDiscovery) and
+    /// stays English in this version (see AppStringKeys).
     /// </summary>
     public string PluginsSummaryText => _pluginDiscoveryError is not null
         ? _pluginDiscoveryError
         : DiscoveredPlugins.Count == 0
-            ? "No plug-ins found."
+            ? StringLocalizer.Get(AppStringKeys.PluginsSummaryNone, LanguageCode)
             : DiscoveredPlugins.Count == 1
-                ? "1 plug-in found."
-                : $"{DiscoveredPlugins.Count} plug-ins found.";
+                ? StringLocalizer.Get(AppStringKeys.PluginsSummaryOne, LanguageCode)
+                : StringLocalizer.GetFormatted(AppStringKeys.PluginsSummaryMany, LanguageCode, DiscoveredPlugins.Count);
+
+    /// <summary>The plug-ins card and the Privacy card, in the current language.</summary>
+    public string PluginsTitleText => StringLocalizer.Get(AppStringKeys.PluginsTitle, LanguageCode);
+    public string PluginsIntroText => StringLocalizer.Get(AppStringKeys.PluginsIntro, LanguageCode);
+    public string PluginsRefreshText => StringLocalizer.Get(AppStringKeys.PluginsRefresh, LanguageCode);
+    public string PluginsNotLoadedNoteText => StringLocalizer.Get(AppStringKeys.PluginsNotLoadedNote, LanguageCode);
+    public string PrivacyTitleText => StringLocalizer.Get(AppStringKeys.PrivacyTitle, LanguageCode);
+    public string PrivacyText => StringLocalizer.Get(AppStringKeys.PrivacyText, LanguageCode);
 
     /// <summary>
     /// Re-runs discovery over the plug-ins folder and replaces the list.
@@ -322,7 +442,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         {
             // A picked folder the validator rejects (a drive root or a
             // system folder) used to do nothing at all, with no message.
-            FolderMessage = "That folder can't be used for exports (drive root or system folder). Pick another folder.";
+            FolderMessage = StringLocalizer.Get(AppStringKeys.ExportFolderRejected, LanguageCode);
             return;
         }
 
