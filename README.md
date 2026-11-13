@@ -10,6 +10,13 @@ TrueSpec is an open source Windows desktop tool for laptop and PC buyers. Open i
 
 The product rule is simple: every number is either **measured** (with its source named) or shown as **Not reported by hardware**. TrueSpec never invents a precise number. That honesty is the product.
 
+## What's new in v2.0
+
+- **Machine DNA:** a SHA-256 identity fingerprint for the machine, built from the serials of its identified parts. The Report page's "Verify this machine" action re-scans and compares the fingerprint, so a buyer can prove the machine in front of them is the same one that was scanned.
+- **Buyer certificate:** a tamper-evident one-page PDF (plus JSON) that records the machine's identity and health at scan time, for handing to a buyer or keeping as proof.
+- **Portable buyer kit:** run TrueSpec from a USB stick with no install. See "Portable buyer kit" below.
+- **History:** keeps the newest 200 entries per machine.
+
 ## Status
 
 Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.
@@ -25,6 +32,9 @@ Implemented in this build:
 | Scoring | Measured health only; unmeasurable components are excluded, never faked |
 | Buyer checks | SSD wear, battery cycles, power-on hours, advertised RAM, BIOS date, Windows install date, critical errors, signed drivers |
 | Reports | JSON, self-contained HTML, CSV and PDF, with source labels on every reading |
+| Machine DNA | SHA-256 identity fingerprint per machine, with a comparer that flags added, removed or replaced parts |
+| Buyer certificate | Tamper-evident one-page PDF + JSON export of the machine's identity and health at scan time |
+| Portable mode | Run from USB with a portable data root (marker file `TrueSpec.portable` or `TRUESPEC_PORTABLE=1`); no install, no elevation |
 | Compare | Compare any two saved snapshots side by side: score change, per-component health deltas, changed specs |
 | History | Every scan is saved to a local SQLite history, so comparisons work across visits; battery-health alerts when health drops a band or falls fast |
 | Settings | Theme, live sensor refresh rate (1-30s), export folder, all saved and applied immediately |
