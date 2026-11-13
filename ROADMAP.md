@@ -588,7 +588,7 @@ data already existed; only the band rule and wording are new.
   changes in `git diff 0e6a153 a31402b -- '*csproj'`), so the result
   carries forward.
 
-## v2.1.5 — in progress
+## v2.1.5 — shipped
 
 - **Collector plug-ins, phase 1: versioned contract + manifest +
   discovery.** The plan's Beyond v2.0 item 2, first slice: the
@@ -631,6 +631,74 @@ data already existed; only the band rule and wording are new.
   version changed between v2.1.3 and v2.1.4 (zero `PackageReference`
   changes in `git diff a31402b 3d7a59e -- '*csproj'`), so the result
   carries forward.
+
+## v2.1.6 — in progress
+
+- **Linux collector parity study (Beyond v2.0, item 3).** The plan
+  says study first, build only if a real user base asks for it, and
+  Windows stays the shipping target. The study is the deliverable:
+  every one of the 15 collectors was checked against a real Ubuntu
+  24.04 machine (the same OS the CI runners use) by reading /proc and
+  /sys directly and checking which tools exist on a stock install. The
+  result lives as a machine-checked catalogue in the code
+  (`LinuxCollectorParity` in TrueSpec.Core, pinned by
+  `LinuxCollectorParityTests` against the collector list, so a
+  collector can never be silently dropped from the study), and the
+  table below is the human-readable form of the same rows.
+  Feasibility: Partial = the core readings map but some need a tool
+  that is not installed by default, need elevation, or have no
+  equivalent; NotFeasible = the readings are Windows products with no
+  Linux counterpart.
+
+  | Collector | Linux source | Feasibility | What maps, what does not |
+  |---|---|---|---|
+  | System | /sys/devices/virtual/dmi/id + /proc/version | Partial | BIOS date/vendor/version, product name and OS version read as a standard user. Windows install date has no equivalent; serials are root-only. |
+  | CPU | /proc/cpuinfo + cpufreq | Partial | Model, cores, MHz and cache from cpuinfo; rated max from cpufreq on real hardware, absent in a VM. Live temps need hwmon/lm-sensors, not installed by default. |
+  | RAM | /proc/meminfo | Partial | Total/free/available read as a standard user. Per-module detail needs dmidecode (root, not installed). The Windows memory-diagnostic result has no equivalent. |
+  | Storage | /sys/block + smartctl | Partial | Devices, sizes and filesystems from /sys/block. SMART/wear/power-on hours need smartctl (not installed, needs root); NVMe counters need nvme-cli (not installed). |
+  | Battery | /sys/class/power_supply/BAT0 | Partial | On a laptop: design/full capacity, cycles, chemistry, manufacturer, serial and charge rate, no extra tool, no elevation. Empty on a VM with no battery. Firmware estimated-runtime has no equivalent. |
+  | GPU | lspci + /sys/class/drm | Partial | lspci names the model (not installed by default); clocks, temps and VRAM need hwmon or vendor tools. This headless VM exposes no DRM device. |
+  | Display | /sys/class/drm/\*/edid | Partial | The EDID is the same panel truth as on Windows, when a display is attached. This VM has no DRM connectors; xrandr is not installed by default. |
+  | Network | /sys/class/net + iw | Partial | Adapters, MACs and link state from /sys/class/net. Wi-Fi standard and link speed need iw (not installed); driver dates need modinfo/ethtool. |
+  | Motherboard | /sys/devices/virtual/dmi/id | Partial | Board vendor/product, BIOS vendor/version/date read as a standard user. Serials are mode 0400 root-only and were unreadable even to root on this VM. |
+  | Security | No Linux equivalent | NotFeasible | Device Guard, BitLocker, Windows Defender and TPM attestation are Windows products. LUKS, AppArmor/SELinux and firewalls are different facts, not the same collector ported. A Linux security view would need a redesign, not a port. |
+  | Drivers | /sys/bus + modinfo | Partial | Loaded modules and versions. Driver age maps poorly (modules carry no install date the way Windows drivers do); no signed-driver inventory equivalent. |
+  | Updates | apt/dpkg history | Partial | dpkg lists installed packages with name, version and install date. No single last-update-check or last-install equivalent; unattended-upgrades logs vary by setup. |
+  | Startup | systemd user units + autostart dirs | Partial | The standard autostart locations cover what launches at sign-in. No StartupApproved enabled/disabled state equivalent; the directories do not exist on a minimal install. |
+  | Software | dpkg/rpm | Partial | Installed programs with name, version and install date. Windows activation state has no Linux equivalent and would simply not apply. |
+  | Crash | journalctl (system journal) | Partial | Kernel oops, panics, service failures and unexpected shutdowns are in the journal. BugCheck/WHEA event IDs are Windows-only, so the crash classes would need new definitions. |
+
+  What the probe actually found on Ubuntu 24.04: /proc/cpuinfo and
+  /proc/meminfo read as a standard user; /sys/devices/virtual/dmi/id
+  exposes BIOS date, vendor, version and product name, but
+  product_serial is mode 0400 (root-only) and was unreadable even to
+  root on this VM; /sys/class/block lists devices;
+  /sys/class/power_supply is empty on a VM with no battery;
+  /sys/class/drm has no connectors on a headless VM;
+  /sys/class/hwmon is empty; cpufreq is absent in a VM. Tools:
+  smartctl, upower, dmidecode, lspci, lsusb, lm-sensors, xrandr and
+  ufw all absent on a stock install; journalctl, apt and dpkg present.
+
+  Verdict: no collector ports as-is. 14 of 15 map partially; Security
+  has no Linux equivalent. A Linux build would need to bundle or
+  require smartctl, upower, dmidecode and friends, accept that serials
+  are not a standard-user fact, and redesign the Security collector
+  from scratch. Windows stays the shipping target; a Linux build
+  starts only if users ask for it.
+
+  Tests: `LinuxCollectorParityTests` (every collector has exactly one
+  row, every row names a source and a reason, spot mappings pinned,
+  Security is NotFeasible, no row reaches Full — the test pins that
+  headline, so a future port claiming Full must update it
+  deliberately — Get returns null for an unknown id, throws on null).
+- **Dependency audit re-attested for v2.1.5.** `SECURITY.md` said
+  v2.1.4; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.4 and v2.1.5 (only the `<Version>` bump
+  — zero `PackageReference` changes in
+  `git diff 3d7a59e 526ed0a -- '*csproj'`), so the result carries
+  forward.
 
 ## Rejected
 
