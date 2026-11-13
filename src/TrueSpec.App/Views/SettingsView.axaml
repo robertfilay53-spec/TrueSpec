@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:TrueSpec.App.ViewModels"
+             xmlns:plugins="using:TrueSpec.Core.Plugins"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
@@ -161,6 +162,53 @@
                                TextWrapping="Wrap"
                                Classes="muted" />
                     <TextBlock Text="Takes effect after a restart. Scans already saved stay in the folder they were saved in; only new scans go to the new location."
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Plug-ins" Classes="h3" />
+                    <TextBlock Text="A plug-in adds a collector — a new hardware source — without changing TrueSpec. Put each plug-in in its own folder under the folder below. Every folder needs a plugin.json manifest that names the plug-in, the collector contract version it was written for, and the collectors it provides."
+                               Classes="muted"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding PluginFolderText}"
+                               Classes="muted"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding PluginsSummaryText}"
+                               Classes="muted"
+                               TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding DiscoveredPlugins}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="plugins:DiscoveredPlugin">
+                                <Border BorderBrush="{DynamicResource AppBorder}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="0,6">
+                                    <StackPanel Spacing="2">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{Binding DisplayName}"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding DisplayVersion}"
+                                                       Classes="muted" />
+                                            <TextBlock Text="{Binding StatusText}"
+                                                       FontWeight="SemiBold" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Reason}"
+                                                   Classes="muted"
+                                                   FontSize="11"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Classes="secondary"
+                            Content="Refresh plug-ins"
+                            Command="{Binding RefreshPluginsCommand}"
+                            HorizontalAlignment="Left" />
+                    <TextBlock Text="Plug-ins are discovered here but never loaded in this version: only signed plug-ins load, and plug-in signing is not set up yet."
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap" />
