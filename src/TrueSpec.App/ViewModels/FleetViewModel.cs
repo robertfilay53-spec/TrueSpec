@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TrueSpec.App.Services;
 using TrueSpec.Core.History;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Reports;
@@ -26,26 +27,34 @@ using TrueSpec.Core.Storage;
 /// A machine leaves the fleet with the Remove button on its row (two
 /// clicks: arm, then confirm), which deletes all of that machine's
 /// saved scans from this data folder — the undo for a wrong import.
-/// Every value comes from a real saved snapshot; a machine whose latest
-/// scan is unreadable is skipped, never shown with invented numbers.
+/// Export all machines writes one CSV per machine into the export
+/// folder, so the whole fleet can be filed at once instead of one
+/// Export click per row. Every value comes from a real saved snapshot;
+/// a machine whose latest scan is unreadable is skipped, never shown
+/// with invented numbers.
 /// </summary>
 public sealed partial class FleetViewModel : ViewModelBase
 {
     private readonly ISnapshotStore? _store;
     private readonly Func<FleetMachineRow, SystemSnapshot, Task>? _exportMachineCsv;
+    private readonly Func<IReadOnlyList<FleetMachineRow>, IReadOnlyDictionary<string, SystemSnapshot>, Task<ExportAllMachinesResult>>? _exportAllMachinesCsv;
     private readonly Dictionary<string, SystemSnapshot> _snapshotsByMachine = new(StringComparer.OrdinalIgnoreCase);
     private bool _importing;
     private bool _removing;
+    private bool _exportingAll;
 
     public FleetViewModel(
         ISnapshotStore? store,
         ICommand? exportFleetCsvCommand = null,
-        Func<FleetMachineRow, SystemSnapshot, Task>? exportMachineCsv = null)
+        Func<FleetMachineRow, SystemSnapshot, Task>? exportMachineCsv = null,
+        Func<IReadOnlyList<FleetMachineRow>, IReadOnlyDictionary<string, SystemSnapshot>, Task<ExportAllMachinesResult>>? exportAllMachinesCsv = null)
     {
         _store = store;
         _exportMachineCsv = exportMachineCsv;
+        _exportAllMachinesCsv = exportAllMachinesCsv;
         ExportFleetCsvCommand = exportFleetCsvCommand;
         ExportMachineCsvCommand = new AsyncRelayCommand<FleetRowViewModel>(ExportMachineCsvAsync);
+        ExportAllMachinesCommand = new AsyncRelayCommand(ExportAllMachinesAsync);
         RemoveMachineCommand = new AsyncRelayCommand<FleetRowViewModel>(RemoveMachineAsync);
         ImportReportsCommand = new AsyncRelayCommand(ImportReportsAsync);
         _ = LoadAsync();
@@ -80,6 +89,16 @@ public sealed partial class FleetViewModel : ViewModelBase
     /// page built while loading; the row alone cannot identify it.
     /// </summary>
     public IAsyncRelayCommand<FleetRowViewModel> ExportMachineCsvCommand { get; }
+
+    /// <summary>
+    /// Every machine in the fleet as its own CSV, invoked from the
+    /// "Export all machines" button above the table: one file per
+    /// machine in the export folder, each written exactly like the
+    /// per-row export. A machine whose latest scan cannot be read, or
+    /// has no score, is skipped and named in the status line, and a
+    /// write failure for one machine never stops the rest.
+    /// </summary>
+    public IAsyncRelayCommand ExportAllMachinesCommand { get; }
 
     /// <summary>
     /// Takes one machine out of the fleet, invoked from the Remove button
@@ -179,6 +198,73 @@ public sealed partial class FleetViewModel : ViewModelBase
         }
 
         await _exportMachineCsv(rowViewModel.Row, snapshot);
+    }
+
+    /// <summary>
+    /// Exports every machine in the fleet as its own CSV (v2.1.4). The
+    /// rows and their snapshots come from this page's load; the
+    /// orchestrator writes the files and reports the outcome, and this
+    /// method renders the status line from it: how many machines were
+    /// exported, the folder they landed in, and any machine skipped by
+    /// name with its reason. A second click while an export is running
+    /// does nothing (the guard, not a second export).
+    /// </summary>
+    private async Task ExportAllMachinesAsync()
+    {
+        if (_exportingAll)
+        {
+            return;
+        }
+
+        if (_exportAllMachinesCsv is null)
+        {
+            StatusMessage = "Export all is unavailable.";
+            return;
+        }
+
+        var rows = CurrentRows;
+        if (rows is null || rows.Count == 0)
+        {
+            StatusMessage = "Export all failed: there is no fleet to export yet.";
+            return;
+        }
+
+        _exportingAll = true;
+        try
+        {
+            var result = await _exportAllMachinesCsv(rows, _snapshotsByMachine);
+            StatusMessage = BuildExportAllStatus(result, rows.Count);
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"Export all failed: {exception.Message}";
+        }
+        finally
+        {
+            _exportingAll = false;
+        }
+    }
+
+    private static string BuildExportAllStatus(ExportAllMachinesResult result, int totalRows)
+    {
+        var exported = result.ExportedPaths.Count;
+        if (exported == 0)
+        {
+            var skipped = result.Skipped.Count == 0
+                ? "there is no fleet to export yet."
+                : $"Skipped {result.Skipped.Count}: {string.Join("; ", result.Skipped.Select(s => $"{s.MachineName}: {s.Reason}"))}.";
+            return $"Exported 0 machines. {skipped}";
+        }
+
+        var summary = string.Create(
+            CultureInfo.InvariantCulture,
+            $"Exported {exported} of {totalRows} machine{(totalRows == 1 ? string.Empty : "s")} to {result.Folder}.");
+        if (result.Skipped.Count > 0)
+        {
+            summary += $" Skipped {result.Skipped.Count}: {string.Join("; ", result.Skipped.Select(s => $"{s.MachineName}: {s.Reason}"))}.";
+        }
+
+        return summary;
     }
 
     /// <summary>

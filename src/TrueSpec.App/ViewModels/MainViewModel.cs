@@ -689,6 +689,30 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>
+    /// Exports every fleet machine as its own CSV, to the configured
+    /// export folder. Raises the same unmissable confirmation as the
+    /// other exports: the banner names the folder and the count, and
+    /// "Open folder" opens the folder the files landed in (the
+    /// confirmation path is the first file written, so it opens that
+    /// file's folder). With nothing exported there is no confirmation,
+    /// only the fleet page's status line, which names what was skipped.
+    /// </summary>
+    private async Task<ExportAllMachinesResult> ExportAllMachinesCsvAsync(
+        IReadOnlyList<FleetMachineRow> rows,
+        IReadOnlyDictionary<string, SystemSnapshot> snapshotsByMachine)
+    {
+        var result = await _exporter.ExportAllMachinesCsvAsync(rows, snapshotsByMachine);
+        if (result.ExportedPaths.Count > 0)
+        {
+            ExportConfirmationPath = result.ExportedPaths[0];
+            ExportConfirmationText = $"Exported {result.ExportedPaths.Count} machine CSV{(result.ExportedPaths.Count == 1 ? string.Empty : "s")} to {result.Folder}. These files contain hardware serial numbers, MAC addresses, IP addresses and Wi-Fi network names. Share them only with someone you trust.";
+            StatusMessage = ExportConfirmationText;
+        }
+
+        return result;
+    }
+
     [RelayCommand]
     private Task ExportChecklistAsync() => _exporter.ExportChecklistAsync();
 
@@ -879,7 +903,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 OnLoadTestCompleted)),
             "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: IsScanRunning, exportPdfCommand: ExportPdfCommand, exportCertificateCommand: ExportCertificateCommand, verifyMachineCommand: VerifyMachineCommand, dnaVerification: _lastDnaVerification, isVerifyingMachine: IsVerifyingMachine)),
             "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot, _dnaVerifier)),
-            "fleet" => GetOrCreate("fleet", () => new FleetViewModel(_snapshotStore, ExportFleetCsvCommand, ExportMachineCsvAsync)),
+            "fleet" => GetOrCreate("fleet", () => new FleetViewModel(_snapshotStore, ExportFleetCsvCommand, ExportMachineCsvAsync, ExportAllMachinesCsvAsync)),
             "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand, SensorLogWriter.DefaultFilePath(), _settings.SensorLoggingEnabled, _settings.CpuTemperatureThresholdC)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
             _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key)),

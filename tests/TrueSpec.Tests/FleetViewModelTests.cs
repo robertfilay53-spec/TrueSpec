@@ -1,3 +1,4 @@
+using TrueSpec.App.Services;
 using TrueSpec.App.ViewModels;
 using TrueSpec.Core.History;
 using TrueSpec.Core.Models;
@@ -443,5 +444,274 @@ public class FleetViewModelTests
         row.IsRemoveArmed = true;
 
         Assert.Equal("Confirm remove", row.RemoveButtonText);
+    }
+
+    /// <summary>
+    /// Export all machines (v2.1.4): the command hands the delegate the
+    /// rows this page loaded and the snapshot map it built while
+    /// loading, and the status line reports the outcome — how many
+    /// machines were exported, and the folder they landed in.
+    /// </summary>
+    [Fact]
+    public async Task ExportAllMachinesCommand_CallsDelegateWithRowsAndSnapshots()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("SHOP-PC-GOOD", 92d, "8%", baseTime),
+                ("SHOP-PC-BAD", 55d, "45%", baseTime.AddHours(1)));
+
+            IReadOnlyList<FleetMachineRow>? seenRows = null;
+            IReadOnlyDictionary<string, SystemSnapshot>? seenMap = null;
+            var calls = 0;
+            var folder = Path.Combine(directory, "exports");
+            Task<ExportAllMachinesResult> Delegate(
+                IReadOnlyList<FleetMachineRow> rows,
+                IReadOnlyDictionary<string, SystemSnapshot> map)
+            {
+                calls++;
+                seenRows = rows;
+                seenMap = map;
+                return Task.FromResult(new ExportAllMachinesResult(
+                    folder,
+                    new[]
+                    {
+                        Path.Combine(folder, "TrueSpec-machine-SHOP-PC-BAD.csv"),
+                        Path.Combine(folder, "TrueSpec-machine-SHOP-PC-GOOD.csv"),
+                    },
+                    Array.Empty<(string, string)>()));
+            }
+
+            var viewModel = new FleetViewModel(store, exportAllMachinesCsv: Delegate);
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (!viewModel.HasFleet && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.True(viewModel.HasFleet, "Fleet never loaded from the store.");
+
+            await viewModel.ExportAllMachinesCommand.ExecuteAsync(null);
+
+            Assert.Equal(1, calls);
+            Assert.NotNull(seenRows);
+            Assert.Equal(2, seenRows!.Count);
+            Assert.NotNull(seenMap);
+            Assert.Equal(2, seenMap!.Count);
+            Assert.True(seenMap.ContainsKey("SHOP-PC-GOOD"));
+            Assert.True(seenMap.ContainsKey("SHOP-PC-BAD"));
+            Assert.Contains("Exported 2 of 2 machines to", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains(folder, viewModel.StatusMessage, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Export all machines (v2.1.4): with no export delegate wired up
+    /// (the MainViewModel always wires one; the bare constructor does
+    /// not), the command says so instead of failing silently.
+    /// </summary>
+    [Fact]
+    public async Task ExportAllMachinesCommand_NoDelegate_ReportsUnavailable()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(directory, ("SHOP-PC-GOOD", 92d, "8%", baseTime));
+
+            var viewModel = new FleetViewModel(store);
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (!viewModel.HasFleet && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.True(viewModel.HasFleet, "Fleet never loaded from the store.");
+
+            await viewModel.ExportAllMachinesCommand.ExecuteAsync(null);
+
+            Assert.Equal("Export all is unavailable.", viewModel.StatusMessage);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Export all machines (v2.1.4): an empty fleet has nothing to
+    /// export, so the delegate is never called and the status line says
+    /// the fleet is empty.
+    /// </summary>
+    [Fact]
+    public async Task ExportAllMachinesCommand_EmptyFleet_DoesNotCallDelegate()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var databasePath = Path.Combine(directory, "snapshots.db");
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var calls = 0;
+            Task<ExportAllMachinesResult> Delegate(
+                IReadOnlyList<FleetMachineRow> rows,
+                IReadOnlyDictionary<string, SystemSnapshot> map)
+            {
+                calls++;
+                return Task.FromResult(new ExportAllMachinesResult(
+                    Path.Combine(directory, "exports"),
+                    Array.Empty<string>(),
+                    Array.Empty<(string, string)>()));
+            }
+
+            var viewModel = new FleetViewModel(store, exportAllMachinesCsv: Delegate);
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (viewModel.StatusMessage == "Loading fleet..." && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            await viewModel.ExportAllMachinesCommand.ExecuteAsync(null);
+
+            Assert.Equal(0, calls);
+            Assert.Contains("no fleet to export yet", viewModel.StatusMessage, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Export all machines (v2.1.4): a partial export still reports the
+    /// count, and names the machine that was skipped and why — the
+    /// technician can see at a glance which machine needs a re-scan.
+    /// </summary>
+    [Fact]
+    public async Task ExportAllMachinesCommand_PartialExport_NamesSkippedMachine()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("SHOP-PC-GOOD", 92d, "8%", baseTime),
+                ("SHOP-PC-BAD", 55d, "45%", baseTime.AddHours(1)));
+
+            var folder = Path.Combine(directory, "exports");
+            Task<ExportAllMachinesResult> Delegate(
+                IReadOnlyList<FleetMachineRow> rows,
+                IReadOnlyDictionary<string, SystemSnapshot> map) =>
+                Task.FromResult(new ExportAllMachinesResult(
+                    folder,
+                    new[] { Path.Combine(folder, "TrueSpec-machine-SHOP-PC-GOOD.csv") },
+                    new[] { ("SHOP-PC-BAD", "the latest scan has no score to export") }));
+
+            var viewModel = new FleetViewModel(store, exportAllMachinesCsv: Delegate);
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (!viewModel.HasFleet && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.True(viewModel.HasFleet, "Fleet never loaded from the store.");
+
+            await viewModel.ExportAllMachinesCommand.ExecuteAsync(null);
+
+            Assert.Contains("Exported 1 of 2 machines to", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("SHOP-PC-BAD", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("no score", viewModel.StatusMessage, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Export all machines (v2.1.4): a second click while an export is
+    /// running does nothing — one export, not two sets of files.
+    /// </summary>
+    [Fact]
+    public async Task ExportAllMachinesCommand_Reentrancy_SecondCallWhileRunningDoesNothing()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(directory, ("SHOP-PC-GOOD", 92d, "8%", baseTime));
+
+            var folder = Path.Combine(directory, "exports");
+            var completion = new TaskCompletionSource<ExportAllMachinesResult>();
+            var calls = 0;
+            Task<ExportAllMachinesResult> Delegate(
+                IReadOnlyList<FleetMachineRow> rows,
+                IReadOnlyDictionary<string, SystemSnapshot> map)
+            {
+                calls++;
+                return completion.Task;
+            }
+
+            var viewModel = new FleetViewModel(store, exportAllMachinesCsv: Delegate);
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (!viewModel.HasFleet && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.True(viewModel.HasFleet, "Fleet never loaded from the store.");
+
+            var first = viewModel.ExportAllMachinesCommand.ExecuteAsync(null);
+            await viewModel.ExportAllMachinesCommand.ExecuteAsync(null);
+
+            Assert.Equal(1, calls);
+
+            completion.SetResult(new ExportAllMachinesResult(
+                folder,
+                new[] { Path.Combine(folder, "TrueSpec-machine-SHOP-PC-GOOD.csv") },
+                Array.Empty<(string, string)>()));
+            await first;
+
+            Assert.Equal(1, calls);
+            Assert.Contains("Exported 1 of 1 machine to", viewModel.StatusMessage, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
     }
 }
