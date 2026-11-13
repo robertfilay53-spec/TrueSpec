@@ -128,7 +128,7 @@ public sealed class RamCollector : ICollector
     /// The Windows Memory Diagnostic result, read from the System event log
     /// (provider Microsoft-Windows-MemoryDiagnostics-Results, newest result
     /// event first). "Not run" now means the log was read and holds no
-    /// result event; an unreadable log is "Not reported by hardware", never
+    /// result event; an unreadable log is reported as unreadable, never
     /// a guessed "Not run". A collector never fails the scan: any failure
     /// here degrades to the honest unreadable value. The query is
     /// provider-filtered and capped, so it reads at most a handful of rows

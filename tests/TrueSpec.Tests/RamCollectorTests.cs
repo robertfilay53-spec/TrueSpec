@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using TrueSpec.Collectors.Windows.Collectors;
 using TrueSpec.Core.Models;
 
@@ -61,7 +62,7 @@ public class RamCollectorTests
     /// supports: "Passed on &lt;date&gt;" or "Failed on &lt;date&gt;" when
     /// a Windows Memory Diagnostic result event survives in the System
     /// log, "Not run" when the log was read and holds no result event, or
-    /// "Not reported by hardware" when the log could not be read at all.
+    /// the honest unreadable value when the log could not be read at all.
     /// It must never be a hardcoded label that was never checked against
     /// the log. The exact value depends on the machine, so the shape is
     /// pinned, not the value: on a CI runner the diagnostic has almost
@@ -97,7 +98,8 @@ public class RamCollectorTests
             string.Equals(s.Label, SpecLabels.MemoryTest, StringComparison.Ordinal));
         Assert.NotNull(memoryTest);
         Assert.Matches(
-            @"^(Not run|Passed on \d{4}-\d{2}-\d{2}|Failed on \d{4}-\d{2}-\d{2}|Not reported by hardware)$",
+            "^(Not run|Passed on \\d{4}-\\d{2}-\\d{2}|Failed on \\d{4}-\\d{2}-\\d{2}|"
+                + Regex.Escape(SpecLabels.NotReportedByHardware) + ")$",
             memoryTest.Value);
         Assert.True(
             string.Equals(memoryTest.Source, "Windows Memory Diagnostic", StringComparison.Ordinal) ||
