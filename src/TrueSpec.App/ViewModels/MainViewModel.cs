@@ -304,8 +304,24 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(LastScanText));
         if (resetNavigation)
         {
-            SelectedNavItem = NavItems.FirstOrDefault();
-            CurrentPage = Overview;
+            // The initial scan finished while the user may already have
+            // navigated: resetting unconditionally yanks them back to
+            // Overview and discards their navigation (the v2.0.1
+            // Motherboard report: the click landed during the scan and
+            // the completion reset the rail to Overview, so the item
+            // read as broken while its routing was fine). Only reset
+            // when they are still on the Overview they never left;
+            // otherwise keep their page, rebuilt from the new snapshot
+            // exactly like a refresh does below.
+            if (CurrentPage is not OverviewViewModel && SelectedNavItem is { } navigated)
+            {
+                NavigateTo(navigated.Key);
+            }
+            else
+            {
+                SelectedNavItem = NavItems.FirstOrDefault();
+                CurrentPage = Overview;
+            }
         }
         else if (SelectedNavItem is { } selected)
         {

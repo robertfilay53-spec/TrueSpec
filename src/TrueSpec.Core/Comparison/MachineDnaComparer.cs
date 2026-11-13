@@ -44,6 +44,14 @@ public sealed record MachineDnaComparison(
     public string Summary => Verdict switch
     {
         MachineDnaVerdict.Identical => "Same machine, same parts.",
+        // The fingerprints-match case reads consistently with the
+        // headline: the fingerprint matches and no part changed; the
+        // unidentified part is the only reason a full verified identity
+        // match cannot be claimed. The old text ("could not be
+        // verified") read as a failure on an unchanged machine (the
+        // v2.0.1 AppOnFly finding), even though nothing changed.
+        MachineDnaVerdict.Unverifiable when FingerprintsMatch && Added.Count == 0 && Removed.Count == 0 && Changed.Count == 0
+            => "Same machine — fingerprint matches. No part changed, but a part was not identified in one of the scans, so a full verified identity match cannot be claimed.",
         MachineDnaVerdict.Unverifiable => "Machine identity could not be verified: a part was not identified in one of the scans.",
         MachineDnaVerdict.Changed =>
             $"Machine changed: {Added.Count} part(s) added, {Removed.Count} removed, {Changed.Count} replaced.",

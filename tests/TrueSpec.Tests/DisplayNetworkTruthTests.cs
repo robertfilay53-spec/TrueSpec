@@ -1,3 +1,4 @@
+using System.Net.NetworkInformation;
 using TrueSpec.Collectors.Windows.Collectors;
 using TrueSpec.Collectors.Windows.Wmi;
 using TrueSpec.Core.Models;
@@ -890,6 +891,220 @@ public class DisplayNetworkTruthTests
         var version = Assert.Single(specs, s => s.Label == SpecLabels.EthernetDriverVersion);
         Assert.Equal("10.0.26100.1", version.Value);
         Assert.Equal("CIM Win32_PnPSignedDriver", version.Source);
+    }
+
+    // ---- v2.0.1 fixes: Hyper-V wired adapter detection ------------------
+    //
+    // AppOnFly v2.0.1 (main e5316b7) found the Network screen still
+    // Wi-Fi-only on a Hyper-V VM: header "Microsoft Hyper-V Network
+    // Adapter #2" but every row reported nothing, no wired
+    // buyer summary, no Ethernet driver version. The detection path had
+    // never been tested end to end with a Hyper-V row: the v2.0-next
+    // tests built InterfaceData/reading values directly and never ran the
+    // classification. These tests reproduce the live detection path: a
+    // CIM row named "Microsoft Hyper-V Network Adapter #2" plus a live
+    // NetworkInterface entry for it, and prove the adapter surfaces as
+    // wired, with visible Ethernet specs and a wired buyer summary.
+
+    /// <summary>The CIM row a Hyper-V guest reports for its synthetic NIC.</summary>
+    private static WmiRow HyperVCimRow(bool physicalAdapter = true) => new(new Dictionary<string, object?>
+    {
+        ["Name"] = "Microsoft Hyper-V Network Adapter #2",
+        ["Manufacturer"] = "Microsoft",
+        ["MACAddress"] = "00:15:5D:12:34:56",
+        ["Speed"] = null,
+        ["PNPDeviceID"] = @"VMBUS\{4C641B2C-3A1E-4B2A-9C1D-5E6F7A8B9C0D}",
+        ["NetConnectionID"] = "Ethernet",
+        ["AdapterType"] = "Ethernet 802.3",
+        ["Index"] = 7u,
+        ["PhysicalAdapter"] = physicalAdapter,
+    });
+
+    /// <summary>The live NetworkInterface entry for the same adapter.</summary>
+    private static NetworkCollector.InterfaceData HyperVInterface() => new(
+        Name: "Ethernet",
+        Description: "Microsoft Hyper-V Network Adapter #2",
+        MacAddress: "00:15:5D:12:34:56",
+        Ipv4Addresses: "10.0.0.4",
+        Gateways: "10.0.0.1",
+        DnsServers: "10.0.0.1",
+        SpeedBitsPerSecond: 10_000_000_000,
+        Status: "Up",
+        IsWireless: false,
+        IsWired: true,
+        IsUp: true);
+
+    /// <summary>A Wi-Fi Direct virtual adapter: real Windows reports it with NetworkInterfaceType Wireless80211, but it is not a Wi-Fi radio.</summary>
+    private static NetworkCollector.InterfaceData WifiDirectInterface() => new(
+        Name: "Wi-Fi Direct",
+        Description: "Microsoft Wi-Fi Direct Virtual Adapter",
+        MacAddress: null,
+        Ipv4Addresses: null,
+        Gateways: null,
+        DnsServers: null,
+        SpeedBitsPerSecond: null,
+        Status: "Down",
+        IsWireless: true,
+        IsWired: false,
+        IsUp: false);
+
+    [Fact]
+    public void ClassifyCimAdapter_HyperVRow_IsEthernetNotWifi()
+    {
+        var row = HyperVCimRow();
+
+        Assert.True(NetworkCollector.IsEthernet(row));
+        Assert.False(NetworkCollector.IsWifi(row));
+    }
+
+    [Fact]
+    public void IsUsableAdapter_HyperVRowWithPhysicalAdapterFalse_IsStillUsable()
+    {
+        // The v2.0.1 root-cause candidate: the CIM query filtered on
+        // PhysicalAdapter = TRUE, and a virtual wired NIC reports that
+        // flag inconsistently across Windows builds. A Hyper-V row is
+        // usable by name even when the flag is FALSE.
+        Assert.True(NetworkCollector.IsUsableAdapter(HyperVCimRow(physicalAdapter: false)));
+        Assert.True(NetworkCollector.IsUsableAdapter(HyperVCimRow(physicalAdapter: true)));
+    }
+
+    [Fact]
+    public void IsUsableAdapter_WifiDirectAndMiniportRows_AreNotUsable()
+    {
+        var wifiDirect = new WmiRow(new Dictionary<string, object?>
+        {
+            ["Name"] = "Microsoft Wi-Fi Direct Virtual Adapter",
+            ["AdapterType"] = "Ethernet 802.3",
+            ["PhysicalAdapter"] = false,
+        });
+        var miniport = new WmiRow(new Dictionary<string, object?>
+        {
+            ["Name"] = "WAN Miniport (SSTP)",
+            ["AdapterType"] = "Ethernet 802.3",
+            ["PhysicalAdapter"] = false,
+        });
+
+        Assert.False(NetworkCollector.IsUsableAdapter(wifiDirect));
+        Assert.False(NetworkCollector.IsUsableAdapter(miniport));
+    }
+
+    [Fact]
+    public void ClassifyInterface_HyperVAdapter_IsWiredNotWireless()
+    {
+        var (isWireless, isWired) = NetworkCollector.ClassifyInterface(
+            NetworkInterfaceType.Ethernet, "Microsoft Hyper-V Network Adapter #2");
+
+        Assert.False(isWireless);
+        Assert.True(isWired);
+    }
+
+    [Fact]
+    public void ClassifyInterface_RealWifiAdapter_IsWirelessNotWired()
+    {
+        var (isWireless, isWired) = NetworkCollector.ClassifyInterface(
+            NetworkInterfaceType.Wireless80211, "Intel(R) Wi-Fi 6 AX200");
+
+        Assert.True(isWireless);
+        Assert.False(isWired);
+    }
+
+    [Theory]
+    [InlineData("Microsoft Wi-Fi Direct Virtual Adapter", true)]
+    [InlineData("Microsoft Hosted Network Virtual Adapter", true)]
+    [InlineData("Intel(R) Wi-Fi 6 AX200", false)]
+    [InlineData("Microsoft Hyper-V Network Adapter #2", false)]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    public void IsWifiDirectVirtualAdapter_OnlyMatchesVirtualWifiAdapters(string? description, bool expected)
+    {
+        Assert.Equal(expected, NetworkCollector.IsWifiDirectVirtualAdapter(description));
+    }
+
+    [Fact]
+    public void HyperVAdapter_CimPath_SurfacesWiredSpecsAndWiredBuyerSummary()
+    {
+        // CIM found the adapter (name + driver), the live interface
+        // supplies the link speed and addresses CIM did not report.
+        var reading = WiredReading("Microsoft Hyper-V Network Adapter #2", null, "2021-06-21");
+        var interfaces = new[] { HyperVInterface() };
+
+        Assert.Equal("Microsoft Hyper-V Network Adapter #2", NetworkCollector.BuildHeadline(reading, interfaces));
+
+        var specs = NetworkCollector.BuildSpecs(reading, interfaces, AsOf);
+        Assert.Equal("Microsoft Hyper-V Network Adapter #2", Assert.Single(specs, s => s.Label == SpecLabels.EthernetAdapter).Value);
+        Assert.Equal("10000 Mbps", Assert.Single(specs, s => s.Label == SpecLabels.EthernetLinkSpeed).Value);
+        Assert.Equal("Up", Assert.Single(specs, s => s.Label == SpecLabels.EthernetStatus).Value);
+        Assert.Equal("00:15:5D:12:34:56", Assert.Single(specs, s => s.Label == SpecLabels.EthernetMACAddress).Value);
+        Assert.Equal("10.0.26100.1", Assert.Single(specs, s => s.Label == SpecLabels.EthernetDriverVersion).Value);
+        Assert.Equal("10.0.0.4", Assert.Single(specs, s => s.Label == SpecLabels.EthernetIPAddress).Value);
+        Assert.Equal("10.0.0.1", Assert.Single(specs, s => s.Label == SpecLabels.EthernetGateway).Value);
+        Assert.Equal("10.0.0.1", Assert.Single(specs, s => s.Label == SpecLabels.EthernetDNSServers).Value);
+
+        Assert.Equal(
+            "Buyer check: wired adapter Microsoft Hyper-V Network Adapter #2, linked at 10000 Mbps (negotiated rate at scan time, not a speed test), driver from 2021.",
+            NetworkCollector.BuildBuyerSummary(reading, interfaces));
+    }
+
+    [Fact]
+    public void HyperVAdapter_NetworkInterfaceFallbackOnly_SurfacesWiredSpecsAndWiredBuyerSummary()
+    {
+        // CIM missed the adapter entirely: the screen is built from the
+        // live adapter instead of reporting nothing. The driver fields
+        // are CIM-only, so they honestly say not reported.
+        var reading = new NetworkCollector.NetworkReading(
+            WifiName: null,
+            WifiVendor: null,
+            WifiDriverVersion: null,
+            WifiDriverDate: null,
+            WifiSpeedBitsPerSecond: null,
+            WifiMac: null,
+            WifiIp: null,
+            WifiGateway: null,
+            WifiDns: null,
+            Standards: SpecLabels.NotReportedByHardware,
+            Signal: null,
+            Band: null,
+            Channel: null,
+            RadioType: null,
+            ReceiveRate: null,
+            TransmitRate: null,
+            Ssid: null,
+            EthernetName: null,
+            EthernetSpeedBitsPerSecond: null,
+            EthernetMac: null,
+            EthernetDriverVersion: null,
+            EthernetDriverDate: null,
+            EthernetIp: null,
+            BluetoothCount: 0);
+        var interfaces = new[] { HyperVInterface() };
+
+        Assert.Equal("Microsoft Hyper-V Network Adapter #2", NetworkCollector.BuildHeadline(reading, interfaces));
+
+        var specs = NetworkCollector.BuildSpecs(reading, interfaces, AsOf);
+        Assert.Equal("Microsoft Hyper-V Network Adapter #2", Assert.Single(specs, s => s.Label == SpecLabels.EthernetAdapter).Value);
+        Assert.Equal("10000 Mbps", Assert.Single(specs, s => s.Label == SpecLabels.EthernetLinkSpeed).Value);
+        Assert.Equal("Up", Assert.Single(specs, s => s.Label == SpecLabels.EthernetStatus).Value);
+        Assert.Equal("00:15:5D:12:34:56", Assert.Single(specs, s => s.Label == SpecLabels.EthernetMACAddress).Value);
+        Assert.Equal(SpecLabels.NotReportedByHardware, Assert.Single(specs, s => s.Label == SpecLabels.EthernetDriverVersion).Value);
+
+        Assert.Equal(
+            "Buyer check: wired adapter Microsoft Hyper-V Network Adapter #2, linked at 10000 Mbps (negotiated rate at scan time, not a speed test), driver date not reported by hardware.",
+            NetworkCollector.BuildBuyerSummary(reading, interfaces));
+    }
+
+    [Fact]
+    public void HyperVAdapter_WifiDirectVirtualAdapter_DoesNotShadowTheWiredSummary()
+    {
+        // The v2.0.1 symptom, reproduced: a Wi-Fi Direct virtual adapter
+        // is picked as the "wireless" adapter, so the wired buyer summary
+        // never appears and the screen reads Wi-Fi-only. A virtual
+        // adapter must not shadow the real wired one.
+        var reading = WiredReading("Microsoft Hyper-V Network Adapter #2", 1_000_000_000, "2021-06-21");
+        var interfaces = new[] { HyperVInterface(), WifiDirectInterface() };
+
+        Assert.Equal(
+            "Buyer check: wired adapter Microsoft Hyper-V Network Adapter #2, linked at 1000 Mbps (negotiated rate at scan time, not a speed test), driver from 2021.",
+            NetworkCollector.BuildBuyerSummary(reading, interfaces));
     }
 
     [Fact]
