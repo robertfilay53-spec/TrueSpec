@@ -1,6 +1,7 @@
 namespace TrueSpec.Core.Plugins;
 
 using TrueSpec.Core.Collectors;
+using TrueSpec.Core.Localization;
 
 /// <summary>
 /// What discovery found for one plug-in folder. The status is about the
@@ -25,18 +26,23 @@ public enum PluginStatus
 }
 
 /// <summary>
-/// One plug-in folder as discovery sees it, pre-formatted for the UI.
-/// <see cref="DisplayName"/> falls back to the folder name when there is
-/// no manifest to name the plug-in; <see cref="DisplayVersion"/> is a
-/// dash then. <see cref="StatusText"/> is the one-line status; <see cref="Reason"/>
-/// is the plain-English detail behind it.
+/// One plug-in folder as discovery sees it. <see cref="DisplayName"/>
+/// falls back to the folder name when there is no manifest to name the
+/// plug-in; <see cref="DisplayVersion"/> is a dash then. <see cref="StatusText"/>
+/// and <see cref="Reason"/> are in the language the discovery pass was
+/// asked for (<see cref="LanguageCode"/>, English when null): the
+/// status is resolved from the status enum through the localizer, and
+/// the reason was formatted in that language when the record was built.
+/// A record built without a language reads English, like every other
+/// Core diagnostic string with no language given.
 /// </summary>
 public sealed record DiscoveredPlugin(
     string FolderName,
     string FolderPath,
     PluginManifest? Manifest,
     PluginStatus Status,
-    string Reason)
+    string Reason,
+    string? LanguageCode = null)
 {
     public string DisplayName => Manifest?.Name ?? FolderName;
 
@@ -44,13 +50,13 @@ public sealed record DiscoveredPlugin(
 
     public string StatusText => Status switch
     {
-        PluginStatus.Ready => "Ready — not loaded yet",
+        PluginStatus.Ready => StringLocalizer.Get(AppStringKeys.PluginStatusReady, LanguageCode),
         PluginStatus.IncompatibleContract => Manifest is not null && Manifest.ContractVersion > CollectorContract.CurrentVersion
-            ? "Needs a newer TrueSpec"
-            : "Written for an older contract",
-        PluginStatus.InvalidManifest => "Manifest problem",
-        PluginStatus.MissingAssembly => "Assembly missing",
-        _ => "Unknown",
+            ? StringLocalizer.Get(AppStringKeys.PluginStatusNeedsNewer, LanguageCode)
+            : StringLocalizer.Get(AppStringKeys.PluginStatusOlderContract, LanguageCode),
+        PluginStatus.InvalidManifest => StringLocalizer.Get(AppStringKeys.PluginStatusManifestProblem, LanguageCode),
+        PluginStatus.MissingAssembly => StringLocalizer.Get(AppStringKeys.PluginStatusAssemblyMissing, LanguageCode),
+        _ => StringLocalizer.Get(AppStringKeys.PluginStatusUnknown, LanguageCode),
     };
 }
 
@@ -70,7 +76,8 @@ public sealed record PluginDiscoveryResult(
 /// each one's manifest, without loading anything. A folder is one
 /// plug-in; its manifest is plugin.json. Discovery never throws: an
 /// unreadable folder, a bad manifest, or a missing assembly is a status
-/// with a plain-English reason, never an exception out of the pass.
+/// with a reason in the requested language, never an exception out of
+/// the pass.
 /// Loading is deliberately NOT here: only signed plug-ins load, and the
 /// signing story is still being decided, so a discovered plug-in is
 /// listed and reported, never executed.
@@ -82,9 +89,12 @@ public static class PluginDiscovery
 
     /// <summary>
     /// Discovers the plug-ins in a folder. A folder that does not exist
-    /// means no plug-ins are installed: an empty list, no error.
+    /// means no plug-ins are installed: an empty list, no error. The
+    /// status, reason and error strings come back in the requested
+    /// language (<paramref name="languageCode"/>, English when null
+    /// or unknown), so a German Settings page lists German plug-ins.
     /// </summary>
-    public static PluginDiscoveryResult Discover(string pluginsFolder)
+    public static PluginDiscoveryResult Discover(string pluginsFolder, string? languageCode = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(pluginsFolder);
 
@@ -102,27 +112,27 @@ public static class PluginDiscovery
         {
             return new PluginDiscoveryResult(
                 Array.Empty<DiscoveredPlugin>(),
-                "The plug-ins folder could not be read, so no plug-ins are listed.");
+                StringLocalizer.Get(AppStringKeys.PluginErrorFolderUnreadable, languageCode));
         }
 
         Array.Sort(folders, StringComparer.OrdinalIgnoreCase);
         string? error = null;
         if (folders.Length > MaxPlugins)
         {
-            error = $"More than {MaxPlugins} plug-in folders were found; only the first {MaxPlugins} (alphabetically) are listed.";
+            error = StringLocalizer.GetFormatted(AppStringKeys.PluginErrorTooMany, languageCode, MaxPlugins, MaxPlugins);
             folders = folders[..MaxPlugins];
         }
 
         var plugins = new List<DiscoveredPlugin>(folders.Length);
         foreach (var folder in folders)
         {
-            plugins.Add(DiscoverOne(folder));
+            plugins.Add(DiscoverOne(folder, languageCode));
         }
 
         return new PluginDiscoveryResult(plugins, error);
     }
 
-    private static DiscoveredPlugin DiscoverOne(string folder)
+    private static DiscoveredPlugin DiscoverOne(string folder, string? languageCode)
     {
         var folderName = Path.GetFileName(folder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
         var manifestPath = Path.Combine(folder, PluginManifestParser.ManifestFileName);
@@ -133,14 +143,15 @@ public static class PluginDiscovery
                 folder,
                 null,
                 PluginStatus.InvalidManifest,
-                "No plugin.json manifest in this folder.");
+                StringLocalizer.Get(AppStringKeys.PluginReasonNoManifest, languageCode),
+                languageCode);
         }
 
         PluginManifestResult parsed;
         try
         {
             using var stream = File.OpenRead(manifestPath);
-            parsed = PluginManifestParser.Parse(stream);
+            parsed = PluginManifestParser.Parse(stream, languageCode);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
         {
@@ -149,7 +160,8 @@ public static class PluginDiscovery
                 folder,
                 null,
                 PluginStatus.InvalidManifest,
-                "The manifest could not be read.");
+                StringLocalizer.Get(AppStringKeys.PluginReasonManifestUnreadable, languageCode),
+                languageCode);
         }
 
         if (!parsed.Success || parsed.Manifest is null)
@@ -159,7 +171,8 @@ public static class PluginDiscovery
                 folder,
                 null,
                 PluginStatus.InvalidManifest,
-                parsed.Error ?? "The manifest could not be read.");
+                parsed.Error ?? StringLocalizer.Get(AppStringKeys.PluginReasonManifestUnreadable, languageCode),
+                languageCode);
         }
 
         var manifest = parsed.Manifest;
@@ -170,7 +183,8 @@ public static class PluginDiscovery
                 folder,
                 manifest,
                 PluginStatus.IncompatibleContract,
-                $"This plug-in was written for collector contract version {manifest.ContractVersion}; this TrueSpec speaks contract version {CollectorContract.CurrentVersion}.");
+                StringLocalizer.GetFormatted(AppStringKeys.PluginReasonContractVersion, languageCode, manifest.ContractVersion, CollectorContract.CurrentVersion),
+                languageCode);
         }
 
         if (!File.Exists(Path.Combine(folder, manifest.Assembly)))
@@ -180,7 +194,8 @@ public static class PluginDiscovery
                 folder,
                 manifest,
                 PluginStatus.MissingAssembly,
-                $"The plug-in file '{manifest.Assembly}' is missing from this folder.");
+                StringLocalizer.GetFormatted(AppStringKeys.PluginReasonAssemblyMissing, languageCode, manifest.Assembly),
+                languageCode);
         }
 
         return new DiscoveredPlugin(
@@ -188,6 +203,7 @@ public static class PluginDiscovery
             folder,
             manifest,
             PluginStatus.Ready,
-            "Manifest valid. Not loaded yet: only signed plug-ins load, and plug-in signing is not set up yet.");
+            StringLocalizer.Get(AppStringKeys.PluginReasonReady, languageCode),
+            languageCode);
     }
 }

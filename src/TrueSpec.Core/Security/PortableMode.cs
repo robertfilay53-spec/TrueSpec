@@ -1,5 +1,7 @@
 namespace TrueSpec.Core.Security;
 
+using TrueSpec.Core.Localization;
+
 /// <summary>The effective portable-mode state for one exe folder.</summary>
 public sealed record PortableModeStatus(
     /// <summary>True when this run keeps its data next to the exe.</summary>
@@ -13,14 +15,33 @@ public sealed record PortableModeStatus(
     /// <summary>The exe folder the status was computed for.</summary>
     string ExeFolder);
 
-/// <summary>The outcome of flipping the portable-mode marker.</summary>
+/// <summary>
+/// The outcome of flipping the portable-mode marker. The message is
+/// carried as a string key plus its arguments, not as a formatted
+/// string, so the caller can re-resolve it in another language: the
+/// Settings page shows the message in the language that was current
+/// when the toggle ran, and re-resolves it when the language changes
+/// (a <c>with { LanguageCode = ... }</c> copy). <see cref="Message"/>
+/// resolves the key for <see cref="LanguageCode"/> (English when null),
+/// formatting numbers with the invariant culture like every other
+/// localized template. No message is ever produced in two languages
+/// at once: the key is the single source of truth.
+/// </summary>
 public sealed record PortableModeToggleResult(
     /// <summary>True when the marker operation did what was asked.</summary>
     bool Success,
     /// <summary>The effective portable state after the operation.</summary>
     bool IsPortable,
-    /// <summary>Plain-English outcome, including what to do next.</summary>
-    string Message);
+    /// <summary>The catalogue key of the outcome message.</summary>
+    string MessageKey,
+    /// <summary>Values for the message template's placeholders.</summary>
+    object?[] MessageArgs,
+    /// <summary>The language the message resolves in; null reads English.</summary>
+    string? LanguageCode = null)
+{
+    /// <summary>Plain-English outcome, including what to do next, in the result's language.</summary>
+    public string Message => StringLocalizer.GetFormatted(MessageKey, LanguageCode, MessageArgs);
+}
 
 /// <summary>
 /// Portable mode, switched from inside the app (v2.1.1). The released
@@ -68,9 +89,11 @@ public static class PortableMode
     /// The returned <see cref="PortableModeToggleResult.IsPortable"/> is
     /// the effective state after the operation, re-resolved, so it stays
     /// honest when the environment variable still requests portable mode
-    /// after the marker is gone.
+    /// after the marker is gone. The outcome message comes back in the
+    /// requested language (<paramref name="languageCode"/>, English
+    /// when null or unknown).
     /// </summary>
-    public static PortableModeToggleResult SetEnabled(string exeDirectory, bool enable, string? environmentValue = null)
+    public static PortableModeToggleResult SetEnabled(string exeDirectory, bool enable, string? environmentValue = null, string? languageCode = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(exeDirectory);
 
@@ -82,7 +105,7 @@ public static class PortableMode
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
             return new PortableModeToggleResult(false, false,
-                "Portable mode could not be changed: that app folder could not be used.");
+                AppStringKeys.PortableToggleFolderUnusable, Array.Empty<object?>(), languageCode);
         }
 
         var markerPath = Path.Combine(fullExeFolder, AppDataRoot.PortableMarkerFileName);
@@ -92,13 +115,13 @@ public static class PortableMode
             if (PathSafety.ValidateAppDataRoot(fullExeFolder) is null)
             {
                 return new PortableModeToggleResult(false, false,
-                    "Portable mode cannot be enabled here: this app folder is a system or protected folder, so the app would keep its data in the default folder anyway.");
+                    AppStringKeys.PortableToggleProtectedFolder, Array.Empty<object?>(), languageCode);
             }
 
             if (File.Exists(markerPath))
             {
                 return new PortableModeToggleResult(true, true,
-                    "Portable mode is already on. Restart TrueSpec for it to take effect.");
+                    AppStringKeys.PortableToggleAlreadyOn, Array.Empty<object?>(), languageCode);
             }
 
             try
@@ -108,11 +131,11 @@ public static class PortableMode
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 return new PortableModeToggleResult(false, false,
-                    "Portable mode could not be enabled: the app folder could not be written to.");
+                    AppStringKeys.PortableToggleEnableFailed, Array.Empty<object?>(), languageCode);
             }
 
             return new PortableModeToggleResult(true, true,
-                "Portable mode is on. Restart TrueSpec: from then on, settings, history and the sensor log are kept next to the app instead of in the default folder. Scans already saved stay in the old folder.");
+                AppStringKeys.PortableToggleEnabled, Array.Empty<object?>(), languageCode);
         }
 
         if (!File.Exists(markerPath))
@@ -120,10 +143,10 @@ public static class PortableMode
             if (AppDataRoot.EnvRequestsPortable(environmentValue))
             {
                 return new PortableModeToggleResult(true, true,
-                    "There is no marker file to remove: portable mode is on through the TRUESPEC_PORTABLE environment variable. Unset the variable to turn it off.");
+                    AppStringKeys.PortableToggleNoMarkerEnv, Array.Empty<object?>(), languageCode);
             }
 
-            return new PortableModeToggleResult(true, false, "Portable mode is already off.");
+            return new PortableModeToggleResult(true, false, AppStringKeys.PortableToggleAlreadyOff, Array.Empty<object?>(), languageCode);
         }
 
         try
@@ -133,16 +156,16 @@ public static class PortableMode
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return new PortableModeToggleResult(false, true,
-                "Portable mode could not be disabled: the marker file could not be removed.");
+                AppStringKeys.PortableToggleDisableFailed, Array.Empty<object?>(), languageCode);
         }
 
         if (AppDataRoot.EnvRequestsPortable(environmentValue))
         {
             return new PortableModeToggleResult(true, true,
-                "The marker file was removed, but the TRUESPEC_PORTABLE environment variable still requests portable mode, so it stays on until that is unset.");
+                AppStringKeys.PortableToggleMarkerRemovedEnv, Array.Empty<object?>(), languageCode);
         }
 
         return new PortableModeToggleResult(true, false,
-            "Portable mode is off. Restart TrueSpec: from then on, data is kept in the default folder. Scans already saved next to the app stay there.");
+            AppStringKeys.PortableToggleDisabled, Array.Empty<object?>(), languageCode);
     }
 }

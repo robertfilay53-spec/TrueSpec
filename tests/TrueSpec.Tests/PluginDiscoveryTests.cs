@@ -223,4 +223,84 @@ public class PluginDiscoveryTests
         Assert.Throws<ArgumentNullException>(() => PluginDiscovery.Discover(null!));
         Assert.Throws<ArgumentException>(() => PluginDiscovery.Discover("   "));
     }
+
+    [Fact]
+    public void GermanLanguage_ReturnsGermanStatusAndReason()
+    {
+        // Localisation, phase 3 (v2.1.9): discovery takes a language
+        // code and the per-item status and reason come back in it.
+        // The default (no language) stays English, as the tests above
+        // pin. The plug-in and file names inside the sentences stay
+        // untranslated.
+        var plugins = TempDir();
+        try
+        {
+            AddPlugin(plugins, "gpuz", ManifestJson());
+            AddPlugin(plugins, "future", ManifestJson(contractVersion: CollectorContract.CurrentVersion + 1));
+            AddPlugin(plugins, "nodll", ManifestJson(), withAssembly: false);
+            AddPlugin(plugins, "nomanifest", manifestJson: null, withAssembly: false);
+
+            var result = PluginDiscovery.Discover(plugins, "de");
+
+            Assert.Equal(4, result.Plugins.Count);
+            var ready = result.Plugins.Single(p => p.FolderName == "gpuz");
+            Assert.Equal("Bereit — noch nicht geladen", ready.StatusText);
+            Assert.Equal("Manifest gültig. Noch nicht geladen: Nur signierte Plug-ins werden geladen, und die Plug-in-Signierung ist noch nicht eingerichtet.", ready.Reason);
+            var future = result.Plugins.Single(p => p.FolderName == "future");
+            Assert.Equal("Braucht ein neueres TrueSpec", future.StatusText);
+            Assert.Equal("Dieses Plug-in wurde für die Collector-Vertragsversion 2 geschrieben; dieses TrueSpec spricht Vertragsversion 1.", future.Reason);
+            var nodll = result.Plugins.Single(p => p.FolderName == "nodll");
+            Assert.Equal("Assembly fehlt", nodll.StatusText);
+            Assert.Equal("Die Plug-in-Datei 'GpuZBridge.dll' fehlt in diesem Ordner.", nodll.Reason);
+            var nomanifest = result.Plugins.Single(p => p.FolderName == "nomanifest");
+            Assert.Equal("Manifestproblem", nomanifest.StatusText);
+            Assert.Equal("Kein plugin.json-Manifest in diesem Ordner.", nomanifest.Reason);
+            Assert.Null(result.Error);
+        }
+        finally
+        {
+            Directory.Delete(plugins, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void GermanLanguage_BadManifestReasonIsGerman()
+    {
+        var plugins = TempDir();
+        try
+        {
+            AddPlugin(plugins, "broken", "not json {{{");
+
+            var result = PluginDiscovery.Discover(plugins, "de");
+
+            var plugin = Assert.Single(result.Plugins);
+            Assert.Equal(PluginStatus.InvalidManifest, plugin.Status);
+            Assert.Equal("Manifestproblem", plugin.StatusText);
+            Assert.Equal("Das Manifest ist kein gültiges JSON, daher wurde es übersprungen.", plugin.Reason);
+        }
+        finally
+        {
+            Directory.Delete(plugins, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void UnknownLanguage_FallsBackToEnglishStatusAndReason()
+    {
+        var plugins = TempDir();
+        try
+        {
+            AddPlugin(plugins, "gpuz", ManifestJson());
+
+            var result = PluginDiscovery.Discover(plugins, "xx");
+
+            var plugin = Assert.Single(result.Plugins);
+            Assert.Equal("Ready — not loaded yet", plugin.StatusText);
+            Assert.Contains("Not loaded yet", plugin.Reason, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(plugins, recursive: true);
+        }
+    }
 }

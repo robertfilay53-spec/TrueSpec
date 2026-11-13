@@ -48,12 +48,10 @@ public static class AppStringKeys
     // The page is pure chrome — no measured value, no unit, no threshold
     // appears as a literal; numbers the page shows (threshold, durations,
     // counts, folder paths) are values formatted into a template, never
-    // part of the translated text itself. Two strings on the page are
-    // deliberately NOT keys: the plug-in list's per-item status/reason
-    // and the portable-toggle result message are diagnostic strings
-    // produced by Core (PluginDiscovery, PortableMode), which take no
-    // language parameter; they stay English until a later "Core strings"
-    // slice threads a language code through those APIs.
+    // part of the translated text itself. The two strings v2.1.8 left
+    // English are keys since v2.1.9 (see "Core diagnostic strings"
+    // below): the plug-in list's per-item status/reason and the
+    // portable-toggle result message now take a language code too.
     public const string SettingsEyebrow = "SettingsEyebrow";
     public const string SettingsTitle = "SettingsTitle";
     public const string SettingsIntro = "SettingsIntro";
@@ -103,6 +101,65 @@ public static class AppStringKeys
     public const string PluginsNotLoadedNote = "PluginsNotLoadedNote";
     public const string PrivacyTitle = "PrivacyTitle";
     public const string PrivacyText = "PrivacyText";
+
+    // Core diagnostic strings (v2.1.9): the strings the plug-in and
+    // portable-mode code in Core produces, threaded with a language code
+    // so the Settings page's plug-in list and portable-toggle message
+    // render in the current language. They are diagnostic text about
+    // files, folders and manifests the user placed or the app wrote —
+    // never a measured value, a unit or a threshold. File names,
+    // manifest field names ('id', 'contractVersion', 'assembly'),
+    // collector ids and the TRUESPEC_PORTABLE variable name stay
+    // untranslated inside the sentences; only the surrounding words
+    // change. Templates carry the dynamic values ({0} = a version, a
+    // count or a name), formatted with the invariant culture by
+    // StringLocalizer.GetFormatted, so a number inside a German
+    // sentence keeps the app's existing formatting.
+    public const string PluginStatusReady = "PluginStatusReady";
+    public const string PluginStatusNeedsNewer = "PluginStatusNeedsNewer";
+    public const string PluginStatusOlderContract = "PluginStatusOlderContract";
+    public const string PluginStatusManifestProblem = "PluginStatusManifestProblem";
+    public const string PluginStatusAssemblyMissing = "PluginStatusAssemblyMissing";
+    public const string PluginStatusUnknown = "PluginStatusUnknown";
+    public const string PluginReasonNoManifest = "PluginReasonNoManifest";
+    public const string PluginReasonManifestUnreadable = "PluginReasonManifestUnreadable";
+    public const string PluginReasonContractVersion = "PluginReasonContractVersion";
+    public const string PluginReasonAssemblyMissing = "PluginReasonAssemblyMissing";
+    public const string PluginReasonReady = "PluginReasonReady";
+    public const string PluginErrorFolderUnreadable = "PluginErrorFolderUnreadable";
+    public const string PluginErrorTooMany = "PluginErrorTooMany";
+    public const string ManifestTooLarge = "ManifestTooLarge";
+    public const string ManifestNotObject = "ManifestNotObject";
+    public const string ManifestUnknownField = "ManifestUnknownField";
+    public const string ManifestMissingId = "ManifestMissingId";
+    public const string ManifestMissingName = "ManifestMissingName";
+    public const string ManifestMissingVersion = "ManifestMissingVersion";
+    public const string ManifestMissingContractVersion = "ManifestMissingContractVersion";
+    public const string ManifestMissingAssembly = "ManifestMissingAssembly";
+    public const string ManifestAssemblyPath = "ManifestAssemblyPath";
+    public const string ManifestAssemblyNotFile = "ManifestAssemblyNotFile";
+    public const string ManifestAssemblyInvalidName = "ManifestAssemblyInvalidName";
+    public const string ManifestAssemblyNotDll = "ManifestAssemblyNotDll";
+    public const string ManifestCollectorNotObject = "ManifestCollectorNotObject";
+    public const string ManifestCollectorUnknownField = "ManifestCollectorUnknownField";
+    public const string ManifestCollectorMissingFields = "ManifestCollectorMissingFields";
+    public const string ManifestMissingCollectors = "ManifestMissingCollectors";
+    public const string ManifestNoCollectors = "ManifestNoCollectors";
+    public const string ManifestTooManyCollectors = "ManifestTooManyCollectors";
+    public const string ManifestCollectorBadId = "ManifestCollectorBadId";
+    public const string ManifestCollectorDuplicateId = "ManifestCollectorDuplicateId";
+    public const string ManifestInvalidJson = "ManifestInvalidJson";
+    public const string ManifestUnreadable = "ManifestUnreadable";
+    public const string PortableToggleFolderUnusable = "PortableToggleFolderUnusable";
+    public const string PortableToggleProtectedFolder = "PortableToggleProtectedFolder";
+    public const string PortableToggleAlreadyOn = "PortableToggleAlreadyOn";
+    public const string PortableToggleEnableFailed = "PortableToggleEnableFailed";
+    public const string PortableToggleEnabled = "PortableToggleEnabled";
+    public const string PortableToggleNoMarkerEnv = "PortableToggleNoMarkerEnv";
+    public const string PortableToggleAlreadyOff = "PortableToggleAlreadyOff";
+    public const string PortableToggleDisableFailed = "PortableToggleDisableFailed";
+    public const string PortableToggleMarkerRemovedEnv = "PortableToggleMarkerRemovedEnv";
+    public const string PortableToggleDisabled = "PortableToggleDisabled";
 
     /// <summary>Every key in the catalogue, in the order above.</summary>
     public static IReadOnlyList<string> All { get; } = new[]
@@ -181,5 +238,50 @@ public static class AppStringKeys
         PluginsNotLoadedNote,
         PrivacyTitle,
         PrivacyText,
+        PluginStatusReady,
+        PluginStatusNeedsNewer,
+        PluginStatusOlderContract,
+        PluginStatusManifestProblem,
+        PluginStatusAssemblyMissing,
+        PluginStatusUnknown,
+        PluginReasonNoManifest,
+        PluginReasonManifestUnreadable,
+        PluginReasonContractVersion,
+        PluginReasonAssemblyMissing,
+        PluginReasonReady,
+        PluginErrorFolderUnreadable,
+        PluginErrorTooMany,
+        ManifestTooLarge,
+        ManifestNotObject,
+        ManifestUnknownField,
+        ManifestMissingId,
+        ManifestMissingName,
+        ManifestMissingVersion,
+        ManifestMissingContractVersion,
+        ManifestMissingAssembly,
+        ManifestAssemblyPath,
+        ManifestAssemblyNotFile,
+        ManifestAssemblyInvalidName,
+        ManifestAssemblyNotDll,
+        ManifestCollectorNotObject,
+        ManifestCollectorUnknownField,
+        ManifestCollectorMissingFields,
+        ManifestMissingCollectors,
+        ManifestNoCollectors,
+        ManifestTooManyCollectors,
+        ManifestCollectorBadId,
+        ManifestCollectorDuplicateId,
+        ManifestInvalidJson,
+        ManifestUnreadable,
+        PortableToggleFolderUnusable,
+        PortableToggleProtectedFolder,
+        PortableToggleAlreadyOn,
+        PortableToggleEnableFailed,
+        PortableToggleEnabled,
+        PortableToggleNoMarkerEnv,
+        PortableToggleAlreadyOff,
+        PortableToggleDisableFailed,
+        PortableToggleMarkerRemovedEnv,
+        PortableToggleDisabled,
     };
 }

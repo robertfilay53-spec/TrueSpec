@@ -3,6 +3,7 @@ namespace TrueSpec.Core.Plugins;
 using System.Text;
 using System.Text.Json;
 using TrueSpec.Core.Collectors;
+using TrueSpec.Core.Localization;
 
 /// <summary>
 /// One collector a plug-in provides, as declared in its manifest. The id
@@ -29,8 +30,9 @@ public sealed record PluginManifest(
     IReadOnlyList<PluginCollectorDeclaration> Collectors);
 
 /// <summary>
-/// The result of parsing one manifest: the manifest, or a plain-English
-/// reason it could not be used. A bad manifest is a failed parse, never
+/// The result of parsing one manifest: the manifest, or a reason it
+/// could not be used, in the language the parse was asked for (English
+/// when no language is given). A bad manifest is a failed parse, never
 /// an exception out of the parse path.
 /// </summary>
 public sealed record PluginManifestResult(
@@ -81,10 +83,12 @@ public static class PluginManifestParser
 
     /// <summary>
     /// Parses a manifest from a stream. Never throws: every failure is a
-    /// <see cref="PluginManifestResult.Fail"/> with a plain-English
-    /// reason.
+    /// <see cref="PluginManifestResult.Fail"/> with a reason in the
+    /// requested language (<paramref name="languageCode"/>, English
+    /// when null or unknown). The reason is resolved through the
+    /// localizer, so a German plug-in list shows the German reason.
     /// </summary>
-    public static PluginManifestResult Parse(Stream source)
+    public static PluginManifestResult Parse(Stream source, string? languageCode = null)
     {
         ArgumentNullException.ThrowIfNull(source);
 
@@ -94,7 +98,7 @@ public static class PluginManifestParser
             if (bytes is null)
             {
                 return PluginManifestResult.Fail(
-                    "The manifest is too large (over 64 KB) and was skipped.");
+                    StringLocalizer.Get(AppStringKeys.ManifestTooLarge, languageCode));
             }
 
             using var document = JsonDocument.Parse(bytes);
@@ -102,7 +106,7 @@ public static class PluginManifestParser
             if (root.ValueKind != JsonValueKind.Object)
             {
                 return PluginManifestResult.Fail(
-                    "The manifest is not a JSON object, so it was skipped.");
+                    StringLocalizer.Get(AppStringKeys.ManifestNotObject, languageCode));
             }
 
             foreach (var property in root.EnumerateObject())
@@ -110,7 +114,7 @@ public static class PluginManifestParser
                 if (!TopLevelFields.Contains(property.Name, StringComparer.Ordinal))
                 {
                     return PluginManifestResult.Fail(
-                        $"The manifest has an unknown field '{property.Name}', so it was skipped.");
+                        StringLocalizer.GetFormatted(AppStringKeys.ManifestUnknownField, languageCode, property.Name));
                 }
             }
 
@@ -118,21 +122,21 @@ public static class PluginManifestParser
             if (id is null)
             {
                 return PluginManifestResult.Fail(
-                    "The manifest is missing its 'id', so it was skipped.");
+                    StringLocalizer.Get(AppStringKeys.ManifestMissingId, languageCode));
             }
 
             var name = RequiredString(root, "name", MaxNameLength);
             if (name is null)
             {
                 return PluginManifestResult.Fail(
-                    "The manifest is missing its 'name', so it was skipped.");
+                    StringLocalizer.Get(AppStringKeys.ManifestMissingName, languageCode));
             }
 
             var version = RequiredString(root, "version", MaxVersionLength);
             if (version is null)
             {
                 return PluginManifestResult.Fail(
-                    "The manifest is missing its 'version', so it was skipped.");
+                    StringLocalizer.Get(AppStringKeys.ManifestMissingVersion, languageCode));
             }
 
             if (!root.TryGetProperty("contractVersion", out var contractVersionElement) ||
@@ -140,39 +144,39 @@ public static class PluginManifestParser
                 !contractVersionElement.TryGetInt32(out var contractVersion))
             {
                 return PluginManifestResult.Fail(
-                    "The manifest is missing its 'contractVersion' (a whole number), so it was skipped.");
+                    StringLocalizer.Get(AppStringKeys.ManifestMissingContractVersion, languageCode));
             }
 
             var assembly = RequiredString(root, "assembly", MaxIdLength);
             if (assembly is null)
             {
                 return PluginManifestResult.Fail(
-                    "The manifest is missing its 'assembly' file name, so it was skipped.");
+                    StringLocalizer.Get(AppStringKeys.ManifestMissingAssembly, languageCode));
             }
 
-            var assemblyError = ValidateAssemblyFileName(assembly);
+            var assemblyError = ValidateAssemblyFileName(assembly, languageCode);
             if (assemblyError is not null)
             {
                 return PluginManifestResult.Fail(assemblyError);
             }
 
-            var collectors = ParseCollectors(root, out var collectorsError);
+            var collectors = ParseCollectors(root, languageCode, out var collectorsError);
             if (collectors is null)
             {
                 return PluginManifestResult.Fail(
-                    collectorsError ?? "The manifest is missing its 'collectors' list, so it was skipped.");
+                    collectorsError ?? StringLocalizer.Get(AppStringKeys.ManifestMissingCollectors, languageCode));
             }
 
             if (collectors.Count == 0)
             {
                 return PluginManifestResult.Fail(
-                    "The manifest lists no collectors, so it was skipped.");
+                    StringLocalizer.Get(AppStringKeys.ManifestNoCollectors, languageCode));
             }
 
             if (collectors.Count > MaxCollectors)
             {
                 return PluginManifestResult.Fail(
-                    $"The manifest lists {collectors.Count} collectors; at most {MaxCollectors} are allowed, so it was skipped.");
+                    StringLocalizer.GetFormatted(AppStringKeys.ManifestTooManyCollectors, languageCode, collectors.Count, MaxCollectors));
             }
 
             var seenIds = new HashSet<string>(StringComparer.Ordinal);
@@ -181,13 +185,13 @@ public static class PluginManifestParser
                 if (!IsCollectorId(collector.Id))
                 {
                     return PluginManifestResult.Fail(
-                        $"The collector id '{collector.Id}' is not a valid id (lowercase letters, digits and dashes, starting with a letter), so the manifest was skipped.");
+                        StringLocalizer.GetFormatted(AppStringKeys.ManifestCollectorBadId, languageCode, collector.Id));
                 }
 
                 if (!seenIds.Add(collector.Id))
                 {
                     return PluginManifestResult.Fail(
-                        $"The manifest lists the collector id '{collector.Id}' twice, so it was skipped.");
+                        StringLocalizer.GetFormatted(AppStringKeys.ManifestCollectorDuplicateId, languageCode, collector.Id));
                 }
             }
 
@@ -197,22 +201,22 @@ public static class PluginManifestParser
         catch (JsonException)
         {
             return PluginManifestResult.Fail(
-                "The manifest is not valid JSON, so it was skipped.");
+                StringLocalizer.Get(AppStringKeys.ManifestInvalidJson, languageCode));
         }
         catch (NotSupportedException)
         {
             return PluginManifestResult.Fail(
-                "The manifest is not valid JSON, so it was skipped.");
+                StringLocalizer.Get(AppStringKeys.ManifestInvalidJson, languageCode));
         }
         catch (IOException)
         {
             return PluginManifestResult.Fail(
-                "The manifest could not be read, so it was skipped.");
+                StringLocalizer.Get(AppStringKeys.ManifestUnreadable, languageCode));
         }
         catch (InvalidOperationException)
         {
             return PluginManifestResult.Fail(
-                "The manifest is not valid JSON, so it was skipped.");
+                StringLocalizer.Get(AppStringKeys.ManifestInvalidJson, languageCode));
         }
     }
 
@@ -250,7 +254,7 @@ public static class PluginManifestParser
         return value;
     }
 
-    private static IReadOnlyList<PluginCollectorDeclaration>? ParseCollectors(JsonElement root, out string? error)
+    private static IReadOnlyList<PluginCollectorDeclaration>? ParseCollectors(JsonElement root, string? languageCode, out string? error)
     {
         error = null;
         if (!root.TryGetProperty("collectors", out var element) ||
@@ -264,7 +268,7 @@ public static class PluginManifestParser
         {
             if (item.ValueKind != JsonValueKind.Object)
             {
-                error = "A collector in the manifest is not an object, so the manifest was skipped.";
+                error = StringLocalizer.Get(AppStringKeys.ManifestCollectorNotObject, languageCode);
                 return null;
             }
 
@@ -272,7 +276,7 @@ public static class PluginManifestParser
             {
                 if (!CollectorFields.Contains(property.Name, StringComparer.Ordinal))
                 {
-                    error = $"The collector has an unknown field '{property.Name}', so the manifest was skipped.";
+                    error = StringLocalizer.GetFormatted(AppStringKeys.ManifestCollectorUnknownField, languageCode, property.Name);
                     return null;
                 }
             }
@@ -282,7 +286,7 @@ public static class PluginManifestParser
             var category = RequiredString(item, "category", MaxNameLength);
             if (id is null || name is null || category is null)
             {
-                error = "A collector in the manifest is missing its 'id', 'name' or 'category', so the manifest was skipped.";
+                error = StringLocalizer.Get(AppStringKeys.ManifestCollectorMissingFields, languageCode);
                 return null;
             }
 
@@ -292,26 +296,26 @@ public static class PluginManifestParser
         return collectors;
     }
 
-    private static string? ValidateAssemblyFileName(string assembly)
+    private static string? ValidateAssemblyFileName(string assembly, string? languageCode)
     {
         if (assembly.IndexOfAny(new[] { '/', '\\' }) >= 0)
         {
-            return "The manifest's 'assembly' must be a plain file name inside the plug-in's own folder, not a path, so it was skipped.";
+            return StringLocalizer.Get(AppStringKeys.ManifestAssemblyPath, languageCode);
         }
 
         if (assembly is "." or "..")
         {
-            return "The manifest's 'assembly' must name a file, so it was skipped.";
+            return StringLocalizer.Get(AppStringKeys.ManifestAssemblyNotFile, languageCode);
         }
 
         if (assembly.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
         {
-            return "The manifest's 'assembly' is not a valid file name, so it was skipped.";
+            return StringLocalizer.Get(AppStringKeys.ManifestAssemblyInvalidName, languageCode);
         }
 
         if (!assembly.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
         {
-            return "The manifest's 'assembly' must be a .dll file, so it was skipped.";
+            return StringLocalizer.Get(AppStringKeys.ManifestAssemblyNotDll, languageCode);
         }
 
         return null;

@@ -285,4 +285,99 @@ public class PortableModeTests
             Directory.Delete(exeDir, recursive: true);
         }
     }
+
+    [Fact]
+    public void GermanLanguage_ReturnsGermanMessages()
+    {
+        // Localisation, phase 3 (v2.1.9): the toggle takes a language
+        // code and its outcome message comes back in it. The default
+        // (no language) stays English, as the tests above pin.
+        var exeDir = TempExeDir();
+
+        try
+        {
+            var enabled = PortableMode.SetEnabled(exeDir, enable: true, environmentValue: null, languageCode: "de");
+            Assert.True(enabled.Success);
+            Assert.True(enabled.IsPortable);
+            Assert.Equal("Der tragbare Modus ist an. Starten Sie TrueSpec neu: Von da an werden Einstellungen, Verlauf und Sensorprotokoll neben der App gespeichert statt im Standardordner. Bereits gespeicherte Scans bleiben im alten Ordner.", enabled.Message);
+
+            var alreadyOn = PortableMode.SetEnabled(exeDir, enable: true, environmentValue: null, languageCode: "de");
+            Assert.True(alreadyOn.Success);
+            Assert.Equal("Der tragbare Modus ist bereits an. Starten Sie TrueSpec neu, damit er wirksam wird.", alreadyOn.Message);
+
+            var disabled = PortableMode.SetEnabled(exeDir, enable: false, environmentValue: null, languageCode: "de");
+            Assert.True(disabled.Success);
+            Assert.False(disabled.IsPortable);
+            Assert.Equal("Der tragbare Modus ist aus. Starten Sie TrueSpec neu: Von da an werden Daten im Standardordner gespeichert. Bereits neben der App gespeicherte Scans bleiben dort.", disabled.Message);
+
+            var alreadyOff = PortableMode.SetEnabled(exeDir, enable: false, environmentValue: null, languageCode: "de");
+            Assert.True(alreadyOff.Success);
+            Assert.Equal("Der tragbare Modus ist bereits aus.", alreadyOff.Message);
+        }
+        finally
+        {
+            Directory.Delete(exeDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void GermanLanguage_NoMarkerButEnvVar_NamesEnvVarInGerman()
+    {
+        var exeDir = TempExeDir();
+
+        try
+        {
+            var result = PortableMode.SetEnabled(exeDir, enable: false, environmentValue: "yes", languageCode: "de");
+
+            Assert.True(result.Success);
+            Assert.True(result.IsPortable);
+            Assert.Equal("Es gibt keine Marker-Datei zu entfernen: Der tragbare Modus ist über die Umgebungsvariable TRUESPEC_PORTABLE an. Heben Sie die Variable auf, um ihn auszuschalten.", result.Message);
+        }
+        finally
+        {
+            Directory.Delete(exeDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void UnknownLanguage_FallsBackToEnglishMessage()
+    {
+        var exeDir = TempExeDir();
+
+        try
+        {
+            var result = PortableMode.SetEnabled(exeDir, enable: true, environmentValue: null, languageCode: "xx");
+
+            Assert.True(result.Success);
+            Assert.Contains("Restart", result.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(exeDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ToggleResult_MessageCanBeReResolvedInAnotherLanguage()
+    {
+        // The result carries its message as a key, so the Settings page
+        // can re-resolve it when the language changes without toggling
+        // again: a `with` copy in German reads German.
+        var exeDir = TempExeDir();
+
+        try
+        {
+            var result = PortableMode.SetEnabled(exeDir, enable: true);
+
+            Assert.Contains("Restart", result.Message, StringComparison.Ordinal);
+            var german = result with { LanguageCode = "de" };
+            Assert.Equal("Der tragbare Modus ist an. Starten Sie TrueSpec neu: Von da an werden Einstellungen, Verlauf und Sensorprotokoll neben der App gespeichert statt im Standardordner. Bereits gespeicherte Scans bleiben im alten Ordner.", german.Message);
+            // The original is untouched: a `with` copy never mutates.
+            Assert.Contains("Restart", result.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(exeDir, recursive: true);
+        }
+    }
 }

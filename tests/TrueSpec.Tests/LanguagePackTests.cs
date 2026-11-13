@@ -105,6 +105,47 @@ public sealed class LanguagePackTests
     }
 
     [Fact]
+    public void GermanPack_CoreDiagnosticStrings()
+    {
+        // Localisation, phase 3 (v2.1.9): the Core diagnostic strings
+        // (plug-in status/reason, manifest errors, portable-toggle
+        // messages). Same pinning rule as the rail and Settings terms:
+        // changing one is a deliberate translation decision, not a typo
+        // fix. File names, manifest field names and collector ids stay
+        // untranslated inside the sentences; only the words around
+        // them change.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("Bereit — noch nicht geladen", german[AppStringKeys.PluginStatusReady]);
+        Assert.Equal("Braucht ein neueres TrueSpec", german[AppStringKeys.PluginStatusNeedsNewer]);
+        Assert.Equal("Für einen älteren Vertrag geschrieben", german[AppStringKeys.PluginStatusOlderContract]);
+        Assert.Equal("Manifestproblem", german[AppStringKeys.PluginStatusManifestProblem]);
+        Assert.Equal("Assembly fehlt", german[AppStringKeys.PluginStatusAssemblyMissing]);
+        Assert.Equal("Unbekannt", german[AppStringKeys.PluginStatusUnknown]);
+        Assert.Equal("Kein plugin.json-Manifest in diesem Ordner.", german[AppStringKeys.PluginReasonNoManifest]);
+        Assert.Equal("Die Plug-in-Datei '{0}' fehlt in diesem Ordner.", german[AppStringKeys.PluginReasonAssemblyMissing]);
+        Assert.Equal("Dieses Plug-in wurde für die Collector-Vertragsversion {0} geschrieben; dieses TrueSpec spricht Vertragsversion {1}.", german[AppStringKeys.PluginReasonContractVersion]);
+        Assert.Equal("Manifest gültig. Noch nicht geladen: Nur signierte Plug-ins werden geladen, und die Plug-in-Signierung ist noch nicht eingerichtet.", german[AppStringKeys.PluginReasonReady]);
+        Assert.Equal("Der Plug-ins-Ordner konnte nicht gelesen werden, daher werden keine Plug-ins aufgelistet.", german[AppStringKeys.PluginErrorFolderUnreadable]);
+        Assert.Equal("Mehr als {0} Plug-in-Ordner wurden gefunden; nur die ersten {1} (alphabetisch) werden aufgelistet.", german[AppStringKeys.PluginErrorTooMany]);
+        Assert.Equal("Das Manifest ist zu groß (über 64 KB) und wurde übersprungen.", german[AppStringKeys.ManifestTooLarge]);
+        Assert.Equal("Das Manifest hat ein unbekanntes Feld '{0}' und wurde daher übersprungen.", german[AppStringKeys.ManifestUnknownField]);
+        Assert.Equal("Dem Manifest fehlt die 'id', daher wurde es übersprungen.", german[AppStringKeys.ManifestMissingId]);
+        Assert.Equal("Das Manifest ist kein gültiges JSON, daher wurde es übersprungen.", german[AppStringKeys.ManifestInvalidJson]);
+        Assert.Equal("Die Collector-ID '{0}' ist keine gültige ID (Kleinbuchstaben, Ziffern und Bindestriche, beginnend mit einem Buchstaben), daher wurde das Manifest übersprungen.", german[AppStringKeys.ManifestCollectorBadId]);
+        Assert.Equal("Der tragbare Modus ist an. Starten Sie TrueSpec neu: Von da an werden Einstellungen, Verlauf und Sensorprotokoll neben der App gespeichert statt im Standardordner. Bereits gespeicherte Scans bleiben im alten Ordner.", german[AppStringKeys.PortableToggleEnabled]);
+        Assert.Equal("Der tragbare Modus ist bereits aus.", german[AppStringKeys.PortableToggleAlreadyOff]);
+        Assert.Equal("Es gibt keine Marker-Datei zu entfernen: Der tragbare Modus ist über die Umgebungsvariable TRUESPEC_PORTABLE an. Heben Sie die Variable auf, um ihn auszuschalten.", german[AppStringKeys.PortableToggleNoMarkerEnv]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "Dieses Plug-in wurde für die Collector-Vertragsversion 2 geschrieben; dieses TrueSpec spricht Vertragsversion 1.",
+            StringLocalizer.GetFormatted(AppStringKeys.PluginReasonContractVersion, "de", 2, 1));
+        Assert.Equal(
+            "Mehr als 100 Plug-in-Ordner wurden gefunden; nur die ersten 100 (alphabetisch) werden aufgelistet.",
+            StringLocalizer.GetFormatted(AppStringKeys.PluginErrorTooMany, "de", 100, 100));
+    }
+
+    [Fact]
     public void GetFormatted_FillsPlaceholdersWithInvariantCulture()
     {
         // The number keeps the app's formatting in both languages:
