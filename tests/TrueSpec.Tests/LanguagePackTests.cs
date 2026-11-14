@@ -100,7 +100,7 @@ public sealed class LanguagePackTests
         Assert.Equal("{0} Plug-ins gefunden.", german[AppStringKeys.PluginsSummaryMany]);
         Assert.Equal("Datenschutz", german[AppStringKeys.PrivacyTitle]);
         Assert.Equal(
-            "Navigation, Einstellungen und Komponentendetailseiten sind übersetzt. Andere Seiten sind noch auf Englisch und folgen in späteren Versionen.",
+            "Navigation, Einstellungen, Komponentendetailseiten und die Übersichtsseite sind übersetzt. Andere Seiten sind noch auf Englisch und folgen in späteren Versionen.",
             german[AppStringKeys.LanguageNote]);
     }
 
@@ -138,6 +138,72 @@ public sealed class LanguagePackTests
             "Nicht vertrauenswürdig: Eine andere Prüfung hat bewiesen, dass dieses Datum unmöglich ist.",
             german[AppStringKeys.DetailSignalUntrusted]);
         Assert.Equal(" (geschätzt)", german[AppStringKeys.DetailEstimateSuffix]);
+    }
+
+    [Fact]
+    public void GermanPack_OverviewPageTerms()
+    {
+        // Localisation, phase 5 (v2.1.11): the Overview page — the
+        // landing page, the first screen a user sees. Same pinning rule
+        // as the rail, Settings, Core and detail terms: changing one is
+        // a deliberate translation decision, not a typo fix. The data
+        // the page shows (component names, headlines, health and status
+        // texts, spec labels, values and sources, the score explanation
+        // and the verdict text) is not in this catalogue; only the page
+        // chrome is.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("FÜR VOLLSTÄNDIGE ERGEBNISSE ALS ADMINISTRATOR AUSFÜHREN", german[AppStringKeys.OverviewAdminEyebrow]);
+        Assert.Equal("von 100", german[AppStringKeys.OverviewOutOf100]);
+        Assert.Equal("Gesamtzustand", german[AppStringKeys.OverviewOverallHealth]);
+        Assert.Equal(
+            "Die Punktzahl ist der gewichtete Durchschnitt der messbaren Komponenten. Eine Komponente ohne echten Gesundheitswert zählt nicht.",
+            german[AppStringKeys.OverviewScoreNote]);
+        Assert.Equal("Neuen Laptop prüfen", german[AppStringKeys.OverviewNewLaptopCheck]);
+        Assert.Equal("Bericht exportieren", german[AppStringKeys.OverviewExportReport]);
+        Assert.Equal("Komponentenzustand", german[AppStringKeys.OverviewComponentHealth]);
+        Assert.Equal("Zustand", german[AppStringKeys.OverviewHealthLabel]);
+        Assert.Equal("Details", german[AppStringKeys.OverviewDetails]);
+        Assert.Equal(
+            "Bei diesem Scan wurden keine Komponenten erfasst. Aktualisieren Sie den Scan über die Statusleiste; wenn der Abschnitt leer bleibt, konnten die Collector diesen Rechner nicht lesen.",
+            german[AppStringKeys.OverviewNoComponents]);
+        Assert.Equal("Live-Sensoren", german[AppStringKeys.OverviewLiveSensors]);
+        Assert.Equal("Kein Sensormesswert", german[AppStringKeys.OverviewNoSensorReading]);
+        Assert.Equal("TEMPERATURWARNUNG", german[AppStringKeys.OverviewAlertEyebrow]);
+        Assert.Equal(
+            "Warnungen lösen erst aus, wenn die Temperatur die volle von Ihnen eingestellte Dauer über dem Schwellenwert bleibt. Ändern Sie den Schwellenwert in den Einstellungen.",
+            german[AppStringKeys.OverviewAlertNote]);
+        Assert.Equal("Jeder Messwert behält seine Quelle. Keine Telemetrie, keine Netzwerkaufrufe.", german[AppStringKeys.OverviewFooter]);
+        Assert.Equal("Scan läuft…", german[AppStringKeys.OverviewScanning]);
+        Assert.Equal("Der Hardware-Scan läuft noch. Die Punktzahl erscheint, wenn der Scan fertig ist.", german[AppStringKeys.OverviewScanningNote]);
+        Assert.Equal("Sensorprotokollierung ist auf diesem Rechner nicht verfügbar.", german[AppStringKeys.OverviewSensorLogUnavailable]);
+        Assert.Equal("Sensormesswerte werden in {0} aufgezeichnet. Das Diagramm ist auf der Verlaufsseite.", german[AppStringKeys.OverviewSensorLogOn]);
+        Assert.Equal("Sensorprotokollierung ist aus. Schalten Sie sie in den Einstellungen ein, um Messwerte aufzuzeichnen.", german[AppStringKeys.OverviewSensorLogOff]);
+        Assert.Equal("Warnung, wenn die CPU-Temperatur {0} °C für {1} Sekunden erreicht. Stellen Sie sie in den Einstellungen ein.", german[AppStringKeys.OverviewAlertSet]);
+        Assert.Equal("Keine Temperaturwarnung eingestellt. TrueSpec wird ohne Schwellenwert ausgeliefert; stellen Sie einen in den Einstellungen ein, wenn Sie eine Warnung möchten.", german[AppStringKeys.OverviewAlertNotSet]);
+        Assert.Equal("Live-Sensoren werden alle {0} neu gelesen. Werte erscheinen nur, wenn LibreHardwareMonitor sie meldet.", german[AppStringKeys.OverviewRefreshText]);
+        Assert.Equal("Live-Sensoren aktualisiert um {0}", german[AppStringKeys.OverviewLiveUpdated]);
+        Assert.Equal("Lesen der Live-Sensoren fehlgeschlagen: {0}", german[AppStringKeys.OverviewLiveReadFailed]);
+        Assert.Equal("Gewicht {0}", german[AppStringKeys.OverviewWeight]);
+        Assert.Equal("+{0} Pkt.", german[AppStringKeys.OverviewContribution]);
+        Assert.Equal("CPU-Temperatur", german[AppStringKeys.OverviewKeyCpuTemp]);
+        Assert.Equal("Arbeitsspeicher", german[AppStringKeys.OverviewKeyMemory]);
+        Assert.Equal("Datenträgerzustand", german[AppStringKeys.OverviewKeyDiskHealth]);
+        Assert.Equal("Akkuzustand", german[AppStringKeys.OverviewKeyBatteryHealth]);
+        Assert.Equal("CPU-Temperatur", german[AppStringKeys.OverviewMetricCpuTemp]);
+        Assert.Equal("GPU-Temperatur", german[AppStringKeys.OverviewMetricGpuTemp]);
+        Assert.Equal("CPU-Auslastung", german[AppStringKeys.OverviewMetricCpuUsage]);
+        Assert.Equal("Akkuleistung", german[AppStringKeys.OverviewMetricBatteryPower]);
+        Assert.Equal("Nicht verfügbar", german[AppStringKeys.OverviewMetricNotAvailable]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "Warnung, wenn die CPU-Temperatur 90 °C für 30 Sekunden erreicht. Stellen Sie sie in den Einstellungen ein.",
+            StringLocalizer.GetFormatted(AppStringKeys.OverviewAlertSet, "de", "90", 30));
+        Assert.Equal(
+            "Sensormesswerte werden in C:\\TrueSpec\\sensor-log.csv aufgezeichnet. Das Diagramm ist auf der Verlaufsseite.",
+            StringLocalizer.GetFormatted(AppStringKeys.OverviewSensorLogOn, "de", @"C:\TrueSpec\sensor-log.csv"));
+        Assert.Equal("Gewicht 2.5", StringLocalizer.GetFormatted(AppStringKeys.OverviewWeight, "de", "2.5"));
+        Assert.Equal("+5 Pkt.", StringLocalizer.GetFormatted(AppStringKeys.OverviewContribution, "de", "5"));
     }
 
     [Fact]
