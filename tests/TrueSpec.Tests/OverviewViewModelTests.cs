@@ -21,7 +21,8 @@ namespace TrueSpec.Tests;
 /// the view model takes a language code generically and the French
 /// pack already covers the whole 523-key catalogue — but there were
 /// no French-pinned tests; this version adds them. No new keys and
-/// no source change was needed.
+/// no source change was needed. Spanish phase 5 (v2.1.31) mirrors
+/// the French phase 5 tests in Spanish the same way.
 /// </summary>
 public sealed class OverviewViewModelTests
 {
@@ -141,6 +142,37 @@ public sealed class OverviewViewModelTests
     }
 
     [Fact]
+    public void SpanishSeeded_RendersWholePageInSpanish()
+    {
+        // Localisation, phase 5, Spanish (v2.1.31): the Overview page,
+        // mirroring the French-seeded test above.
+        using var overview = Create(TestSnapshots.Healthy(), "es");
+
+        Assert.Equal("EJECUTAR COMO ADMINISTRADOR PARA OBTENER RESULTADOS COMPLETOS", overview.AdminEyebrowText);
+        Assert.Equal("de 100", overview.OutOf100Text);
+        Assert.Equal("Salud general", overview.OverallHealthText);
+        Assert.Equal(
+            "Puntuación = media ponderada de los componentes medibles. Un componente sin un número de salud real no cuenta.",
+            overview.ScoreNoteText);
+        Assert.Equal("Comprobación de portátil nuevo", overview.NewLaptopCheckText);
+        Assert.Equal("Exportar informe", overview.ExportReportText);
+        Assert.Equal("Salud de los componentes", overview.ComponentHealthText);
+        Assert.Equal("Sensores en vivo", overview.LiveSensorsText);
+        Assert.Equal("ALERTA DE TEMPERATURA", overview.AlertEyebrowText);
+        Assert.Equal(
+            "Las alertas solo se disparan después de que la temperatura se mantenga por encima del umbral durante toda la duración que estableciste. Cambia el umbral en Configuración.",
+            overview.AlertNoteText);
+        Assert.Equal("Cada lectura conserva su origen. Sin telemetría, sin llamadas de red.", overview.FooterText);
+        Assert.Equal(
+            "Los sensores en vivo se actualizan cada 2 segundos. Los valores solo aparecen cuando LibreHardwareMonitor los informa.",
+            overview.RefreshText);
+        Assert.Equal("El registro de sensores no está disponible en este equipo.", overview.SensorLogText);
+        Assert.Equal(
+            "No hay ninguna alerta de temperatura establecida. TrueSpec se entrega sin umbral; establece uno en Configuración si quieres una alerta.",
+            overview.AlertSettingsText);
+    }
+
+    [Fact]
     public void ApplyLanguage_SwitchesBothWaysAndKeepsTheScore()
     {
         using var overview = Create(TestSnapshots.Healthy());
@@ -177,6 +209,31 @@ public sealed class OverviewViewModelTests
         overview.ApplyLanguage("fr");
         Assert.Equal("Santé globale", overview.OverallHealthText);
         Assert.Equal("Vérification d'ordinateur portable neuf", overview.NewLaptopCheckText);
+        Assert.Equal(scoreText, overview.ScoreText);
+        Assert.Equal(verdictText, overview.VerdictText);
+        Assert.Equal(explanation, overview.ScoreExplanation);
+
+        overview.ApplyLanguage("en");
+        Assert.Equal("Overall health", overview.OverallHealthText);
+        Assert.Equal("New Laptop Check", overview.NewLaptopCheckText);
+        Assert.Equal(scoreText, overview.ScoreText);
+        Assert.Equal(verdictText, overview.VerdictText);
+        Assert.Equal(explanation, overview.ScoreExplanation);
+    }
+
+    [Fact]
+    public void ApplyLanguage_SwitchesToSpanishAndBackAndKeepsTheScore()
+    {
+        // Localisation, phase 5, Spanish (v2.1.31): same switch, Spanish.
+        using var overview = Create(TestSnapshots.Healthy());
+
+        var scoreText = overview.ScoreText;
+        var verdictText = overview.VerdictText;
+        var explanation = overview.ScoreExplanation;
+
+        overview.ApplyLanguage("es");
+        Assert.Equal("Salud general", overview.OverallHealthText);
+        Assert.Equal("Comprobación de portátil nuevo", overview.NewLaptopCheckText);
         Assert.Equal(scoreText, overview.ScoreText);
         Assert.Equal(verdictText, overview.VerdictText);
         Assert.Equal(explanation, overview.ScoreExplanation);
@@ -237,6 +294,25 @@ public sealed class OverviewViewModelTests
     }
 
     [Fact]
+    public void DataStaysEnglish_WhenChromeIsSpanish()
+    {
+        // Localisation, phase 5, Spanish (v2.1.31): same rule, Spanish.
+        var snapshot = TestSnapshots.Healthy();
+        using var english = Create(snapshot);
+        using var spanish = Create(snapshot, "es");
+
+        Assert.Equal(english.ScoreText, spanish.ScoreText);
+        Assert.Equal(english.VerdictText, spanish.VerdictText);
+        Assert.Equal(english.ScoreExplanation, spanish.ScoreExplanation);
+        Assert.Equal(english.Cards.Select(c => c.Name), spanish.Cards.Select(c => c.Name));
+        Assert.Equal(english.Cards.Select(c => c.Headline), spanish.Cards.Select(c => c.Headline));
+        Assert.Equal(english.Cards.Select(c => c.HealthText), spanish.Cards.Select(c => c.HealthText));
+        Assert.Equal(english.KeyStats.Select(s => s.Value), spanish.KeyStats.Select(s => s.Value));
+        Assert.Equal(english.KeyStats.Select(s => s.Source), spanish.KeyStats.Select(s => s.Source));
+        Assert.Equal(english.ScoreBreakdown.Select(r => r.HealthText), spanish.ScoreBreakdown.Select(r => r.HealthText));
+    }
+
+    [Fact]
     public void KeyStatLabels_AreLocalized_ValuesAreMeasured()
     {
         using var english = Create(TestSnapshots.Healthy());
@@ -269,6 +345,26 @@ public sealed class OverviewViewModelTests
         Assert.Equal("55 C", cpuTemp.Value);
         Assert.Equal("LibreHardwareMonitor", cpuTemp.Source);
         var memory = french.KeyStats.Single(s => s.Label == "Mémoire");
+        Assert.Equal("16 GB", memory.Value);
+        Assert.Equal("CIM Win32_PhysicalMemory", memory.Source);
+    }
+
+    [Fact]
+    public void KeyStatLabels_AreLocalizedInSpanish_ValuesAreMeasured()
+    {
+        // Localisation, phase 5, Spanish (v2.1.31): same rule, Spanish.
+        // The labels translate; the values and sources are measured
+        // data and stay exactly as collected.
+        using var english = Create(TestSnapshots.Healthy());
+        using var spanish = Create(TestSnapshots.Healthy(), "es");
+
+        Assert.Equal(new[] { "CPU temperature", "Memory", "Disk health", "Battery health" }, english.KeyStats.Select(s => s.Label));
+        Assert.Equal(new[] { "Temperatura de la CPU", "Memoria", "Salud del disco", "Salud de la batería" }, spanish.KeyStats.Select(s => s.Label));
+
+        var cpuTemp = spanish.KeyStats.Single(s => s.Label == "Temperatura de la CPU");
+        Assert.Equal("55 C", cpuTemp.Value);
+        Assert.Equal("LibreHardwareMonitor", cpuTemp.Source);
+        var memory = spanish.KeyStats.Single(s => s.Label == "Memoria");
         Assert.Equal("16 GB", memory.Value);
         Assert.Equal("CIM Win32_PhysicalMemory", memory.Source);
     }
@@ -317,6 +413,29 @@ public sealed class OverviewViewModelTests
     }
 
     [Fact]
+    public void ScoreBreakdown_WeightAndContributionTemplates_AgreeInSpanish()
+    {
+        // Localisation, phase 5, Spanish (v2.1.31): same rule, Spanish.
+        // The weight word changes ("Weight" / "Peso"); the
+        // contribution happens to read the same in both languages
+        // ("+5 pts"), which the test pins explicitly instead of
+        // assuming it.
+        using var english = Create(TestSnapshots.Healthy());
+        using var spanish = Create(TestSnapshots.Healthy(), "es");
+
+        Assert.Equal(english.ScoreBreakdown.Count, spanish.ScoreBreakdown.Count);
+        Assert.NotEmpty(spanish.ScoreBreakdown);
+        for (var i = 0; i < english.ScoreBreakdown.Count; i++)
+        {
+            var expected = english.ScoreBreakdown[i];
+            var actual = spanish.ScoreBreakdown[i];
+            Assert.Equal(expected.Component, actual.Component);
+            Assert.Equal("Peso " + expected.WeightText["Weight ".Length..], actual.WeightText);
+            Assert.Equal(expected.ContributionText, actual.ContributionText);
+        }
+    }
+
+    [Fact]
     public void ComponentCards_HealthAndDetailsLabels_AreLocalized()
     {
         using var english = Create(TestSnapshots.Healthy());
@@ -354,6 +473,25 @@ public sealed class OverviewViewModelTests
     }
 
     [Fact]
+    public void ComponentCards_HealthAndDetailsLabels_AreLocalizedInSpanish()
+    {
+        // Localisation, phase 5, Spanish (v2.1.31): same rule, Spanish.
+        using var english = Create(TestSnapshots.Healthy());
+        using var spanish = Create(TestSnapshots.Healthy(), "es");
+
+        Assert.NotEmpty(english.Cards);
+        Assert.NotEmpty(spanish.Cards);
+        Assert.All(english.Cards, card => Assert.Equal("Health", card.HealthLabelText));
+        Assert.All(english.Cards, card => Assert.Equal("Details", card.DetailsText));
+        Assert.All(spanish.Cards, card => Assert.Equal("Salud", card.HealthLabelText));
+        Assert.All(spanish.Cards, card => Assert.Equal("Detalles", card.DetailsText));
+
+        // A switch rebuilds the cards in the new language.
+        spanish.ApplyLanguage("en");
+        Assert.All(spanish.Cards, card => Assert.Equal("Health", card.HealthLabelText));
+    }
+
+    [Fact]
     public void ScanningHero_IsLocalized()
     {
         using var english = Create(TestSnapshots.Healthy(), isScanning: true);
@@ -382,6 +520,22 @@ public sealed class OverviewViewModelTests
         Assert.Equal("…", french.ScoreText);
         Assert.Equal("Analyse en cours…", french.VerdictText);
         Assert.Equal("L'analyse matérielle est toujours en cours. Le score apparaît lorsque l'analyse se termine.", french.ScoreExplanation);
+    }
+
+    [Fact]
+    public void ScanningHero_IsLocalizedInSpanish()
+    {
+        // Localisation, phase 5, Spanish (v2.1.31): same rule, Spanish.
+        using var english = Create(TestSnapshots.Healthy(), isScanning: true);
+        using var spanish = Create(TestSnapshots.Healthy(), "es", isScanning: true);
+
+        Assert.Equal("…", english.ScoreText);
+        Assert.Equal("Scanning…", english.VerdictText);
+        Assert.Equal("The hardware scan is still running. The score appears when the scan finishes.", english.ScoreExplanation);
+
+        Assert.Equal("…", spanish.ScoreText);
+        Assert.Equal("Analizando…", spanish.VerdictText);
+        Assert.Equal("El análisis de hardware sigue en curso. La puntuación aparece cuando termina el análisis.", spanish.ScoreExplanation);
     }
 
     [Fact]
@@ -434,6 +588,38 @@ public sealed class OverviewViewModelTests
         overview.ProcessSensorSnapshot(CpuSnapshot(72.5));
         Assert.Equal("72.5 C", cpu.CurrentText);
         Assert.Equal("Temp. processeur", cpu.Name);
+
+        // After a switch the same cell keeps updating: the strip looks
+        // the metric up by key, never by its translated display name.
+        overview.ApplyLanguage("en");
+        Assert.Equal("CPU temp", cpu.Name);
+        Assert.Equal("72.5 C", cpu.CurrentText);
+        overview.ProcessSensorSnapshot(CpuSnapshot(71));
+        Assert.Equal("71 C", cpu.CurrentText);
+        Assert.Equal("CPU temp", cpu.Name);
+    }
+
+    [Fact]
+    public void LiveStrip_NamesAreLocalizedInSpanish_AndUpdatesFollowTheKey()
+    {
+        // Localisation, phase 5, Spanish (v2.1.31): same rule, Spanish.
+        // Note the abbreviated metric names ("Temp. de CPU") versus
+        // the full key-stat labels ("Temperatura de la CPU").
+        using var overview = Create(TestSnapshots.Healthy(), "es");
+
+        Assert.Equal(
+            new[] { "Temp. de CPU", "Temp. de GPU", "Uso de CPU", "Potencia de la batería" },
+            overview.LiveMetrics.Select(m => m.Name));
+        Assert.Equal(
+            new[] { "cpu-temp", "gpu-temp", "cpu-usage", "battery-power" },
+            overview.LiveMetrics.Select(m => m.MetricKey));
+
+        var cpu = overview.LiveMetrics.Single(m => m.MetricKey == LiveMetricViewModel.CpuTempKey);
+        Assert.Equal("No disponible", cpu.CurrentText);
+
+        overview.ProcessSensorSnapshot(CpuSnapshot(72.5));
+        Assert.Equal("72.5 C", cpu.CurrentText);
+        Assert.Equal("Temp. de CPU", cpu.Name);
 
         // After a switch the same cell keeps updating: the strip looks
         // the metric up by key, never by its translated display name.
@@ -535,6 +721,51 @@ public sealed class OverviewViewModelTests
     }
 
     [Fact]
+    public void SensorSentences_WithWriterAndThreshold_AreLocalizedInSpanish()
+    {
+        // Localisation, phase 5, Spanish (v2.1.31): same rule, Spanish.
+        var logPath = TempLogPath();
+        try
+        {
+            var writer = new SensorLogWriter(logPath);
+            var settings = new AppSettings
+            {
+                SensorLoggingEnabled = true,
+                CpuTemperatureThresholdC = 90,
+                CpuTemperatureThresholdSeconds = 30,
+            };
+            using var overview = new OverviewViewModel(
+                TestSnapshots.Healthy(),
+                _ => { },
+                new TestCommand(),
+                new TestCommand(),
+                new UnavailableSensorMonitor(),
+                sensorLogWriter: writer,
+                settings: settings,
+                languageCode: "es");
+
+            Assert.Equal(
+                $"Las lecturas de los sensores se registran en {logPath}. El gráfico está en la página Historial.",
+                overview.SensorLogText);
+            Assert.Equal(
+                "Avisar cuando la temperatura de la CPU llegue a 90 °C durante 30 segundos. Establécelo en Configuración.",
+                overview.AlertSettingsText);
+
+            overview.ApplyLanguage("en");
+            Assert.Equal(
+                $"Sensor readings are recorded to {logPath}. The chart is on the History page.",
+                overview.SensorLogText);
+            Assert.Equal(
+                "Alert when the CPU temperature reaches 90 C for 30 seconds. Set it in Settings.",
+                overview.AlertSettingsText);
+        }
+        finally
+        {
+            DeleteDirectory(logPath);
+        }
+    }
+
+    [Fact]
     public void SensorSentences_LoggingOff_AreLocalized()
     {
         var logPath = TempLogPath();
@@ -583,6 +814,35 @@ public sealed class OverviewViewModelTests
 
             Assert.Equal(
                 "La journalisation des capteurs est désactivée. Activez-la dans les Paramètres pour enregistrer les mesures.",
+                overview.SensorLogText);
+        }
+        finally
+        {
+            DeleteDirectory(logPath);
+        }
+    }
+
+    [Fact]
+    public void SensorSentences_LoggingOff_AreLocalizedInSpanish()
+    {
+        // Localisation, phase 5, Spanish (v2.1.31): same rule, Spanish.
+        var logPath = TempLogPath();
+        try
+        {
+            var writer = new SensorLogWriter(logPath);
+            var settings = new AppSettings { SensorLoggingEnabled = false };
+            using var overview = new OverviewViewModel(
+                TestSnapshots.Healthy(),
+                _ => { },
+                new TestCommand(),
+                new TestCommand(),
+                new UnavailableSensorMonitor(),
+                sensorLogWriter: writer,
+                settings: settings,
+                languageCode: "es");
+
+            Assert.Equal(
+                "El registro de sensores está desactivado. Actívalo en Configuración para registrar lecturas.",
                 overview.SensorLogText);
         }
         finally
