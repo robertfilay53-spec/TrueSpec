@@ -144,6 +144,20 @@ public static class SpecLabels
     public const string ProcessorID = "Processor ID";
     public const string RAMSlots = "RAM slots";
     public const string RadioType = "Radio type";
+    /// <summary>
+    /// The rated boost clock from the bundled hardware database: a
+    /// spec-sheet maximum (Intel ARK Max Turbo Frequency, AMD Max Boost
+    /// Clock), never a measurement and never a replacement for the
+    /// measured "Max clock". Shown only when the CPU model is in the
+    /// dataset; a model that matches nothing gets no such spec.
+    /// </summary>
+    public const string RatedBoostClock = "Rated boost clock";
+    /// <summary>
+    /// The rated E-core boost clock from the bundled hardware database
+    /// (Intel hybrid chips only): the Efficient-core Max Turbo
+    /// Frequency. Null for every other chip, so no such spec is shown.
+    /// </summary>
+    public const string RatedECoreBoostClock = "Rated E-core boost clock";
     public const string RatedEndurance = "Rated endurance";
     public const string ReadErrors = "Read errors";
     public const string ReceiveRate = "Receive rate";

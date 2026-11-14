@@ -41,6 +41,16 @@ public sealed record AppSettings
     public bool SensorLoggingEnabled { get; init; } = true;
 
     /// <summary>
+    /// Whether the bundled hardware database is used to show a CPU's
+    /// rated boost clock. Default on: the dataset is small, local and
+    /// clearly labelled as a spec-sheet value, never a measurement.
+    /// Takes effect after a restart, like the portable-mode toggle:
+    /// the collectors are created once at startup.
+    /// </summary>
+    [JsonPropertyName("hardwareDatabaseEnabled")]
+    public bool HardwareDatabaseEnabled { get; init; } = true;
+
+    /// <summary>
     /// CPU temperature alert threshold in C, or null when alerting is off.
     /// Null is the default: TrueSpec ships with no threshold that implies a
     /// diagnosis; the user sets one.

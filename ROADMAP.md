@@ -1101,6 +1101,42 @@ data already existed; only the band rule and wording are new.
   bump and test-file exclusions — zero `PackageReference` changes in
   `git diff 8413746 0788596 -- '*csproj'`), so the result carries
   forward.
+- **Hardware database: rated CPU boost clocks from a bundled dataset
+  (Beyond v2.0, item 5).** The plan's last Beyond v2.0 item: a small,
+  versioned, openly licensed dataset of CPU/GPU model specifications,
+  used only to label "this CPU's rated boost clock is X" from the
+  model string. Dataset v1.0.0 holds 74 CPUs (Intel Core 8th-14th gen
+  desktop, Core Ultra 100/200 desktop and mobile, Intel 8th/10th/11th
+  gen mobile; AMD Ryzen 1000-9000 desktop, Ryzen 3000-8000 and AI 300
+  mobile), compiled by hand from Intel ARK and AMD product pages
+  (CC0 compilation; each entry records its source URL and retrieval
+  date). No third-party dataset was suitable: the open ones are stale
+  or empty, the complete ones are proprietary. The CPU page shows the
+  rated boost clock under its own label ("Rated boost clock") with
+  the dataset version as its source, plus the E-core figure for Intel
+  hybrid chips; it never replaces the measured Max clock, and a model
+  that is not listed gets no rated spec. The database is optional (a
+  Settings toggle, takes effect after a restart, like the
+  portable-mode toggle) and the dataset version and entry count are
+  shown in Settings. GPU entries are a later slice, from the same
+  seed approach on NVIDIA/AMD spec pages. Deliberately absent in
+  v1.0.0: the 12th/13th-gen Intel mobile H/P chips (Intel publishes
+  no per-SKU P-core base frequency), the i3-8100 (no Turbo Boost),
+  i5-14400, i9-11980HK and Ryzen 7 3700U. Tests:
+  `HardwareDatabaseTests` (normalizer, lookup, fail-safe loading,
+  invalid-entry skipping, bundled dataset pinned at 74 entries and
+  the verified i7-13700K boost) and the CpuCollector rated-spec
+  tests (spec present with its own label, value and source, after
+  the measured Max clock; absent for unknown models and with no
+  database).
+- **Dependency audit re-attested for v2.1.14.** `SECURITY.md` said
+  v2.1.12; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.13 and v2.1.14 (only the `<Version>`
+  bump and the embedded-resource entry for the dataset — zero
+  `PackageReference` changes in `git diff cd0392e HEAD -- '*csproj'`),
+  so the result carries forward.
 
 ## Rejected
 

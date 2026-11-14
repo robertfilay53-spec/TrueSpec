@@ -481,6 +481,12 @@ public class SettingsViewModelTests
             Assert.Equal(new[] { "15 Sekunden", "30 Sekunden", "60 Sekunden", "120 Sekunden" },
                 settings.ThresholdDurationOptions.Select(o => o.Text).ToList());
 
+            Assert.Equal("Hardware-Datenbank", settings.HardwareDatabaseTitleText);
+            Assert.Equal(
+                "Zeigt den Nenn-Boost-Takt aus einer kleinen mitgelieferten Datenbank mit CPU-Daten, wenn Ihr Prozessor enthalten ist. Die Datenbank ist optional und ersetzt keinen gemessenen Wert. Wird nach einem Neustart wirksam.",
+                settings.HardwareDatabaseNoteText);
+            Assert.StartsWith("Datensatz v1.0.0: ", settings.HardwareDatabaseVersionText, StringComparison.Ordinal);
+
             Assert.Equal("Ordner für Berichtsexporte", settings.ExportTitleText);
             Assert.EndsWith(" (Standard)", settings.ExportFolderText, StringComparison.Ordinal);
             Assert.Equal("Ordner wählen...", settings.ExportChooseText);

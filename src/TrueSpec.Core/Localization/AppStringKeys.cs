@@ -76,6 +76,15 @@ public static class AppStringKeys
     public const string AlertNote = "AlertNote";
     public const string AlertAboveLabel = "AlertAboveLabel";
     public const string AlertDurationLabel = "AlertDurationLabel";
+
+    // Hardware database card (v2.1.14, Beyond v2.0 item 5): the toggle
+    // for the bundled CPU specification dataset, and the line showing
+    // which dataset version is bundled. The version line is a template
+    // ({0} = dataset version, {1} = entry count, {2} = update date).
+    public const string HardwareDatabaseTitle = "HardwareDatabaseTitle";
+    public const string HardwareDatabaseNote = "HardwareDatabaseNote";
+    public const string HardwareDatabaseVersion = "HardwareDatabaseVersion";
+
     public const string ThresholdMessage = "ThresholdMessage";
     public const string ExportTitle = "ExportTitle";
     public const string ExportDefaultSuffix = "ExportDefaultSuffix";
@@ -482,6 +491,9 @@ public static class AppStringKeys
         AlertNote,
         AlertAboveLabel,
         AlertDurationLabel,
+        HardwareDatabaseTitle,
+        HardwareDatabaseNote,
+        HardwareDatabaseVersion,
         ThresholdMessage,
         ExportTitle,
         ExportDefaultSuffix,

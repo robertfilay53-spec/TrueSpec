@@ -4,21 +4,28 @@ using System.Globalization;
 using TrueSpec.Collectors.Windows.Wmi;
 using TrueSpec.Core.Benchmarks;
 using TrueSpec.Core.Collectors;
+using TrueSpec.Core.HardwareDatabase;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Sensors;
 
 /// <summary>
 /// CPU identity from CIM and real temperature, fan, voltage and power readings
 /// from LibreHardwareMonitor. No CPU life percentage is shown because no such
-/// sensor exists.
+/// sensor exists. When the bundled hardware database is supplied, the
+/// rated boost clock from the dataset is shown as its own spec: a
+/// spec-sheet maximum, never a measurement and never a replacement for
+/// the measured MaxClockSpeed. A model the dataset does not list gets no
+/// rated spec at all.
 /// </summary>
 public sealed class CpuCollector : ICollector
 {
     private readonly ISensorMonitor _sensors;
+    private readonly IHardwareDatabase? _hardwareDatabase;
 
-    public CpuCollector(ISensorMonitor sensors)
+    public CpuCollector(ISensorMonitor sensors, IHardwareDatabase? hardwareDatabase = null)
     {
         _sensors = sensors;
+        _hardwareDatabase = hardwareDatabase;
     }
 
     public string Id => "cpu";
@@ -78,6 +85,39 @@ public sealed class CpuCollector : ICollector
             CollectorSupport.Spec(SpecLabels.Cores, cpu.UInt32("NumberOfCores")?.ToString(CultureInfo.InvariantCulture), "CIM Win32_Processor", numericValue: (double?)cpu.UInt32("NumberOfCores"), numericUnit: "cores"),
             CollectorSupport.Spec(SpecLabels.Threads, cpu.UInt32("NumberOfLogicalProcessors")?.ToString(CultureInfo.InvariantCulture), "CIM Win32_Processor", numericValue: (double?)cpu.UInt32("NumberOfLogicalProcessors"), numericUnit: "threads"),
             CollectorSupport.Spec(SpecLabels.MaxClock, FormatMhz(cpu.UInt32("MaxClockSpeed")), "CIM Win32_Processor", numericValue: (double?)CollectorSupport.NonZero(cpu.UInt32("MaxClockSpeed")), numericUnit: "MHz"),
+        };
+
+        // The rated boost clock from the bundled hardware database: a
+        // spec-sheet maximum for this exact model, shown under its own
+        // label with the dataset version as its source. It never replaces
+        // the measured Max clock above, and a model the dataset does not
+        // list gets no rated spec at all. The E-core figure rides along
+        // for Intel hybrid chips only, so the single P-core number is
+        // never read as the whole story.
+        if (_hardwareDatabase is not null && _hardwareDatabase.TryGetCpu(cpu.String("Name"), out var rated))
+        {
+            var source = string.Create(CultureInfo.InvariantCulture, $"Bundled hardware database v{_hardwareDatabase.Version} ({_hardwareDatabase.Updated})");
+            var boostMhz = (int)Math.Round(rated.BoostGhz * 1000, MidpointRounding.AwayFromZero);
+            specs.Add(CollectorSupport.Spec(
+                SpecLabels.RatedBoostClock,
+                FormatGhz(rated.BoostGhz),
+                source,
+                numericValue: (double)boostMhz,
+                numericUnit: "MHz"));
+            if (rated.ECoreBoostGhz is { } eCoreGhz)
+            {
+                var eCoreMhz = (int)Math.Round(eCoreGhz * 1000, MidpointRounding.AwayFromZero);
+                specs.Add(CollectorSupport.Spec(
+                    SpecLabels.RatedECoreBoostClock,
+                    FormatGhz(eCoreGhz),
+                    source,
+                    numericValue: (double)eCoreMhz,
+                    numericUnit: "MHz"));
+            }
+        }
+
+        specs.AddRange(new[]
+        {
             CollectorSupport.Spec(SpecLabels.CurrentClock, FormatMhz(cpu.UInt32("CurrentClockSpeed")), "CIM Win32_Processor", numericValue: (double?)CollectorSupport.NonZero(cpu.UInt32("CurrentClockSpeed")), numericUnit: "MHz"),
             CollectorSupport.Spec(SpecLabels.L2Cache, FormatKb(cpu.UInt32("L2CacheSize")), "CIM Win32_Processor", numericValue: (double?)CollectorSupport.NonZero(cpu.UInt32("L2CacheSize")), numericUnit: "KB"),
             CollectorSupport.Spec(SpecLabels.L3Cache, FormatKb(cpu.UInt32("L3CacheSize")), "CIM Win32_Processor", numericValue: (double?)CollectorSupport.NonZero(cpu.UInt32("L3CacheSize")), numericUnit: "KB"),
@@ -105,7 +145,7 @@ public sealed class CpuCollector : ICollector
             CollectorSupport.Spec(SpecLabels.LiveCoreClock, FormatSensor(clock, "MHz", 0), "LibreHardwareMonitor", numericValue: clock is { HasValue: true } ? clock.Value : null, numericUnit: "MHz"),
             CollectorSupport.Spec(SpecLabels.CPULoad, FormatSensor(load, "%", 1), "LibreHardwareMonitor", numericValue: load is { HasValue: true } ? load.Value : null, numericUnit: "%"),
             CollectorSupport.Spec(SpecLabels.LifeRemaining, SpecLabels.NotReportedByHardware, "No CPU life sensor exists"),
-        };
+        });
 
         var headline = cpu.String("Name") ?? "CPU";
 
@@ -134,6 +174,14 @@ public sealed class CpuCollector : ICollector
 
     private static string FormatMhz(uint? mhz) =>
         CollectorSupport.NonZero(mhz) is { } value ? string.Create(CultureInfo.InvariantCulture, $"{value} MHz") : SpecLabels.NotReportedByHardware;
+
+    /// <summary>
+    /// A rated clock from the hardware database, always two decimals:
+    /// "4.70 GHz". The database only ever holds positive figures (the
+    /// loader rejects the rest), so no fallback is needed here.
+    /// </summary>
+    private static string FormatGhz(double ghz) =>
+        string.Create(CultureInfo.InvariantCulture, $"{ghz:0.00} GHz");
 
     private static string FormatKb(uint? kb) =>
         CollectorSupport.NonZero(kb) is { } value ? string.Create(CultureInfo.InvariantCulture, $"{value} KB") : SpecLabels.NotReportedByHardware;
