@@ -1248,6 +1248,36 @@ data already existed; only the band rule and wording are new.
   `git diff 0d71547 HEAD -- '*csproj'`), so the result carries
   forward.
 
+## v2.1.17 — shipped
+
+- **Maintenance: the seven noted major dependency upgrades.** The
+  majors that the v2.1.14/15/16 cycles noted and deliberately did not
+  fold in land here, one commit per package so a bad one reverts
+  cleanly: Microsoft.Data.Sqlite 10.0.0 to 11.0.0 and
+  SQLitePCLRaw.bundle_e_sqlite3 2.1.14 to 3.0.5 (coupled — Sqlite 11
+  refuses to restore against bundle 2.x with NU1605, so they land
+  together), System.Diagnostics.EventLog and System.Management
+  10.0.14 to 11.0.0 (Windows-only project: restore clean locally,
+  build and tests verified by CI), coverlet.collector 6.0.4 to
+  10.1.0, Microsoft.NET.Test.Sdk 17.14.1 to 18.12.0, and
+  xunit.runner.visualstudio 3.1.4 to 4.0.1 (its nuspec states it runs
+  v1, v2 and v3 tests, so the xunit 2.9.3 suite is covered). No API
+  breakage needed adapting in any project. After the upgrades
+  `dotnet list package --outdated` reports zero outdated packages on
+  all four projects, and the vulnerability audit reports no vulnerable
+  packages, including transitive.
+- **Coverage-report finding: not a bug.** The "Report coverage"
+  warning the project carried as a known issue since v2.1.5 does not
+  actually fire: on the v2.1.16 main run the step printed real line
+  rates (Ubuntu 0.9189, Windows 0.7521), the `::warning::` strings in
+  the log are the runner echoing the step's script text, and the
+  run's annotations carry no coverage warning. No workflow change was
+  needed for coverage. The only real annotation on recent runs is the
+  Node.js 20 deprecation for the pinned v4 actions; re-pinning
+  checkout and setup-dotnet to their v5 SHAs clears it, prepared as a
+  diff for the parent to apply via GitHub web (workflow files are
+  parent-only, and the token has no workflow scope).
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed
