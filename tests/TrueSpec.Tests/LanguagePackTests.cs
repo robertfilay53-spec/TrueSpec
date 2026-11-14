@@ -117,9 +117,9 @@ public sealed class LanguagePackTests
         // Changing one is a deliberate translation decision, not a typo
         // fix. The Spanish wording is the worker's own translation, not
         // reviewed by a native speaker (the same honest limitation as the
-        // German and French wording). The language card says the rail and
-        // the Settings page are translated and the other pages follow in
-        // later versions (phase 2, v2.1.28).
+        // German and French wording). The language card says the rail, the
+        // Settings page and the component detail pages are translated and
+        // the other pages follow in later versions (phase 4, v2.1.30).
         var spanish = LanguagePacks.Spanish.Strings;
         Assert.Equal("Vista general", spanish[AppStringKeys.NavOverview]);
         Assert.Equal("Almacenamiento", spanish[AppStringKeys.NavStorage]);
@@ -136,7 +136,7 @@ public sealed class LanguagePackTests
         Assert.Equal("Configuración", spanish[AppStringKeys.NavSettings]);
         Assert.Equal("Idioma", spanish[AppStringKeys.LanguageTitle]);
         Assert.Equal(
-            "La barra de navegación y la página Configuración están traducidas. Las demás páginas seguirán en versiones posteriores.",
+            "La barra de navegación, la página Configuración y las páginas de detalle de componentes están traducidas. Las demás páginas seguirán en versiones posteriores.",
             spanish[AppStringKeys.LanguageNote]);
     }
 
@@ -317,6 +317,46 @@ public sealed class LanguagePackTests
             "Non fiable : un autre contrôle a prouvé que cette date est impossible.",
             french[AppStringKeys.DetailSignalUntrusted]);
         Assert.Equal(" (ESTIMATION)", french[AppStringKeys.DetailEstimateSuffix]);
+    }
+
+    [Fact]
+    public void SpanishPack_DetailPageTerms()
+    {
+        // Localisation, phase 4, Spanish (v2.1.30): the shared component
+        // detail view, one surface, all 15 component pages. Same
+        // pinning rule as the German phase 4 terms: changing one is a
+        // deliberate translation decision, not a typo fix. The data the
+        // page shows (names, headlines, spec labels and values) is not
+        // in this catalogue; only the page chrome is. No new keys, the
+        // Spanish pack already covers the whole 523-key catalogue. All
+        // values below were read from the real Spanish pack with the
+        // scratch dump program (~/workspace/es-pack-dump/, outside the
+        // repo), never hand-translated from the German or French tests.
+        var spanish = LanguagePacks.Spanish.Strings;
+        Assert.Equal("Especificaciones", spanish[AppStringKeys.DetailSpecificationsTitle]);
+        Assert.Equal("Buscar en las especificaciones", spanish[AppStringKeys.DetailSearchPlaceholder]);
+        Assert.Equal(
+            "Haz clic en cualquier valor para copiarlo. Pasa el cursor sobre un valor o un nombre de origen para ver de dónde procede la lectura.",
+            spanish[AppStringKeys.DetailCopyHint]);
+        Assert.Equal("Señales de antigüedad", spanish[AppStringKeys.DetailAgeSignalsTitle]);
+        Assert.Equal(
+            "Los números sin procesar detrás del veredicto de autenticidad. Cada señal indica dónde se leyó.",
+            spanish[AppStringKeys.DetailAgeSignalsIntro]);
+        Assert.Equal("Qué significa esto", spanish[AppStringKeys.DetailWhatThisMeansTitle]);
+        Assert.Equal("No recopilado", spanish[AppStringKeys.DetailNotCollectedHeadline]);
+        Assert.Equal("Este componente aún no se ha recopilado.", spanish[AppStringKeys.DetailNotCollectedText]);
+        Assert.Equal("Lectura registrada el {0}", spanish[AppStringKeys.DetailCaptured]);
+        Assert.Equal("No se recopilaron especificaciones para este componente.", spanish[AppStringKeys.DetailNoSpecs]);
+        Assert.Equal(
+            "Ninguna especificación coincide con \"{0}\". Borra la búsqueda para verlas todas.",
+            spanish[AppStringKeys.DetailNoSpecsMatch]);
+        Assert.Equal(
+            "{0} comprobación(es) de autenticidad no se pudieron ejecutar porque no se informó de una señal.",
+            spanish[AppStringKeys.DetailAgeSignalsSkipped]);
+        Assert.Equal(
+            "No es de fiar: otra comprobación demostró que esta fecha es imposible.",
+            spanish[AppStringKeys.DetailSignalUntrusted]);
+        Assert.Equal(" (ESTIMACIÓN)", spanish[AppStringKeys.DetailEstimateSuffix]);
     }
 
     [Fact]

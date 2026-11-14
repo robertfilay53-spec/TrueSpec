@@ -13,7 +13,10 @@ namespace TrueSpec.Tests;
 /// chrome. French phase 4 (v2.1.23) pins the same surface in French:
 /// the French pack already covers the whole 523-key catalogue, and
 /// the view model takes a language code generically, so the French
-/// tests mirror the German ones. The data stays English by design:
+/// tests mirror the German ones. Spanish phase 4 (v2.1.30) pins the
+/// same surface in Spanish: the Spanish pack already covers the whole
+/// 523-key catalogue, and the Spanish tests mirror the French ones.
+/// The data stays English by design:
 /// component names, headlines, health and status texts, spec labels,
 /// values and sources, and the "What this means" text are measured
 /// data from the collectors, translated in a later slice — the tests
@@ -100,6 +103,28 @@ public sealed class ComponentDetailViewModelTests
     }
 
     [Fact]
+    public void SpanishSeeded_RendersWholePageInSpanish()
+    {
+        // Localisation, phase 4, Spanish (v2.1.30): the same fourth
+        // surface German phase 4 (v2.1.10) and French phase 4 (v2.1.23)
+        // translated, now pinned in Spanish. One Spanish-seeded view
+        // model proves all 15 pages' chrome, because they all share
+        // this view. All values below were read from the real Spanish
+        // pack with the scratch dump program (~/workspace/es-pack-dump/,
+        // outside the repo), never hand-translated from the German or
+        // French tests.
+        var viewModel = new ComponentDetailViewModel(TestSnapshots.Healthy(), "cpu", "es");
+
+        Assert.Equal("Especificaciones", viewModel.SpecificationsTitleText);
+        Assert.Equal("Buscar en las especificaciones", viewModel.SearchPlaceholderText);
+        Assert.Equal(
+            "Haz clic en cualquier valor para copiarlo. Pasa el cursor sobre un valor o un nombre de origen para ver de dónde procede la lectura.",
+            viewModel.CopyHintText);
+        Assert.Equal("Qué significa esto", viewModel.WhatThisMeansTitleText);
+        Assert.StartsWith("Lectura registrada el ", viewModel.CapturedText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ApplyLanguage_SwitchesBothWays()
     {
         var viewModel = new ComponentDetailViewModel(TestSnapshots.Healthy(), "cpu");
@@ -124,6 +149,23 @@ public sealed class ComponentDetailViewModelTests
         viewModel.ApplyLanguage("fr");
         Assert.Equal("Caractéristiques", viewModel.SpecificationsTitleText);
         Assert.Equal("Ce que cela signifie", viewModel.WhatThisMeansTitleText);
+
+        viewModel.ApplyLanguage("en");
+        Assert.Equal("Specifications", viewModel.SpecificationsTitleText);
+        Assert.Equal("What this means", viewModel.WhatThisMeansTitleText);
+    }
+
+    [Fact]
+    public void ApplyLanguage_SwitchesToSpanishAndBack()
+    {
+        // Localisation, phase 4, Spanish (v2.1.30): the in-place
+        // re-render the main view model gives cached detail pages
+        // when the language changes, now pinned in Spanish too.
+        var viewModel = new ComponentDetailViewModel(TestSnapshots.Healthy(), "cpu");
+
+        viewModel.ApplyLanguage("es");
+        Assert.Equal("Especificaciones", viewModel.SpecificationsTitleText);
+        Assert.Equal("Qué significa esto", viewModel.WhatThisMeansTitleText);
 
         viewModel.ApplyLanguage("en");
         Assert.Equal("Specifications", viewModel.SpecificationsTitleText);
@@ -171,6 +213,23 @@ public sealed class ComponentDetailViewModelTests
     }
 
     [Fact]
+    public void DataStaysEnglish_WhenChromeIsSpanish()
+    {
+        // Localisation, phase 4, Spanish (v2.1.30): the same data-stays-
+        // English pin as the German and French tests, the chrome
+        // translates, the measured data does not.
+        var viewModel = new ComponentDetailViewModel(TestSnapshots.Healthy(), "cpu", "es");
+
+        Assert.Equal("CPU", viewModel.Name);
+        Assert.Equal("Test CPU", viewModel.Headline);
+        Assert.Equal("CPU health uses live temperature.", viewModel.WhatThisMeans);
+        var row = Assert.Single(viewModel.Specs);
+        Assert.Equal("Package temperature", row.Label);
+        Assert.Equal("55 C", row.Value);
+        Assert.Equal("LibreHardwareMonitor", row.Source);
+    }
+
+    [Fact]
     public void MissingComponent_FallbackStringsAreLocalized()
     {
         var english = new ComponentDetailViewModel(TestSnapshots.Healthy(), "no-such-component");
@@ -187,6 +246,11 @@ public sealed class ComponentDetailViewModelTests
         Assert.Equal("Non collecté", french.Headline);
         Assert.Equal("Ce composant n'a pas encore été collecté.", french.WhatThisMeans);
         Assert.Equal("Aucune caractéristique n'a été collectée pour ce composant.", french.NoSpecsMessage);
+
+        var spanish = new ComponentDetailViewModel(TestSnapshots.Healthy(), "no-such-component", "es");
+        Assert.Equal("No recopilado", spanish.Headline);
+        Assert.Equal("Este componente aún no se ha recopilado.", spanish.WhatThisMeans);
+        Assert.Equal("No se recopilaron especificaciones para este componente.", spanish.NoSpecsMessage);
     }
 
     [Fact]
@@ -209,6 +273,12 @@ public sealed class ComponentDetailViewModelTests
         Assert.Equal(
             "Aucune caractéristique ne correspond à « zzz-no-such-spec ». Effacez la recherche pour toutes les voir.",
             french.NoSpecsMessage);
+
+        var spanish = new ComponentDetailViewModel(TestSnapshots.Healthy(), "cpu", "es");
+        spanish.SearchText = "zzz-no-such-spec";
+        Assert.Equal(
+            "Ninguna especificación coincide con \"zzz-no-such-spec\". Borra la búsqueda para verlas todas.",
+            spanish.NoSpecsMessage);
     }
 
     [Fact]
@@ -233,6 +303,12 @@ public sealed class ComponentDetailViewModelTests
 
         var french = new ComponentDetailViewModel(SnapshotWith(cpu), "cpu", "fr");
         Assert.Equal("55 C (ESTIMATION)", Assert.Single(french.Specs).DisplayValue);
+
+        var spanish = new ComponentDetailViewModel(SnapshotWith(cpu), "cpu", "es");
+        Assert.Equal("55 C (ESTIMACIÓN)", Assert.Single(spanish.Specs).DisplayValue);
+
+        spanish.ApplyLanguage("en");
+        Assert.Equal("55 C (ESTIMATE)", Assert.Single(spanish.Specs).DisplayValue);
 
         french.ApplyLanguage("en");
         Assert.Equal("55 C (ESTIMATE)", Assert.Single(french.Specs).DisplayValue);
@@ -265,6 +341,13 @@ public sealed class ComponentDetailViewModelTests
             "Les chiffres bruts derrière le verdict d'authenticité. Chaque signal indique où il a été lu.",
             french.AgeSignalsIntroText);
 
+        var spanish = new ComponentDetailViewModel(TestSnapshots.Healthy(), "system", "es");
+        Assert.True(spanish.HasAgeSignals);
+        Assert.Equal("Señales de antigüedad", spanish.AgeSignalsTitleText);
+        Assert.Equal(
+            "Los números sin procesar detrás del veredicto de autenticidad. Cada señal indica dónde se leyó.",
+            spanish.AgeSignalsIntroText);
+
         var cpu = new ComponentDetailViewModel(TestSnapshots.Healthy(), "cpu", "de");
         Assert.False(cpu.HasAgeSignals);
     }
@@ -294,6 +377,10 @@ public sealed class ComponentDetailViewModelTests
         var french = new ComponentDetailViewModel(SnapshotWith(bare), "system", "fr");
         Assert.True(french.HasAgeSignalsNote);
         Assert.Contains("contrôle(s) d'authenticité n'ont pas pu être exécutés", french.AgeSignalsNote, StringComparison.Ordinal);
+
+        var spanish = new ComponentDetailViewModel(SnapshotWith(bare), "system", "es");
+        Assert.True(spanish.HasAgeSignalsNote);
+        Assert.Contains("comprobación(es) de autenticidad no se pudieron ejecutar", spanish.AgeSignalsNote, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -322,6 +409,13 @@ public sealed class ComponentDetailViewModelTests
         Assert.Equal(
             "Not trusted: another check proved this date impossible.",
             untrustedEnglish.ReliabilityText);
+
+        var spanish = new ComponentDetailViewModel(SnapshotWith(system), "system", "es");
+        var untrustedSpanish = Assert.Single(spanish.AgeSignals, s => !s.IsReliable);
+        Assert.True(untrustedSpanish.HasReliabilityText);
+        Assert.Equal(
+            "No es de fiar: otra comprobación demostró que esta fecha es imposible.",
+            untrustedSpanish.ReliabilityText);
     }
 
     [Fact]
@@ -362,5 +456,27 @@ public sealed class ComponentDetailViewModelTests
 
         var french = new ComponentDetailViewModel(SnapshotWith(cpu), "cpu", "fr");
         Assert.Equal("Mesure enregistrée le 2026-11-12 10:30:00", french.CapturedText);
+    }
+
+    [Fact]
+    public void CapturedText_KeepsTheAppDateShapeInSpanish()
+    {
+        // Localisation, phase 4, Spanish (v2.1.30): the date inside the
+        // Spanish sentence keeps the app's shape, the same as German
+        // and French.
+        var captured = new DateTimeOffset(2026, 11, 12, 10, 30, 0, TimeSpan.Zero);
+        var cpu = new ComponentSnapshot(
+            "cpu",
+            "CPU",
+            "CPU",
+            "cpu",
+            "Test CPU",
+            95d,
+            new[] { new SpecValue("Package temperature", "55 C", "LibreHardwareMonitor") },
+            "CPU health uses live temperature.",
+            captured);
+
+        var spanish = new ComponentDetailViewModel(SnapshotWith(cpu), "cpu", "es");
+        Assert.Equal("Lectura registrada el 2026-11-12 10:30:00", spanish.CapturedText);
     }
 }
