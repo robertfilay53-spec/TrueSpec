@@ -21,7 +21,8 @@ namespace TrueSpec.Tests;
 /// instead of silently resetting them.
 /// Windows leg only (it drives TrueSpec.App's ViewModels), like
 /// ReportViewModelTests and TestsViewModelTests: excluded from the
-/// net10.0 leg in the csproj.
+/// net10.0 leg in the csproj. French phase 7 (v2.1.26) mirrors the
+/// German Report and Tests tests in French.
 /// </summary>
 public class ReportTestsLocalizationViewModelTests
 {
@@ -326,6 +327,241 @@ public class ReportTestsLocalizationViewModelTests
             CompletedAt: DateTimeOffset.UtcNow.AddSeconds(60));
         Assert.Equal("Rated max clock: 4100 MHz", LoadTestViewModel.RatedMaxText(result));
         Assert.Equal("Held % of rated clock: not reported by hardware", LoadTestViewModel.HeldPercentText(result));
+    }
+
+    [Fact]
+    public void Report_FrenchSeeded_RendersWholePageInFrench()
+    {
+        var report = Report("fr");
+
+        Assert.Equal("RAPPORT", report.ReportEyebrowText);
+        Assert.Equal("Exporter la vérité", report.ReportTitleText);
+        Assert.Equal("Un seul modèle de données avec des sorties JSON, HTML, CSV et PDF. Tout est généré sur cette machine.", report.ReportIntroText);
+        Assert.Equal("score", report.ReportScoreLabelText);
+        Assert.Equal("Exporter en JSON", report.ReportExportJsonText);
+        Assert.Equal("Exporter en HTML", report.ReportExportHtmlText);
+        Assert.Equal("Exporter en CSV", report.ReportExportCsvText);
+        Assert.Equal("Exporter en PDF", report.ReportExportPdfText);
+        Assert.Equal("Certificat d'acheteur (PDF)", report.ReportExportCertificateText);
+        Assert.Equal("Vérifier cette machine", report.ReportVerifyMachineText);
+        Assert.Equal("ADN de la machine", report.ReportDnaTitleText);
+        Assert.Equal("Vérification de cette machine, nouvelle analyse du matériel...", report.ReportVerifyingMachineText);
+        Assert.Equal("Non identifié dans l'un des scans :", report.ReportDnaUnidentifiedTitleText);
+        Assert.Equal(
+            "L'ADN est une identité, pas une santé : il ne change jamais le score ni le verdict ci-dessus. Il certifie seulement à quelle machine le score appartient. Un scan en utilisateur standard sans élévation vérifie quand même, mais les pièces qui nécessitent une élévation pour être lues peuvent apparaître comme non identifiées au lieu d'une correspondance.",
+            report.ReportDnaNoteText);
+        Assert.Equal("Des données lisibles par machine pour les scripts et le support.", report.ReportFormatJsonDescriptionText);
+        Assert.Equal("Une page propre que vous pouvez ouvrir dans n'importe quel navigateur.", report.ReportFormatHtmlDescriptionText);
+        Assert.Equal("Un tableur de toutes les caractéristiques, sûr à ouvrir dans Excel. Les valeurs qui ressemblent à des formules sont neutralisées.", report.ReportFormatCsvDescriptionText);
+        Assert.Equal("Un rapport imprimable à remettre au vendeur ou à conserver avec le reçu. Construit sur cette machine, sans logiciel supplémentaire.", report.ReportFormatPdfDescriptionText);
+        Assert.Equal("Disponible", report.ReportFormatAvailableText);
+        Assert.Equal("Aperçu du rapport", report.ReportPreviewTitleText);
+        Assert.Equal("Les rapports exportés sont écrits dans le dossier indiqué ci-dessus. Aucun envoi, aucun cloud.", report.ReportFooterNoteText);
+        Assert.Equal(
+            "Les rapports exportés contiennent les numéros de série matériels de cette machine, les adresses MAC, les adresses IP et les noms de réseaux Wi-Fi. Partagez-les uniquement avec des personnes de confiance.",
+            report.ExportPrivacyNote);
+    }
+
+    [Fact]
+    public void Report_ApplyLanguage_SwitchesToFrenchAndBack()
+    {
+        var report = Report();
+
+        report.ApplyLanguage("fr");
+        Assert.Equal("RAPPORT", report.ReportEyebrowText);
+        Assert.Equal("Exporter la vérité", report.ReportTitleText);
+        Assert.Equal("Exporter en JSON", report.ReportExportJsonText);
+        Assert.Equal("ADN de la machine", report.ReportDnaTitleText);
+        Assert.Equal("Disponible", report.ReportFormatAvailableText);
+
+        report.ApplyLanguage("en");
+        Assert.Equal("REPORT", report.ReportEyebrowText);
+        Assert.Equal("Export the truth", report.ReportTitleText);
+        Assert.Equal("Export JSON", report.ReportExportJsonText);
+        Assert.Equal("Machine DNA", report.ReportDnaTitleText);
+        Assert.Equal("Available", report.ReportFormatAvailableText);
+
+        report.ApplyLanguage("fr");
+        Assert.Equal("RAPPORT", report.ReportEyebrowText);
+    }
+
+    [Fact]
+    public void Report_DataStaysEnglish_WhenChromeIsFrench()
+    {
+        var english = Report();
+        var french = Report("fr");
+
+        Assert.Equal(english.MachineName, french.MachineName);
+        Assert.Equal(english.VerdictText, french.VerdictText);
+        Assert.Equal(english.ScoreExplanation, french.ScoreExplanation);
+        Assert.Equal(english.BuyerBanner, french.BuyerBanner);
+        Assert.Equal(english.BuyerSummary, french.BuyerSummary);
+        Assert.Equal(english.GeneratedText, french.GeneratedText);
+        Assert.Equal(english.DnaStateText, french.DnaStateText);
+        Assert.Equal(english.DnaHashText, french.DnaHashText);
+        Assert.Equal(english.VerifyResultText, french.VerifyResultText);
+        Assert.Equal(english.ExportFolderText, french.ExportFolderText);
+        Assert.Equal(english.Components.Select(c => c.Name), french.Components.Select(c => c.Name));
+        Assert.Equal(english.Components.Select(c => c.Headline), french.Components.Select(c => c.Headline));
+        Assert.Equal(english.Components.Select(c => c.HealthText), french.Components.Select(c => c.HealthText));
+
+        // A switch re-renders the chrome in place, keeping the data.
+        french.ApplyLanguage("en");
+        Assert.Equal(english.ReportEyebrowText, french.ReportEyebrowText);
+        Assert.Equal(english.MachineName, french.MachineName);
+        Assert.Equal(english.VerdictText, french.VerdictText);
+    }
+
+    [Fact]
+    public void Tests_FrenchSeeded_RendersWholePageInFrench()
+    {
+        var viewModel = Tests("fr");
+
+        Assert.Equal("TESTS", viewModel.TestsEyebrowText);
+        Assert.Equal("Tests intégrés", viewModel.TestsTitleText);
+        Assert.Equal("Un clic chacun. Aucun envoi caché, aucun compte, et rien ne s'exécute sans que vous le lanciez.", viewModel.TestsIntroText);
+        Assert.Equal("Les tests du processeur et du disque effectuent de vraies mesures locales. Les tests non implémentés restent désactivés et n'affichent aucun résultat.", viewModel.TestsInfoNoteText);
+        Assert.Equal(
+            "Ces benchmarks mesurent uniquement cette machine, avec la charge de travail exacte indiquée sur chaque résultat. Ils ne remplacent pas Geekbench (comparaison multiplateforme) ni 3DMark (rendu GPU). Un résultat obtenu pendant qu'un autre programme utilisait le processeur le dit sur le résultat lui-même.",
+            viewModel.BenchmarkScopeNote);
+
+        var loadTest = viewModel.LoadTest;
+        Assert.Equal("Test de charge", loadTest.LoadTestTitleText);
+        Assert.Equal("Charge le processeur sur tous les cœurs, sollicite la mémoire et le disque, et surveille la température et la fréquence d'horloge chaque seconde.", loadTest.LoadTestIntroText);
+        Assert.Equal("Cette machine fonctionne sur batterie ; les résultats peuvent être limités par l'alimentation.", loadTest.LoadTestBatteryNoteText);
+        Assert.Equal("Durée (secondes) :", loadTest.LoadTestDurationLabelText);
+        Assert.Equal("Démarrer le test de charge", loadTest.LoadTestStartText);
+        Assert.Equal("Annuler", loadTest.LoadTestCancelText);
+        Assert.Equal("Santé des ventilateurs", loadTest.LoadTestFanHealthTitleText);
+        Assert.Equal("TrueSpec signale uniquement la santé des ventilateurs ; il ne les contrôle jamais.", loadTest.LoadTestFanHealthNoteText);
+        Assert.Equal("Température pendant le test (°C). Un trou dans la ligne signifie que le capteur n'a pas signalé cette seconde-là.", loadTest.LoadTestTemperatureCaptionText);
+        Assert.Equal("Cela va charger votre processeur pendant 60 secondes. Il s'arrête automatiquement si la température dépasse 95 °C.", loadTest.WarningText);
+        Assert.Equal("Un test de 60 secondes est un contrôle fonctionnel, pas un certificat de rodage.", loadTest.FunctionalCheckText);
+        Assert.Equal("Pas encore exécuté.", loadTest.StatusText);
+        Assert.Equal("Température : test non lancé", loadTest.LiveTemperatureText);
+        Assert.Equal("Horloge : test non lancé", loadTest.LiveClockText);
+
+        Assert.Equal("Lancer le test", viewModel.Tests[0].RunButtonText);
+        Assert.Equal("Prêt", viewModel.Tests[0].Status);
+        Assert.Equal("Pas encore exécuté.", viewModel.Tests[0].ResultText);
+        Assert.Equal("Non disponible", viewModel.Tests[6].RunButtonText);
+        Assert.Equal("Non disponible dans cette version", viewModel.Tests[6].Status);
+        Assert.Equal("Ce test n'est pas encore implémenté, aucun résultat n'est donc affiché.", viewModel.Tests[6].ResultText);
+    }
+
+    [Fact]
+    public void Tests_ApplyLanguage_SwitchesToFrenchAndBack()
+    {
+        var viewModel = Tests();
+
+        viewModel.ApplyLanguage("fr");
+        Assert.Equal("Tests intégrés", viewModel.TestsTitleText);
+        Assert.Equal("Test de charge", viewModel.LoadTest.LoadTestTitleText);
+        Assert.Equal("Cela va charger votre processeur pendant 60 secondes. Il s'arrête automatiquement si la température dépasse 95 °C.", viewModel.LoadTest.WarningText);
+        Assert.Equal("Pas encore exécuté.", viewModel.LoadTest.StatusText);
+        Assert.Equal("Température : test non lancé", viewModel.LoadTest.LiveTemperatureText);
+        Assert.Equal("Lancer le test", viewModel.Tests[0].RunButtonText);
+        Assert.Equal("Prêt", viewModel.Tests[0].Status);
+        Assert.Equal("Non disponible dans cette version", viewModel.Tests[6].Status);
+
+        viewModel.ApplyLanguage("en");
+        Assert.Equal("Built-in tests", viewModel.TestsTitleText);
+        Assert.Equal("Load test", viewModel.LoadTest.LoadTestTitleText);
+        Assert.Equal("This will load your CPU for 60 seconds. It stops automatically if the temperature exceeds 95 C.", viewModel.LoadTest.WarningText);
+        Assert.Equal("Not run yet.", viewModel.LoadTest.StatusText);
+        Assert.Equal("Temperature: not running", viewModel.LoadTest.LiveTemperatureText);
+        Assert.Equal("Run test", viewModel.Tests[0].RunButtonText);
+        Assert.Equal("Ready", viewModel.Tests[0].Status);
+        Assert.Equal("Not available in this build", viewModel.Tests[6].Status);
+
+        viewModel.ApplyLanguage("fr");
+        Assert.Equal("Tests intégrés", viewModel.TestsTitleText);
+        Assert.Equal("Test de charge", viewModel.LoadTest.LoadTestTitleText);
+    }
+
+    [Fact]
+    public void Tests_DataStaysEnglish_WhenChromeIsFrench()
+    {
+        var english = Tests();
+        var french = Tests("fr");
+
+        Assert.Equal(
+            english.Tests.Select(t => t.Name),
+            french.Tests.Select(t => t.Name));
+        Assert.Equal(
+            english.Tests.Select(t => t.Description),
+            french.Tests.Select(t => t.Description));
+
+        // The load-test result lines are measured data: the static
+        // builders keep their English wording in both languages.
+        var result = new LoadTestResult(
+            Array.Empty<LoadTestSample>(),
+            PeakTempC: 70d,
+            AvgClockMHz: null,
+            RatedMaxMHz: 4100d,
+            ClockHeldPercent: null,
+            Throttled: false,
+            PowerLimited: false,
+            AbortReason: null,
+            VerdictText: "Test verdict.",
+            DurationSeconds: 60,
+            GapCount: 0,
+            MemoryPatternVerified: true,
+            DiskReadMBps: null,
+            StartedAt: DateTimeOffset.UtcNow,
+            CompletedAt: DateTimeOffset.UtcNow.AddSeconds(60));
+        Assert.Equal("Rated max clock: 4100 MHz", LoadTestViewModel.RatedMaxText(result));
+        Assert.Equal("Held % of rated clock: not reported by hardware", LoadTestViewModel.HeldPercentText(result));
+    }
+
+    [Fact]
+    public async Task TestItem_RunAsync_Failure_IsLocalized_AndSwitchReResolvesIt_French()
+    {
+        var item = new TestItemViewModel(
+            "Fake test",
+            "A test double.",
+            _ => throw new InvalidOperationException("disk vanished"),
+            "fr");
+
+        await item.RunCommand.ExecuteAsync(null);
+
+        Assert.False(item.IsRunning);
+        Assert.Equal("Échec du test", item.Status);
+        Assert.Equal("Aucun résultat n'est affiché car le test ne s'est pas terminé : disk vanished", item.ResultText);
+        Assert.Equal("Lancer le test", item.RunButtonText);
+
+        // A switch re-resolves the failure line from the stored
+        // exception message instead of resetting it.
+        item.ApplyLanguage("en");
+        Assert.Equal("Test failed", item.Status);
+        Assert.Equal("No result is shown because the test did not complete: disk vanished", item.ResultText);
+
+        item.ApplyLanguage("fr");
+        Assert.Equal("Échec du test", item.Status);
+        Assert.Equal("Aucun résultat n'est affiché car le test ne s'est pas terminé : disk vanished", item.ResultText);
+    }
+
+    [Fact]
+    public async Task TestItem_RunAsync_Success_KeepsMeasuredResult_WhenChromeIsFrench()
+    {
+        var item = new TestItemViewModel(
+            "Fake test",
+            "A test double.",
+            _ => Task.FromResult(new BenchmarkResult(
+                "Fake test", true, "1,234 ops/s", "Measured 1,234 operations per second.", "Local benchmark", 1234d, "ops/s")),
+            "fr");
+
+        await item.RunCommand.ExecuteAsync(null);
+
+        Assert.False(item.IsRunning);
+        Assert.Equal("1,234 ops/s", item.Status);
+        Assert.Equal("Measured 1,234 operations per second. Source: Local benchmark.", item.ResultText);
+        Assert.Equal("Lancer le test", item.RunButtonText);
+
+        item.ApplyLanguage("en");
+        Assert.Equal("1,234 ops/s", item.Status);
+        Assert.Equal("Measured 1,234 operations per second. Source: Local benchmark.", item.ResultText);
+        Assert.Equal("Run test", item.RunButtonText);
     }
 
     [Fact]
