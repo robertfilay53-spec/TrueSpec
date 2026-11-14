@@ -483,9 +483,9 @@ public class SettingsViewModelTests
 
             Assert.Equal("Hardware-Datenbank", settings.HardwareDatabaseTitleText);
             Assert.Equal(
-                "Zeigt den Nenn-Boost-Takt aus einer kleinen mitgelieferten Datenbank mit CPU-Daten, wenn Ihr Prozessor enthalten ist. Die Datenbank ist optional und ersetzt keinen gemessenen Wert. Wird nach einem Neustart wirksam.",
+                "Zeigt den Nenn-Boost-Takt aus einer kleinen mitgelieferten Datenbank mit CPU- und GPU-Daten, wenn Ihr Prozessor oder Ihre Grafikkarte enthalten ist. Die Datenbank ist optional und ersetzt keinen gemessenen Wert. Wird nach einem Neustart wirksam.",
                 settings.HardwareDatabaseNoteText);
-            Assert.StartsWith("Datensatz v1.0.0: ", settings.HardwareDatabaseVersionText, StringComparison.Ordinal);
+            Assert.StartsWith("Datensatz v1.1.0: ", settings.HardwareDatabaseVersionText, StringComparison.Ordinal);
 
             Assert.Equal("Ordner für Berichtsexporte", settings.ExportTitleText);
             Assert.EndsWith(" (Standard)", settings.ExportFolderText, StringComparison.Ordinal);

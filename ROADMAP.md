@@ -1137,6 +1137,50 @@ data already existed; only the band rule and wording are new.
   bump and the embedded-resource entry for the dataset — zero
   `PackageReference` changes in `git diff cd0392e HEAD -- '*csproj'`),
   so the result carries forward.
+- **Hardware database: rated GPU specs from the bundled dataset
+  (Beyond v2.0, item 5).** The plan's stated later slice of the
+  v1.0.0 CPU dataset: dataset v1.1.0 adds 53 GPUs (NVIDIA GeForce
+  RTX 50/40/30-series desktop, RTX 40/30-series laptop, GTX
+  1660/1660 SUPER/1660 Ti/1650 desktop, GTX 1060 6GB and GTX 1080
+  desktop; AMD Radeon RX 6000/7000/9000 desktop), compiled by hand
+  from NVIDIA GeForce and AMD product pages (CC0 compilation; each
+  entry records its source URL and retrieval date). The GPU page
+  shows the rated boost clock, memory and board power under their
+  own labels ("Rated boost clock", "Rated memory", "Rated board
+  power") with the dataset version as their source; they never
+  replace the measured dedicated memory or the live GPU clock, and
+  a model that is not listed gets no rated specs. For laptop GPUs
+  the board power is the maximum of the manufacturer-published TGP
+  range, and the range is recorded in the dataset. A figure with no
+  single value for a shared device name is left out rather than
+  guessed: the GTX 1650 carries no boost figure (G5/G6 variants),
+  and the RTX 3060 and RTX 5060 Ti carry no memory figure. The
+  Settings card now shows the GPU count next to the CPU count.
+  Deliberately absent in v1.1.0: RTX 4060 Ti and RTX 3080 desktop
+  (board power split between variants with no mapping on the NVIDIA
+  page), RTX 3050 desktop (boost, memory and power all differ
+  between its 8 GB and 6 GB variants under one device name), GTX
+  1060 3GB (no power figure on nvidia.com), GTX 1070 and GTX 1080
+  Ti (no boost or power figure on nvidia.com), RTX 20-series and
+  GTX 16-series laptop GPUs (NVIDIA publishes no laptop spec tables
+  for them), all AMD laptop GPUs (AMD publishes Game Frequency, not
+  Boost Frequency, for them), Intel Arc A580/A750/A770 (no
+  manufacturer spec page locatable). Tests: `HardwareDatabaseTests`
+  (GPU normalizer, lookup, fail-safe loading, invalid-entry
+  skipping, bundled dataset pinned at 53 GPU entries and the
+  verified RTX 4060 Laptop / RX 7900 XTX figures, null-figure
+  entries) and the new `GpuCollectorTests` (rated specs present
+  with their own labels, values and sources, after the measured
+  dedicated memory; absent for unknown models and with no database;
+  null boost and null memory cases).
+- **Dependency audit re-attested for v2.1.15.** `SECURITY.md` said
+  v2.1.14; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.14 and v2.1.15 (only the `<Version>`
+  bump and a test-file exclusion, zero `PackageReference` changes in
+  `git diff 9dab61a HEAD -- '*csproj'`), so the result carries
+  forward.
 
 ## Rejected
 

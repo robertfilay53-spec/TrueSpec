@@ -82,6 +82,7 @@
     <Compile Remove="CollectorValueTests.cs" />
     <Compile Remove="StorageCollectorTests.cs" />
     <Compile Remove="CpuCollectorTests.cs" />
+    <Compile Remove="GpuCollectorTests.cs" />
     <Compile Remove="RamCollectorTests.cs" />
     <Compile Remove="SystemCollectorTests.cs" />
     <Compile Remove="DisplayNetworkTruthTests.cs" />
