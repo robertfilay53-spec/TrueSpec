@@ -860,6 +860,49 @@ public sealed class LanguagePackTests
     }
 
     [Fact]
+    public void FrenchPack_CoreDiagnosticStrings()
+    {
+        // Localisation, phase 3, French (v2.1.22): the Core diagnostic
+        // strings (plug-in status/reason, manifest errors,
+        // portable-toggle messages), mirror of
+        // GermanPack_CoreDiagnosticStrings. Same pinning rule as the
+        // rail and Settings terms: changing one is a deliberate
+        // translation decision, not a typo fix. File names, manifest
+        // field names and collector ids stay untranslated inside the
+        // sentences; only the words around them change. No new keys:
+        // the French pack already covers the whole 523-key catalogue.
+        var french = LanguagePacks.French.Strings;
+        Assert.Equal("Prêt — pas encore chargé", french[AppStringKeys.PluginStatusReady]);
+        Assert.Equal("Nécessite un TrueSpec plus récent", french[AppStringKeys.PluginStatusNeedsNewer]);
+        Assert.Equal("Écrit pour un contrat plus ancien", french[AppStringKeys.PluginStatusOlderContract]);
+        Assert.Equal("Problème de manifeste", french[AppStringKeys.PluginStatusManifestProblem]);
+        Assert.Equal("Assembly manquant", french[AppStringKeys.PluginStatusAssemblyMissing]);
+        Assert.Equal("Inconnu", french[AppStringKeys.PluginStatusUnknown]);
+        Assert.Equal("Aucun manifeste plugin.json dans ce dossier.", french[AppStringKeys.PluginReasonNoManifest]);
+        Assert.Equal("Le fichier de plug-in « {0} » est absent de ce dossier.", french[AppStringKeys.PluginReasonAssemblyMissing]);
+        Assert.Equal("Ce plug-in a été écrit pour la version {0} du contrat de collecteur ; ce TrueSpec parle la version {1} du contrat.", french[AppStringKeys.PluginReasonContractVersion]);
+        Assert.Equal("Manifeste valide. Pas encore chargé : seuls les plug-ins signés sont chargés, et la signature des plug-ins n'est pas encore en place.", french[AppStringKeys.PluginReasonReady]);
+        Assert.Equal("Le dossier des plug-ins n'a pas pu être lu, donc aucun plug-in n'est répertorié.", french[AppStringKeys.PluginErrorFolderUnreadable]);
+        Assert.Equal("Plus de {0} dossiers de plug-ins ont été trouvés ; seuls les {1} premiers (par ordre alphabétique) sont répertoriés.", french[AppStringKeys.PluginErrorTooMany]);
+        Assert.Equal("Le manifeste est trop volumineux (plus de 64 Ko) et a été ignoré.", french[AppStringKeys.ManifestTooLarge]);
+        Assert.Equal("Le manifeste contient un champ inconnu « {0} », il a donc été ignoré.", french[AppStringKeys.ManifestUnknownField]);
+        Assert.Equal("Le manifeste ne contient pas son « id », il a donc été ignoré.", french[AppStringKeys.ManifestMissingId]);
+        Assert.Equal("Le manifeste n'est pas du JSON valide, il a donc été ignoré.", french[AppStringKeys.ManifestInvalidJson]);
+        Assert.Equal("L'id de collecteur « {0} » n'est pas un id valide (lettres minuscules, chiffres et tirets, commençant par une lettre), le manifeste a donc été ignoré.", french[AppStringKeys.ManifestCollectorBadId]);
+        Assert.Equal("Le mode portable est activé. Redémarrez TrueSpec : à partir de là, les paramètres, l'historique et le journal des capteurs sont conservés à côté de l'application au lieu du dossier par défaut. Les scans déjà enregistrés restent dans l'ancien dossier.", french[AppStringKeys.PortableToggleEnabled]);
+        Assert.Equal("Le mode portable est déjà désactivé.", french[AppStringKeys.PortableToggleAlreadyOff]);
+        Assert.Equal("Il n'y a aucun fichier marqueur à supprimer : le mode portable est activé via la variable d'environnement TRUESPEC_PORTABLE. Désactivez la variable pour le désactiver.", french[AppStringKeys.PortableToggleNoMarkerEnv]);
+
+        // Templates keep the app's number formatting in French too.
+        Assert.Equal(
+            "Ce plug-in a été écrit pour la version 2 du contrat de collecteur ; ce TrueSpec parle la version 1 du contrat.",
+            StringLocalizer.GetFormatted(AppStringKeys.PluginReasonContractVersion, "fr", 2, 1));
+        Assert.Equal(
+            "Plus de 100 dossiers de plug-ins ont été trouvés ; seuls les 100 premiers (par ordre alphabétique) sont répertoriés.",
+            StringLocalizer.GetFormatted(AppStringKeys.PluginErrorTooMany, "fr", 100, 100));
+    }
+
+    [Fact]
     public void GetFormatted_FillsPlaceholdersWithInvariantCulture()
     {
         // The number keeps the app's formatting in both languages:

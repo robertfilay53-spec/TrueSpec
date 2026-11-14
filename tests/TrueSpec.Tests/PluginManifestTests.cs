@@ -245,6 +245,33 @@ public class PluginManifestTests
     }
 
     [Fact]
+    public void FrenchLanguage_ReturnsFrenchErrors()
+    {
+        // Localisation, phase 3, French (v2.1.22): the parser takes a
+        // language code and its errors come back in that language —
+        // mirror of GermanLanguage_ReturnsGermanErrors. The field names
+        // and ids inside the sentences stay untranslated.
+        var missingId = PluginManifestParser.Parse(
+            Manifest(ValidJson(j => j.Replace("\"id\": \"com.example.gpuz\",", string.Empty))), "fr");
+        Assert.False(missingId.Success);
+        Assert.Equal("Le manifeste ne contient pas son « id », il a donc été ignoré.", missingId.Error);
+
+        var unknownField = PluginManifestParser.Parse(
+            Manifest(ValidJson(j => j.Replace("\"version\": \"1.0.0\",", "\"version\": \"1.0.0\", \"surprise\": true,"))), "fr");
+        Assert.False(unknownField.Success);
+        Assert.Equal("Le manifeste contient un champ inconnu « surprise », il a donc été ignoré.", unknownField.Error);
+
+        var badId = PluginManifestParser.Parse(
+            Manifest(ValidJson(j => j.Replace("\"id\": \"gpu-extra\"", "\"id\": \"GPU-extra\""))), "fr");
+        Assert.False(badId.Success);
+        Assert.Equal("L'id de collecteur « GPU-extra » n'est pas un id valide (lettres minuscules, chiffres et tirets, commençant par une lettre), le manifeste a donc été ignoré.", badId.Error);
+
+        var notJson = PluginManifestParser.Parse(Manifest("this is not json {{{"), "fr");
+        Assert.False(notJson.Success);
+        Assert.Equal("Le manifeste n'est pas du JSON valide, il a donc été ignoré.", notJson.Error);
+    }
+
+    [Fact]
     public void UnknownLanguage_FallsBackToEnglishErrors()
     {
         var result = PluginManifestParser.Parse(
