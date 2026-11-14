@@ -131,7 +131,7 @@ public class NewLaptopCheckCrashHistoryLocalizationViewModelTests
         Assert.Equal("e.g. 16 GB", viewModel.AdvertisedRamPlaceholderText);
         Assert.Equal("No buyer checks were produced for this scan.", viewModel.NoChecksText);
         Assert.Equal("Buyer checks use the same honest rules as the rest of the app: measured values only, no invented numbers.", viewModel.FooterNoteText);
-        Assert.Equal(string.Empty, viewModel.AuthenticitySkippedText);
+        Assert.StartsWith("3 authenticity checks could not run because a signal was not reported: ", viewModel.AuthenticitySkippedText, StringComparison.Ordinal);
 
         var failedRow = new BuyerCheckRowViewModel(
             new BuyerCheck("x", "Title", "Detail", BuyerCheckState.Fail, "Ask the seller."));
@@ -162,7 +162,7 @@ public class NewLaptopCheckCrashHistoryLocalizationViewModelTests
         Assert.Equal("z. B. 16 GB", viewModel.AdvertisedRamPlaceholderText);
         Assert.Equal("Für diesen Scan wurden keine Käuferprüfungen erstellt.", viewModel.NoChecksText);
         Assert.Equal("Für Käuferprüfungen gelten dieselben ehrlichen Regeln wie für den Rest der App: nur gemessene Werte, keine erfundenen Zahlen.", viewModel.FooterNoteText);
-        Assert.Equal(string.Empty, viewModel.AuthenticitySkippedText);
+        Assert.StartsWith("3 Authentizitätsprüfungen konnten nicht ausgeführt werden, weil ein Signal nicht gemeldet wurde: ", viewModel.AuthenticitySkippedText, StringComparison.Ordinal);
 
         var failedRow = new BuyerCheckRowViewModel(
             new BuyerCheck("x", "Title", "Detail", BuyerCheckState.Fail, "Ask the seller."),
@@ -231,14 +231,16 @@ public class NewLaptopCheckCrashHistoryLocalizationViewModelTests
         Assert.Equal("WARNING - Signs of prior use (BIOS date vs Windows install date)", english.BannerText);
         Assert.Equal("WARNUNG - Signs of prior use (BIOS date vs Windows install date)", german.BannerText);
 
-        german.ApplyLanguage("en");
-        Assert.Equal("WARNING - Signs of prior use (BIOS date vs Windows install date)", german.BannerText);
-
         // Six authenticity rules could not run on the empty snapshot:
         // the skipped line translates its words, not the signal names.
+        // These assertions run before the ApplyLanguage("en") below:
+        // after the switch the German VM's skipped line is English.
         Assert.Equal(6, english.Authenticity.SkippedChecks.Count);
         Assert.StartsWith("6 authenticity checks could not run because a signal was not reported: ", english.AuthenticitySkippedText, StringComparison.Ordinal);
         Assert.StartsWith("6 Authentizitätsprüfungen konnten nicht ausgeführt werden, weil ein Signal nicht gemeldet wurde: ", german.AuthenticitySkippedText, StringComparison.Ordinal);
+
+        german.ApplyLanguage("en");
+        Assert.Equal("WARNING - Signs of prior use (BIOS date vs Windows install date)", german.BannerText);
     }
 
     [Fact]
