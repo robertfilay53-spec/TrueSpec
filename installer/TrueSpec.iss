@@ -21,7 +21,7 @@
 ; via SetupIconFile.
 
 #define AppName "TrueSpec"
-#define AppVersion "2.1.35"
+#define AppVersion "2.1.36"
 #define AppPublisher "Rana Jawad"
 #define AppURL "https://github.com/robertfilay53-spec/TrueSpec"
 #define AppExeName "TrueSpec.App.exe"
