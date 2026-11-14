@@ -272,6 +272,35 @@ public class PluginManifestTests
     }
 
     [Fact]
+    public void SpanishLanguage_ReturnsSpanishErrors()
+    {
+        // Localisation, phase 3, Spanish (v2.1.29): the parser takes a
+        // language code and its errors come back in that language —
+        // mirror of FrenchLanguage_ReturnsFrenchErrors. The field names
+        // and ids inside the sentences stay untranslated. Values read
+        // from the real Spanish pack with the scratch dump program
+        // (~/workspace/es-pack-dump/).
+        var missingId = PluginManifestParser.Parse(
+            Manifest(ValidJson(j => j.Replace("\"id\": \"com.example.gpuz\",", string.Empty))), "es");
+        Assert.False(missingId.Success);
+        Assert.Equal("Al manifiesto le falta el 'id', así que se omitió.", missingId.Error);
+
+        var unknownField = PluginManifestParser.Parse(
+            Manifest(ValidJson(j => j.Replace("\"version\": \"1.0.0\",", "\"version\": \"1.0.0\", \"surprise\": true,"))), "es");
+        Assert.False(unknownField.Success);
+        Assert.Equal("El manifiesto tiene un campo desconocido 'surprise', así que se omitió.", unknownField.Error);
+
+        var badId = PluginManifestParser.Parse(
+            Manifest(ValidJson(j => j.Replace("\"id\": \"gpu-extra\"", "\"id\": \"GPU-extra\""))), "es");
+        Assert.False(badId.Success);
+        Assert.Equal("El id de recopilador 'GPU-extra' no es un id válido (letras minúsculas, dígitos y guiones, empezando por una letra), así que se omitió el manifiesto.", badId.Error);
+
+        var notJson = PluginManifestParser.Parse(Manifest("this is not json {{{"), "es");
+        Assert.False(notJson.Success);
+        Assert.Equal("El manifiesto no es JSON válido, así que se omitió.", notJson.Error);
+    }
+
+    [Fact]
     public void UnknownLanguage_FallsBackToEnglishErrors()
     {
         var result = PluginManifestParser.Parse(

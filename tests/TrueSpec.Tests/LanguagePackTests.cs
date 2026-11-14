@@ -1437,6 +1437,52 @@ var french = LanguagePacks.French.Strings;
     }
 
     [Fact]
+    public void SpanishPack_CoreDiagnosticStrings()
+    {
+        // Localisation, phase 3, Spanish (v2.1.29): the Core diagnostic
+        // strings (plug-in status/reason, manifest errors,
+        // portable-toggle messages), mirror of
+        // FrenchPack_CoreDiagnosticStrings. Same pinning rule as the
+        // rail and Settings terms: changing one is a deliberate
+        // translation decision, not a typo fix. File names, manifest
+        // field names and collector ids stay untranslated inside the
+        // sentences; only the words around them change. No new keys:
+        // the Spanish pack already covers the whole 523-key catalogue.
+        // Every value below was read from the real Spanish pack with
+        // the scratch dump program (~/workspace/es-pack-dump/), never
+        // hand-translated from the German or French tests.
+        var spanish = LanguagePacks.Spanish.Strings;
+        Assert.Equal("Listo, aún no cargado", spanish[AppStringKeys.PluginStatusReady]);
+        Assert.Equal("Necesita un TrueSpec más reciente", spanish[AppStringKeys.PluginStatusNeedsNewer]);
+        Assert.Equal("Escrito para un contrato anterior", spanish[AppStringKeys.PluginStatusOlderContract]);
+        Assert.Equal("Problema con el manifiesto", spanish[AppStringKeys.PluginStatusManifestProblem]);
+        Assert.Equal("Falta el ensamblado", spanish[AppStringKeys.PluginStatusAssemblyMissing]);
+        Assert.Equal("Desconocido", spanish[AppStringKeys.PluginStatusUnknown]);
+        Assert.Equal("No hay ningún manifiesto plugin.json en esta carpeta.", spanish[AppStringKeys.PluginReasonNoManifest]);
+        Assert.Equal("Falta el archivo de complemento '{0}' en esta carpeta.", spanish[AppStringKeys.PluginReasonAssemblyMissing]);
+        Assert.Equal("Este complemento se escribió para la versión {0} del contrato de recopilador; este TrueSpec habla la versión {1} del contrato.", spanish[AppStringKeys.PluginReasonContractVersion]);
+        Assert.Equal("Manifiesto válido. Aún no cargado: solo se cargan los complementos firmados, y la firma de complementos aún no está configurada.", spanish[AppStringKeys.PluginReasonReady]);
+        Assert.Equal("No se pudo leer la carpeta de complementos, así que no se muestra ningún complemento.", spanish[AppStringKeys.PluginErrorFolderUnreadable]);
+        Assert.Equal("Se encontraron más de {0} carpetas de complementos; solo se muestran las primeras {1} (por orden alfabético).", spanish[AppStringKeys.PluginErrorTooMany]);
+        Assert.Equal("El manifiesto es demasiado grande (más de 64 KB) y se omitió.", spanish[AppStringKeys.ManifestTooLarge]);
+        Assert.Equal("El manifiesto tiene un campo desconocido '{0}', así que se omitió.", spanish[AppStringKeys.ManifestUnknownField]);
+        Assert.Equal("Al manifiesto le falta el 'id', así que se omitió.", spanish[AppStringKeys.ManifestMissingId]);
+        Assert.Equal("El manifiesto no es JSON válido, así que se omitió.", spanish[AppStringKeys.ManifestInvalidJson]);
+        Assert.Equal("El id de recopilador '{0}' no es un id válido (letras minúsculas, dígitos y guiones, empezando por una letra), así que se omitió el manifiesto.", spanish[AppStringKeys.ManifestCollectorBadId]);
+        Assert.Equal("El modo portátil está activado. Reinicia TrueSpec: a partir de entonces, la configuración, el historial y el registro de sensores se guardan junto a la aplicación en lugar de en la carpeta predeterminada. Los análisis ya guardados permanecen en la carpeta anterior.", spanish[AppStringKeys.PortableToggleEnabled]);
+        Assert.Equal("El modo portátil ya está desactivado.", spanish[AppStringKeys.PortableToggleAlreadyOff]);
+        Assert.Equal("No hay ningún archivo marcador que eliminar: el modo portátil está activado mediante la variable de entorno TRUESPEC_PORTABLE. Anula la variable para desactivarlo.", spanish[AppStringKeys.PortableToggleNoMarkerEnv]);
+
+        // Templates keep the app's number formatting in Spanish too.
+        Assert.Equal(
+            "Este complemento se escribió para la versión 2 del contrato de recopilador; este TrueSpec habla la versión 1 del contrato.",
+            StringLocalizer.GetFormatted(AppStringKeys.PluginReasonContractVersion, "es", 2, 1));
+        Assert.Equal(
+            "Se encontraron más de 100 carpetas de complementos; solo se muestran las primeras 100 (por orden alfabético).",
+            StringLocalizer.GetFormatted(AppStringKeys.PluginErrorTooMany, "es", 100, 100));
+    }
+
+    [Fact]
     public void GetFormatted_FillsPlaceholdersWithInvariantCulture()
     {
         // The number keeps the app's formatting in both languages:
