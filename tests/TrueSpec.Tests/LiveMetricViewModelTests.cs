@@ -135,6 +135,25 @@ public class LiveMetricViewModelTests
     }
 
     [Fact]
+    public void KeyConstructor_ResolvesTheDisplayNameInSpanish()
+    {
+        // Localisation, phase 5, Spanish (v2.1.31): same rule, Spanish.
+        // Note the abbreviated metric names ("Temp. de CPU") versus
+        // the full key-stat labels ("Temperatura de la CPU").
+        var cpu = new LiveMetricViewModel(LiveMetricViewModel.CpuTempKey, "C", "es");
+        var gpu = new LiveMetricViewModel(LiveMetricViewModel.GpuTempKey, "C", "es");
+        var usage = new LiveMetricViewModel(LiveMetricViewModel.CpuUsageKey, "%", "es");
+        var power = new LiveMetricViewModel(LiveMetricViewModel.BatteryPowerKey, "W", "es");
+
+        Assert.Equal("Temp. de CPU", cpu.Name);
+        Assert.Equal("Temp. de GPU", gpu.Name);
+        Assert.Equal("Uso de CPU", usage.Name);
+        Assert.Equal("Potencia de la batería", power.Name);
+        Assert.Equal("No disponible", cpu.CurrentText);
+        Assert.Equal("Sin lectura de sensor", cpu.NoSensorReadingText);
+    }
+
+    [Fact]
     public void KeyConstructor_ColourFollowsTheKeyNotTheTranslatedName()
     {
         var cpu = new LiveMetricViewModel(LiveMetricViewModel.CpuTempKey, "C", "de");
@@ -153,6 +172,19 @@ public class LiveMetricViewModelTests
         var cpu = new LiveMetricViewModel(LiveMetricViewModel.CpuTempKey, "C", "fr");
         var usage = new LiveMetricViewModel(LiveMetricViewModel.CpuUsageKey, "%", "fr");
         var power = new LiveMetricViewModel(LiveMetricViewModel.BatteryPowerKey, "W", "fr");
+
+        Assert.Equal(Color.Parse("#22C55E"), Assert.IsType<SolidColorBrush>(cpu.Stroke).Color);
+        Assert.Equal(Color.Parse("#60A5FA"), Assert.IsType<SolidColorBrush>(usage.Stroke).Color);
+        Assert.Equal(Color.Parse("#F59E0B"), Assert.IsType<SolidColorBrush>(power.Stroke).Color);
+    }
+
+    [Fact]
+    public void KeyConstructor_ColourFollowsTheKeyNotTheTranslatedNameInSpanish()
+    {
+        // Localisation, phase 5, Spanish (v2.1.31): same rule, Spanish.
+        var cpu = new LiveMetricViewModel(LiveMetricViewModel.CpuTempKey, "C", "es");
+        var usage = new LiveMetricViewModel(LiveMetricViewModel.CpuUsageKey, "%", "es");
+        var power = new LiveMetricViewModel(LiveMetricViewModel.BatteryPowerKey, "W", "es");
 
         Assert.Equal(Color.Parse("#22C55E"), Assert.IsType<SolidColorBrush>(cpu.Stroke).Color);
         Assert.Equal(Color.Parse("#60A5FA"), Assert.IsType<SolidColorBrush>(usage.Stroke).Color);
