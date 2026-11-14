@@ -905,13 +905,13 @@ public class HistoryLocalizationViewModelTests
                 "Battery health has 2 scans over 0 days. A forecast needs at least 3 scans over at least 30 days: 1 more scan needed.",
                 english.BatteryForecastText);
             Assert.Equal(
-                "Santé de la batterie a 2 scans sur 0 jours. Une prévision nécessite au moins 3 scans sur au moins 30 jours: 1 scan de plus est nécessaire.",
+                "Santé de la batterie a 2 scans sur 0 jours. Une prévision nécessite au moins 3 scans sur au moins 30 jours : 1 scan de plus est nécessaire.",
                 french.BatteryForecastText);
             Assert.Equal(
                 "SSD wear has 2 scans over 0 days. A forecast needs at least 3 scans over at least 30 days: 1 more scan needed.",
                 english.StorageWearForecastText);
             Assert.Equal(
-                "Usure du SSD a 2 scans sur 0 jours. Une prévision nécessite au moins 3 scans sur au moins 30 jours: 1 scan de plus est nécessaire.",
+                "Usure du SSD a 2 scans sur 0 jours. Une prévision nécessite au moins 3 scans sur au moins 30 jours : 1 scan de plus est nécessaire.",
                 french.StorageWearForecastText);
             Assert.Equal(english.Rows.Select(r => r.ScoreText), french.Rows.Select(r => r.ScoreText));
             Assert.Equal(english.Rows.Select(r => r.BatteryHealthText), french.Rows.Select(r => r.BatteryHealthText));
@@ -975,7 +975,7 @@ public class HistoryLocalizationViewModelTests
 
             Assert.False(french.HasHistory);
             Assert.Equal("Aucun scan enregistré pour l'instant. Lancez un scan (actualiser) et revenez : chaque scan est enregistré dans l'historique local.", french.StatusMessage);
-            Assert.Equal("Choisissez deux machines à comparer.", french.ComparisonStatusText);
+            Assert.Equal("Choisissez deux machines et comparez. Des machines différentes sont affichées côte à côte, jamais mélangées dans une même tendance.", french.ComparisonStatusText);
         }
         finally
         {
@@ -1178,7 +1178,7 @@ public class HistoryLocalizationViewModelTests
             // 88%), battery is measurable on neither (both null health).
             Assert.Equal(2, viewModel.ValueComponentWinners.Count);
             var storageWinner = viewModel.ValueComponentWinners.Single(w => w.ComponentName == "Storage");
-            Assert.Equal("Machine A gagne (95% vs 88%)", storageWinner.WinnerText);
+            Assert.Equal("Machine A gagne (95% contre 88%)", storageWinner.WinnerText);
             var batteryWinner = viewModel.ValueComponentWinners.Single(w => w.ComponentName == "Battery");
             Assert.Equal("Non mesurable sur une machine ou sur les deux", batteryWinner.WinnerText);
 
@@ -1377,7 +1377,7 @@ public class HistoryLocalizationViewModelTests
             var partial = new HistoryViewModel(null, TestSnapshots.Healthy(), sensorLogPath: path, displayTimeZone: zone, languageCode: "fr");
             partial.LoadSensorLog();
             Assert.True(partial.HasSensorLog);
-            Assert.Equal("Température du processeur, 4 échantillons de 13:45 à 13:46.", partial.SensorLogStatusText);
+            Assert.Equal("Température du processeur, 4 échantillons du 13:45 au 13:46.", partial.SensorLogStatusText);
             Assert.Equal("4 échantillons, 1 trou où le capteur n'a pas signalé.", partial.SensorLogSummaryText);
 
             partial.ApplyLanguage("en");
