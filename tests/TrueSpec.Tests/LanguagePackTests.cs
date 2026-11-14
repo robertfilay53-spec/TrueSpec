@@ -748,6 +748,17 @@ public sealed class LanguagePackTests
         Assert.Equal("konnte nicht importiert werden.", german[AppStringKeys.FleetImportCouldNotBeImported]);
         Assert.Equal("konnte nicht gelesen werden ({0}).", german[AppStringKeys.FleetImportCouldNotBeRead]);
 
+        // Localisation polish (v2.1.19): the export-all skip reasons
+        // are catalogue keys now, the same pattern as the import
+        // reasons. The machine name and any write error stay data and
+        // are never in the catalogue.
+        Assert.Equal("kein gespeicherter Scan gefunden wurde", german[AppStringKeys.FleetExportAllSkipNoSavedScan]);
+        Assert.Equal("der neueste Scan hat keine Bewertung zum Exportieren", german[AppStringKeys.FleetExportAllSkipNoScore]);
+        Assert.Equal("konnte nicht geschrieben werden ({0})", german[AppStringKeys.FleetExportAllSkipWriteFailed]);
+        Assert.Equal(
+            "konnte nicht geschrieben werden (Zugriff verweigert)",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetExportAllSkipWriteFailed, "de", "Zugriff verweigert"));
+
         // Templates keep the app's number formatting in German too.
         Assert.Equal(
             "2 Geräte in diesem Datenordner, 3 gespeicherte Scans. Niedrigste Punktzahl 58 (SHOP-PC-BAD).",

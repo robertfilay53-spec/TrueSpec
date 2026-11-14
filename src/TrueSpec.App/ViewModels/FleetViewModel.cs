@@ -52,7 +52,13 @@ using TrueSpec.Core.Storage;
 /// failure kinds and rendered in the page language too, so a German
 /// user no longer sees English inside the German import line; the
 /// file name and any exception message stay data, and a language
-/// switch re-renders the stored entries. The page is cached by
+/// switch re-renders the stored entries. Localisation polish
+/// (v2.1.19): the export-all skip reasons are stored as structured
+/// reason kinds and rendered in the page language too, the same
+/// pattern as the import reasons, so a German user no longer sees
+/// English inside the German export-all line; the machine name and
+/// any write error stay data, and a language switch re-renders the
+/// stored result. The page is cached by
 /// the shell, so the strings resolve from the stored language code
 /// and re-render through <see cref="ApplyLanguage"/>, the same
 /// in-place pattern the Overview and History pages use.
@@ -561,7 +567,7 @@ public sealed partial class FleetViewModel : ViewModelBase
                     AppStringKeys.FleetSkipped,
                     _languageCode,
                     result.Skipped.Count,
-                    string.Join("; ", result.Skipped.Select(s => $"{s.MachineName}: {s.Reason}"))) + ".";
+                    string.Join("; ", result.Skipped.Select(RenderExportAllSkippedMachine))) + ".";
             return StringLocalizer.GetFormatted(AppStringKeys.FleetExportAllZero, _languageCode, skipped);
         }
 
@@ -583,11 +589,21 @@ public sealed partial class FleetViewModel : ViewModelBase
                 AppStringKeys.FleetSkipped,
                 _languageCode,
                 result.Skipped.Count,
-                string.Join("; ", result.Skipped.Select(s => $"{s.MachineName}: {s.Reason}"))) + ".";
+                string.Join("; ", result.Skipped.Select(RenderExportAllSkippedMachine))) + ".";
         }
 
         return summary;
     }
+
+    /// <summary>
+    /// Renders one skipped machine as "machine: reason" in the page
+    /// language. The reason comes from the stored skip reason kind (or
+    /// the stored write error, which stays data); the machine name
+    /// stays data. The same pattern as
+    /// <see cref="RenderSkippedEntry"/> for the import skips.
+    /// </summary>
+    private string RenderExportAllSkippedMachine(ExportAllSkippedMachine skipped) =>
+        $"{skipped.MachineName}: {ExportAllSkipReason.Text(skipped.Kind, skipped.WriteError, _languageCode)}";
 
     /// <summary>
     /// Removes one machine from the fleet. Two clicks by design: the app

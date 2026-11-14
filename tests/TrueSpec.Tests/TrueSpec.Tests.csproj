@@ -68,7 +68,8 @@
        ComparisonFleetLocalizationViewModelTests drives the Comparison
        and Fleet pages' localisation; DriverAgeRuleTests drives the
        Windows collectors; FleetViewModelTests drives the Fleet page;
-       ExportAllMachinesTests drives the App's export orchestrator.
+       ExportAllMachinesTests drives the App's export orchestrator;
+       ExportAllSkipReasonTests drives the export-all skip reasons.
        Excluding the files (rather
        than #if-ing them) keeps the tests readable and the exclusion visible
        in the project file. -->
@@ -116,6 +117,7 @@
     <Compile Remove="DriverAgeRuleTests.cs" />
     <Compile Remove="FleetViewModelTests.cs" />
     <Compile Remove="ExportAllMachinesTests.cs" />
+    <Compile Remove="ExportAllSkipReasonTests.cs" />
     <Compile Remove="SettingsViewModelTests.cs" />
   </ItemGroup>
 

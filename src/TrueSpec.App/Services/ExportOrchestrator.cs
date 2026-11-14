@@ -173,7 +173,7 @@ public sealed class ExportOrchestrator
     /// the export folder, each written exactly like the per-row export,
     /// so the files agree with the table row for row. A machine whose
     /// latest scan cannot be read, or has no score, is skipped with a
-    /// plain-English reason, and a write failure for one machine never
+    /// structured skip reason, and a write failure for one machine never
     /// stops the rest. File names go through SafeReportFileName, and a
     /// name that already exists in the folder (two machines whose names
     /// sanitise identically, exported in the same second) gets a -2, -3
@@ -186,7 +186,7 @@ public sealed class ExportOrchestrator
     {
         var folder = _exportFolder();
         var exported = new List<string>();
-        var skipped = new List<(string MachineName, string Reason)>();
+        var skipped = new List<ExportAllSkippedMachine>();
         if (rows is null || rows.Count == 0)
         {
             return new ExportAllMachinesResult(folder, exported, skipped);
@@ -199,13 +199,13 @@ public sealed class ExportOrchestrator
                 !snapshotsByMachine.TryGetValue(row.MachineName, out var snapshot) ||
                 snapshot is null)
             {
-                skipped.Add((row.MachineName, "no saved scan was found"));
+                skipped.Add(new ExportAllSkippedMachine(row.MachineName, ExportAllSkipReasonKind.NoSavedScan));
                 continue;
             }
 
             if (snapshot.Score is null)
             {
-                skipped.Add((row.MachineName, "the latest scan has no score to export"));
+                skipped.Add(new ExportAllSkippedMachine(row.MachineName, ExportAllSkipReasonKind.NoScore));
                 continue;
             }
 
@@ -219,7 +219,7 @@ public sealed class ExportOrchestrator
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
-                skipped.Add((row.MachineName, $"could not be written ({exception.Message})"));
+                skipped.Add(new ExportAllSkippedMachine(row.MachineName, ExportAllSkipReasonKind.WriteFailed, exception.Message));
             }
         }
 
