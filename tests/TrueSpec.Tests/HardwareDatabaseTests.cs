@@ -47,6 +47,11 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen AI 7 350", "RYZEN AI 7 350")]
     [InlineData("AMD Ryzen AI 7 345", "RYZEN AI 7 345")]
     [InlineData("AMD Ryzen AI 5 340", "RYZEN AI 5 340")]
+    [InlineData("AMD Ryzen AI Max+ 395", "RYZEN AI MAX+ 395")]
+    [InlineData("AMD Ryzen AI Max+ 392", "RYZEN AI MAX+ 392")]
+    [InlineData("AMD Ryzen AI Max 390", "RYZEN AI MAX 390")]
+    [InlineData("AMD Ryzen AI Max+ 388", "RYZEN AI MAX+ 388")]
+    [InlineData("AMD Ryzen AI Max 385", "RYZEN AI MAX 385")]
     [InlineData("intel core i5-12400", "I5-12400")]
     [InlineData("Intel(R) Core(TM) i5-12400F Processor", "I5-12400F")]
     [InlineData("Intel(R) Core(TM) i5-14400", "I5-14400")]
@@ -187,9 +192,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.24.0", database.Version);
+        Assert.Equal("1.25.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(108, database.CpuCount);
+        Assert.Equal(113, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1469,5 +1474,63 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(2.0, ryzenAi5340.BaseGhz);
         Assert.Equal(4.8, ryzenAi5340.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-300-series/amd-ryzen-ai-5-340.html", ryzenAi5340.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_RyzenAiMaxMobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.25.0: the five AMD Ryzen AI Max mobile CPUs (Zen 5,
+        // Strix Halo), the whole consumer AI Max family, which the dataset
+        // never listed. The Ryzen AI Max+ 395, Max 390 and Max 385 launched
+        // at CES 2025, and the Ryzen AI Max+ 392 and Max+ 388 were added at
+        // CES 2026, announced January 5, 2026 as the new additions that
+        // bring Radeon 8060S graphics to lower core counts. All figures
+        // were verified by hand against AMD's own pages, read 2026-11-15
+        // from fresh fetches: the Ryzen AI Max+ 395 at Base Clock 3.0 GHz
+        // and Max Boost Clock up to 5.1 GHz; the Ryzen AI Max+ 392 at 3.2
+        // and up to 5.0 GHz; the Ryzen AI Max 390 at 3.2 and up to 5.0
+        // GHz; the Ryzen AI Max+ 388 at 3.6 and up to 5.0 GHz; the Ryzen
+        // AI Max 385 at 3.6 and up to 5.0 GHz. The dataset's boost_ghz is
+        // AMD's Max Boost Clock, per its own definition, and the AI 300
+        // chips already in the dataset follow the same rule, so these five
+        // are consistent with them. The 392's figures come from AMD's own
+        // driver page for the chip, which carries the same spec table as
+        // the product pages; the other four come from their product pages.
+        // No code change was needed: the CPU normalizer already maps
+        // "AMD Ryzen AI Max+ 395" to "RYZEN AI MAX+ 395", "AMD Ryzen AI
+        // Max+ 392" to "RYZEN AI MAX+ 392", "AMD Ryzen AI Max 390" to
+        // "RYZEN AI MAX 390", "AMD Ryzen AI Max+ 388" to "RYZEN AI MAX+
+        // 388" and "AMD Ryzen AI Max 385" to "RYZEN AI MAX 385", and the
+        // Settings card shows the CPU count from the dataset, so it reads
+        // 113 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI Max+ 395", out var ryzenAiMaxPlus395));
+        Assert.Equal("AMD", ryzenAiMaxPlus395.Vendor);
+        Assert.Equal(3.0, ryzenAiMaxPlus395.BaseGhz);
+        Assert.Equal(5.1, ryzenAiMaxPlus395.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-300-series/amd-ryzen-ai-max-plus-395.html", ryzenAiMaxPlus395.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI Max+ 392", out var ryzenAiMaxPlus392));
+        Assert.Equal("AMD", ryzenAiMaxPlus392.Vendor);
+        Assert.Equal(3.2, ryzenAiMaxPlus392.BaseGhz);
+        Assert.Equal(5.0, ryzenAiMaxPlus392.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/processors/ryzen/ryzen-ai-max-series/amd-ryzen-ai-max-plus-392.html", ryzenAiMaxPlus392.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI Max 390", out var ryzenAiMax390));
+        Assert.Equal("AMD", ryzenAiMax390.Vendor);
+        Assert.Equal(3.2, ryzenAiMax390.BaseGhz);
+        Assert.Equal(5.0, ryzenAiMax390.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-300-series/amd-ryzen-ai-max-390.html", ryzenAiMax390.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI Max+ 388", out var ryzenAiMaxPlus388));
+        Assert.Equal("AMD", ryzenAiMaxPlus388.Vendor);
+        Assert.Equal(3.6, ryzenAiMaxPlus388.BaseGhz);
+        Assert.Equal(5.0, ryzenAiMaxPlus388.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-300-series/amd-ryzen-ai-max-plus-388.html", ryzenAiMaxPlus388.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI Max 385", out var ryzenAiMax385));
+        Assert.Equal("AMD", ryzenAiMax385.Vendor);
+        Assert.Equal(3.6, ryzenAiMax385.BaseGhz);
+        Assert.Equal(5.0, ryzenAiMax385.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-300-series/amd-ryzen-ai-max-385.html", ryzenAiMax385.SourceUrl, StringComparison.Ordinal);
     }
 }
