@@ -190,6 +190,64 @@ public static class AppStringKeys
     public const string DetailSignalUntrusted = "DetailSignalUntrusted";
     public const string DetailEstimateSuffix = "DetailEstimateSuffix";
 
+    // Overview page (v2.1.11): the chrome of the landing page — the
+    // first screen a user sees. The page is long-lived and updated in
+    // place after every scan, so the strings resolve from the stored
+    // language code and re-render through ApplyLanguage, the same
+    // in-place pattern the detail pages use. The data the page shows
+    // stays English in this version: component names, headlines,
+    // health and status texts, spec labels, values and sources, the
+    // score explanation and the verdict text are measured data
+    // produced by the collectors and the scoring engine, not page
+    // chrome; translating them is a later slice. The admin notice text
+    // and the threshold-alert texts are diagnostic strings produced by
+    // Core (AdminElevationNotice, ThresholdAlertEvaluator) with no
+    // language parameter yet; they stay English here and follow in a
+    // later "Core strings" slice, the same pattern v2.1.8 left and
+    // v2.1.9 closed for the Settings page. Templates carry the dynamic
+    // values ({0} = a file path, a threshold, a duration, a time, a
+    // weight or a points value), formatted with the invariant culture
+    // by StringLocalizer.GetFormatted, so a number inside a German
+    // sentence keeps the app's existing formatting. The refresh
+    // interval reuses the Settings seconds keys (SecondsOne /
+    // SecondsMany) instead of a second copy of the same words.
+    public const string OverviewAdminEyebrow = "OverviewAdminEyebrow";
+    public const string OverviewOutOf100 = "OverviewOutOf100";
+    public const string OverviewOverallHealth = "OverviewOverallHealth";
+    public const string OverviewScoreNote = "OverviewScoreNote";
+    public const string OverviewNewLaptopCheck = "OverviewNewLaptopCheck";
+    public const string OverviewExportReport = "OverviewExportReport";
+    public const string OverviewComponentHealth = "OverviewComponentHealth";
+    public const string OverviewHealthLabel = "OverviewHealthLabel";
+    public const string OverviewDetails = "OverviewDetails";
+    public const string OverviewNoComponents = "OverviewNoComponents";
+    public const string OverviewLiveSensors = "OverviewLiveSensors";
+    public const string OverviewNoSensorReading = "OverviewNoSensorReading";
+    public const string OverviewAlertEyebrow = "OverviewAlertEyebrow";
+    public const string OverviewAlertNote = "OverviewAlertNote";
+    public const string OverviewFooter = "OverviewFooter";
+    public const string OverviewScanning = "OverviewScanning";
+    public const string OverviewScanningNote = "OverviewScanningNote";
+    public const string OverviewSensorLogUnavailable = "OverviewSensorLogUnavailable";
+    public const string OverviewSensorLogOn = "OverviewSensorLogOn";
+    public const string OverviewSensorLogOff = "OverviewSensorLogOff";
+    public const string OverviewAlertSet = "OverviewAlertSet";
+    public const string OverviewAlertNotSet = "OverviewAlertNotSet";
+    public const string OverviewRefreshText = "OverviewRefreshText";
+    public const string OverviewLiveUpdated = "OverviewLiveUpdated";
+    public const string OverviewLiveReadFailed = "OverviewLiveReadFailed";
+    public const string OverviewWeight = "OverviewWeight";
+    public const string OverviewContribution = "OverviewContribution";
+    public const string OverviewKeyCpuTemp = "OverviewKeyCpuTemp";
+    public const string OverviewKeyMemory = "OverviewKeyMemory";
+    public const string OverviewKeyDiskHealth = "OverviewKeyDiskHealth";
+    public const string OverviewKeyBatteryHealth = "OverviewKeyBatteryHealth";
+    public const string OverviewMetricCpuTemp = "OverviewMetricCpuTemp";
+    public const string OverviewMetricGpuTemp = "OverviewMetricGpuTemp";
+    public const string OverviewMetricCpuUsage = "OverviewMetricCpuUsage";
+    public const string OverviewMetricBatteryPower = "OverviewMetricBatteryPower";
+    public const string OverviewMetricNotAvailable = "OverviewMetricNotAvailable";
+
     /// <summary>Every key in the catalogue, in the order above.</summary>
     public static IReadOnlyList<string> All { get; } = new[]
     {
@@ -326,5 +384,41 @@ public static class AppStringKeys
         DetailAgeSignalsSkipped,
         DetailSignalUntrusted,
         DetailEstimateSuffix,
+        OverviewAdminEyebrow,
+        OverviewOutOf100,
+        OverviewOverallHealth,
+        OverviewScoreNote,
+        OverviewNewLaptopCheck,
+        OverviewExportReport,
+        OverviewComponentHealth,
+        OverviewHealthLabel,
+        OverviewDetails,
+        OverviewNoComponents,
+        OverviewLiveSensors,
+        OverviewNoSensorReading,
+        OverviewAlertEyebrow,
+        OverviewAlertNote,
+        OverviewFooter,
+        OverviewScanning,
+        OverviewScanningNote,
+        OverviewSensorLogUnavailable,
+        OverviewSensorLogOn,
+        OverviewSensorLogOff,
+        OverviewAlertSet,
+        OverviewAlertNotSet,
+        OverviewRefreshText,
+        OverviewLiveUpdated,
+        OverviewLiveReadFailed,
+        OverviewWeight,
+        OverviewContribution,
+        OverviewKeyCpuTemp,
+        OverviewKeyMemory,
+        OverviewKeyDiskHealth,
+        OverviewKeyBatteryHealth,
+        OverviewMetricCpuTemp,
+        OverviewMetricGpuTemp,
+        OverviewMetricCpuUsage,
+        OverviewMetricBatteryPower,
+        OverviewMetricNotAvailable,
     };
 }

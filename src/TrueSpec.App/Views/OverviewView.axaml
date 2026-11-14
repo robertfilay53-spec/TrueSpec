@@ -15,7 +15,7 @@
                  instead of leaving blank cards unexplained. -->
             <Border Classes="card" Padding="18" IsVisible="{Binding HasAdminNotice}">
                 <StackPanel Spacing="4">
-                    <TextBlock Text="RUN AS ADMINISTRATOR FOR FULL RESULTS" Classes="eyebrow" />
+                    <TextBlock Text="{Binding AdminEyebrowText}" Classes="eyebrow" />
                     <TextBlock Text="{Binding AdminNoticeText}"
                                TextWrapping="Wrap" />
                 </StackPanel>
@@ -34,7 +34,7 @@
                                        FontSize="38"
                                        FontWeight="Bold"
                                        HorizontalAlignment="Center" />
-                            <TextBlock Text="out of 100"
+                            <TextBlock Text="{Binding OutOf100Text}"
                                        FontSize="11"
                                        Classes="muted"
                                        HorizontalAlignment="Center" />
@@ -48,7 +48,7 @@
                                 <TextBlock Text="{Binding VerdictText}" Classes="h1" VerticalAlignment="Center" />
                                 <Border Background="{Binding VerdictStatus, Converter={StaticResource StatusTint}}"
                                         CornerRadius="20" Padding="10,4" VerticalAlignment="Center">
-                                    <TextBlock Text="Overall health"
+                                    <TextBlock Text="{Binding OverallHealthText}"
                                                FontSize="11"
                                                FontWeight="SemiBold"
                                                Foreground="{Binding VerdictStatus, Converter={StaticResource StatusBrush}}" />
@@ -77,7 +77,7 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <TextBlock Text="Score = weighted average of measurable components. A component without a real health number does not count."
+                        <TextBlock Text="{Binding ScoreNoteText}"
                                    Classes="muted"
                                    FontSize="11"
                                    TextWrapping="Wrap" />
@@ -118,12 +118,12 @@
 
                     <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="10" Width="190">
                         <Button Classes="primary"
-                                Content="New Laptop Check"
+                                Content="{Binding NewLaptopCheckText}"
                                 Command="{Binding NewLaptopCheckCommand}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center" />
                         <Button Classes="secondary"
-                                Content="Export Report"
+                                Content="{Binding ExportReportText}"
                                 Command="{Binding ExportCommand}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center" />
@@ -133,7 +133,7 @@
 
             <!-- Component cards -->
             <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="Component health" Classes="h2" />
+                <TextBlock Text="{Binding ComponentHealthText}" Classes="h2" />
                 <TextBlock Grid.Column="1"
                            Text="{Binding OperatingSystem}"
                            Classes="muted"
@@ -182,7 +182,7 @@
 
                                 <StackPanel Spacing="6">
                                     <Grid ColumnDefinitions="*,Auto">
-                                        <TextBlock Text="Health" Classes="muted" FontSize="11" />
+                                        <TextBlock Text="{Binding HealthLabelText}" Classes="muted" FontSize="11" />
                                         <TextBlock Grid.Column="1"
                                                    Text="{Binding HealthText}"
                                                    FontSize="11"
@@ -197,7 +197,7 @@
                                 </StackPanel>
 
                                 <Button Classes="link"
-                                        Content="Details"
+                                        Content="{Binding DetailsText}"
                                         Command="{Binding DetailsCommand}"
                                         HorizontalAlignment="Left" />
                             </StackPanel>
@@ -207,7 +207,7 @@
             </ItemsControl>
 
             <Border Classes="card" Padding="18" IsVisible="{Binding !HasComponents}">
-                <TextBlock Text="No components were collected in this scan. Refresh the scan from the status bar; if the section stays empty, the collectors could not read this machine."
+                <TextBlock Text="{Binding NoComponentsText}"
                            Classes="muted"
                            TextWrapping="Wrap" />
             </Border>
@@ -217,7 +217,7 @@
                 <StackPanel Spacing="12">
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel>
-                            <TextBlock Text="Live sensors" Classes="h3" />
+                            <TextBlock Text="{Binding LiveSensorsText}" Classes="h3" />
                             <TextBlock Text="{Binding RefreshText}"
                                        Classes="muted"
                                        FontSize="11" />
@@ -260,7 +260,7 @@
                                                             Fill="{Binding Fill}"
                                                             StrokeThickness="2"
                                                             IsVisible="{Binding HasValue}" />
-                                        <TextBlock Text="No sensor reading"
+                                        <TextBlock Text="{Binding NoSensorReadingText}"
                                                    Classes="muted"
                                                    FontSize="11"
                                                    Height="52"
@@ -284,7 +284,7 @@
 
             <Border Classes="card" Padding="18" IsVisible="{Binding HasSensorAlert}">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="TEMPERATURE ALERT" Classes="eyebrow" />
+                    <TextBlock Text="{Binding AlertEyebrowText}" Classes="eyebrow" />
                     <ItemsControl ItemsSource="{Binding SensorAlerts}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -294,14 +294,14 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Text="Alerts fire only after the temperature stays above your threshold for the full duration you set. Change the threshold in Settings."
+                    <TextBlock Text="{Binding AlertNoteText}"
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="Every reading keeps its source. No telemetry, no network calls."
+            <TextBlock Text="{Binding FooterText}"
                        Classes="muted"
                        FontSize="11"
                        HorizontalAlignment="Center"

@@ -895,6 +895,65 @@ data already existed; only the band rule and wording are new.
   `git diff 1188692 a0b0326 -- '*csproj'`), so the result carries
   forward.
 
+## v2.1.11 — shipped
+
+- **Localisation, phase 5: the Overview page in German (Beyond
+  v2.0, item 4).** Phases 1-4 translated the rail, the Settings page,
+  the Core diagnostic strings and the component detail pages; this
+  version translates the next complete surface, the landing page
+  (`OverviewViewModel` + `OverviewView`), which is the first screen a
+  user sees and the one long-lived page in the app. The catalogue
+  grows by 36 keys (133 to 169): the hero labels, the section
+  headings, the two buttons, the score note, the key-stat labels, the
+  live-strip names, the sensor-log and alert-setting sentences, the
+  refresh / live-update / read-failed templates, the weight and
+  contribution templates, and the scanning hero, each in both packs,
+  pinned by the existing coverage test (a pack that misses a key
+  fails). Templates carry their dynamic values through
+  `StringLocalizer.GetFormatted` with the invariant culture, so a
+  threshold ("90 °C"), a duration, a file path and a weight keep the
+  app's existing formatting inside a German sentence. The refresh
+  interval reuses the Settings seconds keys instead of a second copy
+  of the same words. The live strip is built from stable keys
+  (`LiveMetricViewModel.CpuTempKey` etc.): the display name resolves
+  in the page language and re-resolves through `ApplyLanguage`, while
+  the key the strip updates by never changes — a metric built with
+  the legacy (name, unit) constructor keeps its old behaviour
+  exactly and `ApplyLanguage` is a no-op for it. The view model
+  takes an optional language code, exposes every chrome string as a
+  localized property, and re-renders in place through `ApplyLanguage`
+  (the snapshot-derived rows are rebuilt from the last scan, the
+  cards are rebuilt with the new language, the sensor sentences are
+  rebuilt from the stored settings); the shell passes its language
+  at construction and re-languages the long-lived page when settings
+  are applied, the same in-place pattern the detail pages use.
+  Deliberately NOT translated in this version, and named on the
+  page's own terms in the docs: component names, headlines, health
+  and status texts, spec labels, values and sources, the score
+  explanation and the verdict text are measured data produced by the
+  collectors and the scoring engine — translating them is a later
+  slice; the admin notice and the threshold-alert texts are
+  diagnostic strings produced by Core with no language parameter
+  yet. The language card's note now says Navigation, Settings,
+  component detail pages and the Overview page are translated.
+  Tests: `LanguagePackTests` (German Overview terms pinned,
+  LanguageNote updated), `OverviewViewModelTests` (English default,
+  German-seeded whole page, switching both ways, unknown-language
+  fallback, data stays English, key-stat labels and values,
+  weight/contribution template agreement, card labels, scanning hero,
+  live strip by key, sensor sentences with writer and threshold),
+  and `LiveMetricViewModelTests` (key constructor in both languages,
+  colour follows the key, `ApplyLanguage` re-resolves, legacy
+  untouched, unknown key shows the key).
+- **Dependency audit re-attested for v2.1.10.** `SECURITY.md` said
+  v2.1.9; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.9 and v2.1.10 (only the `<Version>`
+  bump and test-file exclusions — zero `PackageReference` changes in
+  `git diff a0b0326 9925866 -- '*csproj'`), so the result carries
+  forward.
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed

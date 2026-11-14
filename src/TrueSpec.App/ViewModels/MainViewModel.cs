@@ -519,6 +519,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _settingsStore.Save(_settings);
         IsDarkTheme = _settings.IsDarkTheme;
         ApplyLanguage();
+        // The Overview is long-lived and updates in place: it
+        // re-renders its chrome in the new language from the last scan
+        // (ApplyLanguage re-runs its snapshot-derived rows), so the
+        // landing page follows the switch with no restart.
+        Overview.ApplyLanguage(_settings.LanguageCode);
         Overview.SetRefreshInterval(TimeSpan.FromSeconds(_settings.RefreshIntervalSeconds));
         Overview.ApplySensorSettings(_settings);
         if (_pageCache.TryGetValue("history", out var page) && page is HistoryViewModel history)
@@ -885,7 +890,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _sensorLogWriter,
         _alertEvaluator,
         _settings,
-        IsElevated);
+        IsElevated,
+        _settings.LanguageCode);
 
     /// <summary>
     /// The load test finished on the Tests page. The result is saved into

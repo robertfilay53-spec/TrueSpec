@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TrueSpec.Core.Health;
+using TrueSpec.Core.Localization;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Sensors;
 using TrueSpec.Core.Settings;
@@ -23,6 +25,20 @@ namespace TrueSpec.App.ViewModels;
 /// snapshot. While a scan is running the hero says "Scanning..." — it never
 /// claims "Not measurable", because "no score yet" is not the same as
 /// "no measurable health value".
+///
+/// Localisation, phase 5 (v2.1.11): the page chrome renders in the
+/// current language — the hero labels, the section headings, the buttons,
+/// the score note, the key-stat labels, the live-strip labels and the
+/// sensor-log and alert-setting sentences — so the landing page follows
+/// the language the user picked in Settings, with no restart. The data
+/// the page shows stays English: component names, headlines, health and
+/// status texts, spec labels, values and sources, the score explanation
+/// and the verdict text are measured data produced by the collectors and
+/// the scoring engine; the admin notice and the threshold-alert texts
+/// are diagnostic strings produced by Core with no language parameter
+/// yet. The shell re-languages this long-lived page through
+/// <see cref="ApplyLanguage"/> when the user picks a language in
+/// Settings, the same in-place pattern the detail pages use.
 /// </summary>
 public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
 {
@@ -35,6 +51,13 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
     private IReadOnlyList<SpecValue> _cpuSpecs = Array.Empty<SpecValue>();
     private bool _refreshing;
 
+    private string _languageCode;
+    // Set by the constructor through UpdateSnapshot, before anything
+    // reads it; ApplyLanguage re-runs UpdateSnapshot from it.
+    private SystemSnapshot _lastSnapshot = null!;
+    private bool _lastIsScanning;
+    private AppSettings? _storedSettings;
+
     public OverviewViewModel(
         SystemSnapshot snapshot,
         Action<string> openComponent,
@@ -46,8 +69,10 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         SensorLogWriter? sensorLogWriter = null,
         ThresholdAlertEvaluator? alertEvaluator = null,
         AppSettings? settings = null,
-        bool? isElevated = null)
+        bool? isElevated = null,
+        string? languageCode = null)
     {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
         _sensorMonitor = sensorMonitor;
         _sensorLogWriter = sensorLogWriter;
         _alertEvaluator = alertEvaluator;
@@ -61,13 +86,16 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         SensorAlerts = new ObservableCollection<string>();
         LiveMetrics = new ObservableCollection<LiveMetricViewModel>
         {
-            new("CPU temp", "C"),
-            new("GPU temp", "C"),
-            new("CPU usage", "%"),
+            // Built from stable keys: the display name resolves in the
+            // page language and re-resolves on a switch, while the key
+            // the strip updates by never changes.
+            new(LiveMetricViewModel.CpuTempKey, "C", _languageCode),
+            new(LiveMetricViewModel.GpuTempKey, "C", _languageCode),
+            new(LiveMetricViewModel.CpuUsageKey, "%", _languageCode),
             // "Battery power", not "Battery drain": LibreHardwareMonitor
             // reports a signed power flow, negative while the battery is
             // charging, so "drain" would be wrong half the time.
-            new("Battery power", "W"),
+            new(LiveMetricViewModel.BatteryPowerKey, "W", _languageCode),
         };
 
         UpdateSnapshot(snapshot, isScanning);
@@ -94,6 +122,11 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
+        // Kept so ApplyLanguage can rebuild the snapshot-derived rows
+        // (score breakdown, key stats, cards) in the new language.
+        _lastSnapshot = snapshot;
+        _lastIsScanning = isScanning;
+
         MachineName = snapshot.MachineName;
         OperatingSystem = snapshot.OperatingSystem;
 
@@ -101,9 +134,9 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         {
             Score = 0d;
             ScoreText = "…";
-            VerdictText = "Scanning…";
+            VerdictText = StringLocalizer.Get(AppStringKeys.OverviewScanning, _languageCode);
             VerdictStatus = HealthStatus.NotMeasurable;
-            ScoreExplanation = "The hardware scan is still running. The score appears when the scan finishes.";
+            ScoreExplanation = StringLocalizer.Get(AppStringKeys.OverviewScanningNote, _languageCode);
             ScoreBreakdown = Array.Empty<ScoreBreakdownRow>();
         }
         else
@@ -117,8 +150,14 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
                 .Select(c => new ScoreBreakdownRow(
                     c.Component,
                     $"{c.HealthPercent:0.#}%",
-                    $"Weight {c.Weight:0.#}",
-                    $"+{c.Contribution:0.#} pts",
+                    StringLocalizer.GetFormatted(
+                        AppStringKeys.OverviewWeight,
+                        _languageCode,
+                        c.Weight.ToString("0.#", CultureInfo.InvariantCulture)),
+                    StringLocalizer.GetFormatted(
+                        AppStringKeys.OverviewContribution,
+                        _languageCode,
+                        c.Contribution.ToString("0.#", CultureInfo.InvariantCulture)),
                     HealthStatusExtensions.FromHealth(c.HealthPercent)))
                 .ToList();
         }
@@ -127,7 +166,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         KeyStats = BuildKeyStats(snapshot);
 
         Cards.Clear();
-        foreach (var card in snapshot.Components.Select(c => new ComponentCardViewModel(c, _openComponent)))
+        foreach (var card in snapshot.Components.Select(c => new ComponentCardViewModel(c, _openComponent, _languageCode)))
         {
             Cards.Add(card);
         }
@@ -167,6 +206,10 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
     {
         ArgumentNullException.ThrowIfNull(settings);
 
+        // Kept so ApplyLanguage can re-resolve these sentences in the
+        // new language without the shell re-passing the settings.
+        _storedSettings = settings;
+
         if (_sensorLogWriter is not null)
         {
             _sensorLogWriter.Enabled = settings.SensorLoggingEnabled;
@@ -175,22 +218,124 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         _alertEvaluator?.Configure(settings.CpuTemperatureThresholdC, settings.CpuTemperatureThresholdSeconds);
 
         SensorLogText = _sensorLogWriter is null
-            ? "Sensor logging is unavailable on this machine."
+            ? StringLocalizer.Get(AppStringKeys.OverviewSensorLogUnavailable, _languageCode)
             : settings.SensorLoggingEnabled
-                ? $"Sensor readings are recorded to {_sensorLogWriter.FilePath}. The chart is on the History page."
-                : "Sensor logging is off. Turn it on in Settings to record readings.";
+                ? StringLocalizer.GetFormatted(
+                    AppStringKeys.OverviewSensorLogOn, _languageCode, _sensorLogWriter.FilePath)
+                : StringLocalizer.Get(AppStringKeys.OverviewSensorLogOff, _languageCode);
         AlertSettingsText = settings.CpuTemperatureThresholdC is { } threshold
-            ? $"Alert when the CPU temperature reaches {threshold.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} C for {settings.CpuTemperatureThresholdSeconds} seconds. Set it in Settings."
-            : "No temperature alert set. TrueSpec ships with no threshold; set one in Settings if you want an alert.";
+            ? StringLocalizer.GetFormatted(
+                AppStringKeys.OverviewAlertSet,
+                _languageCode,
+                threshold.ToString("0.#", CultureInfo.InvariantCulture),
+                settings.CpuTemperatureThresholdSeconds)
+            : StringLocalizer.Get(AppStringKeys.OverviewAlertNotSet, _languageCode);
         OnPropertyChanged(nameof(SensorLogText));
         OnPropertyChanged(nameof(AlertSettingsText));
     }
 
-    private static string BuildRefreshText(TimeSpan interval)
+    /// <summary>The admin-notice eyebrow, in the page language.</summary>
+    public string AdminEyebrowText =>
+        StringLocalizer.Get(AppStringKeys.OverviewAdminEyebrow, _languageCode);
+
+    /// <summary>"out of 100" under the score ring.</summary>
+    public string OutOf100Text =>
+        StringLocalizer.Get(AppStringKeys.OverviewOutOf100, _languageCode);
+
+    /// <summary>The badge next to the verdict.</summary>
+    public string OverallHealthText =>
+        StringLocalizer.Get(AppStringKeys.OverviewOverallHealth, _languageCode);
+
+    /// <summary>The note under the score breakdown.</summary>
+    public string ScoreNoteText =>
+        StringLocalizer.Get(AppStringKeys.OverviewScoreNote, _languageCode);
+
+    /// <summary>The hero's New Laptop Check button.</summary>
+    public string NewLaptopCheckText =>
+        StringLocalizer.Get(AppStringKeys.OverviewNewLaptopCheck, _languageCode);
+
+    /// <summary>The hero's Export Report button.</summary>
+    public string ExportReportText =>
+        StringLocalizer.Get(AppStringKeys.OverviewExportReport, _languageCode);
+
+    /// <summary>The heading above the component cards.</summary>
+    public string ComponentHealthText =>
+        StringLocalizer.Get(AppStringKeys.OverviewComponentHealth, _languageCode);
+
+    /// <summary>The empty state when no component was collected.</summary>
+    public string NoComponentsText =>
+        StringLocalizer.Get(AppStringKeys.OverviewNoComponents, _languageCode);
+
+    /// <summary>The heading above the live strip.</summary>
+    public string LiveSensorsText =>
+        StringLocalizer.Get(AppStringKeys.OverviewLiveSensors, _languageCode);
+
+    /// <summary>The temperature-alert card's eyebrow.</summary>
+    public string AlertEyebrowText =>
+        StringLocalizer.Get(AppStringKeys.OverviewAlertEyebrow, _languageCode);
+
+    /// <summary>The note under the temperature-alert list.</summary>
+    public string AlertNoteText =>
+        StringLocalizer.Get(AppStringKeys.OverviewAlertNote, _languageCode);
+
+    /// <summary>The footer line at the bottom of the page.</summary>
+    public string FooterText =>
+        StringLocalizer.Get(AppStringKeys.OverviewFooter, _languageCode);
+
+    /// <summary>
+    /// Re-renders this page in the given language, in place: every
+    /// localized text is re-resolved, the snapshot-derived rows are
+    /// rebuilt from the last scan, the live-strip names re-resolve, and
+    /// the sensor sentences are rebuilt from the stored settings.
+    /// Called by the shell when the user picks a language in Settings;
+    /// a page created after the switch is already built in the new
+    /// language by the constructor. An unknown code falls back to
+    /// English through the localizer, never to a blank. Measured data
+    /// (verdict, explanation, component names, values) is untouched:
+    /// it is rebuilt from the same snapshot, so it keeps its values.
+    /// </summary>
+    public void ApplyLanguage(string? languageCode)
+    {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        UpdateSnapshot(_lastSnapshot, _lastIsScanning);
+        if (_storedSettings is not null)
+        {
+            ApplySensorSettings(_storedSettings);
+        }
+
+        SetRefreshInterval(_timer.Interval);
+        foreach (var metric in LiveMetrics)
+        {
+            metric.ApplyLanguage(_languageCode);
+        }
+
+        OnPropertyChanged(nameof(AdminEyebrowText));
+        OnPropertyChanged(nameof(OutOf100Text));
+        OnPropertyChanged(nameof(OverallHealthText));
+        OnPropertyChanged(nameof(ScoreNoteText));
+        OnPropertyChanged(nameof(NewLaptopCheckText));
+        OnPropertyChanged(nameof(ExportReportText));
+        OnPropertyChanged(nameof(ComponentHealthText));
+        OnPropertyChanged(nameof(NoComponentsText));
+        OnPropertyChanged(nameof(LiveSensorsText));
+        OnPropertyChanged(nameof(AlertEyebrowText));
+        OnPropertyChanged(nameof(AlertNoteText));
+        OnPropertyChanged(nameof(FooterText));
+    }
+
+    private string BuildRefreshText(TimeSpan interval)
     {
         var seconds = interval.TotalSeconds;
-        var label = seconds == 1 ? "1 second" : $"{seconds:0} seconds";
-        return $"Live sensors refresh every {label}. Values appear only when LibreHardwareMonitor reports them.";
+        // Reuses the Settings seconds keys: "1 second" / "{0} seconds"
+        // resolve in the page language, and the number inside keeps the
+        // app's invariant formatting.
+        var label = seconds == 1
+            ? StringLocalizer.Get(AppStringKeys.SecondsOne, _languageCode)
+            : StringLocalizer.GetFormatted(
+                AppStringKeys.SecondsMany,
+                _languageCode,
+                seconds.ToString("0", CultureInfo.InvariantCulture));
+        return StringLocalizer.GetFormatted(AppStringKeys.OverviewRefreshText, _languageCode, label);
     }
 
     [ObservableProperty]
@@ -287,14 +432,18 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         {
             var snapshot = await _sensorMonitor.ReadAsync();
             StatusMessage = snapshot.IsAvailable
-                ? $"Live sensors updated {DateTime.Now:HH:mm:ss}"
+                ? StringLocalizer.GetFormatted(
+                    AppStringKeys.OverviewLiveUpdated,
+                    _languageCode,
+                    DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture))
                 : snapshot.StatusText;
 
             ProcessSensorSnapshot(snapshot);
         }
         catch (Exception exception)
         {
-            StatusMessage = $"Live sensor read failed: {exception.Message}";
+            StatusMessage = StringLocalizer.GetFormatted(
+                AppStringKeys.OverviewLiveReadFailed, _languageCode, exception.Message);
         }
         finally
         {
@@ -313,10 +462,10 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
-        UpdateMetric("CPU temp", snapshot.CpuTemperature()?.Value);
-        UpdateMetric("GPU temp", snapshot.GpuTemperature()?.Value);
-        UpdateMetric("CPU usage", snapshot.CpuLoad()?.Value);
-        UpdateMetric("Battery power", snapshot.BatteryPower()?.Value);
+        UpdateMetric(LiveMetricViewModel.CpuTempKey, snapshot.CpuTemperature()?.Value);
+        UpdateMetric(LiveMetricViewModel.GpuTempKey, snapshot.GpuTemperature()?.Value);
+        UpdateMetric(LiveMetricViewModel.CpuUsageKey, snapshot.CpuLoad()?.Value);
+        UpdateMetric(LiveMetricViewModel.BatteryPowerKey, snapshot.BatteryPower()?.Value);
 
         _sensorLogWriter?.Append(snapshot);
 
@@ -337,10 +486,14 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void UpdateMetric(string name, double? value)
+    private void UpdateMetric(string key, double? value)
     {
+        // Looked up by stable key, never by display name: the name is
+        // the translated label and changes with the language, the key
+        // does not. A legacy metric (no key) can never match here, so a
+        // metric built without a key is never updated by mistake.
         var metric = LiveMetrics.FirstOrDefault(m =>
-            string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
+            string.Equals(m.MetricKey, key, StringComparison.Ordinal));
         metric?.AddSample(value);
     }
 
@@ -368,10 +521,12 @@ public sealed partial class OverviewViewModel : ViewModelBase, IDisposable
 
         return new[]
         {
-            new KeyStatViewModel("CPU temperature", cpuTemp, cpuTempSpec?.Source ?? "LibreHardwareMonitor", cpuTempStatus),
-            new KeyStatViewModel("Memory", ramSize, "CIM Win32_PhysicalMemory", HealthStatus.NotMeasurable),
-            new KeyStatViewModel("Disk health", diskHealth, "SMART / NVMe reliability counters", storage?.Status ?? HealthStatus.NotMeasurable),
-            new KeyStatViewModel("Battery health", batteryHealth, "Battery firmware", battery?.Status ?? HealthStatus.NotMeasurable),
+            // The labels are fixed page chrome, so they translate; the
+            // values and sources are measured data and stay as reported.
+            new KeyStatViewModel(StringLocalizer.Get(AppStringKeys.OverviewKeyCpuTemp, _languageCode), cpuTemp, cpuTempSpec?.Source ?? "LibreHardwareMonitor", cpuTempStatus),
+            new KeyStatViewModel(StringLocalizer.Get(AppStringKeys.OverviewKeyMemory, _languageCode), ramSize, "CIM Win32_PhysicalMemory", HealthStatus.NotMeasurable),
+            new KeyStatViewModel(StringLocalizer.Get(AppStringKeys.OverviewKeyDiskHealth, _languageCode), diskHealth, "SMART / NVMe reliability counters", storage?.Status ?? HealthStatus.NotMeasurable),
+            new KeyStatViewModel(StringLocalizer.Get(AppStringKeys.OverviewKeyBatteryHealth, _languageCode), batteryHealth, "Battery firmware", battery?.Status ?? HealthStatus.NotMeasurable),
         };
     }
 
@@ -391,8 +546,11 @@ public sealed record ScoreBreakdownRow(
 
 public sealed class ComponentCardViewModel : ViewModelBase
 {
-    public ComponentCardViewModel(ComponentSnapshot component, Action<string> openComponent)
+    private readonly string _languageCode;
+
+    public ComponentCardViewModel(ComponentSnapshot component, Action<string> openComponent, string? languageCode = null)
     {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
         Id = component.Id;
         Name = component.Name;
         IconData = IconLibrary.Get(component.IconKey);
@@ -404,6 +562,14 @@ public sealed class ComponentCardViewModel : ViewModelBase
         HasHealth = component.HealthPercent is not null;
         DetailsCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => openComponent(Id));
     }
+
+    /// <summary>The "Health" label above the card's health bar, in the card's language.</summary>
+    public string HealthLabelText =>
+        StringLocalizer.Get(AppStringKeys.OverviewHealthLabel, _languageCode);
+
+    /// <summary>The card's "Details" button, in the card's language.</summary>
+    public string DetailsText =>
+        StringLocalizer.Get(AppStringKeys.OverviewDetails, _languageCode);
 
     public string Id { get; }
 
