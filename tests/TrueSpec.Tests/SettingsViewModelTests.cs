@@ -773,7 +773,7 @@ public class SettingsViewModelTests
             Assert.Equal(
                 "Affiche la fréquence boost nominale à partir d'une petite base de données intégrée des caractéristiques des processeurs et des cartes graphiques, lorsque votre processeur ou votre carte graphique y figure. La base de données est facultative et ne remplace jamais une valeur mesurée. Prend effet après redémarrage.",
                 settings.HardwareDatabaseNoteText);
-            Assert.StartsWith("Jeu de données v1.1.0: ", settings.HardwareDatabaseVersionText, StringComparison.Ordinal);
+            Assert.StartsWith("Jeu de données v1.1.0 : ", settings.HardwareDatabaseVersionText, StringComparison.Ordinal);
 
             Assert.Equal("Dossier d'exportation des rapports", settings.ExportTitleText);
             Assert.EndsWith(" (par défaut)", settings.ExportFolderText, StringComparison.Ordinal);
