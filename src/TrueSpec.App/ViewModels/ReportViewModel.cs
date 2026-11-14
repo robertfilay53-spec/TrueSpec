@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
 using TrueSpec.App.Services;
+using TrueSpec.Core.Localization;
 using TrueSpec.Core.Models;
 
 namespace TrueSpec.App.ViewModels;
@@ -12,9 +13,24 @@ namespace TrueSpec.App.ViewModels;
 /// them read the same snapshot. While a scan is running the hero says
 /// "Scanning..." instead of "Not measurable" — "no score yet" is not the
 /// same as "no measurable health value".
+///
+/// Localisation, phase 8 (v2.1.16): the page chrome renders in the
+/// current language — the headings, the export buttons, the DNA card
+/// notes, the format descriptions, the preview heading, the footer
+/// note and the export privacy note — so the page follows the language
+/// the user picked in Settings, with no restart. The data the page
+/// shows stays English: the machine name, the verdict text, the score
+/// explanation, the buyer banner and summary, the generated-text line,
+/// the DNA state/hash/verify result texts and the export folder path.
+/// The page is cached by the shell, so the strings resolve from the
+/// stored language code and re-render through
+/// <see cref="ApplyLanguage"/>, the same in-place pattern the
+/// Overview and History pages use.
 /// </summary>
 public sealed class ReportViewModel : ViewModelBase
 {
+    private string _languageCode;
+
     /// <param name="exportCertificateCommand">Null on older callers: the Buyer certificate button hides itself.</param>
     /// <param name="verifyMachineCommand">Null on older callers: the Verify this machine button hides itself.</param>
     /// <param name="dnaVerification">The result of the last "Verify this machine" run against this snapshot, or null when no verification has run yet.</param>
@@ -30,8 +46,10 @@ public sealed class ReportViewModel : ViewModelBase
         ICommand? exportCertificateCommand = null,
         ICommand? verifyMachineCommand = null,
         MachineDnaVerification? dnaVerification = null,
-        bool isVerifyingMachine = false)
+        bool isVerifyingMachine = false,
+        string? languageCode = null)
     {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
         ExportJsonCommand = exportJsonCommand;
         ExportHtmlCommand = exportHtmlCommand;
         ExportCsvCommand = exportCsvCommand;
@@ -95,6 +113,126 @@ public sealed class ReportViewModel : ViewModelBase
         Components = snapshot.Components
             .Select(c => new ReportComponentRow(c.Name, c.Headline, c.HealthText, c.Status))
             .ToList();
+    }
+
+    /// <summary>The page eyebrow, in the page language.</summary>
+    public string ReportEyebrowText =>
+        StringLocalizer.Get(AppStringKeys.ReportEyebrow, _languageCode);
+
+    /// <summary>The page title, in the page language.</summary>
+    public string ReportTitleText =>
+        StringLocalizer.Get(AppStringKeys.ReportTitle, _languageCode);
+
+    /// <summary>The page introduction, in the page language.</summary>
+    public string ReportIntroText =>
+        StringLocalizer.Get(AppStringKeys.ReportIntro, _languageCode);
+
+    /// <summary>The small label under the score number, in the page language.</summary>
+    public string ReportScoreLabelText =>
+        StringLocalizer.Get(AppStringKeys.ReportScoreLabel, _languageCode);
+
+    /// <summary>The Export JSON button, in the page language.</summary>
+    public string ReportExportJsonText =>
+        StringLocalizer.Get(AppStringKeys.ReportExportJson, _languageCode);
+
+    /// <summary>The Export HTML button, in the page language.</summary>
+    public string ReportExportHtmlText =>
+        StringLocalizer.Get(AppStringKeys.ReportExportHtml, _languageCode);
+
+    /// <summary>The Export CSV button, in the page language.</summary>
+    public string ReportExportCsvText =>
+        StringLocalizer.Get(AppStringKeys.ReportExportCsv, _languageCode);
+
+    /// <summary>The Export PDF button, in the page language.</summary>
+    public string ReportExportPdfText =>
+        StringLocalizer.Get(AppStringKeys.ReportExportPdf, _languageCode);
+
+    /// <summary>The Buyer certificate button, in the page language.</summary>
+    public string ReportExportCertificateText =>
+        StringLocalizer.Get(AppStringKeys.ReportExportCertificate, _languageCode);
+
+    /// <summary>The Verify this machine button, in the page language.</summary>
+    public string ReportVerifyMachineText =>
+        StringLocalizer.Get(AppStringKeys.ReportVerifyMachine, _languageCode);
+
+    /// <summary>The Machine DNA card heading, in the page language.</summary>
+    public string ReportDnaTitleText =>
+        StringLocalizer.Get(AppStringKeys.ReportDnaTitle, _languageCode);
+
+    /// <summary>The line shown while a verification re-scan is running, in the page language.</summary>
+    public string ReportVerifyingMachineText =>
+        StringLocalizer.Get(AppStringKeys.ReportVerifyingMachine, _languageCode);
+
+    /// <summary>The heading over the parts a scan could not identify, in the page language.</summary>
+    public string ReportDnaUnidentifiedTitleText =>
+        StringLocalizer.Get(AppStringKeys.ReportDnaUnidentifiedTitle, _languageCode);
+
+    /// <summary>The fixed DNA explainer note, in the page language.</summary>
+    public string ReportDnaNoteText =>
+        StringLocalizer.Get(AppStringKeys.ReportDnaNote, _languageCode);
+
+    /// <summary>The JSON format card description, in the page language.</summary>
+    public string ReportFormatJsonDescriptionText =>
+        StringLocalizer.Get(AppStringKeys.ReportFormatJsonDescription, _languageCode);
+
+    /// <summary>The HTML format card description, in the page language.</summary>
+    public string ReportFormatHtmlDescriptionText =>
+        StringLocalizer.Get(AppStringKeys.ReportFormatHtmlDescription, _languageCode);
+
+    /// <summary>The CSV format card description, in the page language.</summary>
+    public string ReportFormatCsvDescriptionText =>
+        StringLocalizer.Get(AppStringKeys.ReportFormatCsvDescription, _languageCode);
+
+    /// <summary>The PDF format card description, in the page language.</summary>
+    public string ReportFormatPdfDescriptionText =>
+        StringLocalizer.Get(AppStringKeys.ReportFormatPdfDescription, _languageCode);
+
+    /// <summary>The "Available" line on every format card, in the page language.</summary>
+    public string ReportFormatAvailableText =>
+        StringLocalizer.Get(AppStringKeys.ReportFormatAvailable, _languageCode);
+
+    /// <summary>The report preview heading, in the page language.</summary>
+    public string ReportPreviewTitleText =>
+        StringLocalizer.Get(AppStringKeys.ReportPreviewTitle, _languageCode);
+
+    /// <summary>The footer note under the preview, in the page language.</summary>
+    public string ReportFooterNoteText =>
+        StringLocalizer.Get(AppStringKeys.ReportFooterNote, _languageCode);
+
+    /// <summary>
+    /// Re-renders this page in the given language, in place: every
+    /// localized text is re-resolved. Called by the shell when the user
+    /// picks a language in Settings; a page created after the switch is
+    /// already built in the new language by the constructor. An unknown
+    /// code falls back to English through the localizer, never to a
+    /// blank. Measured data (machine name, verdict, score explanation,
+    /// buyer texts, DNA texts, export folder) is untouched.
+    /// </summary>
+    public void ApplyLanguage(string? languageCode)
+    {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        OnPropertyChanged(nameof(ReportEyebrowText));
+        OnPropertyChanged(nameof(ReportTitleText));
+        OnPropertyChanged(nameof(ReportIntroText));
+        OnPropertyChanged(nameof(ReportScoreLabelText));
+        OnPropertyChanged(nameof(ReportExportJsonText));
+        OnPropertyChanged(nameof(ReportExportHtmlText));
+        OnPropertyChanged(nameof(ReportExportCsvText));
+        OnPropertyChanged(nameof(ReportExportPdfText));
+        OnPropertyChanged(nameof(ReportExportCertificateText));
+        OnPropertyChanged(nameof(ReportVerifyMachineText));
+        OnPropertyChanged(nameof(ReportDnaTitleText));
+        OnPropertyChanged(nameof(ReportVerifyingMachineText));
+        OnPropertyChanged(nameof(ReportDnaUnidentifiedTitleText));
+        OnPropertyChanged(nameof(ReportDnaNoteText));
+        OnPropertyChanged(nameof(ReportFormatJsonDescriptionText));
+        OnPropertyChanged(nameof(ReportFormatHtmlDescriptionText));
+        OnPropertyChanged(nameof(ReportFormatCsvDescriptionText));
+        OnPropertyChanged(nameof(ReportFormatPdfDescriptionText));
+        OnPropertyChanged(nameof(ReportFormatAvailableText));
+        OnPropertyChanged(nameof(ReportPreviewTitleText));
+        OnPropertyChanged(nameof(ReportFooterNoteText));
+        OnPropertyChanged(nameof(ExportPrivacyNote));
     }
 
     public string MachineName { get; }
@@ -172,8 +310,10 @@ public sealed class ReportViewModel : ViewModelBase
     /// What an exported report contains that identifies this machine. A
     /// buyer hands the file to a seller, so the page says so before the
     /// export happens instead of after. The file itself is unchanged.
+    /// In the page language.
     /// </summary>
-    public string ExportPrivacyNote { get; } = "Exported reports contain this machine's hardware serials, MAC addresses, IP addresses and Wi-Fi network names. Share them only with people you trust.";
+    public string ExportPrivacyNote =>
+        StringLocalizer.Get(AppStringKeys.ReportExportPrivacyNote, _languageCode);
 }
 
 public sealed record ReportComponentRow(string Name, string Headline, string HealthText, HealthStatus Status);

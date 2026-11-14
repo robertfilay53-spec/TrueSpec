@@ -535,6 +535,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             history.ApplyLanguage(_settings.LanguageCode);
         }
 
+        // Cached Report and Tests pages re-render in the new language
+        // in place, the same pattern as the History page above. A page
+        // created after the switch is already built in the new language
+        // by its constructor.
+        if (_pageCache.TryGetValue("report", out var reportPage) && reportPage is ReportViewModel report)
+        {
+            report.ApplyLanguage(_settings.LanguageCode);
+        }
+
+        if (_pageCache.TryGetValue("tests", out var testsPage) && testsPage is TestsViewModel tests)
+        {
+            tests.ApplyLanguage(_settings.LanguageCode);
+        }
+
         // Cached component detail pages re-render in the new language in
         // place (their chrome resolves at construction time, so a page
         // built before the switch needs the same re-language call the
@@ -959,8 +973,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 _sensorMonitor,
                 RatedMaxFromSnapshot(_snapshot),
                 IsOnBattery(_snapshot),
-                OnLoadTestCompleted)),
-            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: IsScanRunning, exportPdfCommand: ExportPdfCommand, exportCertificateCommand: ExportCertificateCommand, verifyMachineCommand: VerifyMachineCommand, dnaVerification: _lastDnaVerification, isVerifyingMachine: IsVerifyingMachine)),
+                OnLoadTestCompleted,
+                _settings.LanguageCode)),
+            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: IsScanRunning, exportPdfCommand: ExportPdfCommand, exportCertificateCommand: ExportCertificateCommand, verifyMachineCommand: VerifyMachineCommand, dnaVerification: _lastDnaVerification, isVerifyingMachine: IsVerifyingMachine, languageCode: _settings.LanguageCode)),
             "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot, _dnaVerifier)),
             "fleet" => GetOrCreate("fleet", () => new FleetViewModel(_snapshotStore, ExportFleetCsvCommand, ExportMachineCsvAsync, ExportAllMachinesCsvAsync)),
             "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand, SensorLogWriter.DefaultFilePath(), _settings.SensorLoggingEnabled, _settings.CpuTemperatureThresholdC, languageCode: _settings.LanguageCode)),

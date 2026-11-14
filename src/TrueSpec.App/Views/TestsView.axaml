@@ -11,9 +11,9 @@
     <ScrollViewer>
         <StackPanel Margin="24" Spacing="18">
             <StackPanel Spacing="6">
-                <TextBlock Text="TESTS" Classes="eyebrow" />
-                <TextBlock Text="Built-in tests" Classes="h1" />
-                <TextBlock Text="One click each. No hidden uploads, no account, and nothing runs without you starting it."
+                <TextBlock Text="{Binding TestsEyebrowText}" Classes="eyebrow" />
+                <TextBlock Text="{Binding TestsTitleText}" Classes="h1" />
+                <TextBlock Text="{Binding TestsIntroText}"
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
@@ -25,7 +25,7 @@
                              Fill="{DynamicResource WatchBrush}"
                              VerticalAlignment="Center" />
                     <TextBlock Grid.Column="1"
-                               Text="CPU and disk tests run real local measurements. Tests that are not implemented stay disabled and show no result."
+                               Text="{Binding TestsInfoNoteText}"
                                Classes="muted"
                                TextWrapping="Wrap" />
                 </Grid>
@@ -39,8 +39,8 @@
 
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="10" DataContext="{Binding LoadTest}">
-                    <TextBlock Text="Load test" Classes="h3" />
-                    <TextBlock Text="Loads the CPU on all cores, exercises memory and disk, and watches temperature and clock speed every second."
+                    <TextBlock Text="{Binding LoadTestTitleText}" Classes="h3" />
+                    <TextBlock Text="{Binding LoadTestIntroText}"
                                Classes="muted"
                                TextWrapping="Wrap"
                                MaxWidth="620" />
@@ -51,23 +51,23 @@
                                Classes="muted"
                                TextWrapping="Wrap"
                                MaxWidth="620" />
-                    <TextBlock Text="This machine is running on battery; results may be power-limited."
+                    <TextBlock Text="{Binding LoadTestBatteryNoteText}"
                                TextWrapping="Wrap"
                                MaxWidth="620"
                                IsVisible="{Binding IsOnBattery}" />
 
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock Text="Duration (seconds):" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding LoadTestDurationLabelText}" VerticalAlignment="Center" />
                         <ComboBox ItemsSource="{Binding Durations}"
                                   SelectedItem="{Binding SelectedDurationSeconds}"
                                   IsEnabled="{Binding CanStart}"
                                   MinWidth="90" />
                         <Button Classes="secondary"
-                                Content="Start load test"
+                                Content="{Binding LoadTestStartText}"
                                 Command="{Binding StartCommand}"
                                 IsEnabled="{Binding CanStart}" />
                         <Button Classes="secondary"
-                                Content="Cancel"
+                                Content="{Binding LoadTestCancelText}"
                                 Command="{Binding CancelCommand}"
                                 IsEnabled="{Binding CanCancel}" />
                     </StackPanel>
@@ -85,7 +85,7 @@
                         <TextBlock Text="{Binding ResultClockText}" Classes="muted" />
                         <TextBlock Text="{Binding ResultRatedMaxText}" Classes="muted" />
                         <TextBlock Text="{Binding ResultPercentText}" Classes="muted" />
-                        <TextBlock Text="Fan health" Classes="h3" />
+                        <TextBlock Text="{Binding LoadTestFanHealthTitleText}" Classes="h3" />
                         <TextBlock Text="{Binding FanHealthSummaryText}" TextWrapping="Wrap" MaxWidth="620" />
                         <ItemsControl ItemsSource="{Binding FanHealthLines}">
                             <ItemsControl.ItemTemplate>
@@ -101,7 +101,7 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <TextBlock Text="TrueSpec reports fan health only; it never controls fans."
+                        <TextBlock Text="{Binding LoadTestFanHealthNoteText}"
                                    Classes="muted"
                                    FontSize="11"
                                    TextWrapping="Wrap"
@@ -109,7 +109,7 @@
                         <controls:Sparkline Height="52"
                                             Values="{Binding TemperatureValues}"
                                             StrokeThickness="2" />
-                        <TextBlock Text="Temperature during the test (C). A gap in the line means the sensor did not report that second."
+                        <TextBlock Text="{Binding LoadTestTemperatureCaptionText}"
                                    Classes="muted"
                                    FontSize="11"
                                    TextWrapping="Wrap"

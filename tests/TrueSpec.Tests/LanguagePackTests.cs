@@ -349,6 +349,126 @@ public sealed class LanguagePackTests
     }
 
     [Fact]
+    public void GermanPack_ReportPageTerms()
+    {
+        // Localisation, phase 8 (v2.1.16): the Report page — the
+        // headings, the export buttons, the DNA card notes, the format
+        // descriptions, the preview heading, the footer note and the
+        // export privacy note. Same pinning rule as the rail, Settings,
+        // Core, detail, Overview and History terms: changing one is a
+        // deliberate translation decision, not a typo fix. The data the
+        // page shows (machine name, verdict text, score explanation,
+        // buyer banner and summary, generated-text line, DNA
+        // state/hash/verify result texts, export folder path) is not
+        // in this catalogue; only the page chrome is. The format
+        // headings (JSON, HTML, CSV, PDF) are format names and stay
+        // untranslated, like CPU and GPU.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("BERICHT", german[AppStringKeys.ReportEyebrow]);
+        Assert.Equal("Die Wahrheit exportieren", german[AppStringKeys.ReportTitle]);
+        Assert.Equal(
+            "Ein Datenmodell mit JSON-, HTML-, CSV- und PDF-Ausgaben. Alles wird auf diesem Rechner erzeugt.",
+            german[AppStringKeys.ReportIntro]);
+        Assert.Equal("Punktzahl", german[AppStringKeys.ReportScoreLabel]);
+        Assert.Equal("JSON exportieren", german[AppStringKeys.ReportExportJson]);
+        Assert.Equal("HTML exportieren", german[AppStringKeys.ReportExportHtml]);
+        Assert.Equal("CSV exportieren", german[AppStringKeys.ReportExportCsv]);
+        Assert.Equal("PDF exportieren", german[AppStringKeys.ReportExportPdf]);
+        Assert.Equal("Käuferzertifikat (PDF)", german[AppStringKeys.ReportExportCertificate]);
+        Assert.Equal("Dieses Gerät prüfen", german[AppStringKeys.ReportVerifyMachine]);
+        Assert.Equal("Geräte-DNA", german[AppStringKeys.ReportDnaTitle]);
+        Assert.Equal("Dieses Gerät wird geprüft, die Hardware wird erneut gescannt …", german[AppStringKeys.ReportVerifyingMachine]);
+        Assert.Equal("In einem der Scans nicht identifiziert:", german[AppStringKeys.ReportDnaUnidentifiedTitle]);
+        Assert.Equal(
+            "Die DNA ist Identität, nicht Gesundheit: Sie ändert niemals die Punktzahl oder das Urteil oben. Sie bestätigt nur, zu welchem Gerät die Punktzahl gehört. Ein Scan als Standardbenutzer ohne erhöhte Rechte prüft trotzdem, aber Teile, die erhöhte Rechte zum Lesen brauchen, können als nicht identifiziert statt als übereinstimmend angezeigt werden.",
+            german[AppStringKeys.ReportDnaNote]);
+        Assert.Equal("Maschinenlesbare Daten für Skripte und Support.", german[AppStringKeys.ReportFormatJsonDescription]);
+        Assert.Equal("Eine übersichtliche Seite, die Sie in jedem Browser öffnen können.", german[AppStringKeys.ReportFormatHtmlDescription]);
+        Assert.Equal("Eine Tabelle mit allen Spezifikationen, sicher in Excel zu öffnen. Werte, die wie Formeln aussehen, werden neutralisiert.", german[AppStringKeys.ReportFormatCsvDescription]);
+        Assert.Equal("Ein ausdruckbarer Bericht für den Verkäufer oder zum Aufbewahren beim Kaufbeleg. Auf diesem Rechner erstellt, keine zusätzliche Software.", german[AppStringKeys.ReportFormatPdfDescription]);
+        Assert.Equal("Verfügbar", german[AppStringKeys.ReportFormatAvailable]);
+        Assert.Equal("Berichtsvorschau", german[AppStringKeys.ReportPreviewTitle]);
+        Assert.Equal("Berichtsexporte werden in den oben angezeigten Ordner geschrieben. Kein Hochladen, keine Cloud.", german[AppStringKeys.ReportFooterNote]);
+        Assert.Equal(
+            "Exportierte Berichte enthalten die Hardware-Seriennummern, MAC-Adressen, IP-Adressen und WLAN-Namen dieses Geräts. Teilen Sie sie nur mit Personen, denen Sie vertrauen.",
+            german[AppStringKeys.ReportExportPrivacyNote]);
+    }
+
+    [Fact]
+    public void GermanPack_TestsPageTerms()
+    {
+        // Localisation, phase 8 (v2.1.16): the Tests page — the
+        // headings, the intro, the info note, the benchmark scope note,
+        // the per-test status words, result lines and Run button
+        // labels, and the load-test card (heading, intro, battery note,
+        // duration label, Start/Cancel, fan-health heading and note,
+        // temperature caption, the two warning templates, the fixed
+        // status words and the fixed live-line states). Same pinning
+        // rule as the Report terms above: changing one is a deliberate
+        // translation decision, not a typo fix. The data the page shows
+        // (per-test names and workload descriptions, measured result
+        // summaries and details, load-test measured results, verdict
+        // text and live values) is not in this catalogue; only the
+        // page chrome is. The load test reuses the test-item status
+        // keys ("Not run yet.", "Running...", "Test failed", the
+        // no-result template) instead of a second copy of the same
+        // words.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("TESTS", german[AppStringKeys.TestsEyebrow]);
+        Assert.Equal("Eingebaute Tests", german[AppStringKeys.TestsTitle]);
+        Assert.Equal("Jeweils ein Klick. Keine versteckten Uploads, kein Konto, und nichts läuft, ohne dass Sie es starten.", german[AppStringKeys.TestsIntro]);
+        Assert.Equal("CPU- und Datenträgertests führen echte lokale Messungen durch. Tests, die nicht umgesetzt sind, bleiben deaktiviert und zeigen kein Ergebnis.", german[AppStringKeys.TestsInfoNote]);
+        Assert.Equal(
+            "Diese Benchmarks messen nur dieses Gerät, mit der genauen Arbeitslast, die bei jedem Ergebnis angegeben ist. Sie ersetzen weder Geekbench (plattformübergreifender Vergleich) noch 3DMark (GPU-Rendering). Ein Ergebnis, das entstand, während ein anderes Programm die CPU nutzte, sagt dies auf dem Ergebnis selbst.",
+            german[AppStringKeys.TestsBenchmarkScopeNote]);
+        Assert.Equal("In dieser Version nicht verfügbar", german[AppStringKeys.TestsItemNotAvailable]);
+        Assert.Equal("Bereit", german[AppStringKeys.TestsItemReady]);
+        Assert.Equal("Läuft …", german[AppStringKeys.TestsItemRunning]);
+        Assert.Equal("Test fehlgeschlagen", german[AppStringKeys.TestsItemFailed]);
+        Assert.Equal("Noch nicht ausgeführt.", german[AppStringKeys.TestsItemNotRunYet]);
+        Assert.Equal("Dieser Test ist noch nicht umgesetzt, daher wird kein Ergebnis angezeigt.", german[AppStringKeys.TestsItemNotImplementedResult]);
+        Assert.Equal("Wird lokal gemessen. Nichts wird hochgeladen.", german[AppStringKeys.TestsItemMeasuring]);
+        Assert.Equal("Es wird kein Ergebnis angezeigt, weil der Test nicht abgeschlossen wurde: {0}", german[AppStringKeys.TestsItemNoResult]);
+        Assert.Equal("Test starten", german[AppStringKeys.TestsItemRun]);
+        Assert.Equal("Läuft …", german[AppStringKeys.TestsItemRunningButton]);
+        Assert.Equal("Nicht verfügbar", german[AppStringKeys.TestsItemNotAvailableButton]);
+        Assert.Equal("Belastungstest", german[AppStringKeys.LoadTestTitle]);
+        Assert.Equal("Belastet die CPU auf allen Kernen, beansprucht Arbeitsspeicher und Datenträger und beobachtet jede Sekunde Temperatur und Takt.", german[AppStringKeys.LoadTestIntro]);
+        Assert.Equal("Dieses Gerät läuft auf Akku; die Ergebnisse können leistungsbegrenzt sein.", german[AppStringKeys.LoadTestBatteryNote]);
+        Assert.Equal("Dauer (Sekunden):", german[AppStringKeys.LoadTestDurationLabel]);
+        Assert.Equal("Belastungstest starten", german[AppStringKeys.LoadTestStart]);
+        Assert.Equal("Abbrechen", german[AppStringKeys.LoadTestCancel]);
+        Assert.Equal("Lüfterzustand", german[AppStringKeys.LoadTestFanHealthTitle]);
+        Assert.Equal("TrueSpec meldet nur den Lüfterzustand; es steuert niemals Lüfter.", german[AppStringKeys.LoadTestFanHealthNote]);
+        Assert.Equal("Temperatur während des Tests (°C). Eine Lücke in der Linie bedeutet, dass der Sensor in dieser Sekunde nichts gemeldet hat.", german[AppStringKeys.LoadTestTemperatureCaption]);
+        Assert.Equal("Dadurch wird Ihre CPU {0} Sekunden lang belastet. Der Test stoppt automatisch, wenn die Temperatur {1} °C übersteigt.", german[AppStringKeys.LoadTestWarning]);
+        Assert.Equal("Ein {0}-Sekunden-Test ist eine Funktionsprüfung, kein Dauerbelastungszertifikat.", german[AppStringKeys.LoadTestFunctionalCheck]);
+        Assert.Equal("Automatisch gestoppt: Temperaturgrenze erreicht.", german[AppStringKeys.LoadTestStoppedTemperature]);
+        Assert.Equal("Gestoppt: Die Sensoren melden nichts mehr.", german[AppStringKeys.LoadTestStoppedSensorLost]);
+        Assert.Equal("Abgebrochen.", german[AppStringKeys.LoadTestCancelled]);
+        Assert.Equal("Belastungstest abgeschlossen.", german[AppStringKeys.LoadTestComplete]);
+        Assert.Equal("Temperatur: läuft nicht", german[AppStringKeys.LoadTestTempNotRunning]);
+        Assert.Equal("Temperatur: wird gemessen …", german[AppStringKeys.LoadTestTempMeasuring]);
+        Assert.Equal("Temperatur: Test beendet", german[AppStringKeys.LoadTestTempFinished]);
+        Assert.Equal("Temperatur: von der Hardware nicht gemeldet", german[AppStringKeys.LoadTestTempNotReported]);
+        Assert.Equal("Takt: läuft nicht", german[AppStringKeys.LoadTestClockNotRunning]);
+        Assert.Equal("Takt: wird gemessen …", german[AppStringKeys.LoadTestClockMeasuring]);
+        Assert.Equal("Takt: Test beendet", german[AppStringKeys.LoadTestClockFinished]);
+        Assert.Equal("Takt: von der Hardware nicht gemeldet", german[AppStringKeys.LoadTestClockNotReported]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "Dadurch wird Ihre CPU 60 Sekunden lang belastet. Der Test stoppt automatisch, wenn die Temperatur 95 °C übersteigt.",
+            StringLocalizer.GetFormatted(AppStringKeys.LoadTestWarning, "de", "60", "95"));
+        Assert.Equal(
+            "Ein 60-Sekunden-Test ist eine Funktionsprüfung, kein Dauerbelastungszertifikat.",
+            StringLocalizer.GetFormatted(AppStringKeys.LoadTestFunctionalCheck, "de", "60"));
+        Assert.Equal(
+            "Es wird kein Ergebnis angezeigt, weil der Test nicht abgeschlossen wurde: disk vanished",
+            StringLocalizer.GetFormatted(AppStringKeys.TestsItemNoResult, "de", "disk vanished"));
+    }
+
+    [Fact]
     public void GermanPack_CoreDiagnosticStrings()
     {
         // Localisation, phase 3 (v2.1.9): the Core diagnostic strings

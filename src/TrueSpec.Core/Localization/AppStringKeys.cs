@@ -439,6 +439,88 @@ public static class AppStringKeys
     public const string HistoryValueNoVerdictNoPrice = "HistoryValueNoVerdictNoPrice";
     public const string HistoryValueNoVerdictMissing = "HistoryValueNoVerdictMissing";
 
+    // Localisation, phase 8 (v2.1.16): Report and Tests pages — the
+    // page chrome only. The data the pages show stays English in this
+    // version: machine names, the verdict text, the score explanation,
+    // the buyer banner and summary, the generated-text line, the DNA
+    // state/hash/verify result texts, the export folder path, the
+    // per-test names and workload descriptions, the measured results
+    // (peak temperature, average clock, rated max, held %), the
+    // fan-health summary/lines/findings, the load-test verdict text
+    // and the live temperature/clock/elapsed values. Fixed status
+    // words DO go in, including the load test's fixed live-line states
+    // ("Temperature: not running", "Clock: measuring...") — the
+    // measured line itself ("Temperature: 72.3 C") stays English.
+    // The load test reuses the test-item status keys ("Not run yet.",
+    // "Running...", "Test failed", the no-result template) instead of
+    // a second copy of the same words, the same reuse rule the
+    // History range labels follow. Templates carry the dynamic values
+    // ({0} = a duration, a temperature or an exception message),
+    // formatted with the invariant culture by
+    // StringLocalizer.GetFormatted, so a number inside a German
+    // sentence keeps the app's existing formatting.
+    public const string ReportEyebrow = "ReportEyebrow";
+    public const string ReportTitle = "ReportTitle";
+    public const string ReportIntro = "ReportIntro";
+    public const string ReportScoreLabel = "ReportScoreLabel";
+    public const string ReportExportJson = "ReportExportJson";
+    public const string ReportExportHtml = "ReportExportHtml";
+    public const string ReportExportCsv = "ReportExportCsv";
+    public const string ReportExportPdf = "ReportExportPdf";
+    public const string ReportExportCertificate = "ReportExportCertificate";
+    public const string ReportVerifyMachine = "ReportVerifyMachine";
+    public const string ReportDnaTitle = "ReportDnaTitle";
+    public const string ReportVerifyingMachine = "ReportVerifyingMachine";
+    public const string ReportDnaUnidentifiedTitle = "ReportDnaUnidentifiedTitle";
+    public const string ReportDnaNote = "ReportDnaNote";
+    public const string ReportFormatJsonDescription = "ReportFormatJsonDescription";
+    public const string ReportFormatHtmlDescription = "ReportFormatHtmlDescription";
+    public const string ReportFormatCsvDescription = "ReportFormatCsvDescription";
+    public const string ReportFormatPdfDescription = "ReportFormatPdfDescription";
+    public const string ReportFormatAvailable = "ReportFormatAvailable";
+    public const string ReportPreviewTitle = "ReportPreviewTitle";
+    public const string ReportFooterNote = "ReportFooterNote";
+    public const string ReportExportPrivacyNote = "ReportExportPrivacyNote";
+    public const string TestsEyebrow = "TestsEyebrow";
+    public const string TestsTitle = "TestsTitle";
+    public const string TestsIntro = "TestsIntro";
+    public const string TestsInfoNote = "TestsInfoNote";
+    public const string TestsBenchmarkScopeNote = "TestsBenchmarkScopeNote";
+    public const string TestsItemNotAvailable = "TestsItemNotAvailable";
+    public const string TestsItemReady = "TestsItemReady";
+    public const string TestsItemRunning = "TestsItemRunning";
+    public const string TestsItemFailed = "TestsItemFailed";
+    public const string TestsItemNotRunYet = "TestsItemNotRunYet";
+    public const string TestsItemNotImplementedResult = "TestsItemNotImplementedResult";
+    public const string TestsItemMeasuring = "TestsItemMeasuring";
+    public const string TestsItemNoResult = "TestsItemNoResult";
+    public const string TestsItemRun = "TestsItemRun";
+    public const string TestsItemRunningButton = "TestsItemRunningButton";
+    public const string TestsItemNotAvailableButton = "TestsItemNotAvailableButton";
+    public const string LoadTestTitle = "LoadTestTitle";
+    public const string LoadTestIntro = "LoadTestIntro";
+    public const string LoadTestBatteryNote = "LoadTestBatteryNote";
+    public const string LoadTestDurationLabel = "LoadTestDurationLabel";
+    public const string LoadTestStart = "LoadTestStart";
+    public const string LoadTestCancel = "LoadTestCancel";
+    public const string LoadTestFanHealthTitle = "LoadTestFanHealthTitle";
+    public const string LoadTestFanHealthNote = "LoadTestFanHealthNote";
+    public const string LoadTestTemperatureCaption = "LoadTestTemperatureCaption";
+    public const string LoadTestWarning = "LoadTestWarning";
+    public const string LoadTestFunctionalCheck = "LoadTestFunctionalCheck";
+    public const string LoadTestStoppedTemperature = "LoadTestStoppedTemperature";
+    public const string LoadTestStoppedSensorLost = "LoadTestStoppedSensorLost";
+    public const string LoadTestCancelled = "LoadTestCancelled";
+    public const string LoadTestComplete = "LoadTestComplete";
+    public const string LoadTestTempNotRunning = "LoadTestTempNotRunning";
+    public const string LoadTestTempMeasuring = "LoadTestTempMeasuring";
+    public const string LoadTestTempFinished = "LoadTestTempFinished";
+    public const string LoadTestTempNotReported = "LoadTestTempNotReported";
+    public const string LoadTestClockNotRunning = "LoadTestClockNotRunning";
+    public const string LoadTestClockMeasuring = "LoadTestClockMeasuring";
+    public const string LoadTestClockFinished = "LoadTestClockFinished";
+    public const string LoadTestClockNotReported = "LoadTestClockNotReported";
+
     /// <summary>Every key in the catalogue, in the order above.</summary>
     public static IReadOnlyList<string> All { get; } = new[]
     {
@@ -757,5 +839,66 @@ public static class AppStringKeys
         HistoryValueNoVerdictNoScore,
         HistoryValueNoVerdictNoPrice,
         HistoryValueNoVerdictMissing,
+        ReportEyebrow,
+        ReportTitle,
+        ReportIntro,
+        ReportScoreLabel,
+        ReportExportJson,
+        ReportExportHtml,
+        ReportExportCsv,
+        ReportExportPdf,
+        ReportExportCertificate,
+        ReportVerifyMachine,
+        ReportDnaTitle,
+        ReportVerifyingMachine,
+        ReportDnaUnidentifiedTitle,
+        ReportDnaNote,
+        ReportFormatJsonDescription,
+        ReportFormatHtmlDescription,
+        ReportFormatCsvDescription,
+        ReportFormatPdfDescription,
+        ReportFormatAvailable,
+        ReportPreviewTitle,
+        ReportFooterNote,
+        ReportExportPrivacyNote,
+        TestsEyebrow,
+        TestsTitle,
+        TestsIntro,
+        TestsInfoNote,
+        TestsBenchmarkScopeNote,
+        TestsItemNotAvailable,
+        TestsItemReady,
+        TestsItemRunning,
+        TestsItemFailed,
+        TestsItemNotRunYet,
+        TestsItemNotImplementedResult,
+        TestsItemMeasuring,
+        TestsItemNoResult,
+        TestsItemRun,
+        TestsItemRunningButton,
+        TestsItemNotAvailableButton,
+        LoadTestTitle,
+        LoadTestIntro,
+        LoadTestBatteryNote,
+        LoadTestDurationLabel,
+        LoadTestStart,
+        LoadTestCancel,
+        LoadTestFanHealthTitle,
+        LoadTestFanHealthNote,
+        LoadTestTemperatureCaption,
+        LoadTestWarning,
+        LoadTestFunctionalCheck,
+        LoadTestStoppedTemperature,
+        LoadTestStoppedSensorLost,
+        LoadTestCancelled,
+        LoadTestComplete,
+        LoadTestTempNotRunning,
+        LoadTestTempMeasuring,
+        LoadTestTempFinished,
+        LoadTestTempNotReported,
+        LoadTestClockNotRunning,
+        LoadTestClockMeasuring,
+        LoadTestClockFinished,
+        LoadTestClockNotReported,
     };
 }
