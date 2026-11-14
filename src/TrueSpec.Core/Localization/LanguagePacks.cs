@@ -13,9 +13,12 @@ namespace TrueSpec.Core.Localization;
 /// French is the second additional language (v2.1.20, phase 1): the
 /// navigation rail and the Settings language card, the same first
 /// surface German phase 1 translated; v2.1.21 adds the whole Settings
-/// page (phase 2), the same second surface German phase 2 translated.
-/// The other pages stay English in French until later versions add
-/// them, and the French language card says so. The French wording is
+/// page (phase 2), the same second surface German phase 2 translated;
+/// v2.1.22 adds the Core diagnostic strings (phase 3), the same third
+/// surface German phase 3 translated; v2.1.23 adds the shared
+/// component detail view (phase 4), the same fourth surface German
+/// phase 4 translated. The other pages stay English in French until
+/// later versions add them, and the French language card says so. The
 /// the worker's own translation,
 /// not reviewed by a native speaker (the same honest limitation as
 /// the German wording). The translations use the standard terms
@@ -1133,7 +1136,7 @@ public static class LanguagePacks
             [AppStringKeys.NavSettings] = "Paramètres",
             [AppStringKeys.LanguageTitle] = "Langue",
             [AppStringKeys.LanguageDescription] = "Choisissez la langue de la barre de navigation. La langue s'applique immédiatement.",
-            [AppStringKeys.LanguageNote] = "La barre de navigation et la page Paramètres sont traduites. Les autres pages suivront dans les versions ultérieures.",
+            [AppStringKeys.LanguageNote] = "La barre de navigation, la page Paramètres et les pages de détail des composants sont traduites. Les autres pages suivront dans les versions ultérieures.",
             [AppStringKeys.SettingsEyebrow] = "PARAMÈTRES",
             [AppStringKeys.SettingsTitle] = "Paramètres",
             [AppStringKeys.SettingsIntro] = "Des réglages simples et honnêtes. Chaque modification est enregistrée immédiatement et s'applique tout de suite. Rien n'est envoyé sur le réseau.",

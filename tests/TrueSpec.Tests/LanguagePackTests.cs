@@ -80,9 +80,9 @@ public sealed class LanguagePackTests
         // deliberate translation decision, not a typo fix. The French
         // wording is the worker's own translation, not reviewed by a
         // native speaker (the same honest limitation as the German
-        // wording). The language card says the rail and the Settings
-        // page are translated and the other pages follow in later
-        // versions (phase 2, v2.1.21).
+        // wording). The language card says the rail, the Settings page
+        // and the component detail pages are translated and the other
+        // pages follow in later versions (phase 4, v2.1.23).
         var french = LanguagePacks.French.Strings;
         Assert.Equal("Vue d'ensemble", french[AppStringKeys.NavOverview]);
         Assert.Equal("Stockage", french[AppStringKeys.NavStorage]);
@@ -99,7 +99,7 @@ public sealed class LanguagePackTests
         Assert.Equal("Paramètres", french[AppStringKeys.NavSettings]);
         Assert.Equal("Langue", french[AppStringKeys.LanguageTitle]);
         Assert.Equal(
-            "La barre de navigation et la page Paramètres sont traduites. Les autres pages suivront dans les versions ultérieures.",
+            "La barre de navigation, la page Paramètres et les pages de détail des composants sont traduites. Les autres pages suivront dans les versions ultérieures.",
             french[AppStringKeys.LanguageNote]);
     }
 
@@ -179,6 +179,43 @@ public sealed class LanguagePackTests
             "Nicht vertrauenswürdig: Eine andere Prüfung hat bewiesen, dass dieses Datum unmöglich ist.",
             german[AppStringKeys.DetailSignalUntrusted]);
         Assert.Equal(" (geschätzt)", german[AppStringKeys.DetailEstimateSuffix]);
+    }
+
+    [Fact]
+    public void FrenchPack_DetailPageTerms()
+    {
+        // Localisation, phase 4, French (v2.1.23): the shared component
+        // detail view — one surface, all 15 component pages. Same
+        // pinning rule as the German phase 4 terms: changing one is a
+        // deliberate translation decision, not a typo fix. The data the
+        // page shows (names, headlines, spec labels and values) is not
+        // in this catalogue; only the page chrome is. No new keys — the
+        // French pack already covers the whole 523-key catalogue.
+        var french = LanguagePacks.French.Strings;
+        Assert.Equal("Caractéristiques", french[AppStringKeys.DetailSpecificationsTitle]);
+        Assert.Equal("Rechercher dans les caractéristiques", french[AppStringKeys.DetailSearchPlaceholder]);
+        Assert.Equal(
+            "Cliquez sur une valeur pour la copier. Survolez une valeur ou un nom de source pour voir d'où provient la mesure.",
+            french[AppStringKeys.DetailCopyHint]);
+        Assert.Equal("Signaux d'âge", french[AppStringKeys.DetailAgeSignalsTitle]);
+        Assert.Equal(
+            "Les chiffres bruts derrière le verdict d'authenticité. Chaque signal indique où il a été lu.",
+            french[AppStringKeys.DetailAgeSignalsIntro]);
+        Assert.Equal("Ce que cela signifie", french[AppStringKeys.DetailWhatThisMeansTitle]);
+        Assert.Equal("Non collecté", french[AppStringKeys.DetailNotCollectedHeadline]);
+        Assert.Equal("Ce composant n'a pas encore été collecté.", french[AppStringKeys.DetailNotCollectedText]);
+        Assert.Equal("Mesure enregistrée le {0}", french[AppStringKeys.DetailCaptured]);
+        Assert.Equal("Aucune caractéristique n'a été collectée pour ce composant.", french[AppStringKeys.DetailNoSpecs]);
+        Assert.Equal(
+            "Aucune caractéristique ne correspond à « {0} ». Effacez la recherche pour toutes les voir.",
+            french[AppStringKeys.DetailNoSpecsMatch]);
+        Assert.Equal(
+            "{0} contrôle(s) d'authenticité n'ont pas pu être exécutés car un signal n'a pas été signalé.",
+            french[AppStringKeys.DetailAgeSignalsSkipped]);
+        Assert.Equal(
+            "Non fiable : un autre contrôle a prouvé que cette date est impossible.",
+            french[AppStringKeys.DetailSignalUntrusted]);
+        Assert.Equal(" (ESTIMATION)", french[AppStringKeys.DetailEstimateSuffix]);
     }
 
     [Fact]
