@@ -92,12 +92,14 @@ public sealed class GpuCollector : ICollector
         // the dataset version as their source. They never replace the
         // measured dedicated memory above or the live GPU clock below,
         // and a model the dataset does not list gets no rated specs at
-        // all. The memory figure is absent when the device name cannot
-        // distinguish memory variants of one model (the dataset carries
-        // no memory figure for those); the boost clock and board power
-        // are the same for both variants, so they are still shown. For
-        // laptop GPUs the board power is the maximum of the published
-        // TGP range, so it is a ceiling, not the power this laptop draws.
+        // all. A figure is shown only when the dataset carries a single
+        // value for this device name: the memory figure is absent when
+        // the name cannot distinguish memory variants of one model (the
+        // RTX 3060 12 GB / 8 GB), and the board-power figure is absent
+        // when the name cannot distinguish power variants either (the
+        // RX 9060 XT 8 GB / 150 W and 16 GB / 160 W). For laptop GPUs
+        // the board power is the maximum of the published TGP range, so
+        // it is a ceiling, not the power this laptop draws.
         if (_hardwareDatabase is not null && _hardwareDatabase.TryGetGpu(adapter.String("Name"), out var rated))
         {
             var source = string.Create(CultureInfo.InvariantCulture, $"Bundled hardware database v{_hardwareDatabase.Version} ({_hardwareDatabase.Updated})");
@@ -120,12 +122,15 @@ public sealed class GpuCollector : ICollector
                     numericValue: (double)memoryGb,
                     numericUnit: "GB"));
             }
-            specs.Add(CollectorSupport.Spec(
-                SpecLabels.RatedBoardPower,
-                string.Create(CultureInfo.InvariantCulture, $"{rated.TdpW} W"),
-                source,
-                numericValue: (double)rated.TdpW,
-                numericUnit: "W"));
+            if (rated.TdpW is { } tdpW)
+            {
+                specs.Add(CollectorSupport.Spec(
+                    SpecLabels.RatedBoardPower,
+                    string.Create(CultureInfo.InvariantCulture, $"{tdpW} W"),
+                    source,
+                    numericValue: (double)tdpW,
+                    numericUnit: "W"));
+            }
         }
 
         specs.AddRange(new[]

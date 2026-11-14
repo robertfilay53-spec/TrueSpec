@@ -122,6 +122,24 @@ public class GpuCollectorTests
         Assert.NotNull(Spec(snapshot, SpecLabels.RatedBoardPower));
     }
 
+    /// <summary>
+    /// A model with no single memory or board-power figure (RX 9060 XT
+    /// 8 GB / 150 W and 16 GB / 160 W) shows its rated boost clock and
+    /// nothing else: the collector must not crash on the missing power.
+    /// </summary>
+    [Fact]
+    public async Task GpuCollector_NullMemoryAndPowerShowsBoostOnly()
+    {
+        var database = new FixedHardwareDatabase(
+            new GpuSpec("TEST", "AMD", "Test GPU", 3.13, null, null, "TBP 150 W (8 GB) / 160 W (16 GB); no single figure for the shared device name", "https://example.invalid/test", "2026-11-14"));
+        var snapshot = await CollectWithDatabaseAsync(database);
+
+        Assert.NotNull(Spec(snapshot, SpecLabels.RatedBoostClock));
+        Assert.Equal("3.13 GHz", Spec(snapshot, SpecLabels.RatedBoostClock)!.Value);
+        Assert.Null(Spec(snapshot, SpecLabels.RatedMemory));
+        Assert.Null(Spec(snapshot, SpecLabels.RatedBoardPower));
+    }
+
     private static SpecValue? Spec(ComponentSnapshot snapshot, string label) =>
         snapshot.Specs.FirstOrDefault(s => string.Equals(s.Label, label, StringComparison.Ordinal));
 
