@@ -340,6 +340,60 @@ public class PortableModeTests
     }
 
     [Fact]
+    public void FrenchLanguage_ReturnsFrenchMessages()
+    {
+        // Localisation, phase 3, French (v2.1.22): the toggle takes a
+        // language code and its outcome message comes back in it —
+        // mirror of GermanLanguage_ReturnsGermanMessages. The default
+        // (no language) stays English, as the tests above pin.
+        var exeDir = TempExeDir();
+
+        try
+        {
+            var enabled = PortableMode.SetEnabled(exeDir, enable: true, environmentValue: null, languageCode: "fr");
+            Assert.True(enabled.Success);
+            Assert.True(enabled.IsPortable);
+            Assert.Equal("Le mode portable est activé. Redémarrez TrueSpec : à partir de là, les paramètres, l'historique et le journal des capteurs sont conservés à côté de l'application au lieu du dossier par défaut. Les scans déjà enregistrés restent dans l'ancien dossier.", enabled.Message);
+
+            var alreadyOn = PortableMode.SetEnabled(exeDir, enable: true, environmentValue: null, languageCode: "fr");
+            Assert.True(alreadyOn.Success);
+            Assert.Equal("Le mode portable est déjà activé. Redémarrez TrueSpec pour qu'il prenne effet.", alreadyOn.Message);
+
+            var disabled = PortableMode.SetEnabled(exeDir, enable: false, environmentValue: null, languageCode: "fr");
+            Assert.True(disabled.Success);
+            Assert.False(disabled.IsPortable);
+            Assert.Equal("Le mode portable est désactivé. Redémarrez TrueSpec : à partir de là, les données sont conservées dans le dossier par défaut. Les scans déjà enregistrés à côté de l'application restent là.", disabled.Message);
+
+            var alreadyOff = PortableMode.SetEnabled(exeDir, enable: false, environmentValue: null, languageCode: "fr");
+            Assert.True(alreadyOff.Success);
+            Assert.Equal("Le mode portable est déjà désactivé.", alreadyOff.Message);
+        }
+        finally
+        {
+            Directory.Delete(exeDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void FrenchLanguage_NoMarkerButEnvVar_NamesEnvVarInFrench()
+    {
+        var exeDir = TempExeDir();
+
+        try
+        {
+            var result = PortableMode.SetEnabled(exeDir, enable: false, environmentValue: "yes", languageCode: "fr");
+
+            Assert.True(result.Success);
+            Assert.True(result.IsPortable);
+            Assert.Equal("Il n'y a aucun fichier marqueur à supprimer : le mode portable est activé via la variable d'environnement TRUESPEC_PORTABLE. Désactivez la variable pour le désactiver.", result.Message);
+        }
+        finally
+        {
+            Directory.Delete(exeDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void UnknownLanguage_FallsBackToEnglishMessage()
     {
         var exeDir = TempExeDir();
@@ -372,6 +426,9 @@ public class PortableModeTests
             Assert.Contains("Restart", result.Message, StringComparison.Ordinal);
             var german = result with { LanguageCode = "de" };
             Assert.Equal("Der tragbare Modus ist an. Starten Sie TrueSpec neu: Von da an werden Einstellungen, Verlauf und Sensorprotokoll neben der App gespeichert statt im Standardordner. Bereits gespeicherte Scans bleiben im alten Ordner.", german.Message);
+            // A `with` copy in French reads French too (v2.1.22).
+            var french = result with { LanguageCode = "fr" };
+            Assert.Equal("Le mode portable est activé. Redémarrez TrueSpec : à partir de là, les paramètres, l'historique et le journal des capteurs sont conservés à côté de l'application au lieu du dossier par défaut. Les scans déjà enregistrés restent dans l'ancien dossier.", french.Message);
             // The original is untouched: a `with` copy never mutates.
             Assert.Contains("Restart", result.Message, StringComparison.Ordinal);
         }
