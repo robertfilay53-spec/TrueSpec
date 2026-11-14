@@ -23,6 +23,18 @@ public sealed class HardwareDatabaseTests
         }
         """;
 
+    private const string TwoGpuEntryJson = """
+        {
+          "dataset_version": "9.9.9",
+          "updated": "2026-11-14",
+          "license": "CC0-1.0",
+          "gpus": [
+            {"model": "RTX 4060 LAPTOP", "vendor": "NVIDIA", "display_name": "GeForce RTX 4060 Laptop GPU", "boost_ghz": 2.37, "memory_gb": 8, "tdp_w": 115, "tdp_note": "TGP range 35-115 W; figure is the maximum", "source_url": "https://example.invalid/nvidia/4060-laptop", "retrieved": "2026-11-14"},
+            {"model": "RX 7900 XTX", "vendor": "AMD", "display_name": "AMD Radeon RX 7900 XTX", "boost_ghz": 2.5, "memory_gb": 24, "tdp_w": 355, "tdp_note": null, "source_url": "https://example.invalid/amd/7900-xtx", "retrieved": "2026-11-14"}
+          ]
+        }
+        """;
+
     [Theory]
     [InlineData("Intel(R) Core(TM) i7-12700H", "I7-12700H")]
     [InlineData("i7-12700H", "I7-12700H")]
@@ -81,7 +93,9 @@ public sealed class HardwareDatabaseTests
 
         Assert.Equal("0.0.0", database.Version);
         Assert.Equal(0, database.CpuCount);
+        Assert.Equal(0, database.GpuCount);
         Assert.False(database.TryGetCpu("I7-12700H", out _));
+        Assert.False(database.TryGetGpu("RTX 4060 LAPTOP", out _));
     }
 
     [Fact]
@@ -150,9 +164,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.0.0", database.Version);
+        Assert.Equal("1.1.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
         Assert.Equal(74, database.CpuCount);
+        Assert.Equal(53, database.GpuCount);
     }
 
     [Fact]
@@ -173,5 +188,185 @@ public sealed class HardwareDatabaseTests
         // Turbo Boost, so no boost figure exists at all.
         Assert.False(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i7-12700H", out _));
         Assert.False(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i3-8100", out _));
+    }
+
+    [Theory]
+    [InlineData("NVIDIA GeForce RTX 4060 Laptop GPU", "RTX 4060 LAPTOP")]
+    [InlineData("NVIDIA GeForce RTX 4060", "RTX 4060")]
+    [InlineData("NVIDIA GeForce GTX 1060 6GB", "GTX 1060 6GB")]
+    [InlineData("NVIDIA GeForce RTX 3050 6GB Laptop GPU", "RTX 3050 6GB LAPTOP")]
+    [InlineData("AMD Radeon RX 7800 XT", "RX 7800 XT")]
+    [InlineData("AMD Radeon(TM) RX 6600", "RX 6600")]
+    [InlineData("Intel(R) Arc(TM) A750 Graphics", "ARC A750")]
+    [InlineData("nvidia geforce rtx 4060 laptop gpu", "RTX 4060 LAPTOP")]
+    [InlineData(null, "")]
+    [InlineData("", "")]
+    [InlineData("   ", "")]
+    public void NormalizeGpuModel_StripsBrandAndTrademarkMarkers(string? input, string expected)
+    {
+        Assert.Equal(expected, HardwareDatabase.NormalizeGpuModel(input));
+    }
+
+    [Fact]
+    public void NormalizeGpuModel_KeepsLaptopDesktopAndMemoryVariantsApart()
+    {
+        // The family and the variant are part of the key: a laptop card
+        // and its desktop namesake, and two memory variants of one card,
+        // must never collide.
+        Assert.NotEqual(
+            HardwareDatabase.NormalizeGpuModel("NVIDIA GeForce RTX 4060 Laptop GPU"),
+            HardwareDatabase.NormalizeGpuModel("NVIDIA GeForce RTX 4060"));
+        Assert.NotEqual(
+            HardwareDatabase.NormalizeGpuModel("NVIDIA GeForce GTX 1060 6GB"),
+            HardwareDatabase.NormalizeGpuModel("NVIDIA GeForce GTX 1060 3GB"));
+    }
+
+    [Fact]
+    public void LoadFromJson_LooksUpGpusByWin32Name()
+    {
+        var database = HardwareDatabase.LoadFromJson(TwoGpuEntryJson);
+
+        Assert.Equal("9.9.9", database.Version);
+        Assert.Equal(2, database.GpuCount);
+
+        Assert.True(database.TryGetGpu("NVIDIA GeForce RTX 4060 Laptop GPU", out var laptop));
+        Assert.Equal("NVIDIA", laptop.Vendor);
+        Assert.Equal(2.37, laptop.BoostGhz);
+        Assert.Equal(8, laptop.MemoryGb);
+        Assert.Equal(115, laptop.TdpW);
+        Assert.Equal("TGP range 35-115 W; figure is the maximum", laptop.TdpNote);
+
+        Assert.True(database.TryGetGpu("AMD Radeon RX 7900 XTX", out var desktop));
+        Assert.Equal("AMD", desktop.Vendor);
+        Assert.Equal(2.5, desktop.BoostGhz);
+        Assert.Equal(24, desktop.MemoryGb);
+        Assert.Equal(355, desktop.TdpW);
+        Assert.Null(desktop.TdpNote);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("NVIDIA GeForce RTX 4060 Ti")]
+    [InlineData("AMD Radeon RX 6600M")]
+    [InlineData("Intel(R) Arc(TM) A750 Graphics")]
+    public void TryGetGpu_UnknownModelMatchesNothing(string? modelName)
+    {
+        var database = HardwareDatabase.LoadFromJson(TwoGpuEntryJson);
+
+        Assert.False(database.TryGetGpu(modelName, out _));
+    }
+
+    [Fact]
+    public void LoadFromJson_InvalidGpuEntriesAreSkippedNotFatal()
+    {
+        const string json = """
+            {
+              "dataset_version": "1.0.0",
+              "updated": "2026-11-14",
+              "gpus": [
+                {"model": "RTX 4060", "vendor": "NVIDIA", "display_name": "GeForce RTX 4060", "boost_ghz": 2.46, "memory_gb": 8, "tdp_w": 115, "tdp_note": null, "source_url": "https://example.invalid/a", "retrieved": "2026-11-14"},
+                {"model": "RTX 4070", "vendor": "NVIDIA", "display_name": "GeForce RTX 4070", "boost_ghz": 0, "memory_gb": 12, "tdp_w": 200, "tdp_note": null, "source_url": "https://example.invalid/b", "retrieved": "2026-11-14"},
+                {"model": "RTX 4080", "vendor": "NVIDIA", "display_name": "GeForce RTX 4080", "boost_ghz": 2.51, "memory_gb": 16, "tdp_w": 0, "tdp_note": null, "source_url": "https://example.invalid/c", "retrieved": "2026-11-14"},
+                {"model": "RTX 4090", "vendor": "NVIDIA", "display_name": "GeForce RTX 4090", "boost_ghz": 2.52, "memory_gb": 0, "tdp_w": 450, "tdp_note": null, "source_url": "https://example.invalid/d", "retrieved": "2026-11-14"},
+                {"model": "rtx 3060", "vendor": "NVIDIA", "display_name": "GeForce RTX 3060", "boost_ghz": 1.78, "memory_gb": 12, "tdp_w": 170, "tdp_note": null, "source_url": "https://example.invalid/e", "retrieved": "2026-11-14"},
+                {"model": "RTX 3070", "vendor": "NVIDIA", "display_name": "GeForce RTX 3070", "boost_ghz": 1.73, "memory_gb": 8, "tdp_w": 220, "tdp_note": null, "source_url": "", "retrieved": "2026-11-14"},
+                {"model": "GTX 1650", "vendor": "NVIDIA", "display_name": "GeForce GTX 1650", "boost_ghz": null, "memory_gb": 4, "tdp_w": 75, "tdp_note": null, "source_url": "https://example.invalid/f", "retrieved": "2026-11-14"}
+              ]
+            }
+            """;
+
+        var database = HardwareDatabase.LoadFromJson(json);
+
+        // Only the first entry and the last survive: a zero boost, a
+        // zero board power, a zero memory, an unnormalized key, and a
+        // missing source URL are all data bugs, skipped quietly. A null
+        // boost is not a bug: the GTX 1650's device name covers two
+        // variants with different boost clocks, so it carries no boost
+        // figure and still loads.
+        Assert.Equal(2, database.GpuCount);
+        Assert.True(database.TryGetGpu("RTX 4060", out _));
+        Assert.False(database.TryGetGpu("RTX 4070", out _));
+        Assert.False(database.TryGetGpu("RTX 4080", out _));
+        Assert.False(database.TryGetGpu("RTX 4090", out _));
+        Assert.False(database.TryGetGpu("RTX 3060", out _));
+        Assert.False(database.TryGetGpu("RTX 3070", out _));
+        Assert.True(database.TryGetGpu("GTX 1650", out var gtx));
+        Assert.Null(gtx.BoostGhz);
+        Assert.Equal(4, gtx.MemoryGb);
+        Assert.Equal(75, gtx.TdpW);
+    }
+
+    [Fact]
+    public void LoadFromJson_FirstGpuEntryWinsOnDuplicateKeys()
+    {
+        const string json = """
+            {
+              "dataset_version": "1.0.0",
+              "updated": "2026-11-14",
+              "gpus": [
+                {"model": "RTX 4060", "vendor": "NVIDIA", "display_name": "GeForce RTX 4060", "boost_ghz": 2.46, "memory_gb": 8, "tdp_w": 115, "tdp_note": null, "source_url": "https://example.invalid/first", "retrieved": "2026-11-14"},
+                {"model": "RTX 4060", "vendor": "NVIDIA", "display_name": "GeForce RTX 4060", "boost_ghz": 9.9, "memory_gb": 8, "tdp_w": 115, "tdp_note": null, "source_url": "https://example.invalid/second", "retrieved": "2026-11-14"}
+              ]
+            }
+            """;
+
+        var database = HardwareDatabase.LoadFromJson(json);
+
+        Assert.Equal(1, database.GpuCount);
+        Assert.True(database.TryGetGpu("RTX 4060", out var spec));
+        Assert.Equal(2.46, spec.BoostGhz);
+    }
+
+    [Fact]
+    public void Default_KnownGpuEntriesCarryTheVerifiedFigures()
+    {
+        // Laptop card: the boost is the upper end of NVIDIA's published
+        // range, the power is the maximum of the TGP range, and the range
+        // is recorded in the note.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 4060 Laptop GPU", out var laptop));
+        Assert.Equal(2.37, laptop.BoostGhz);
+        Assert.Equal(8, laptop.MemoryGb);
+        Assert.Equal(115, laptop.TdpW);
+        Assert.Equal("TGP range 35-115 W; figure is the maximum", laptop.TdpNote);
+        Assert.StartsWith("https://", laptop.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 7900 XTX", out var desktop));
+        Assert.Equal(2.5, desktop.BoostGhz);
+        Assert.Equal(24, desktop.MemoryGb);
+        Assert.Equal(355, desktop.TdpW);
+
+        // GTX 1650: no single boost figure exists for the shared device
+        // name (G5 1665 MHz, G6 1590 MHz), so the entry carries no boost
+        // and still shows its memory and power.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1650", out var gtx));
+        Assert.Null(gtx.BoostGhz);
+        Assert.Equal(4, gtx.MemoryGb);
+        Assert.Equal(75, gtx.TdpW);
+
+        // RTX 3060: no single memory figure exists for the shared device
+        // name (12 GB / 8 GB), so the entry carries no memory figure.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3060", out var rtx3060));
+        Assert.Equal(1.78, rtx3060.BoostGhz);
+        Assert.Null(rtx3060.MemoryGb);
+        Assert.Equal(170, rtx3060.TdpW);
+    }
+
+    [Fact]
+    public void Default_UnverifiableGpuModelsMatchNothing()
+    {
+        // RTX 4060 Ti and RTX 3080: the board power is split between
+        // variants with no mapping on the NVIDIA page. RTX 3050 desktop:
+        // boost, memory and power all differ between its 8 GB and 6 GB
+        // variants under one device name. AMD laptop GPUs: AMD publishes
+        // Game Frequency, not Boost Frequency, for them. Intel Arc: no
+        // manufacturer spec page could be located.
+        Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 4060 Ti", out _));
+        Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3080", out _));
+        Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3050", out _));
+        Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6600M", out _));
+        Assert.False(HardwareDatabase.Default.TryGetGpu("Intel(R) Arc(TM) A750 Graphics", out _));
+        Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2060 Laptop GPU", out _));
+        Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1070", out _));
     }
 }

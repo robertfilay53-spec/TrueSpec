@@ -4,20 +4,28 @@ using System.Globalization;
 using System.Numerics;
 using TrueSpec.Collectors.Windows.Wmi;
 using TrueSpec.Core.Collectors;
+using TrueSpec.Core.HardwareDatabase;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Sensors;
 
 /// <summary>
 /// Graphics adapter identity and driver from CIM, with real temperature, load,
-/// fan, power and clock sensors from LibreHardwareMonitor.
+/// fan, power and clock sensors from LibreHardwareMonitor. When the bundled
+/// hardware database is supplied, the rated boost clock, memory and board
+/// power from the dataset are shown as their own specs: spec-sheet figures,
+/// never measurements and never replacements for the live GPU clock or the
+/// measured dedicated memory. A model the dataset does not list gets no
+/// rated specs at all.
 /// </summary>
 public sealed class GpuCollector : ICollector
 {
     private readonly ISensorMonitor _sensors;
+    private readonly IHardwareDatabase? _hardwareDatabase;
 
-    public GpuCollector(ISensorMonitor sensors)
+    public GpuCollector(ISensorMonitor sensors, IHardwareDatabase? hardwareDatabase = null)
     {
         _sensors = sensors;
+        _hardwareDatabase = hardwareDatabase;
     }
 
     public string Id => "gpu";
@@ -77,6 +85,51 @@ public sealed class GpuCollector : ICollector
             CollectorSupport.Spec(SpecLabels.Model, adapter.String("Name"), "CIM Win32_VideoController"),
             CollectorSupport.Spec(SpecLabels.Vendor, adapter.String("AdapterCompatibility"), "CIM Win32_VideoController"),
             CollectorSupport.Spec(SpecLabels.DedicatedMemory, CollectorSupport.FormatBytesBinary(dedicatedMemory), "CIM Win32_VideoController.AdapterRAM", numericValue: (double?)dedicatedMemory, numericUnit: "bytes"),
+        };
+
+        // The rated specs from the bundled hardware database: spec-sheet
+        // figures for this exact model, shown under their own labels with
+        // the dataset version as their source. They never replace the
+        // measured dedicated memory above or the live GPU clock below,
+        // and a model the dataset does not list gets no rated specs at
+        // all. The memory figure is absent when the device name cannot
+        // distinguish memory variants of one model (the dataset carries
+        // no memory figure for those); the boost clock and board power
+        // are the same for both variants, so they are still shown. For
+        // laptop GPUs the board power is the maximum of the published
+        // TGP range, so it is a ceiling, not the power this laptop draws.
+        if (_hardwareDatabase is not null && _hardwareDatabase.TryGetGpu(adapter.String("Name"), out var rated))
+        {
+            var source = string.Create(CultureInfo.InvariantCulture, $"Bundled hardware database v{_hardwareDatabase.Version} ({_hardwareDatabase.Updated})");
+            if (rated.BoostGhz is { } boostGhz)
+            {
+                var boostMhz = (int)Math.Round(boostGhz * 1000, MidpointRounding.AwayFromZero);
+                specs.Add(CollectorSupport.Spec(
+                    SpecLabels.RatedBoostClock,
+                    FormatGhz(boostGhz),
+                    source,
+                    numericValue: (double)boostMhz,
+                    numericUnit: "MHz"));
+            }
+            if (rated.MemoryGb is { } memoryGb)
+            {
+                specs.Add(CollectorSupport.Spec(
+                    SpecLabels.RatedMemory,
+                    string.Create(CultureInfo.InvariantCulture, $"{memoryGb} GB"),
+                    source,
+                    numericValue: (double)memoryGb,
+                    numericUnit: "GB"));
+            }
+            specs.Add(CollectorSupport.Spec(
+                SpecLabels.RatedBoardPower,
+                string.Create(CultureInfo.InvariantCulture, $"{rated.TdpW} W"),
+                source,
+                numericValue: (double)rated.TdpW,
+                numericUnit: "W"));
+        }
+
+        specs.AddRange(new[]
+        {
             CollectorSupport.Spec(SpecLabels.DriverVersion, adapter.String("DriverVersion"), "CIM Win32_VideoController"),
             CollectorSupport.Spec(SpecLabels.DriverDate, adapter.DateText("DriverDate"), "CIM Win32_VideoController.DriverDate"),
             CollectorSupport.Spec(SpecLabels.GPUDriverAge, CollectorSupport.FormatDriverAge(adapter.DateText("DriverDate"), DateTimeOffset.UtcNow), "CIM Win32_VideoController.DriverDate"),
@@ -90,7 +143,7 @@ public sealed class GpuCollector : ICollector
             CollectorSupport.Spec(SpecLabels.GPUFan, FormatSensor(fan, "RPM", 0), "LibreHardwareMonitor", numericValue: fan is { HasValue: true } ? fan.Value : null, numericUnit: "RPM"),
             CollectorSupport.Spec(SpecLabels.GPUVoltage, FormatSensor(voltage, "V", 3), "LibreHardwareMonitor", numericValue: voltage is { HasValue: true } ? voltage.Value : null, numericUnit: "V"),
             CollectorSupport.Spec(SpecLabels.GPUClock, FormatSensor(clock, "MHz", 0), "LibreHardwareMonitor", numericValue: clock is { HasValue: true } ? clock.Value : null, numericUnit: "MHz"),
-        };
+        });
 
         for (var i = 1; i < adapters.Count; i++)
         {
@@ -195,6 +248,14 @@ public sealed class GpuCollector : ICollector
     }
 
     private static bool IsPowerOfTwo(ulong value) => value != 0 && (value & (value - 1)) == 0;
+
+    /// <summary>
+    /// A rated clock from the hardware database, always two decimals:
+    /// "2.37 GHz". The database only ever holds positive figures (the
+    /// loader rejects the rest), so no fallback is needed here.
+    /// </summary>
+    private static string FormatGhz(double ghz) =>
+        string.Create(CultureInfo.InvariantCulture, $"{ghz:0.00} GHz");
 
     private static string FormatSensor(SensorReading? reading, string unit, int decimals) =>
         reading is { HasValue: true }

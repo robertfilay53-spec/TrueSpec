@@ -158,6 +158,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         LanguageCode,
         HardwareDatabase.Default.Version,
         HardwareDatabase.Default.CpuCount,
+        HardwareDatabase.Default.GpuCount,
         HardwareDatabase.Default.Updated);
 
     /// <summary>Whether the CPU temperature alert is on. Off is the shipped default: no threshold implies a diagnosis.</summary>

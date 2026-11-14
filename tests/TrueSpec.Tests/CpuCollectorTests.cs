@@ -167,10 +167,18 @@ public class CpuCollectorTests
 
         public int CpuCount => 1;
 
+        public int GpuCount => 0;
+
         public bool TryGetCpu(string? modelName, out CpuSpec found)
         {
             found = spec;
             return true;
+        }
+
+        public bool TryGetGpu(string? modelName, out GpuSpec found)
+        {
+            found = null!;
+            return false;
         }
     }
 
@@ -183,7 +191,15 @@ public class CpuCollectorTests
 
         public int CpuCount => 0;
 
+        public int GpuCount => 0;
+
         public bool TryGetCpu(string? modelName, out CpuSpec spec)
+        {
+            spec = null!;
+            return false;
+        }
+
+        public bool TryGetGpu(string? modelName, out GpuSpec spec)
         {
             spec = null!;
             return false;

@@ -33,7 +33,7 @@ public static class WindowsCollectorCatalog
             new RamCollector(),
             new StorageCollector(),
             new BatteryCollector(),
-            new GpuCollector(SensorMonitor),
+            new GpuCollector(SensorMonitor, database),
             new DisplayCollector(),
             new NetworkCollector(),
             new MotherboardCollector(),

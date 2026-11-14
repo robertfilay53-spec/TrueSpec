@@ -158,6 +158,24 @@ public static class SpecLabels
     /// Frequency. Null for every other chip, so no such spec is shown.
     /// </summary>
     public const string RatedECoreBoostClock = "Rated E-core boost clock";
+    /// <summary>
+    /// The rated memory from the bundled hardware database (GPU only):
+    /// the card's VRAM size from its spec sheet, never a measurement and
+    /// never a replacement for the measured "Dedicated memory". Shown
+    /// only when the GPU model is in the dataset and its memory figure
+    /// is unambiguous; a model whose device name cannot distinguish
+    /// memory variants gets no such spec.
+    /// </summary>
+    public const string RatedMemory = "Rated memory";
+    /// <summary>
+    /// The rated board power from the bundled hardware database (GPU
+    /// only): the manufacturer's Total Board Power / Total Graphics
+    /// Power. For laptop GPUs it is the maximum of the published TGP
+    /// range, so it is a ceiling, not the power this laptop draws.
+    /// Shown only when the GPU model is in the dataset; never a
+    /// replacement for the measured "GPU power".
+    /// </summary>
+    public const string RatedBoardPower = "Rated board power";
     public const string RatedEndurance = "Rated endurance";
     public const string ReadErrors = "Read errors";
     public const string ReceiveRate = "Receive rate";
