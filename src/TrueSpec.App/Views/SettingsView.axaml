@@ -124,6 +124,29 @@
 
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+                        <StackPanel Spacing="4" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding HardwareDatabaseTitleText}" Classes="h3" />
+                            <TextBlock Text="{Binding HardwareDatabaseNoteText}"
+                                       Classes="muted"
+                                       FontSize="11"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding HardwareDatabaseVersionText}"
+                                       Classes="muted"
+                                       FontSize="11"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1"
+                                      IsChecked="{Binding HardwareDatabaseEnabled, Mode=TwoWay}"
+                                      OnContent="{Binding ToggleOnText}"
+                                      OffContent="{Binding ToggleOffText}"
+                                      VerticalAlignment="Center" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+                <StackPanel Spacing="12">
                     <TextBlock Text="{Binding ExportTitleText}" Classes="h3" />
                     <TextBlock Text="{Binding ExportFolderText}"
                                Classes="muted"

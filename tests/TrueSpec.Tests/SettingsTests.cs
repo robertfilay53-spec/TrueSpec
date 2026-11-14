@@ -194,6 +194,7 @@ public class SettingsTests
         var settings = AppSettings.Default.Sanitized();
         Assert.Null(settings.CpuTemperatureThresholdC);
         Assert.True(settings.SensorLoggingEnabled);
+        Assert.True(settings.HardwareDatabaseEnabled);
         Assert.Equal(AppSettings.DefaultCpuTemperatureThresholdSeconds, settings.CpuTemperatureThresholdSeconds);
     }
 
@@ -241,6 +242,7 @@ public class SettingsTests
                 RefreshIntervalSeconds = 5,
                 ExportFolder = string.Empty,
                 SensorLoggingEnabled = false,
+                HardwareDatabaseEnabled = false,
                 CpuTemperatureThresholdC = 90,
                 CpuTemperatureThresholdSeconds = 60,
             };
@@ -248,6 +250,7 @@ public class SettingsTests
 
             var loaded = store.Load();
             Assert.False(loaded.SensorLoggingEnabled);
+            Assert.False(loaded.HardwareDatabaseEnabled);
             Assert.Equal(90, loaded.CpuTemperatureThresholdC);
             Assert.Equal(60, loaded.CpuTemperatureThresholdSeconds);
         }
@@ -273,6 +276,7 @@ public class SettingsTests
 
             var loaded = new AppSettingsStore(path).Load();
             Assert.True(loaded.SensorLoggingEnabled);
+            Assert.True(loaded.HardwareDatabaseEnabled);
             Assert.Null(loaded.CpuTemperatureThresholdC);
             Assert.Equal(AppSettings.DefaultCpuTemperatureThresholdSeconds, loaded.CpuTemperatureThresholdSeconds);
         }

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TrueSpec.Core.HardwareDatabase;
 using TrueSpec.Core.Localization;
 using TrueSpec.Core.Plugins;
 using TrueSpec.Core.Security;
@@ -49,6 +50,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         RefreshIntervalSeconds = _settings.RefreshIntervalSeconds;
         ExportFolder = _settings.ExportFolder;
         SensorLoggingEnabled = _settings.SensorLoggingEnabled;
+        HardwareDatabaseEnabled = _settings.HardwareDatabaseEnabled;
         CpuTemperatureAlertEnabled = _settings.CpuTemperatureThresholdC is not null;
         CpuTemperatureThresholdText = _settings.CpuTemperatureThresholdC?.ToString("0.#", CultureInfo.InvariantCulture) ?? "90";
         CpuTemperatureThresholdSeconds = _settings.CpuTemperatureThresholdSeconds;
@@ -134,6 +136,29 @@ public sealed partial class SettingsViewModel : ViewModelBase
     {
         Save();
     }
+
+    /// <summary>
+    /// Whether the bundled hardware database is used to show a CPU's
+    /// rated boost clock. Takes effect after a restart: the collectors
+    /// are created once at startup.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool HardwareDatabaseEnabled { get; set; } = true;
+
+    partial void OnHardwareDatabaseEnabledChanged(bool value)
+    {
+        Save();
+    }
+
+    /// <summary>The hardware-database card, in the current language.</summary>
+    public string HardwareDatabaseTitleText => StringLocalizer.Get(AppStringKeys.HardwareDatabaseTitle, LanguageCode);
+    public string HardwareDatabaseNoteText => StringLocalizer.Get(AppStringKeys.HardwareDatabaseNote, LanguageCode);
+    public string HardwareDatabaseVersionText => StringLocalizer.GetFormatted(
+        AppStringKeys.HardwareDatabaseVersion,
+        LanguageCode,
+        HardwareDatabase.Default.Version,
+        HardwareDatabase.Default.CpuCount,
+        HardwareDatabase.Default.Updated);
 
     /// <summary>Whether the CPU temperature alert is on. Off is the shipped default: no threshold implies a diagnosis.</summary>
     [ObservableProperty]
@@ -274,6 +299,9 @@ public sealed partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(AlertNoteText));
         OnPropertyChanged(nameof(AlertAboveLabelText));
         OnPropertyChanged(nameof(AlertDurationLabelText));
+        OnPropertyChanged(nameof(HardwareDatabaseTitleText));
+        OnPropertyChanged(nameof(HardwareDatabaseNoteText));
+        OnPropertyChanged(nameof(HardwareDatabaseVersionText));
         OnPropertyChanged(nameof(ThresholdDurationOptions));
         OnPropertyChanged(nameof(ExportTitleText));
         OnPropertyChanged(nameof(ExportFolderText));
@@ -501,6 +529,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
             RefreshIntervalSeconds = RefreshIntervalSeconds,
             ExportFolder = ExportFolder,
             SensorLoggingEnabled = SensorLoggingEnabled,
+            HardwareDatabaseEnabled = HardwareDatabaseEnabled,
             CpuTemperatureThresholdC = CpuTemperatureAlertEnabled && TryParseThreshold(CpuTemperatureThresholdText, out var threshold)
                 ? threshold
                 : null,
@@ -511,6 +540,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         RefreshIntervalSeconds = _settings.RefreshIntervalSeconds;
         ExportFolder = _settings.ExportFolder;
         SensorLoggingEnabled = _settings.SensorLoggingEnabled;
+        HardwareDatabaseEnabled = _settings.HardwareDatabaseEnabled;
         CpuTemperatureAlertEnabled = _settings.CpuTemperatureThresholdC is not null;
         if (_settings.CpuTemperatureThresholdC is { } savedThreshold)
         {

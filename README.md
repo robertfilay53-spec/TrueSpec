@@ -129,6 +129,11 @@ The product rule is simple: every number is either **measured** (with its source
 - **Localisation, phase 7: the History page's remaining Core-owned wordings in German (Beyond v2.0, item 4):** picking German now translates the trend summary ("4 Scans von 2026-01-10 bis 2026-04-10. Punktzahl 90 bis 87 (um 3 Punkte gefallen)."), the battery-health alert ("Die Akkugesundheit ist seit dem ersten gespeicherten Scan von Normal (90 %) auf Abgenutzt (70 %) gefallen."), the driver-age summary, the forecast texts ("Akkugesundheit ist um 3 Punkte über 4 Scans (90 Tage) gefallen. Bei dieser gemessenen Rate wird Austausch-Schwelle (Akkugesundheit unter 60 %) in 23 bis 30 Monaten erreicht."), the value no-verdict reasons and the asking-price row label, with no restart. A page already open when the language changes re-analyses its stored snapshots in place, so the wordings follow the language while the measured values stay identical. The data that stays English in this version and is named honestly: the per-dollar verdict sentence ("Machine B scores 82 vs 71 and costs $120 less. On measured health per dollar, B is the better buy."), shown verbatim in every language, and the table's "Not measurable" / "Not reported" cell fallbacks, which the CSV export agrees with row for row.
 - **Dependency audit re-attested for v2.1.12:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.11 and v2.1.12.
 
+## What's new in v2.1.14
+
+- **Hardware database: rated CPU boost clocks from a bundled dataset (Beyond v2.0, item 5):** a small, versioned, openly licensed (CC0) dataset of CPU specifications is now bundled with the app — 74 CPUs in v1.0.0, every figure verified by hand against Intel ARK / AMD product pages, each entry carrying its source URL and retrieval date. When your processor is listed, the CPU page shows its "Rated boost clock" (Intel ARK Max Turbo Frequency, AMD Max Boost Clock; the E-core figure rides along for Intel hybrid chips) under its own label with the dataset version as its source. It never replaces the measured Max clock, and a model that is not listed gets no rated spec at all. The database is optional (Settings, takes effect after restart) and 100% local. Deliberately absent in v1.0.0: the 12th/13th-gen Intel mobile H/P chips (Intel publishes no per-SKU P-core base frequency for them, so their rows cannot be completed without inference), the i3-8100 (no Turbo Boost, so no boost figure exists), i5-14400, i9-11980HK and Ryzen 7 3700U.
+- **Dependency audit re-attested for v2.1.14:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.13 and v2.1.14.
+
 ## Status
 
 Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.
@@ -150,7 +155,8 @@ Implemented in this build:
 | Compare | Compare any two saved snapshots side by side: score change, per-component health deltas, changed specs |
 | History | Every scan is saved to a local SQLite history, so comparisons work across visits; battery-health alerts when health drops a band or falls fast |
 | Fleet | Technician mode: one row per machine in the local store (latest score, worst component, last scan date, scan count), lowest score first, with a CSV export of the table and a per-machine CSV export on every row |
-| Settings | Theme, live sensor refresh rate (1-30s), export folder, all saved and applied immediately |
+| Settings | Theme, live sensor refresh rate (1-30s), export folder, hardware-database toggle, all saved and applied immediately |
+| Hardware database | Bundled CC0 dataset of rated CPU boost clocks (74 CPUs in v1.0.0), optional, offline; never overrides a measured value |
 | Security | Offline by design, no telemetry, parameterized SQLite, allowlisted external tools only |
 | Tests | Real CPU single-thread and local sequential disk read benchmarks |
 
@@ -163,7 +169,7 @@ Windows runtime validation requires a Windows machine with the relevant hardware
 - **Detail pages:** System, CPU, RAM, Storage, Battery, GPU, Display, Network, Motherboard, Security, Drivers, Startup, Windows Update.
 - **Report:** one data model with working JSON, HTML and CSV exports. CSV values are safe to open in Excel: values that look like formulas are neutralised.
 - **Compare:** pick any two saved scans and see the score change, every component that moved, and every specification that changed.
-- **Settings:** dark and light theme, live sensor refresh rate (1-30 seconds), report export folder. Every change saves immediately. English only in v1.
+- **Settings:** dark and light theme, live sensor refresh rate (1-30 seconds), report export folder, hardware-database toggle. Every change saves immediately. English only in v1.
 
 ## Privacy
 

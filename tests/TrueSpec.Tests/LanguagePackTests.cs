@@ -88,6 +88,13 @@ public sealed class LanguagePackTests
         Assert.Equal("Ein", german[AppStringKeys.ToggleOn]);
         Assert.Equal("Aus", german[AppStringKeys.ToggleOff]);
         Assert.Equal("Warnung bei CPU-Temperatur", german[AppStringKeys.AlertTitle]);
+        // Hardware database card (v2.1.14): the Settings page stays
+        // fully translated, so the new card's strings are keys too.
+        Assert.Equal("Hardware-Datenbank", german[AppStringKeys.HardwareDatabaseTitle]);
+        Assert.Equal(
+            "Zeigt den Nenn-Boost-Takt aus einer kleinen mitgelieferten Datenbank mit CPU-Daten, wenn Ihr Prozessor enthalten ist. Die Datenbank ist optional und ersetzt keinen gemessenen Wert. Wird nach einem Neustart wirksam.",
+            german[AppStringKeys.HardwareDatabaseNote]);
+        Assert.Equal("Datensatz v{0}: {1} CPUs, aktualisiert {2}.", german[AppStringKeys.HardwareDatabaseVersion]);
         Assert.Equal("Keine Temperaturwarnung eingestellt.", german[AppStringKeys.AlertSummaryOff]);
         Assert.Equal("Ordner für Berichtsexporte", german[AppStringKeys.ExportTitle]);
         Assert.Equal("(Standard)", german[AppStringKeys.ExportDefaultSuffix]);

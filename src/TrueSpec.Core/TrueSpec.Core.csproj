@@ -11,6 +11,13 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.14" />
   </ItemGroup>
 
+  <!-- The bundled hardware database (Beyond v2.0, item 5): a small,
+       versioned JSON dataset of CPU model specifications, embedded so
+       the lookup is 100% local and works offline. -->
+  <ItemGroup>
+    <EmbeddedResource Include="HardwareDatabase\hardware-database.json" />
+  </ItemGroup>
+
   <!-- Tests cover the default-export-folder resolution (Downloads when it
        exists, Documents/TrueSpec otherwise) through the internal seam in
        PathSafety, so the test assembly can see internals. -->
