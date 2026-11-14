@@ -549,6 +549,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             tests.ApplyLanguage(_settings.LanguageCode);
         }
 
+        // Cached New Laptop Check and Crash History pages re-render
+        // in the new language in place, the same pattern as the Report
+        // and Tests pages above. A page created after the switch is
+        // already built in the new language by its constructor.
+        if (_pageCache.TryGetValue("buyer", out var buyerPage) && buyerPage is NewLaptopCheckViewModel buyer)
+        {
+            buyer.ApplyLanguage(_settings.LanguageCode);
+        }
+
+        if (_pageCache.TryGetValue("crash", out var crashPage) && crashPage is CrashHistoryViewModel crash)
+        {
+            crash.ApplyLanguage(_settings.LanguageCode);
+        }
+
         // Cached component detail pages re-render in the new language in
         // place (their chrome resolves at construction time, so a page
         // built before the switch needs the same re-language call the
@@ -589,7 +603,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 ExportChecklistCommand,
                 _buyerCheckEvaluator,
                 OnBuyerChecksChanged,
-                _buyerContext.AdvertisedRam));
+                _buyerContext.AdvertisedRam,
+                _settings.LanguageCode));
     }
 
     [RelayCommand]
@@ -968,7 +983,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         CurrentPage = key.ToLowerInvariant() switch
         {
             "overview" => Overview,
-            "crash" => GetOrCreate("crash", () => new CrashHistoryViewModel(_snapshot)),
+            "crash" => GetOrCreate("crash", () => new CrashHistoryViewModel(_snapshot, _settings.LanguageCode)),
             "tests" => GetOrCreate("tests", () => new TestsViewModel(
                 _sensorMonitor,
                 RatedMaxFromSnapshot(_snapshot),

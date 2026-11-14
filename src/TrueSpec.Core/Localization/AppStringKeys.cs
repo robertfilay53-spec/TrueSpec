@@ -459,6 +459,77 @@ public static class AppStringKeys
     // formatted with the invariant culture by
     // StringLocalizer.GetFormatted, so a number inside a German
     // sentence keeps the app's existing formatting.
+    //
+    // The second half of phase 8 is the New Laptop Check and Crash
+    // History pages, same chrome-only rule. The New Laptop Check
+    // banner is rebuilt in the ViewModel from the stored result, so
+    // its fixed words translate while the finding title it cites
+    // stays English: the four no-finding sentences are whole keys,
+    // and the finding form is a bare state word plus the finding
+    // title verbatim. The buyer summary ("1 failed, 9 not
+    // applicable, 0 passed") and the authenticity verdict line stay
+    // English with the Report page's buyer banner and summary: they
+    // are verdict text, not page chrome. The authenticity
+    // skipped-checks line is a template ({0} = the count, {1} = the
+    // skipped signal names), with one/many keys instead of the old
+    // inline plural hack. The row status words (Pass / Warning /
+    // Fail / Not applicable) and the authenticity severity words
+    // (Strong / Watch / Info) are fixed vocabularies, so they are
+    // keys, re-resolved from the stored state on a switch. The
+    // "Export Report" button reuses the Overview key instead of a
+    // second copy of the same words. The Crash History alert card
+    // has three fixed sentences (blue screen, fatal hardware error,
+    // both); the cleared-log warning is a template ({0} = the
+    // earliest log date). The crash table's cell fallback ("Not
+    // reported") stays English like the History table's fallbacks,
+    // and the class names, plain meanings and dates are data.
+    // CapturedText reuses the detail page's DetailCaptured template
+    // ("Reading captured {0}") instead of a second copy.
+    public const string NewLaptopCheckEyebrow = "NewLaptopCheckEyebrow";
+    public const string NewLaptopCheckBannerPass = "NewLaptopCheckBannerPass";
+    public const string NewLaptopCheckBannerWarning = "NewLaptopCheckBannerWarning";
+    public const string NewLaptopCheckBannerFail = "NewLaptopCheckBannerFail";
+    public const string NewLaptopCheckBannerNotEnoughData = "NewLaptopCheckBannerNotEnoughData";
+    public const string NewLaptopCheckBannerStatePass = "NewLaptopCheckBannerStatePass";
+    public const string NewLaptopCheckBannerStateWarning = "NewLaptopCheckBannerStateWarning";
+    public const string NewLaptopCheckBannerStateFail = "NewLaptopCheckBannerStateFail";
+    public const string NewLaptopCheckBannerStateNotEnoughData = "NewLaptopCheckBannerStateNotEnoughData";
+    public const string NewLaptopCheckAuthenticityTitle = "NewLaptopCheckAuthenticityTitle";
+    public const string NewLaptopCheckNoPriorUse = "NewLaptopCheckNoPriorUse";
+    public const string NewLaptopCheckSkippedOne = "NewLaptopCheckSkippedOne";
+    public const string NewLaptopCheckSkippedMany = "NewLaptopCheckSkippedMany";
+    public const string NewLaptopCheckChecklistTitle = "NewLaptopCheckChecklistTitle";
+    public const string NewLaptopCheckPrintChecklist = "NewLaptopCheckPrintChecklist";
+    public const string NewLaptopCheckAdvertisedRamTitle = "NewLaptopCheckAdvertisedRamTitle";
+    public const string NewLaptopCheckAdvertisedRamNote = "NewLaptopCheckAdvertisedRamNote";
+    public const string NewLaptopCheckAdvertisedRamPlaceholder = "NewLaptopCheckAdvertisedRamPlaceholder";
+    public const string NewLaptopCheckWhatToAsk = "NewLaptopCheckWhatToAsk";
+    public const string NewLaptopCheckNoChecks = "NewLaptopCheckNoChecks";
+    public const string NewLaptopCheckFooterNote = "NewLaptopCheckFooterNote";
+    public const string NewLaptopCheckSourceOne = "NewLaptopCheckSourceOne";
+    public const string NewLaptopCheckSourceTwo = "NewLaptopCheckSourceTwo";
+    public const string BuyerCheckStatePass = "BuyerCheckStatePass";
+    public const string BuyerCheckStateWarning = "BuyerCheckStateWarning";
+    public const string BuyerCheckStateFail = "BuyerCheckStateFail";
+    public const string BuyerCheckStateNotApplicable = "BuyerCheckStateNotApplicable";
+    public const string AuthenticitySeverityStrong = "AuthenticitySeverityStrong";
+    public const string AuthenticitySeverityWatch = "AuthenticitySeverityWatch";
+    public const string AuthenticitySeverityInfo = "AuthenticitySeverityInfo";
+    public const string CrashTitle = "CrashTitle";
+    public const string CrashRecentTitle = "CrashRecentTitle";
+    public const string CrashAlertBoth = "CrashAlertBoth";
+    public const string CrashAlertBugCheck = "CrashAlertBugCheck";
+    public const string CrashAlertWheaFatal = "CrashAlertWheaFatal";
+    public const string CrashFailuresByClass = "CrashFailuresByClass";
+    public const string CrashHeaderClass = "CrashHeaderClass";
+    public const string CrashHeaderCount = "CrashHeaderCount";
+    public const string CrashHeaderFirst = "CrashHeaderFirst";
+    public const string CrashHeaderLast = "CrashHeaderLast";
+    public const string CrashHeaderMeaning = "CrashHeaderMeaning";
+    public const string CrashEmptyNotCollected = "CrashEmptyNotCollected";
+    public const string CrashEmptyNoCrashes = "CrashEmptyNoCrashes";
+    public const string CrashLogCleared = "CrashLogCleared";
+    public const string CrashFooterNote = "CrashFooterNote";
     public const string ReportEyebrow = "ReportEyebrow";
     public const string ReportTitle = "ReportTitle";
     public const string ReportIntro = "ReportIntro";
@@ -900,5 +971,50 @@ public static class AppStringKeys
         LoadTestClockMeasuring,
         LoadTestClockFinished,
         LoadTestClockNotReported,
+        NewLaptopCheckEyebrow,
+        NewLaptopCheckBannerPass,
+        NewLaptopCheckBannerWarning,
+        NewLaptopCheckBannerFail,
+        NewLaptopCheckBannerNotEnoughData,
+        NewLaptopCheckBannerStatePass,
+        NewLaptopCheckBannerStateWarning,
+        NewLaptopCheckBannerStateFail,
+        NewLaptopCheckBannerStateNotEnoughData,
+        NewLaptopCheckAuthenticityTitle,
+        NewLaptopCheckNoPriorUse,
+        NewLaptopCheckSkippedOne,
+        NewLaptopCheckSkippedMany,
+        NewLaptopCheckChecklistTitle,
+        NewLaptopCheckPrintChecklist,
+        NewLaptopCheckAdvertisedRamTitle,
+        NewLaptopCheckAdvertisedRamNote,
+        NewLaptopCheckAdvertisedRamPlaceholder,
+        NewLaptopCheckWhatToAsk,
+        NewLaptopCheckNoChecks,
+        NewLaptopCheckFooterNote,
+        NewLaptopCheckSourceOne,
+        NewLaptopCheckSourceTwo,
+        BuyerCheckStatePass,
+        BuyerCheckStateWarning,
+        BuyerCheckStateFail,
+        BuyerCheckStateNotApplicable,
+        AuthenticitySeverityStrong,
+        AuthenticitySeverityWatch,
+        AuthenticitySeverityInfo,
+        CrashTitle,
+        CrashRecentTitle,
+        CrashAlertBoth,
+        CrashAlertBugCheck,
+        CrashAlertWheaFatal,
+        CrashFailuresByClass,
+        CrashHeaderClass,
+        CrashHeaderCount,
+        CrashHeaderFirst,
+        CrashHeaderLast,
+        CrashHeaderMeaning,
+        CrashEmptyNotCollected,
+        CrashEmptyNoCrashes,
+        CrashLogCleared,
+        CrashFooterNote,
     };
 }

@@ -15,7 +15,7 @@
                             CornerRadius="3"
                             Background="{Binding OverallState, Converter={StaticResource CheckBrush}}" />
                     <StackPanel Grid.Column="1" Spacing="8">
-                        <TextBlock Text="NEW LAPTOP CHECK" Classes="eyebrow" />
+                        <TextBlock Text="{Binding NewLaptopCheckEyebrowText}" Classes="eyebrow" />
                         <TextBlock Text="{Binding BannerText}"
                                    Classes="h1"
                                    TextWrapping="Wrap"
@@ -26,7 +26,7 @@
                 </Grid>
             </Border>
 
-            <TextBlock Text="Authenticity" Classes="h2" />
+            <TextBlock Text="{Binding AuthenticityTitleText}" Classes="h2" />
             <TextBlock Text="{Binding AuthenticitySummary}" Classes="muted" TextWrapping="Wrap" />
 
             <ItemsControl ItemsSource="{Binding AuthenticityChecks}">
@@ -58,8 +58,8 @@
                                         </Border>
                                     </Grid>
                                     <TextBlock Text="{Binding EvidenceLine}" Classes="muted" TextWrapping="Wrap" />
-                                    <TextBlock Text="{Binding SourceA, StringFormat='Source 1: {0}'}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
-                                    <TextBlock Text="{Binding SourceB, StringFormat='Source 2: {0}'}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding SourceAText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding SourceBText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -68,7 +68,7 @@
             </ItemsControl>
 
             <Border Classes="card" Padding="18" IsVisible="{Binding !HasAuthenticityChecks}">
-                <TextBlock Text="No signs of prior use were found in the age signals that could be checked."
+                <TextBlock Text="{Binding NoPriorUseText}"
                            Classes="muted"
                            TextWrapping="Wrap" />
             </Border>
@@ -80,13 +80,13 @@
                        IsVisible="{Binding HasAuthenticitySkippedText}" />
 
             <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="Checklist" Classes="h2" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding ChecklistTitleText}" Classes="h2" VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
                     <Button Classes="primary"
-                            Content="Print checklist"
+                            Content="{Binding PrintChecklistText}"
                             Command="{Binding ExportChecklistCommand}" />
                     <Button Classes="secondary"
-                            Content="Export Report"
+                            Content="{Binding ExportReportText}"
                             Command="{Binding ExportCommand}" />
                 </StackPanel>
             </Grid>
@@ -94,15 +94,15 @@
             <Border Classes="card" Padding="16">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <StackPanel Spacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="Advertised RAM (optional)" Classes="h3" />
-                        <TextBlock Text="Used only for the RAM check. It is never treated as a hardware reading."
+                        <TextBlock Text="{Binding AdvertisedRamTitleText}" Classes="h3" />
+                        <TextBlock Text="{Binding AdvertisedRamNoteText}"
                                    Classes="muted"
                                    FontSize="11" />
                     </StackPanel>
                     <TextBox Grid.Column="1"
                              Width="220"
                              Text="{Binding AdvertisedRam, Mode=TwoWay}"
-                             PlaceholderText="e.g. 16 GB"
+                             PlaceholderText="{Binding AdvertisedRamPlaceholderText}"
                              VerticalAlignment="Center" />
                 </Grid>
             </Border>
@@ -137,7 +137,7 @@
                                     </Grid>
                                     <TextBlock Text="{Binding Detail}" Classes="muted" TextWrapping="Wrap" />
                                     <StackPanel IsVisible="{Binding NeedsAttention}" Spacing="2" Margin="0,4,0,0">
-                                        <TextBlock Text="What to ask the seller"
+                                        <TextBlock Text="{Binding WhatToAskLabelText}"
                                                    FontSize="11"
                                                    FontWeight="SemiBold" />
                                         <TextBlock Text="{Binding WhatToAsk}"
@@ -152,12 +152,12 @@
             </ItemsControl>
 
             <Border Classes="card" Padding="18" IsVisible="{Binding !HasChecks}">
-                <TextBlock Text="No buyer checks were produced for this scan."
+                <TextBlock Text="{Binding NoChecksText}"
                            Classes="muted"
                            TextWrapping="Wrap" />
             </Border>
 
-            <TextBlock Text="Buyer checks use the same honest rules as the rest of the app: measured values only, no invented numbers."
+            <TextBlock Text="{Binding FooterNoteText}"
                        Classes="muted"
                        FontSize="11"
                        TextWrapping="Wrap" />

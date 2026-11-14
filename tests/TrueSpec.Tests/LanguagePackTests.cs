@@ -469,6 +469,108 @@ public sealed class LanguagePackTests
     }
 
     [Fact]
+    public void GermanPack_NewLaptopCheckPageTerms()
+    {
+        // Localisation, phase 8 (v2.1.16): the New Laptop Check page —
+        // the eyebrow, the banner's fixed words, the Authenticity
+        // heading, the no-prior-use line, the skipped-checks line, the
+        // checklist heading and buttons, the advertised-RAM card, the
+        // "What to ask the seller" label, the no-checks line, the
+        // footer note, the row status words and the source labels.
+        // Same pinning rule as the Report and Tests terms above:
+        // changing one is a deliberate translation decision, not a
+        // typo fix. The data the page shows (machine name, buyer
+        // summary, authenticity verdict line, check titles, details
+        // and what-to-ask lines, authenticity evidence lines, source
+        // strings, the finding title inside the banner) is not in
+        // this catalogue; only the page chrome is. The "Export
+        // Report" button reuses the Overview key, so it is pinned
+        // with the Overview terms, not here. The skipped-checks line
+        // uses one/many keys instead of the old inline plural hack.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("NEUER LAPTOP CHECK", german[AppStringKeys.NewLaptopCheckEyebrow]);
+        Assert.Equal("BESTANDEN - Dieses Gerät entspricht einem neuen Laptop", german[AppStringKeys.NewLaptopCheckBannerPass]);
+        Assert.Equal("WARNUNG - Prüfen Sie die hervorgehobenen Punkte", german[AppStringKeys.NewLaptopCheckBannerWarning]);
+        Assert.Equal("FEHLGESCHLAGEN - Dieses Gerät sieht nicht neu aus", german[AppStringKeys.NewLaptopCheckBannerFail]);
+        Assert.Equal("Nicht genug Daten für ein Urteil", german[AppStringKeys.NewLaptopCheckBannerNotEnoughData]);
+        Assert.Equal("BESTANDEN", german[AppStringKeys.NewLaptopCheckBannerStatePass]);
+        Assert.Equal("WARNUNG", german[AppStringKeys.NewLaptopCheckBannerStateWarning]);
+        Assert.Equal("FEHLGESCHLAGEN", german[AppStringKeys.NewLaptopCheckBannerStateFail]);
+        Assert.Equal("Nicht genug Daten", german[AppStringKeys.NewLaptopCheckBannerStateNotEnoughData]);
+        Assert.Equal("Authentizität", german[AppStringKeys.NewLaptopCheckAuthenticityTitle]);
+        Assert.Equal("In den prübaren Alterssignalen wurden keine Anzeichen für eine frühere Nutzung gefunden.", german[AppStringKeys.NewLaptopCheckNoPriorUse]);
+        Assert.Equal("1 Authentizitätsprüfung konnte nicht ausgeführt werden, weil ein Signal nicht gemeldet wurde: {0}", german[AppStringKeys.NewLaptopCheckSkippedOne]);
+        Assert.Equal("{0} Authentizitätsprüfungen konnten nicht ausgeführt werden, weil ein Signal nicht gemeldet wurde: {1}", german[AppStringKeys.NewLaptopCheckSkippedMany]);
+        Assert.Equal("Checkliste", german[AppStringKeys.NewLaptopCheckChecklistTitle]);
+        Assert.Equal("Checkliste drucken", german[AppStringKeys.NewLaptopCheckPrintChecklist]);
+        Assert.Equal("Angegebener RAM (optional)", german[AppStringKeys.NewLaptopCheckAdvertisedRamTitle]);
+        Assert.Equal("Wird nur für die RAM-Prüfung verwendet. Es wird niemals als Hardwaremesswert behandelt.", german[AppStringKeys.NewLaptopCheckAdvertisedRamNote]);
+        Assert.Equal("z. B. 16 GB", german[AppStringKeys.NewLaptopCheckAdvertisedRamPlaceholder]);
+        Assert.Equal("Was Sie den Verkäufer fragen sollten", german[AppStringKeys.NewLaptopCheckWhatToAsk]);
+        Assert.Equal("Für diesen Scan wurden keine Käuferprüfungen erstellt.", german[AppStringKeys.NewLaptopCheckNoChecks]);
+        Assert.Equal("Für Käuferprüfungen gelten dieselben ehrlichen Regeln wie für den Rest der App: nur gemessene Werte, keine erfundenen Zahlen.", german[AppStringKeys.NewLaptopCheckFooterNote]);
+        Assert.Equal("Quelle 1: {0}", german[AppStringKeys.NewLaptopCheckSourceOne]);
+        Assert.Equal("Quelle 2: {0}", german[AppStringKeys.NewLaptopCheckSourceTwo]);
+        Assert.Equal("Bestanden", german[AppStringKeys.BuyerCheckStatePass]);
+        Assert.Equal("Warnung", german[AppStringKeys.BuyerCheckStateWarning]);
+        Assert.Equal("Fehlgeschlagen", german[AppStringKeys.BuyerCheckStateFail]);
+        Assert.Equal("Nicht zutreffend", german[AppStringKeys.BuyerCheckStateNotApplicable]);
+        Assert.Equal("Stark", german[AppStringKeys.AuthenticitySeverityStrong]);
+        Assert.Equal("Achtung", german[AppStringKeys.AuthenticitySeverityWatch]);
+        Assert.Equal("Info", german[AppStringKeys.AuthenticitySeverityInfo]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "1 Authentizitätsprüfung konnte nicht ausgeführt werden, weil ein Signal nicht gemeldet wurde: Windows install date",
+            StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSkippedOne, "de", "Windows install date"));
+        Assert.Equal(
+            "3 Authentizitätsprüfungen konnten nicht ausgeführt werden, weil ein Signal nicht gemeldet wurde: BIOS date; Windows install date",
+            StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSkippedMany, "de", 3, "BIOS date; Windows install date"));
+        Assert.Equal(
+            "Quelle 1: BIOS date",
+            StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSourceOne, "de", "BIOS date"));
+    }
+
+    [Fact]
+    public void GermanPack_CrashHistoryPageTerms()
+    {
+        // Localisation, phase 8 (v2.1.16): the Crash History page —
+        // the title, the recent-crash heading, the three fixed alert
+        // sentences, the "Failures by class" heading, the table
+        // headers, the two fixed empty-state lines, the cleared-log
+        // warning template and the footer note. Same pinning rule as
+        // the New Laptop Check terms above: changing one is a
+        // deliberate translation decision, not a typo fix. The data
+        // the page shows (component headline, the "What this means"
+        // fallback, class names, counts and dates, plain meanings,
+        // the "Not reported" date fallback) is not in this
+        // catalogue; only the page chrome is. The captured line
+        // reuses the detail page's DetailCaptured template, so it is
+        // pinned with the detail terms, not here.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("Absturzverlauf", german[AppStringKeys.CrashTitle]);
+        Assert.Equal("Aktueller Absturz", german[AppStringKeys.CrashRecentTitle]);
+        Assert.Equal("In den letzten 30 Tagen gab es einen Bluescreen und einen schwerwiegenden Hardwarefehler.", german[AppStringKeys.CrashAlertBoth]);
+        Assert.Equal("In den letzten 30 Tagen gab es einen Bluescreen.", german[AppStringKeys.CrashAlertBugCheck]);
+        Assert.Equal("In den letzten 30 Tagen gab es einen schwerwiegenden Hardwarefehler.", german[AppStringKeys.CrashAlertWheaFatal]);
+        Assert.Equal("Fehler nach Klasse", german[AppStringKeys.CrashFailuresByClass]);
+        Assert.Equal("Klasse", german[AppStringKeys.CrashHeaderClass]);
+        Assert.Equal("Anzahl (90 Tage)", german[AppStringKeys.CrashHeaderCount]);
+        Assert.Equal("Erste", german[AppStringKeys.CrashHeaderFirst]);
+        Assert.Equal("Letzte", german[AppStringKeys.CrashHeaderLast]);
+        Assert.Equal("Bedeutung", german[AppStringKeys.CrashHeaderMeaning]);
+        Assert.Equal("Der Absturzverlauf wurde noch nicht erfasst.", german[AppStringKeys.CrashEmptyNotCollected]);
+        Assert.Equal("In den letzten 90 Tagen wurden keine Bluescreens, Hardwarefehler, unerwarteten Abschaltungen oder Datenträgerfehler aufgezeichnet.", german[AppStringKeys.CrashEmptyNoCrashes]);
+        Assert.Equal("Das Ereignisprotokoll hat keine Einträge vor dem {0}, daher ist dieser Verlauf möglicherweise unvollständig. Ein gelöschtes Protokoll gilt als Lücke, niemals als sauberer Verlauf.", german[AppStringKeys.CrashLogCleared]);
+        Assert.Equal("Die Anzahl deckt die letzten 90 Tage ab; erste und letzte decken den gesamten aufgezeichneten Zeitraum ab. Bedeutungen sind feste Bezeichnungen, keine Diagnosen.", german[AppStringKeys.CrashFooterNote]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "Das Ereignisprotokoll hat keine Einträge vor dem 2026-10-25, daher ist dieser Verlauf möglicherweise unvollständig. Ein gelöschtes Protokoll gilt als Lücke, niemals als sauberer Verlauf.",
+            StringLocalizer.GetFormatted(AppStringKeys.CrashLogCleared, "de", "2026-10-25"));
+    }
+
+    [Fact]
     public void GermanPack_CoreDiagnosticStrings()
     {
         // Localisation, phase 3 (v2.1.9): the Core diagnostic strings
