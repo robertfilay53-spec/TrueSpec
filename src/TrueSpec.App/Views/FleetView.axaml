@@ -10,9 +10,9 @@
     <ScrollViewer>
         <StackPanel Margin="24" Spacing="18">
             <StackPanel Spacing="6">
-                <TextBlock Text="FLEET" Classes="eyebrow" />
-                <TextBlock Text="Every machine in this data folder" Classes="h1" />
-                <TextBlock Text="Technician mode: carry the portable app on a USB stick, scan each machine, and every scan lands in the same store on the stick. This page lists each machine's latest scan, lowest score first, with the worst component named, so the machine that needs attention is at the top. Machines scanned with the installed app can be brought in with Import JSON reports, which reads the JSON files the Report page exports. Export all machines writes one CSV per machine into the export folder, so the whole fleet can be filed at once instead of one Export click per row. To take a machine out of the fleet, use Remove on its row — it deletes all of that machine's saved scans from this data folder, in two clicks so a misclick cannot delete anything."
+                <TextBlock Text="{Binding FleetEyebrowText}" Classes="eyebrow" />
+                <TextBlock Text="{Binding FleetTitleText}" Classes="h1" />
+                <TextBlock Text="{Binding FleetIntroText}"
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
@@ -23,10 +23,10 @@
                     <TextBlock Text="{Binding StatusMessage}" Classes="muted" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" IsVisible="{Binding HasFleet}" />
                     <Button Classes="secondary"
-                            Content="Import JSON reports"
+                            Content="{Binding FleetImportButtonText}"
                             Command="{Binding ImportReportsCommand}"
                             HorizontalAlignment="Left" />
-                    <TextBlock Text="Imports TrueSpec JSON reports exported from other machines, so their scans join this fleet. A file that is not a TrueSpec report is skipped, and importing the same file twice stores one scan."
+                    <TextBlock Text="{Binding FleetImportNoteText}"
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap"
@@ -37,30 +37,30 @@
             <Border Classes="card" Padding="18" IsVisible="{Binding HasFleet}">
                 <StackPanel Spacing="10">
                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14">
-                        <TextBlock Text="Machines" Classes="h3" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding FleetMachinesTitleText}" Classes="h3" VerticalAlignment="Center" />
                         <Button Grid.Column="1"
                                 Classes="secondary"
-                                Content="Export all machines"
+                                Content="{Binding FleetExportAllButtonText}"
                                 Command="{Binding ExportAllMachinesCommand}"
                                 IsEnabled="{Binding HasFleet}" />
                         <Button Grid.Column="2"
                                 Classes="secondary"
-                                Content="Export fleet as CSV"
+                                Content="{Binding FleetExportFleetCsvButtonText}"
                                 Command="{Binding ExportFleetCsvCommand}"
                                 IsEnabled="{Binding HasFleet}" />
                     </Grid>
-                    <TextBlock Text="Lowest score first. A dash means that scan did not report the value."
+                    <TextBlock Text="{Binding FleetTableNoteText}"
                                Classes="muted"
                                FontSize="11" />
                     <Grid ColumnDefinitions="*,60,130,70,110,*,100,110" ColumnSpacing="10">
-                        <TextBlock Text="Machine" Classes="muted" FontSize="11" />
-                        <TextBlock Grid.Column="1" Text="Scans" Classes="muted" FontSize="11" />
-                        <TextBlock Grid.Column="2" Text="Last scan" Classes="muted" FontSize="11" />
-                        <TextBlock Grid.Column="3" Text="Score" Classes="muted" FontSize="11" />
-                        <TextBlock Grid.Column="4" Text="Verdict" Classes="muted" FontSize="11" />
-                        <TextBlock Grid.Column="5" Text="Worst component" Classes="muted" FontSize="11" />
-                        <TextBlock Grid.Column="6" Text="Export" Classes="muted" FontSize="11" />
-                        <TextBlock Grid.Column="7" Text="Remove" Classes="muted" FontSize="11" />
+                        <TextBlock Text="{Binding FleetHeaderMachineText}" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="1" Text="{Binding FleetHeaderScansText}" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="2" Text="{Binding FleetHeaderLastScanText}" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="3" Text="{Binding FleetHeaderScoreText}" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="4" Text="{Binding FleetHeaderVerdictText}" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="5" Text="{Binding FleetHeaderWorstComponentText}" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="6" Text="{Binding FleetHeaderExportText}" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="7" Text="{Binding FleetHeaderRemoveText}" Classes="muted" FontSize="11" />
                     </Grid>
                     <ItemsControl ItemsSource="{Binding Rows}">
                         <ItemsControl.ItemTemplate>
@@ -94,7 +94,7 @@
                                                    TextWrapping="Wrap" />
                                         <Button Grid.Column="6"
                                                 Classes="secondary"
-                                                Content="Export CSV"
+                                                Content="{Binding ExportButtonText}"
                                                 FontSize="11"
                                                 Command="{Binding ExportMachineCsvCommand}"
                                                 CommandParameter="{Binding}"

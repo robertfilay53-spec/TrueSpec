@@ -11,9 +11,9 @@
     <ScrollViewer>
         <StackPanel Margin="24" Spacing="18">
             <StackPanel Spacing="6">
-                <TextBlock Text="COMPARE" Classes="eyebrow" />
-                <TextBlock Text="Two snapshots, side by side" Classes="h1" />
-                <TextBlock Text="Pick any two saved scans. TrueSpec shows the score change, every component that moved, and every specification that changed. Nothing is invented: a component that was not measurable in either scan says so."
+                <TextBlock Text="{Binding ComparisonEyebrowText}" Classes="eyebrow" />
+                <TextBlock Text="{Binding ComparisonTitleText}" Classes="h1" />
+                <TextBlock Text="{Binding ComparisonIntroText}"
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
@@ -23,11 +23,11 @@
                 <StackPanel Spacing="14">
                     <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="14">
                         <StackPanel Spacing="6">
-                            <TextBlock Text="Before" Classes="h3" />
+                            <TextBlock Text="{Binding ComparisonBeforeText}" Classes="h3" />
                             <ComboBox ItemsSource="{Binding History}"
                                       SelectedItem="{Binding SelectedBefore}"
                                       HorizontalAlignment="Stretch"
-                                      PlaceholderText="Pick an earlier snapshot">
+                                      PlaceholderText="{Binding ComparisonPickEarlierText}">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate x:DataType="storage:SnapshotSummary">
                                         <TextBlock>
@@ -44,11 +44,11 @@
                             </ComboBox>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="6">
-                            <TextBlock Text="After" Classes="h3" />
+                            <TextBlock Text="{Binding ComparisonAfterText}" Classes="h3" />
                             <ComboBox ItemsSource="{Binding History}"
                                       SelectedItem="{Binding SelectedAfter}"
                                       HorizontalAlignment="Stretch"
-                                      PlaceholderText="Pick a later snapshot">
+                                      PlaceholderText="{Binding ComparisonPickLaterText}">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate x:DataType="storage:SnapshotSummary">
                                         <TextBlock>
@@ -66,7 +66,7 @@
                         </StackPanel>
                         <Button Grid.Column="2"
                                 Classes="primary"
-                                Content="Compare"
+                                Content="{Binding ComparisonCompareButtonText}"
                                 Command="{Binding CompareCommand}"
                                 VerticalAlignment="Bottom" />
                     </Grid>
@@ -76,14 +76,14 @@
 
             <Border Classes="card" Padding="18" IsVisible="{Binding HasComparison}">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="Result" Classes="h3" />
+                    <TextBlock Text="{Binding ComparisonResultTitleText}" Classes="h3" />
                     <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" FontWeight="SemiBold" />
                     <Border BorderBrush="{DynamicResource AppBorder}"
                             BorderThickness="0,0,0,1"
                             Padding="0,10"
                             IsVisible="{Binding HasDnaComparison}">
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Machine DNA" FontWeight="SemiBold" FontSize="11" Classes="muted" />
+                            <TextBlock Text="{Binding ComparisonDnaTitleText}" FontWeight="SemiBold" FontSize="11" Classes="muted" />
                             <TextBlock Text="{Binding DnaStateText}" FontWeight="SemiBold" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding DnaHashBeforeText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding DnaHashAfterText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
@@ -94,7 +94,7 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="Not identified in one of the scans:"
+                            <TextBlock Text="{Binding ComparisonDnaUnidentifiedTitleText}"
                                        Classes="muted" FontSize="11" FontWeight="SemiBold"
                                        IsVisible="{Binding HasDnaUnidentifiedParts}" />
                             <ItemsControl ItemsSource="{Binding DnaUnidentifiedParts}" IsVisible="{Binding HasDnaUnidentifiedParts}">
@@ -104,13 +104,13 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="DNA is identity, not health: it never changes the score above. It only says whether the two scans are the same machine with the same parts."
+                            <TextBlock Text="{Binding ComparisonDnaNoteText}"
                                        Classes="muted"
                                        FontSize="11"
                                        TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
-                    <TextBlock Text="No component health changed and no specifications changed between these two snapshots."
+                    <TextBlock Text="{Binding ComparisonNoChangesText}"
                                Classes="muted"
                                TextWrapping="Wrap"
                                IsVisible="{Binding !HasChanges}" />
@@ -150,7 +150,7 @@
                     </ItemsControl>
 
                     <StackPanel Spacing="4" IsVisible="{Binding AddedComponents.Count}">
-                        <TextBlock Text="Added components" FontWeight="SemiBold" FontSize="11" Classes="muted" />
+                        <TextBlock Text="{Binding ComparisonAddedTitleText}" FontWeight="SemiBold" FontSize="11" Classes="muted" />
                         <ItemsControl ItemsSource="{Binding AddedComponents}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -161,7 +161,7 @@
                     </StackPanel>
 
                     <StackPanel Spacing="4" IsVisible="{Binding RemovedComponents.Count}">
-                        <TextBlock Text="Removed components" FontWeight="SemiBold" FontSize="11" Classes="muted" />
+                        <TextBlock Text="{Binding ComparisonRemovedTitleText}" FontWeight="SemiBold" FontSize="11" Classes="muted" />
                         <ItemsControl ItemsSource="{Binding RemovedComponents}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -173,7 +173,7 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="Snapshots are saved locally after every scan. History never leaves this machine."
+            <TextBlock Text="{Binding ComparisonFooterNoteText}"
                        Classes="muted"
                        FontSize="11" />
         </StackPanel>

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TrueSpec.Core.Benchmarks;
+using TrueSpec.Core.Localization;
 using TrueSpec.Core.Sensors;
 
 namespace TrueSpec.App.ViewModels;
@@ -20,6 +21,22 @@ namespace TrueSpec.App.ViewModels;
 /// the CPU for the selected duration and stops automatically at the safety
 /// limit, a short test is a functional check and not a burn-in certificate,
 /// and a machine on battery may report power-limited results.
+///
+/// Localisation, phase 8 (v2.1.16): the card chrome renders in the
+/// current language — the heading, intro, battery note, duration label,
+/// Start/Cancel buttons, fan-health heading and note, temperature
+/// caption, the two warning templates, the fixed status words and the
+/// fixed live-line states ("Temperature: not running", "Clock:
+/// measuring..."). The data the card shows stays English: the measured
+/// result lines (peak temperature, average clock, rated max, held %),
+/// the fan-health summary/lines/findings, the verdict text and the
+/// live temperature/clock/elapsed values. The fixed status words are
+/// re-derived from small stored fields (which status is showing, which
+/// live-line state, the failure message), so a language switch
+/// re-resolves them instead of silently resetting them. The card is
+/// re-languaged in place through <see cref="ApplyLanguage"/> by the
+/// Tests page, the same in-place pattern the Overview and History
+/// pages use.
 /// </summary>
 public sealed partial class LoadTestViewModel : ViewModelBase
 {
@@ -31,17 +48,67 @@ public sealed partial class LoadTestViewModel : ViewModelBase
     private LoadTestRunner? _runner;
     private CancellationTokenSource? _cts;
 
+    private string _languageCode;
+
+    /// <summary>Which fixed status line is showing, so ApplyLanguage can re-resolve it instead of resetting it.</summary>
+    private LoadTestStatusKind _statusKind = LoadTestStatusKind.NotRun;
+
+    /// <summary>The exception message of a failed run, or null when the last run did not fail.</summary>
+    private string? _failureMessage;
+
+    /// <summary>The verdict text of the last completed run (measured data, shown verbatim), or null when no run completed.</summary>
+    private string? _lastVerdictText;
+
+    /// <summary>Which fixed state the live temperature line is in, so ApplyLanguage can re-resolve it. Measured keeps the English label and the invariant-formatted value.</summary>
+    private LiveLineKind _liveTempKind = LiveLineKind.NotRunning;
+
+    /// <summary>The invariant-formatted measured value for a Measured live temperature line (for example "72.3 C"), or null otherwise.</summary>
+    private string? _liveTempMeasured;
+
+    /// <summary>Which fixed state the live clock line is in, so ApplyLanguage can re-resolve it. Measured keeps the English label and the invariant-formatted value.</summary>
+    private LiveLineKind _liveClockKind = LiveLineKind.NotRunning;
+
+    /// <summary>The invariant-formatted measured value for a Measured live clock line (for example "4200 MHz"), or null otherwise.</summary>
+    private string? _liveClockMeasured;
+
+    /// <summary>The fixed status lines the load test can show. Stored so a language switch re-resolves the line instead of resetting it.</summary>
+    private enum LoadTestStatusKind
+    {
+        NotRun,
+        Running,
+        StoppedTemperature,
+        StoppedSensorLost,
+        Cancelled,
+        Complete,
+        Failed,
+    }
+
+    /// <summary>The states of a live readout line. The four fixed states are chrome; Measured is a live value.</summary>
+    private enum LiveLineKind
+    {
+        NotRunning,
+        Measuring,
+        Finished,
+        NotReported,
+        Measured,
+    }
+
     public LoadTestViewModel(
         ISensorMonitor sensors,
         double? ratedMaxMHz,
         bool isOnBattery,
-        Action<LoadTestResult>? onCompleted)
+        Action<LoadTestResult>? onCompleted,
+        string? languageCode = null)
     {
         _sensors = sensors;
         _ratedMaxMHz = ratedMaxMHz;
         _onCompleted = onCompleted;
         _uiContext = SynchronizationContext.Current;
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
         IsOnBattery = isOnBattery;
+        StatusText = ResolveStatusText();
+        LiveTemperatureText = ResolveLiveTempText();
+        LiveClockText = ResolveLiveClockText();
     }
 
     public bool IsOnBattery { get; }
@@ -51,19 +118,133 @@ public sealed partial class LoadTestViewModel : ViewModelBase
     [ObservableProperty]
     public partial int SelectedDurationSeconds { get; set; } = 60;
 
+    /// <summary>The card heading, in the card language.</summary>
+    public string LoadTestTitleText =>
+        StringLocalizer.Get(AppStringKeys.LoadTestTitle, _languageCode);
+
+    /// <summary>The card introduction, in the card language.</summary>
+    public string LoadTestIntroText =>
+        StringLocalizer.Get(AppStringKeys.LoadTestIntro, _languageCode);
+
+    /// <summary>The battery note, shown when the machine runs on battery, in the card language.</summary>
+    public string LoadTestBatteryNoteText =>
+        StringLocalizer.Get(AppStringKeys.LoadTestBatteryNote, _languageCode);
+
+    /// <summary>The duration label, in the card language.</summary>
+    public string LoadTestDurationLabelText =>
+        StringLocalizer.Get(AppStringKeys.LoadTestDurationLabel, _languageCode);
+
+    /// <summary>The Start button, in the card language.</summary>
+    public string LoadTestStartText =>
+        StringLocalizer.Get(AppStringKeys.LoadTestStart, _languageCode);
+
+    /// <summary>The Cancel button, in the card language.</summary>
+    public string LoadTestCancelText =>
+        StringLocalizer.Get(AppStringKeys.LoadTestCancel, _languageCode);
+
+    /// <summary>The fan-health heading, in the card language.</summary>
+    public string LoadTestFanHealthTitleText =>
+        StringLocalizer.Get(AppStringKeys.LoadTestFanHealthTitle, _languageCode);
+
+    /// <summary>The fixed fan-health note, in the card language.</summary>
+    public string LoadTestFanHealthNoteText =>
+        StringLocalizer.Get(AppStringKeys.LoadTestFanHealthNote, _languageCode);
+
+    /// <summary>The temperature chart caption, in the card language.</summary>
+    public string LoadTestTemperatureCaptionText =>
+        StringLocalizer.Get(AppStringKeys.LoadTestTemperatureCaption, _languageCode);
+
+    /// <summary>
+    /// Re-renders this card in the given language, in place: every
+    /// localized text is re-resolved from the stored state. Called by
+    /// the Tests page when the user picks a language in Settings; a
+    /// card created after the switch is already built in the new
+    /// language by the constructor. An unknown code falls back to
+    /// English through the localizer, never to a blank. Measured data
+    /// (result lines, fan health, verdict text, live values) is
+    /// untouched.
+    /// </summary>
+    public void ApplyLanguage(string? languageCode)
+    {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        StatusText = ResolveStatusText();
+        LiveTemperatureText = ResolveLiveTempText();
+        LiveClockText = ResolveLiveClockText();
+        if (_statusKind == LoadTestStatusKind.Failed)
+        {
+            VerdictText = StringLocalizer.GetFormatted(AppStringKeys.TestsItemNoResult, _languageCode, _failureMessage ?? string.Empty);
+        }
+        else if (_lastVerdictText is not null)
+        {
+            // A completed run keeps its measured verdict verbatim.
+            VerdictText = _lastVerdictText;
+        }
+
+        OnPropertyChanged(nameof(WarningText));
+        OnPropertyChanged(nameof(FunctionalCheckText));
+        OnPropertyChanged(nameof(LoadTestTitleText));
+        OnPropertyChanged(nameof(LoadTestIntroText));
+        OnPropertyChanged(nameof(LoadTestBatteryNoteText));
+        OnPropertyChanged(nameof(LoadTestDurationLabelText));
+        OnPropertyChanged(nameof(LoadTestStartText));
+        OnPropertyChanged(nameof(LoadTestCancelText));
+        OnPropertyChanged(nameof(LoadTestFanHealthTitleText));
+        OnPropertyChanged(nameof(LoadTestFanHealthNoteText));
+        OnPropertyChanged(nameof(LoadTestTemperatureCaptionText));
+    }
+
+    /// <summary>The current status line, resolved in the card language from the stored status kind.</summary>
+    private string ResolveStatusText() => _statusKind switch
+    {
+        LoadTestStatusKind.NotRun => StringLocalizer.Get(AppStringKeys.TestsItemNotRunYet, _languageCode),
+        LoadTestStatusKind.Running => StringLocalizer.Get(AppStringKeys.TestsItemRunning, _languageCode),
+        LoadTestStatusKind.StoppedTemperature => StringLocalizer.Get(AppStringKeys.LoadTestStoppedTemperature, _languageCode),
+        LoadTestStatusKind.StoppedSensorLost => StringLocalizer.Get(AppStringKeys.LoadTestStoppedSensorLost, _languageCode),
+        LoadTestStatusKind.Cancelled => StringLocalizer.Get(AppStringKeys.LoadTestCancelled, _languageCode),
+        LoadTestStatusKind.Complete => StringLocalizer.Get(AppStringKeys.LoadTestComplete, _languageCode),
+        LoadTestStatusKind.Failed => StringLocalizer.Get(AppStringKeys.TestsItemFailed, _languageCode),
+        _ => StringLocalizer.Get(AppStringKeys.TestsItemNotRunYet, _languageCode),
+    };
+
+    /// <summary>The live temperature line, resolved in the card language. A measured value keeps the English label and the invariant-formatted value: it is a live value, not chrome.</summary>
+    private string ResolveLiveTempText() => _liveTempKind switch
+    {
+        LiveLineKind.NotRunning => StringLocalizer.Get(AppStringKeys.LoadTestTempNotRunning, _languageCode),
+        LiveLineKind.Measuring => StringLocalizer.Get(AppStringKeys.LoadTestTempMeasuring, _languageCode),
+        LiveLineKind.Finished => StringLocalizer.Get(AppStringKeys.LoadTestTempFinished, _languageCode),
+        LiveLineKind.NotReported => StringLocalizer.Get(AppStringKeys.LoadTestTempNotReported, _languageCode),
+        LiveLineKind.Measured => $"Temperature: {_liveTempMeasured}",
+        _ => StringLocalizer.Get(AppStringKeys.LoadTestTempNotRunning, _languageCode),
+    };
+
+    /// <summary>The live clock line, resolved in the card language. A measured value keeps the English label and the invariant-formatted value: it is a live value, not chrome.</summary>
+    private string ResolveLiveClockText() => _liveClockKind switch
+    {
+        LiveLineKind.NotRunning => StringLocalizer.Get(AppStringKeys.LoadTestClockNotRunning, _languageCode),
+        LiveLineKind.Measuring => StringLocalizer.Get(AppStringKeys.LoadTestClockMeasuring, _languageCode),
+        LiveLineKind.Finished => StringLocalizer.Get(AppStringKeys.LoadTestClockFinished, _languageCode),
+        LiveLineKind.NotReported => StringLocalizer.Get(AppStringKeys.LoadTestClockNotReported, _languageCode),
+        LiveLineKind.Measured => $"Clock: {_liveClockMeasured}",
+        _ => StringLocalizer.Get(AppStringKeys.LoadTestClockNotRunning, _languageCode),
+    };
+
     /// <summary>
     /// The warning shown before Start; it names the selected duration and the
     /// safety limit from the one shared constant
     /// (<see cref="LoadTestConfig.DefaultAbortTemperatureC"/>), so the text
     /// can never disagree with the temperature at which the test aborts.
+    /// The numbers keep the app's invariant formatting in every language.
     /// </summary>
-    public string WarningText => string.Create(
-        CultureInfo.InvariantCulture,
-        $"This will load your CPU for {SelectedDurationSeconds} seconds. It stops automatically if the temperature exceeds {LoadTestConfig.DefaultAbortTemperatureC:0.#} C.");
+    public string WarningText => StringLocalizer.GetFormatted(
+        AppStringKeys.LoadTestWarning,
+        _languageCode,
+        SelectedDurationSeconds.ToString(CultureInfo.InvariantCulture),
+        LoadTestConfig.DefaultAbortTemperatureC.ToString("0.#", CultureInfo.InvariantCulture));
 
-    public string FunctionalCheckText => string.Create(
-        CultureInfo.InvariantCulture,
-        $"A {SelectedDurationSeconds}-second test is a functional check, not a burn-in certificate.");
+    public string FunctionalCheckText => StringLocalizer.GetFormatted(
+        AppStringKeys.LoadTestFunctionalCheck,
+        _languageCode,
+        SelectedDurationSeconds.ToString(CultureInfo.InvariantCulture));
 
     public bool CanStart => !IsRunning;
 
@@ -73,13 +254,13 @@ public sealed partial class LoadTestViewModel : ViewModelBase
     public partial bool IsRunning { get; set; }
 
     [ObservableProperty]
-    public partial string StatusText { get; set; } = "Not run yet.";
+    public partial string StatusText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string LiveTemperatureText { get; set; } = "Temperature: not running";
+    public partial string LiveTemperatureText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string LiveClockText { get; set; } = "Clock: not running";
+    public partial string LiveClockText { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string ElapsedText { get; set; } = string.Empty;
@@ -170,10 +351,13 @@ public sealed partial class LoadTestViewModel : ViewModelBase
         FanHealthLines = Array.Empty<string>();
         FanHealthFindings = Array.Empty<string>();
         FanHealthSummaryText = string.Empty;
-        StatusText = "Running...";
+        _statusKind = LoadTestStatusKind.Running;
+        StatusText = ResolveStatusText();
         ElapsedText = "0 s";
-        LiveTemperatureText = "Temperature: measuring...";
-        LiveClockText = "Clock: measuring...";
+        _liveTempKind = LiveLineKind.Measuring;
+        LiveTemperatureText = ResolveLiveTempText();
+        _liveClockKind = LiveLineKind.Measuring;
+        LiveClockText = ResolveLiveClockText();
         VerdictText = string.Empty;
 
         try
@@ -182,14 +366,16 @@ public sealed partial class LoadTestViewModel : ViewModelBase
             var progress = new Progress<LoadTestProgress>(OnProgress);
             var result = await _runner.RunAsync(config, progress, _cts.Token);
 
-            StatusText = result.AbortReason switch
+            _statusKind = result.AbortReason switch
             {
-                LoadTestResult.AbortTemperature => "Stopped automatically: temperature limit reached.",
-                LoadTestResult.AbortSensorLost => "Stopped: sensors stopped reporting.",
-                LoadTestResult.AbortCancelled => "Cancelled.",
-                _ => "Load test complete.",
+                LoadTestResult.AbortTemperature => LoadTestStatusKind.StoppedTemperature,
+                LoadTestResult.AbortSensorLost => LoadTestStatusKind.StoppedSensorLost,
+                LoadTestResult.AbortCancelled => LoadTestStatusKind.Cancelled,
+                _ => LoadTestStatusKind.Complete,
             };
+            StatusText = ResolveStatusText();
             HasResult = true;
+            _lastVerdictText = result.VerdictText;
             VerdictText = result.VerdictText;
             ResultPeakText = result.PeakTempC is { } peak
                 ? string.Create(CultureInfo.InvariantCulture, $"Peak temperature: {peak:0.#} C")
@@ -219,15 +405,19 @@ public sealed partial class LoadTestViewModel : ViewModelBase
             ElapsedText = string.Create(
                 CultureInfo.InvariantCulture,
                 $"Finished in {(result.CompletedAt - result.StartedAt).TotalSeconds:0} s.");
-            LiveTemperatureText = "Temperature: test finished";
-            LiveClockText = "Clock: test finished";
+            _liveTempKind = LiveLineKind.Finished;
+            LiveTemperatureText = ResolveLiveTempText();
+            _liveClockKind = LiveLineKind.Finished;
+            LiveClockText = ResolveLiveClockText();
 
             _onCompleted?.Invoke(result);
         }
         catch (Exception exception)
         {
-            StatusText = "Test failed";
-            VerdictText = $"No result is shown because the test did not complete: {exception.Message}";
+            _statusKind = LoadTestStatusKind.Failed;
+            StatusText = ResolveStatusText();
+            _failureMessage = exception.Message;
+            VerdictText = StringLocalizer.GetFormatted(AppStringKeys.TestsItemNoResult, _languageCode, exception.Message);
         }
         finally
         {
@@ -261,11 +451,29 @@ public sealed partial class LoadTestViewModel : ViewModelBase
     private void ApplyProgress(LoadTestProgress progress)
     {
         ElapsedText = string.Create(CultureInfo.InvariantCulture, $"{progress.ElapsedSeconds} s");
-        LiveTemperatureText = progress.CpuTempC is { } temp
-            ? string.Create(CultureInfo.InvariantCulture, $"Temperature: {temp:0.#} C")
-            : "Temperature: not reported by hardware";
-        LiveClockText = progress.AvgClockMHz is { } clock
-            ? string.Create(CultureInfo.InvariantCulture, $"Clock: {clock:0} MHz")
-            : "Clock: not reported by hardware";
+        if (progress.CpuTempC is { } temp)
+        {
+            _liveTempKind = LiveLineKind.Measured;
+            _liveTempMeasured = string.Create(CultureInfo.InvariantCulture, $"{temp:0.#} C");
+        }
+        else
+        {
+            _liveTempKind = LiveLineKind.NotReported;
+            _liveTempMeasured = null;
+        }
+
+        LiveTemperatureText = ResolveLiveTempText();
+        if (progress.AvgClockMHz is { } clock)
+        {
+            _liveClockKind = LiveLineKind.Measured;
+            _liveClockMeasured = string.Create(CultureInfo.InvariantCulture, $"{clock:0} MHz");
+        }
+        else
+        {
+            _liveClockKind = LiveLineKind.NotReported;
+            _liveClockMeasured = null;
+        }
+
+        LiveClockText = ResolveLiveClockText();
     }
 }

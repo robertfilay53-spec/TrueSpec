@@ -535,6 +535,48 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             history.ApplyLanguage(_settings.LanguageCode);
         }
 
+        // Cached Report and Tests pages re-render in the new language
+        // in place, the same pattern as the History page above. A page
+        // created after the switch is already built in the new language
+        // by its constructor.
+        if (_pageCache.TryGetValue("report", out var reportPage) && reportPage is ReportViewModel report)
+        {
+            report.ApplyLanguage(_settings.LanguageCode);
+        }
+
+        if (_pageCache.TryGetValue("tests", out var testsPage) && testsPage is TestsViewModel tests)
+        {
+            tests.ApplyLanguage(_settings.LanguageCode);
+        }
+
+        // Cached New Laptop Check and Crash History pages re-render
+        // in the new language in place, the same pattern as the Report
+        // and Tests pages above. A page created after the switch is
+        // already built in the new language by its constructor.
+        if (_pageCache.TryGetValue("buyer", out var buyerPage) && buyerPage is NewLaptopCheckViewModel buyer)
+        {
+            buyer.ApplyLanguage(_settings.LanguageCode);
+        }
+
+        if (_pageCache.TryGetValue("crash", out var crashPage) && crashPage is CrashHistoryViewModel crash)
+        {
+            crash.ApplyLanguage(_settings.LanguageCode);
+        }
+
+        // Cached Comparison and Fleet pages re-render in the new
+        // language in place, the same pattern as the pages above. A
+        // page created after the switch is already built in the new
+        // language by its constructor.
+        if (_pageCache.TryGetValue("compare", out var comparePage) && comparePage is ComparisonViewModel comparison)
+        {
+            comparison.ApplyLanguage(_settings.LanguageCode);
+        }
+
+        if (_pageCache.TryGetValue("fleet", out var fleetPage) && fleetPage is FleetViewModel fleet)
+        {
+            fleet.ApplyLanguage(_settings.LanguageCode);
+        }
+
         // Cached component detail pages re-render in the new language in
         // place (their chrome resolves at construction time, so a page
         // built before the switch needs the same re-language call the
@@ -575,7 +617,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 ExportChecklistCommand,
                 _buyerCheckEvaluator,
                 OnBuyerChecksChanged,
-                _buyerContext.AdvertisedRam));
+                _buyerContext.AdvertisedRam,
+                _settings.LanguageCode));
     }
 
     [RelayCommand]
@@ -954,15 +997,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         CurrentPage = key.ToLowerInvariant() switch
         {
             "overview" => Overview,
-            "crash" => GetOrCreate("crash", () => new CrashHistoryViewModel(_snapshot)),
+            "crash" => GetOrCreate("crash", () => new CrashHistoryViewModel(_snapshot, _settings.LanguageCode)),
             "tests" => GetOrCreate("tests", () => new TestsViewModel(
                 _sensorMonitor,
                 RatedMaxFromSnapshot(_snapshot),
                 IsOnBattery(_snapshot),
-                OnLoadTestCompleted)),
-            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: IsScanRunning, exportPdfCommand: ExportPdfCommand, exportCertificateCommand: ExportCertificateCommand, verifyMachineCommand: VerifyMachineCommand, dnaVerification: _lastDnaVerification, isVerifyingMachine: IsVerifyingMachine)),
-            "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot, _dnaVerifier)),
-            "fleet" => GetOrCreate("fleet", () => new FleetViewModel(_snapshotStore, ExportFleetCsvCommand, ExportMachineCsvAsync, ExportAllMachinesCsvAsync)),
+                OnLoadTestCompleted,
+                _settings.LanguageCode)),
+            "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: IsScanRunning, exportPdfCommand: ExportPdfCommand, exportCertificateCommand: ExportCertificateCommand, verifyMachineCommand: VerifyMachineCommand, dnaVerification: _lastDnaVerification, isVerifyingMachine: IsVerifyingMachine, languageCode: _settings.LanguageCode)),
+            "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot, _dnaVerifier, _settings.LanguageCode)),
+            "fleet" => GetOrCreate("fleet", () => new FleetViewModel(_snapshotStore, ExportFleetCsvCommand, ExportMachineCsvAsync, ExportAllMachinesCsvAsync, _settings.LanguageCode)),
             "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand, SensorLogWriter.DefaultFilePath(), _settings.SensorLoggingEnabled, _settings.CpuTemperatureThresholdC, languageCode: _settings.LanguageCode)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
             _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key, _settings.LanguageCode)),

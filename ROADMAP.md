@@ -1182,6 +1182,72 @@ data already existed; only the band rule and wording are new.
   `git diff 9dab61a HEAD -- '*csproj'`), so the result carries
   forward.
 
+## v2.1.16 — shipped
+
+- **Localisation, phase 8: the Comparison and Fleet pages in German
+  (Beyond v2.0, item 4).** The final part of phase 8 translates the
+  last two untranslated pages' chrome, closing the item: the
+  catalogue grows by 86 keys (421 to 507) — 35 Comparison, 51 Fleet.
+  The Comparison page moves its eyebrow, title, intro, Before/After
+  labels and picker placeholders, the Compare button, the Result
+  heading, the DNA note, the no-changes line, the Added/Removed
+  headings and the footer note, plus the transient status lines
+  (loading, no snapshots, one snapshot, the count line, the compared
+  line, the failure lines) and the DNA state/hash lines. The DNA
+  heading and the unidentified-parts heading reuse the Report page's
+  keys instead of second copies. The Fleet page moves its eyebrow,
+  title, intro, the Import button and note, the Machines heading,
+  the two export buttons, the table note, the eight column headers,
+  the row Export button and the Remove/Confirm-remove button, plus
+  the transient status lines (loading, no scans, the summary, the
+  export-all / remove / import lines). The summary and the
+  export-all / remove / import lines are templates with one/many
+  keys instead of inline plural hacks, and the remove-arm line
+  quotes the translated Confirm-remove label.
+- **Design (the phase 6 pattern).** An optional `languageCode`
+  (default null, English when blank or unknown) at the END of the
+  `ComparisonViewModel` and `FleetViewModel` constructors (and the
+  `FleetRowViewModel` constructor, which the Fleet page passes its
+  own code into), so every existing caller keeps compiling and the
+  no-language call produces the exact English wording it always did
+  (pinned by the existing tests). Both view models store a status
+  kind plus the values its line needs (the compared dates, the
+  export-all result, the import lists) and re-resolve the line on a
+  switch, the same in-place pattern the History page uses; the
+  Comparison page additionally stores the DNA state and the two hash
+  displays. The Fleet remove/import guards that used to read the
+  English status line (`StartsWith("Fleet could not be read")`)
+  now read the stored status kind, so they still work in German.
+  `MainViewModel` passes `_settings.LanguageCode` at construction
+  and calls `ApplyLanguage` on the cached pages in `ApplySettings`.
+  Deliberately NOT translated in this version, and named on the
+  pages' own terms in the docs: the U9 per-dollar verdict sentence
+  stays English in every language (shown verbatim, never translated,
+  pending Jawad's veto decision); the row cell values stay English,
+  including the "Not measurable" / "Not reported" fallbacks, so the
+  CSV export still agrees with the table row for row; the import
+  skipped-file reason fragments ("could not be imported.",
+  "could not be read (...)") stay English like exception messages.
+  Tests: `GermanPack_ComparisonPageTerms` /
+  `GermanPack_FleetPageTerms` (exact-equality pins for all 86 keys,
+  plus template formatting) and
+  `ComparisonFleetLocalizationViewModelTests` (English default /
+  German seeded / switch-both-ways / unknown-language fallback /
+  data-stays-English for both pages, plus the identical-DNA state
+  in German, the remove-arm and confirmed-remove lines in both
+  languages, the export-all some/zero lines in both languages, the
+  empty states, and the import skipped-file line). The LanguageNote
+  now says all pages are translated; the two tests that pinned the
+  old note are updated.
+- **Dependency audit re-attested for v2.1.16.** `SECURITY.md` said
+  v2.1.15; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.15 and v2.1.16 (only the `<Version>`
+  bump and test-file exclusions — zero `PackageReference` changes in
+  `git diff 0d71547 HEAD -- '*csproj'`), so the result carries
+  forward.
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed

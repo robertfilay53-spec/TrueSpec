@@ -107,7 +107,7 @@ public sealed class LanguagePackTests
         Assert.Equal("{0} Plug-ins gefunden.", german[AppStringKeys.PluginsSummaryMany]);
         Assert.Equal("Datenschutz", german[AppStringKeys.PrivacyTitle]);
         Assert.Equal(
-            "Navigation, Einstellungen, Komponentendetailseiten, die Übersichtsseite und die Verlaufsseite sind übersetzt. Andere Seiten sind noch auf Englisch und folgen in späteren Versionen.",
+            "Navigation, Einstellungen, Komponentendetailseiten, die Übersichtsseite, die Verlaufsseite, die Berichtsseite, die Testseite, die Seite „Neuer Laptop Check\", die Absturzverlaufsseite, die Vergleichsseite und die Geräteparkseite sind übersetzt. Alle Seiten sind jetzt übersetzt.",
             german[AppStringKeys.LanguageNote]);
     }
 
@@ -346,6 +346,391 @@ public sealed class LanguagePackTests
         Assert.Equal(
             "In 3 Messwerten wurden keine Temperaturwerte aufgezeichnet: Die Hardware dieses Geräts meldet keinen CPU-Temperatursensor. Das ist bei Geräten zu erwarten, deren Sensor nicht offengelegt wird, es gibt also kein CPU-Temperaturdiagramm zu zeigen.",
             StringLocalizer.GetFormatted(AppStringKeys.HistoryLogNoReadings, "de", 3));
+    }
+
+    [Fact]
+    public void GermanPack_ReportPageTerms()
+    {
+        // Localisation, phase 8 (v2.1.16): the Report page — the
+        // headings, the export buttons, the DNA card notes, the format
+        // descriptions, the preview heading, the footer note and the
+        // export privacy note. Same pinning rule as the rail, Settings,
+        // Core, detail, Overview and History terms: changing one is a
+        // deliberate translation decision, not a typo fix. The data the
+        // page shows (machine name, verdict text, score explanation,
+        // buyer banner and summary, generated-text line, DNA
+        // state/hash/verify result texts, export folder path) is not
+        // in this catalogue; only the page chrome is. The format
+        // headings (JSON, HTML, CSV, PDF) are format names and stay
+        // untranslated, like CPU and GPU.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("BERICHT", german[AppStringKeys.ReportEyebrow]);
+        Assert.Equal("Die Wahrheit exportieren", german[AppStringKeys.ReportTitle]);
+        Assert.Equal(
+            "Ein Datenmodell mit JSON-, HTML-, CSV- und PDF-Ausgaben. Alles wird auf diesem Rechner erzeugt.",
+            german[AppStringKeys.ReportIntro]);
+        Assert.Equal("Punktzahl", german[AppStringKeys.ReportScoreLabel]);
+        Assert.Equal("JSON exportieren", german[AppStringKeys.ReportExportJson]);
+        Assert.Equal("HTML exportieren", german[AppStringKeys.ReportExportHtml]);
+        Assert.Equal("CSV exportieren", german[AppStringKeys.ReportExportCsv]);
+        Assert.Equal("PDF exportieren", german[AppStringKeys.ReportExportPdf]);
+        Assert.Equal("Käuferzertifikat (PDF)", german[AppStringKeys.ReportExportCertificate]);
+        Assert.Equal("Dieses Gerät prüfen", german[AppStringKeys.ReportVerifyMachine]);
+        Assert.Equal("Geräte-DNA", german[AppStringKeys.ReportDnaTitle]);
+        Assert.Equal("Dieses Gerät wird geprüft, die Hardware wird erneut gescannt …", german[AppStringKeys.ReportVerifyingMachine]);
+        Assert.Equal("In einem der Scans nicht identifiziert:", german[AppStringKeys.ReportDnaUnidentifiedTitle]);
+        Assert.Equal(
+            "Die DNA ist Identität, nicht Gesundheit: Sie ändert niemals die Punktzahl oder das Urteil oben. Sie bestätigt nur, zu welchem Gerät die Punktzahl gehört. Ein Scan als Standardbenutzer ohne erhöhte Rechte prüft trotzdem, aber Teile, die erhöhte Rechte zum Lesen brauchen, können als nicht identifiziert statt als übereinstimmend angezeigt werden.",
+            german[AppStringKeys.ReportDnaNote]);
+        Assert.Equal("Maschinenlesbare Daten für Skripte und Support.", german[AppStringKeys.ReportFormatJsonDescription]);
+        Assert.Equal("Eine übersichtliche Seite, die Sie in jedem Browser öffnen können.", german[AppStringKeys.ReportFormatHtmlDescription]);
+        Assert.Equal("Eine Tabelle mit allen Spezifikationen, sicher in Excel zu öffnen. Werte, die wie Formeln aussehen, werden neutralisiert.", german[AppStringKeys.ReportFormatCsvDescription]);
+        Assert.Equal("Ein ausdruckbarer Bericht für den Verkäufer oder zum Aufbewahren beim Kaufbeleg. Auf diesem Rechner erstellt, keine zusätzliche Software.", german[AppStringKeys.ReportFormatPdfDescription]);
+        Assert.Equal("Verfügbar", german[AppStringKeys.ReportFormatAvailable]);
+        Assert.Equal("Berichtsvorschau", german[AppStringKeys.ReportPreviewTitle]);
+        Assert.Equal("Berichtsexporte werden in den oben angezeigten Ordner geschrieben. Kein Hochladen, keine Cloud.", german[AppStringKeys.ReportFooterNote]);
+        Assert.Equal(
+            "Exportierte Berichte enthalten die Hardware-Seriennummern, MAC-Adressen, IP-Adressen und WLAN-Namen dieses Geräts. Teilen Sie sie nur mit Personen, denen Sie vertrauen.",
+            german[AppStringKeys.ReportExportPrivacyNote]);
+    }
+
+    [Fact]
+    public void GermanPack_TestsPageTerms()
+    {
+        // Localisation, phase 8 (v2.1.16): the Tests page — the
+        // headings, the intro, the info note, the benchmark scope note,
+        // the per-test status words, result lines and Run button
+        // labels, and the load-test card (heading, intro, battery note,
+        // duration label, Start/Cancel, fan-health heading and note,
+        // temperature caption, the two warning templates, the fixed
+        // status words and the fixed live-line states). Same pinning
+        // rule as the Report terms above: changing one is a deliberate
+        // translation decision, not a typo fix. The data the page shows
+        // (per-test names and workload descriptions, measured result
+        // summaries and details, load-test measured results, verdict
+        // text and live values) is not in this catalogue; only the
+        // page chrome is. The load test reuses the test-item status
+        // keys ("Not run yet.", "Running...", "Test failed", the
+        // no-result template) instead of a second copy of the same
+        // words.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("TESTS", german[AppStringKeys.TestsEyebrow]);
+        Assert.Equal("Eingebaute Tests", german[AppStringKeys.TestsTitle]);
+        Assert.Equal("Jeweils ein Klick. Keine versteckten Uploads, kein Konto, und nichts läuft, ohne dass Sie es starten.", german[AppStringKeys.TestsIntro]);
+        Assert.Equal("CPU- und Datenträgertests führen echte lokale Messungen durch. Tests, die nicht umgesetzt sind, bleiben deaktiviert und zeigen kein Ergebnis.", german[AppStringKeys.TestsInfoNote]);
+        Assert.Equal(
+            "Diese Benchmarks messen nur dieses Gerät, mit der genauen Arbeitslast, die bei jedem Ergebnis angegeben ist. Sie ersetzen weder Geekbench (plattformübergreifender Vergleich) noch 3DMark (GPU-Rendering). Ein Ergebnis, das entstand, während ein anderes Programm die CPU nutzte, sagt dies auf dem Ergebnis selbst.",
+            german[AppStringKeys.TestsBenchmarkScopeNote]);
+        Assert.Equal("In dieser Version nicht verfügbar", german[AppStringKeys.TestsItemNotAvailable]);
+        Assert.Equal("Bereit", german[AppStringKeys.TestsItemReady]);
+        Assert.Equal("Läuft …", german[AppStringKeys.TestsItemRunning]);
+        Assert.Equal("Test fehlgeschlagen", german[AppStringKeys.TestsItemFailed]);
+        Assert.Equal("Noch nicht ausgeführt.", german[AppStringKeys.TestsItemNotRunYet]);
+        Assert.Equal("Dieser Test ist noch nicht umgesetzt, daher wird kein Ergebnis angezeigt.", german[AppStringKeys.TestsItemNotImplementedResult]);
+        Assert.Equal("Wird lokal gemessen. Nichts wird hochgeladen.", german[AppStringKeys.TestsItemMeasuring]);
+        Assert.Equal("Es wird kein Ergebnis angezeigt, weil der Test nicht abgeschlossen wurde: {0}", german[AppStringKeys.TestsItemNoResult]);
+        Assert.Equal("Test starten", german[AppStringKeys.TestsItemRun]);
+        Assert.Equal("Läuft …", german[AppStringKeys.TestsItemRunningButton]);
+        Assert.Equal("Nicht verfügbar", german[AppStringKeys.TestsItemNotAvailableButton]);
+        Assert.Equal("Belastungstest", german[AppStringKeys.LoadTestTitle]);
+        Assert.Equal("Belastet die CPU auf allen Kernen, beansprucht Arbeitsspeicher und Datenträger und beobachtet jede Sekunde Temperatur und Takt.", german[AppStringKeys.LoadTestIntro]);
+        Assert.Equal("Dieses Gerät läuft auf Akku; die Ergebnisse können leistungsbegrenzt sein.", german[AppStringKeys.LoadTestBatteryNote]);
+        Assert.Equal("Dauer (Sekunden):", german[AppStringKeys.LoadTestDurationLabel]);
+        Assert.Equal("Belastungstest starten", german[AppStringKeys.LoadTestStart]);
+        Assert.Equal("Abbrechen", german[AppStringKeys.LoadTestCancel]);
+        Assert.Equal("Lüfterzustand", german[AppStringKeys.LoadTestFanHealthTitle]);
+        Assert.Equal("TrueSpec meldet nur den Lüfterzustand; es steuert niemals Lüfter.", german[AppStringKeys.LoadTestFanHealthNote]);
+        Assert.Equal("Temperatur während des Tests (°C). Eine Lücke in der Linie bedeutet, dass der Sensor in dieser Sekunde nichts gemeldet hat.", german[AppStringKeys.LoadTestTemperatureCaption]);
+        Assert.Equal("Dadurch wird Ihre CPU {0} Sekunden lang belastet. Der Test stoppt automatisch, wenn die Temperatur {1} °C übersteigt.", german[AppStringKeys.LoadTestWarning]);
+        Assert.Equal("Ein {0}-Sekunden-Test ist eine Funktionsprüfung, kein Dauerbelastungszertifikat.", german[AppStringKeys.LoadTestFunctionalCheck]);
+        Assert.Equal("Automatisch gestoppt: Temperaturgrenze erreicht.", german[AppStringKeys.LoadTestStoppedTemperature]);
+        Assert.Equal("Gestoppt: Die Sensoren melden nichts mehr.", german[AppStringKeys.LoadTestStoppedSensorLost]);
+        Assert.Equal("Abgebrochen.", german[AppStringKeys.LoadTestCancelled]);
+        Assert.Equal("Belastungstest abgeschlossen.", german[AppStringKeys.LoadTestComplete]);
+        Assert.Equal("Temperatur: läuft nicht", german[AppStringKeys.LoadTestTempNotRunning]);
+        Assert.Equal("Temperatur: wird gemessen …", german[AppStringKeys.LoadTestTempMeasuring]);
+        Assert.Equal("Temperatur: Test beendet", german[AppStringKeys.LoadTestTempFinished]);
+        Assert.Equal("Temperatur: von der Hardware nicht gemeldet", german[AppStringKeys.LoadTestTempNotReported]);
+        Assert.Equal("Takt: läuft nicht", german[AppStringKeys.LoadTestClockNotRunning]);
+        Assert.Equal("Takt: wird gemessen …", german[AppStringKeys.LoadTestClockMeasuring]);
+        Assert.Equal("Takt: Test beendet", german[AppStringKeys.LoadTestClockFinished]);
+        Assert.Equal("Takt: von der Hardware nicht gemeldet", german[AppStringKeys.LoadTestClockNotReported]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "Dadurch wird Ihre CPU 60 Sekunden lang belastet. Der Test stoppt automatisch, wenn die Temperatur 95 °C übersteigt.",
+            StringLocalizer.GetFormatted(AppStringKeys.LoadTestWarning, "de", "60", "95"));
+        Assert.Equal(
+            "Ein 60-Sekunden-Test ist eine Funktionsprüfung, kein Dauerbelastungszertifikat.",
+            StringLocalizer.GetFormatted(AppStringKeys.LoadTestFunctionalCheck, "de", "60"));
+        Assert.Equal(
+            "Es wird kein Ergebnis angezeigt, weil der Test nicht abgeschlossen wurde: disk vanished",
+            StringLocalizer.GetFormatted(AppStringKeys.TestsItemNoResult, "de", "disk vanished"));
+    }
+
+    [Fact]
+    public void GermanPack_NewLaptopCheckPageTerms()
+    {
+        // Localisation, phase 8 (v2.1.16): the New Laptop Check page —
+        // the eyebrow, the banner's fixed words, the Authenticity
+        // heading, the no-prior-use line, the skipped-checks line, the
+        // checklist heading and buttons, the advertised-RAM card, the
+        // "What to ask the seller" label, the no-checks line, the
+        // footer note, the row status words and the source labels.
+        // Same pinning rule as the Report and Tests terms above:
+        // changing one is a deliberate translation decision, not a
+        // typo fix. The data the page shows (machine name, buyer
+        // summary, authenticity verdict line, check titles, details
+        // and what-to-ask lines, authenticity evidence lines, source
+        // strings, the finding title inside the banner) is not in
+        // this catalogue; only the page chrome is. The "Export
+        // Report" button reuses the Overview key, so it is pinned
+        // with the Overview terms, not here. The skipped-checks line
+        // uses one/many keys instead of the old inline plural hack.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("NEUER LAPTOP CHECK", german[AppStringKeys.NewLaptopCheckEyebrow]);
+        Assert.Equal("BESTANDEN - Dieses Gerät entspricht einem neuen Laptop", german[AppStringKeys.NewLaptopCheckBannerPass]);
+        Assert.Equal("WARNUNG - Prüfen Sie die hervorgehobenen Punkte", german[AppStringKeys.NewLaptopCheckBannerWarning]);
+        Assert.Equal("FEHLGESCHLAGEN - Dieses Gerät sieht nicht neu aus", german[AppStringKeys.NewLaptopCheckBannerFail]);
+        Assert.Equal("Nicht genug Daten für ein Urteil", german[AppStringKeys.NewLaptopCheckBannerNotEnoughData]);
+        Assert.Equal("BESTANDEN", german[AppStringKeys.NewLaptopCheckBannerStatePass]);
+        Assert.Equal("WARNUNG", german[AppStringKeys.NewLaptopCheckBannerStateWarning]);
+        Assert.Equal("FEHLGESCHLAGEN", german[AppStringKeys.NewLaptopCheckBannerStateFail]);
+        Assert.Equal("Nicht genug Daten", german[AppStringKeys.NewLaptopCheckBannerStateNotEnoughData]);
+        Assert.Equal("Authentizität", german[AppStringKeys.NewLaptopCheckAuthenticityTitle]);
+        Assert.Equal("In den prübaren Alterssignalen wurden keine Anzeichen für eine frühere Nutzung gefunden.", german[AppStringKeys.NewLaptopCheckNoPriorUse]);
+        Assert.Equal("1 Authentizitätsprüfung konnte nicht ausgeführt werden, weil ein Signal nicht gemeldet wurde: {0}", german[AppStringKeys.NewLaptopCheckSkippedOne]);
+        Assert.Equal("{0} Authentizitätsprüfungen konnten nicht ausgeführt werden, weil ein Signal nicht gemeldet wurde: {1}", german[AppStringKeys.NewLaptopCheckSkippedMany]);
+        Assert.Equal("Checkliste", german[AppStringKeys.NewLaptopCheckChecklistTitle]);
+        Assert.Equal("Checkliste drucken", german[AppStringKeys.NewLaptopCheckPrintChecklist]);
+        Assert.Equal("Angegebener RAM (optional)", german[AppStringKeys.NewLaptopCheckAdvertisedRamTitle]);
+        Assert.Equal("Wird nur für die RAM-Prüfung verwendet. Es wird niemals als Hardwaremesswert behandelt.", german[AppStringKeys.NewLaptopCheckAdvertisedRamNote]);
+        Assert.Equal("z. B. 16 GB", german[AppStringKeys.NewLaptopCheckAdvertisedRamPlaceholder]);
+        Assert.Equal("Was Sie den Verkäufer fragen sollten", german[AppStringKeys.NewLaptopCheckWhatToAsk]);
+        Assert.Equal("Für diesen Scan wurden keine Käuferprüfungen erstellt.", german[AppStringKeys.NewLaptopCheckNoChecks]);
+        Assert.Equal("Für Käuferprüfungen gelten dieselben ehrlichen Regeln wie für den Rest der App: nur gemessene Werte, keine erfundenen Zahlen.", german[AppStringKeys.NewLaptopCheckFooterNote]);
+        Assert.Equal("Quelle 1: {0}", german[AppStringKeys.NewLaptopCheckSourceOne]);
+        Assert.Equal("Quelle 2: {0}", german[AppStringKeys.NewLaptopCheckSourceTwo]);
+        Assert.Equal("Bestanden", german[AppStringKeys.BuyerCheckStatePass]);
+        Assert.Equal("Warnung", german[AppStringKeys.BuyerCheckStateWarning]);
+        Assert.Equal("Fehlgeschlagen", german[AppStringKeys.BuyerCheckStateFail]);
+        Assert.Equal("Nicht zutreffend", german[AppStringKeys.BuyerCheckStateNotApplicable]);
+        Assert.Equal("Stark", german[AppStringKeys.AuthenticitySeverityStrong]);
+        Assert.Equal("Achtung", german[AppStringKeys.AuthenticitySeverityWatch]);
+        Assert.Equal("Info", german[AppStringKeys.AuthenticitySeverityInfo]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "1 Authentizitätsprüfung konnte nicht ausgeführt werden, weil ein Signal nicht gemeldet wurde: Windows install date",
+            StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSkippedOne, "de", "Windows install date"));
+        Assert.Equal(
+            "3 Authentizitätsprüfungen konnten nicht ausgeführt werden, weil ein Signal nicht gemeldet wurde: BIOS date; Windows install date",
+            StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSkippedMany, "de", 3, "BIOS date; Windows install date"));
+        Assert.Equal(
+            "Quelle 1: BIOS date",
+            StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSourceOne, "de", "BIOS date"));
+    }
+
+    [Fact]
+    public void GermanPack_CrashHistoryPageTerms()
+    {
+        // Localisation, phase 8 (v2.1.16): the Crash History page —
+        // the title, the recent-crash heading, the three fixed alert
+        // sentences, the "Failures by class" heading, the table
+        // headers, the two fixed empty-state lines, the cleared-log
+        // warning template and the footer note. Same pinning rule as
+        // the New Laptop Check terms above: changing one is a
+        // deliberate translation decision, not a typo fix. The data
+        // the page shows (component headline, the "What this means"
+        // fallback, class names, counts and dates, plain meanings,
+        // the "Not reported" date fallback) is not in this
+        // catalogue; only the page chrome is. The captured line
+        // reuses the detail page's DetailCaptured template, so it is
+        // pinned with the detail terms, not here.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("Absturzverlauf", german[AppStringKeys.CrashTitle]);
+        Assert.Equal("Aktueller Absturz", german[AppStringKeys.CrashRecentTitle]);
+        Assert.Equal("In den letzten 30 Tagen gab es einen Bluescreen und einen schwerwiegenden Hardwarefehler.", german[AppStringKeys.CrashAlertBoth]);
+        Assert.Equal("In den letzten 30 Tagen gab es einen Bluescreen.", german[AppStringKeys.CrashAlertBugCheck]);
+        Assert.Equal("In den letzten 30 Tagen gab es einen schwerwiegenden Hardwarefehler.", german[AppStringKeys.CrashAlertWheaFatal]);
+        Assert.Equal("Fehler nach Klasse", german[AppStringKeys.CrashFailuresByClass]);
+        Assert.Equal("Klasse", german[AppStringKeys.CrashHeaderClass]);
+        Assert.Equal("Anzahl (90 Tage)", german[AppStringKeys.CrashHeaderCount]);
+        Assert.Equal("Erste", german[AppStringKeys.CrashHeaderFirst]);
+        Assert.Equal("Letzte", german[AppStringKeys.CrashHeaderLast]);
+        Assert.Equal("Bedeutung", german[AppStringKeys.CrashHeaderMeaning]);
+        Assert.Equal("Der Absturzverlauf wurde noch nicht erfasst.", german[AppStringKeys.CrashEmptyNotCollected]);
+        Assert.Equal("In den letzten 90 Tagen wurden keine Bluescreens, Hardwarefehler, unerwarteten Abschaltungen oder Datenträgerfehler aufgezeichnet.", german[AppStringKeys.CrashEmptyNoCrashes]);
+        Assert.Equal("Das Ereignisprotokoll hat keine Einträge vor dem {0}, daher ist dieser Verlauf möglicherweise unvollständig. Ein gelöschtes Protokoll gilt als Lücke, niemals als sauberer Verlauf.", german[AppStringKeys.CrashLogCleared]);
+        Assert.Equal("Die Anzahl deckt die letzten 90 Tage ab; erste und letzte decken den gesamten aufgezeichneten Zeitraum ab. Bedeutungen sind feste Bezeichnungen, keine Diagnosen.", german[AppStringKeys.CrashFooterNote]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "Das Ereignisprotokoll hat keine Einträge vor dem 2026-10-25, daher ist dieser Verlauf möglicherweise unvollständig. Ein gelöschtes Protokoll gilt als Lücke, niemals als sauberer Verlauf.",
+            StringLocalizer.GetFormatted(AppStringKeys.CrashLogCleared, "de", "2026-10-25"));
+    }
+
+    [Fact]
+    public void GermanPack_ComparisonPageTerms()
+    {
+        // Localisation, phase 8 (v2.1.16): the Comparison page — the
+        // eyebrow, title, intro, Before/After labels and picker
+        // placeholders, the Compare button, the Result heading, the
+        // DNA note, the no-changes line, the Added/Removed headings,
+        // the footer note, the transient status lines and the DNA
+        // state/hash lines. Same pinning rule as the Crash History
+        // terms above: changing one is a deliberate translation
+        // decision, not a typo fix. The data the page shows (the
+        // comparison summary sentence, the row cell values, the DNA
+        // changed/unidentified part lines, file paths and exception
+        // messages) is not in this catalogue; only the page chrome
+        // is. The DNA heading and the unidentified-parts heading
+        // reuse the Report page's keys, so they are pinned with the
+        // Report terms, not here.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("VERGLEICH", german[AppStringKeys.ComparisonEyebrow]);
+        Assert.Equal("Zwei Scans im Vergleich", german[AppStringKeys.ComparisonTitle]);
+        Assert.Equal("Wählen Sie zwei beliebige gespeicherte Scans. TrueSpec zeigt die Punktzahländerung, jede Komponente, die sich verändert hat, und jede geänderte Spezifikation. Nichts wird erfunden: Eine Komponente, die in keinem der Scans messbar war, sagt dies auch.", german[AppStringKeys.ComparisonIntro]);
+        Assert.Equal("Vorher", german[AppStringKeys.ComparisonBefore]);
+        Assert.Equal("Nachher", german[AppStringKeys.ComparisonAfter]);
+        Assert.Equal("Wählen Sie einen früheren Scan", german[AppStringKeys.ComparisonPickEarlier]);
+        Assert.Equal("Wählen Sie einen späteren Scan", german[AppStringKeys.ComparisonPickLater]);
+        Assert.Equal("Vergleichen", german[AppStringKeys.ComparisonCompareButton]);
+        Assert.Equal("Ergebnis", german[AppStringKeys.ComparisonResultTitle]);
+        Assert.Equal("Die DNA ist Identität, nicht Gesundheit: Sie ändert niemals die Punktzahl oben. Sie sagt nur, ob die beiden Scans dasselbe Gerät mit denselben Teilen sind.", german[AppStringKeys.ComparisonDnaNote]);
+        Assert.Equal("Zwischen diesen beiden Scans hat sich weder die Gesundheit einer Komponente noch eine Spezifikation geändert.", german[AppStringKeys.ComparisonNoChanges]);
+        Assert.Equal("Hinzugefügte Komponenten", german[AppStringKeys.ComparisonAddedTitle]);
+        Assert.Equal("Entfernte Komponenten", german[AppStringKeys.ComparisonRemovedTitle]);
+        Assert.Equal("Scans werden nach jedem Scan lokal gespeichert. Der Verlauf verlässt diesen Rechner nie.", german[AppStringKeys.ComparisonFooterNote]);
+        Assert.Equal("Scanverlauf wird geladen …", german[AppStringKeys.ComparisonLoading]);
+        Assert.Equal("Der Scanverlauf ist auf diesem Rechner nicht verfügbar, daher gibt es noch nichts zu vergleichen.", german[AppStringKeys.ComparisonHistoryUnavailable]);
+        Assert.Equal("Es sind noch keine Scans gespeichert. Scans werden nach jedem Scan gespeichert, also aktualisieren Sie den Scan und kommen Sie zum Vergleichen zurück.", german[AppStringKeys.ComparisonNoSnapshots]);
+        Assert.Equal("Bisher ist nur ein Scan gespeichert. Führen Sie einen weiteren Scan aus (Aktualisieren) und kommen Sie zum Vergleichen zurück.", german[AppStringKeys.ComparisonOnlyOneSnapshot]);
+        Assert.Equal("{0} Scans im Verlauf. Wählen Sie zwei aus und vergleichen Sie sie.", german[AppStringKeys.ComparisonSnapshotsCount]);
+        Assert.Equal("Der Verlauf konnte nicht gelesen werden: {0}", german[AppStringKeys.ComparisonHistoryReadFailed]);
+        Assert.Equal("Wählen Sie zwei verschiedene Scans zum Vergleichen.", german[AppStringKeys.ComparisonPickDifferent]);
+        Assert.Equal("Scans werden verglichen …", german[AppStringKeys.ComparisonComparing]);
+        Assert.Equal("Einer der Scans konnte nicht aus dem Verlauf gelesen werden.", german[AppStringKeys.ComparisonSnapshotUnreadable]);
+        Assert.Equal("Die DNA konnte nicht verglichen werden: Die Scans konnten nicht gelesen werden.", german[AppStringKeys.ComparisonDnaUnreadable]);
+        Assert.Equal("{0} mit {1} verglichen.", german[AppStringKeys.ComparisonCompared]);
+        Assert.Equal("Der Vergleich ist fehlgeschlagen: {0}", german[AppStringKeys.ComparisonFailed]);
+        Assert.Equal("Noch kein DNA-Vergleich. Wählen Sie zwei Scans aus und vergleichen Sie sie.", german[AppStringKeys.ComparisonDnaNoComparison]);
+        Assert.Equal("Dasselbe Gerät, dieselben Teile.", german[AppStringKeys.ComparisonDnaIdentical]);
+        Assert.Equal("Dasselbe Gerät – Fingerabdruck stimmt überein.", german[AppStringKeys.ComparisonDnaFingerprintMatches]);
+        Assert.Equal("Zwischen diesen beiden Scans haben sich Teile geändert.", german[AppStringKeys.ComparisonDnaChanged]);
+        Assert.Equal("Die DNA konnte für diese Scans nicht geprüft werden.", german[AppStringKeys.ComparisonDnaUnverifiable]);
+        Assert.Equal("Für einen oder beide Scans wurde keine DNA aufgezeichnet.", german[AppStringKeys.ComparisonDnaNotRecordedState]);
+        Assert.Equal("Vorher: {0}", german[AppStringKeys.ComparisonDnaHashBefore]);
+        Assert.Equal("Nachher: {0}", german[AppStringKeys.ComparisonDnaHashAfter]);
+        Assert.Equal("DNA nicht aufgezeichnet", german[AppStringKeys.ComparisonDnaNotRecorded]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "2 Scans im Verlauf. Wählen Sie zwei aus und vergleichen Sie sie.",
+            StringLocalizer.GetFormatted(AppStringKeys.ComparisonSnapshotsCount, "de", 2));
+        Assert.Equal(
+            "2026-11-10 09:00 mit 2026-12-10 09:00 verglichen.",
+            StringLocalizer.GetFormatted(AppStringKeys.ComparisonCompared, "de", "2026-11-10 09:00", "2026-12-10 09:00"));
+        Assert.Equal(
+            "Vorher: abcdef12…34567890",
+            StringLocalizer.GetFormatted(AppStringKeys.ComparisonDnaHashBefore, "de", "abcdef12…34567890"));
+        Assert.Equal(
+            "Der Verlauf konnte nicht gelesen werden: disk vanished",
+            StringLocalizer.GetFormatted(AppStringKeys.ComparisonHistoryReadFailed, "de", "disk vanished"));
+    }
+
+    [Fact]
+    public void GermanPack_FleetPageTerms()
+    {
+        // Localisation, phase 8 (v2.1.16): the Fleet page — the
+        // eyebrow, title, intro, the Import button and note, the
+        // Machines heading, the two export buttons, the table note,
+        // the column headers, the row Export button and the
+        // Remove/Confirm-remove button, the transient status lines
+        // (loading, no scans, the summary templates, the export-all /
+        // remove / import lines). Same pinning rule as the Comparison
+        // terms above: changing one is a deliberate translation
+        // decision, not a typo fix. The data the page shows (machine
+        // names, the row cell values, file and folder paths, exception
+        // messages) is not in this catalogue; only the page chrome
+        // is. The summary and the export-all / remove / import lines
+        // are templates with one/many keys instead of inline plural
+        // hacks, and the remove-arm line quotes the translated
+        // Confirm-remove label. The row's "Not measurable" score
+        // fallback and "Not reported" worst-component fallback stay
+        // English like the History table's fallbacks; the summary's
+        // lowest-score fallback is its own key because it sits
+        // mid-sentence inside a translated line.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("GERÄTEPARK", german[AppStringKeys.FleetEyebrow]);
+        Assert.Equal("Jedes Gerät in diesem Datenordner", german[AppStringKeys.FleetTitle]);
+        Assert.Equal("Technikermodus: Nehmen Sie die portable App auf einem USB-Stick mit, scannen Sie jedes Gerät, und jeder Scan landet im selben Speicher auf dem Stick. Diese Seite listet den neuesten Scan jedes Geräts, niedrigste Punktzahl zuerst, mit der schlechtesten Komponente benannt, sodass das Gerät, das Aufmerksamkeit braucht, ganz oben steht. Geräte, die mit der installierten App gescannt wurden, können mit „JSON-Berichte importieren\" hereingeholt werden, was die JSON-Dateien liest, die die Berichtsseite exportiert. „Alle Geräte exportieren\" schreibt eine CSV-Datei pro Gerät in den Exportordner, sodass der ganze Gerätepark auf einmal abgelegt werden kann, statt einem Export-Klick pro Zeile. Um ein Gerät aus dem Gerätepark zu nehmen, verwenden Sie „Entfernen\" in seiner Zeile – es löscht alle gespeicherten Scans dieses Geräts aus diesem Datenordner, in zwei Klicks, damit ein Fehlklick nichts löschen kann.", german[AppStringKeys.FleetIntro]);
+        Assert.Equal("JSON-Berichte importieren", german[AppStringKeys.FleetImportButton]);
+        Assert.Equal("Importiert TrueSpec-JSON-Berichte, die von anderen Geräten exportiert wurden, sodass ihre Scans zu diesem Gerätepark kommen. Eine Datei, die kein TrueSpec-Bericht ist, wird übersprungen, und wenn dieselbe Datei zweimal importiert wird, wird nur ein Scan gespeichert.", german[AppStringKeys.FleetImportNote]);
+        Assert.Equal("Geräte", german[AppStringKeys.FleetMachinesTitle]);
+        Assert.Equal("Alle Geräte exportieren", german[AppStringKeys.FleetExportAllButton]);
+        Assert.Equal("Gerätepark als CSV exportieren", german[AppStringKeys.FleetExportFleetCsvButton]);
+        Assert.Equal("Niedrigste Punktzahl zuerst. Ein Strich bedeutet, dass dieser Scan den Wert nicht gemeldet hat.", german[AppStringKeys.FleetTableNote]);
+        Assert.Equal("Gerät", german[AppStringKeys.FleetHeaderMachine]);
+        Assert.Equal("Scans", german[AppStringKeys.FleetHeaderScans]);
+        Assert.Equal("Letzter Scan", german[AppStringKeys.FleetHeaderLastScan]);
+        Assert.Equal("Punktzahl", german[AppStringKeys.FleetHeaderScore]);
+        Assert.Equal("Urteil", german[AppStringKeys.FleetHeaderVerdict]);
+        Assert.Equal("Schlechteste Komponente", german[AppStringKeys.FleetHeaderWorstComponent]);
+        Assert.Equal("Export", german[AppStringKeys.FleetHeaderExport]);
+        Assert.Equal("Entfernen", german[AppStringKeys.FleetHeaderRemove]);
+        Assert.Equal("CSV exportieren", german[AppStringKeys.FleetRowExportButton]);
+        Assert.Equal("Entfernen bestätigen", german[AppStringKeys.FleetRowConfirmRemoveButton]);
+        Assert.Equal("Gerätepark wird geladen …", german[AppStringKeys.FleetLoading]);
+        Assert.Equal("Der Scanverlauf ist auf diesem Rechner nicht verfügbar, daher gibt es noch keinen Gerätepark.", german[AppStringKeys.FleetUnavailable]);
+        Assert.Equal("Noch keine gespeicherten Scans. Scannen Sie ein Gerät, oder führen Sie die portable App auf jedem Gerät im Gerätepark aus, und sein neuester Scan erscheint hier. Sie können auch JSON-Berichte von anderen Geräten mit der Schaltfläche „JSON-Berichte importieren\" importieren.", german[AppStringKeys.FleetNoScans]);
+        Assert.Equal("1 Gerät in diesem Datenordner, 1 gespeicherter Scan. Niedrigste Punktzahl {0} ({1}).", german[AppStringKeys.FleetSummaryOneOne]);
+        Assert.Equal("1 Gerät in diesem Datenordner, {0} gespeicherte Scans. Niedrigste Punktzahl {1} ({2}).", german[AppStringKeys.FleetSummaryOneMany]);
+        Assert.Equal("{0} Geräte in diesem Datenordner, 1 gespeicherter Scan. Niedrigste Punktzahl {1} ({2}).", german[AppStringKeys.FleetSummaryManyOne]);
+        Assert.Equal("{0} Geräte in diesem Datenordner, {1} gespeicherte Scans. Niedrigste Punktzahl {2} ({3}).", german[AppStringKeys.FleetSummaryManyMany]);
+        Assert.Equal("nicht messbar", german[AppStringKeys.FleetScoreNotMeasurable]);
+        Assert.Equal("Gerätepark geladen.", german[AppStringKeys.FleetLoaded]);
+        Assert.Equal("Der Gerätepark konnte nicht gelesen werden: {0}", german[AppStringKeys.FleetReadFailed]);
+        Assert.Equal("Der Geräte-Export ist nicht verfügbar.", german[AppStringKeys.FleetMachineExportUnavailable]);
+        Assert.Equal("Der Geräte-Export ist fehlgeschlagen: Für {0} wurde kein gespeicherter Scan gefunden.", german[AppStringKeys.FleetMachineExportNoScan]);
+        Assert.Equal("Alle Geräte exportieren ist nicht verfügbar.", german[AppStringKeys.FleetExportAllUnavailable]);
+        Assert.Equal("Alle Geräte exportieren ist fehlgeschlagen: Es gibt noch keinen Gerätepark zum Exportieren.", german[AppStringKeys.FleetExportAllNoFleet]);
+        Assert.Equal("Alle Geräte exportieren ist fehlgeschlagen: {0}", german[AppStringKeys.FleetExportAllFailed]);
+        Assert.Equal("0 Geräte exportiert. {0}", german[AppStringKeys.FleetExportAllZero]);
+        Assert.Equal("Es gibt noch keinen Gerätepark zum Exportieren.", german[AppStringKeys.FleetExportAllZeroNoFleet]);
+        Assert.Equal("Übersprungen {0}: {1}", german[AppStringKeys.FleetSkipped]);
+        Assert.Equal("{0} von 1 Gerät nach {1} exportiert.", german[AppStringKeys.FleetExportAllTotalOne]);
+        Assert.Equal("{0} von {1} Geräten nach {2} exportiert.", german[AppStringKeys.FleetExportAllTotalMany]);
+        Assert.Equal("Entfernen ist nicht verfügbar: Der Scanverlauf ist auf diesem Rechner nicht verfügbar.", german[AppStringKeys.FleetRemoveUnavailable]);
+        Assert.Equal("{0} entfernen? Dadurch wird 1 gespeicherter Scan für dieses Gerät aus diesem Datenordner gelöscht. Klicken Sie auf „{1}\", um zu löschen – bis dahin wird nichts gelöscht.", german[AppStringKeys.FleetRemoveArmOne]);
+        Assert.Equal("{0} entfernen? Dadurch werden alle {1} gespeicherten Scans für dieses Gerät aus diesem Datenordner gelöscht. Klicken Sie auf „{2}\", um zu löschen – bis dahin wird nichts gelöscht.", german[AppStringKeys.FleetRemoveArmMany]);
+        Assert.Equal("Nichts zu entfernen: Für {0} wurden keine gespeicherten Scans gefunden.", german[AppStringKeys.FleetRemoveNothing]);
+        Assert.Equal("{0} entfernt (1 gespeicherter Scan).", german[AppStringKeys.FleetRemovedOne]);
+        Assert.Equal("{0} entfernt ({1} gespeicherte Scans).", german[AppStringKeys.FleetRemovedMany]);
+        Assert.Equal("Entfernen ist fehlgeschlagen: {0}", german[AppStringKeys.FleetRemoveFailed]);
+        Assert.Equal("Import ist nicht verfügbar: Der Scanverlauf ist auf diesem Rechner nicht verfügbar.", german[AppStringKeys.FleetImportUnavailable]);
+        Assert.Equal("Import ist nicht verfügbar: Es ist keine Dateiauswahl verfügbar.", german[AppStringKeys.FleetImportNoPicker]);
+        Assert.Equal("0 Berichte importiert", german[AppStringKeys.FleetImportedNone]);
+        Assert.Equal("1 Bericht importiert ({0})", german[AppStringKeys.FleetImportedOne]);
+        Assert.Equal("{0} Berichte importiert ({1})", german[AppStringKeys.FleetImportedMany]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "2 Geräte in diesem Datenordner, 3 gespeicherte Scans. Niedrigste Punktzahl 58 (SHOP-PC-BAD).",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetSummaryManyMany, "de", 2, 3, "58", "SHOP-PC-BAD"));
+        Assert.Equal(
+            "1 Gerät in diesem Datenordner, 1 gespeicherter Scan. Niedrigste Punktzahl nicht messbar (SHOP-PC-BAD).",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetSummaryOneOne, "de", "nicht messbar", "SHOP-PC-BAD"));
+        Assert.Equal(
+            "2 von 2 Geräten nach C:\\Exports exportiert.",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetExportAllTotalMany, "de", 2, 2, "C:\\Exports"));
+        Assert.Equal(
+            "SHOP-PC-BAD entfernen? Dadurch werden alle 2 gespeicherten Scans für dieses Gerät aus diesem Datenordner gelöscht. Klicken Sie auf „Entfernen bestätigen\", um zu löschen – bis dahin wird nichts gelöscht.",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetRemoveArmMany, "de", "SHOP-PC-BAD", 2, "Entfernen bestätigen"));
+        Assert.Equal(
+            "2 Berichte importiert (SHOP-PC-A, SHOP-PC-B). Übersprungen 1: bad.json: could not be imported.",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetImportedMany, "de", 2, "SHOP-PC-A, SHOP-PC-B")
+                + ". " + StringLocalizer.GetFormatted(AppStringKeys.FleetSkipped, "de", 1, "bad.json: could not be imported."));
     }
 
     [Fact]

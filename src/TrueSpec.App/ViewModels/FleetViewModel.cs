@@ -12,6 +12,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TrueSpec.App.Services;
 using TrueSpec.Core.History;
+using TrueSpec.Core.Localization;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Reports;
 using TrueSpec.Core.Storage;
@@ -32,6 +33,24 @@ using TrueSpec.Core.Storage;
 /// Export click per row. Every value comes from a real saved snapshot;
 /// a machine whose latest scan is unreadable is skipped, never shown
 /// with invented numbers.
+///
+/// Localisation, phase 8 (v2.1.16): the page chrome renders in the
+/// current language — the eyebrow, title, intro, the Import button
+/// and note, the Machines heading, the two export buttons, the table
+/// note, the column headers and the row buttons, plus the transient
+/// status lines (loading, no scans, the summary, the export-all /
+/// remove / import lines) — so the page follows the language the
+/// user picked in Settings, with no restart. The data the page shows
+/// stays English: machine names, the row cell values (scan counts,
+/// dates, scores with their "Not measurable" fallback, verdicts,
+/// worst components with their "Not reported" fallback), file and
+/// folder paths, and exception messages. The summary and the
+/// export-all / remove / import lines are templates with one/many
+/// keys instead of inline plural hacks, and the remove-arm line
+/// quotes the translated Confirm-remove label. The page is cached by
+/// the shell, so the strings resolve from the stored language code
+/// and re-render through <see cref="ApplyLanguage"/>, the same
+/// in-place pattern the Overview and History pages use.
 /// </summary>
 public sealed partial class FleetViewModel : ViewModelBase
 {
@@ -43,11 +62,62 @@ public sealed partial class FleetViewModel : ViewModelBase
     private bool _removing;
     private bool _exportingAll;
 
+    private string _languageCode;
+
+    /// <summary>Which transient status line is showing, so ApplyLanguage can re-resolve it instead of resetting it.</summary>
+    private FleetStatusKind _statusKind = FleetStatusKind.Loading;
+
+    /// <summary>The exception message of a failed status, or null when the current status carries none.</summary>
+    private string? _statusError;
+
+    /// <summary>The machine name of a machine-export / remove status, or null when the current status carries none.</summary>
+    private string? _statusMachine;
+
+    /// <summary>The scan count of a remove-arm or removed status.</summary>
+    private int _statusCount;
+
+    /// <summary>The export-all result of an export-all status, so ApplyLanguage can rebuild its line.</summary>
+    private ExportAllMachinesResult? _lastExportAllResult;
+
+    /// <summary>The fleet size an export-all status was built from.</summary>
+    private int _lastExportAllTotal;
+
+    /// <summary>The machine names an import status imported, so ApplyLanguage can rebuild its line.</summary>
+    private IReadOnlyList<string> _lastImported = Array.Empty<string>();
+
+    /// <summary>The "file: reason" lines an import status skipped, so ApplyLanguage can rebuild its line.</summary>
+    private IReadOnlyList<string> _lastImportSkipped = Array.Empty<string>();
+
+    /// <summary>The transient status lines the Fleet page can show. Stored so a language switch re-resolves the line instead of resetting it.</summary>
+    private enum FleetStatusKind
+    {
+        Loading,
+        Unavailable,
+        NoScans,
+        Loaded,
+        ReadFailed,
+        MachineExportUnavailable,
+        MachineExportNoScan,
+        ExportAllUnavailable,
+        ExportAllNoFleet,
+        ExportAllFailed,
+        ExportAllResult,
+        RemoveUnavailable,
+        RemoveArm,
+        RemoveNothing,
+        Removed,
+        RemoveFailed,
+        ImportUnavailable,
+        ImportNoPicker,
+        ImportResult,
+    }
+
     public FleetViewModel(
         ISnapshotStore? store,
         ICommand? exportFleetCsvCommand = null,
         Func<FleetMachineRow, SystemSnapshot, Task>? exportMachineCsv = null,
-        Func<IReadOnlyList<FleetMachineRow>, IReadOnlyDictionary<string, SystemSnapshot>, Task<ExportAllMachinesResult>>? exportAllMachinesCsv = null)
+        Func<IReadOnlyList<FleetMachineRow>, IReadOnlyDictionary<string, SystemSnapshot>, Task<ExportAllMachinesResult>>? exportAllMachinesCsv = null,
+        string? languageCode = null)
     {
         _store = store;
         _exportMachineCsv = exportMachineCsv;
@@ -57,7 +127,227 @@ public sealed partial class FleetViewModel : ViewModelBase
         ExportAllMachinesCommand = new AsyncRelayCommand(ExportAllMachinesAsync);
         RemoveMachineCommand = new AsyncRelayCommand<FleetRowViewModel>(RemoveMachineAsync);
         ImportReportsCommand = new AsyncRelayCommand(ImportReportsAsync);
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        SetStatus(FleetStatusKind.Loading);
         _ = LoadAsync();
+    }
+
+    /// <summary>The page eyebrow, in the page language.</summary>
+    public string FleetEyebrowText =>
+        StringLocalizer.Get(AppStringKeys.FleetEyebrow, _languageCode);
+
+    /// <summary>The page title, in the page language.</summary>
+    public string FleetTitleText =>
+        StringLocalizer.Get(AppStringKeys.FleetTitle, _languageCode);
+
+    /// <summary>The page intro, in the page language.</summary>
+    public string FleetIntroText =>
+        StringLocalizer.Get(AppStringKeys.FleetIntro, _languageCode);
+
+    /// <summary>The "Import JSON reports" button label, in the page language.</summary>
+    public string FleetImportButtonText =>
+        StringLocalizer.Get(AppStringKeys.FleetImportButton, _languageCode);
+
+    /// <summary>The import explainer note, in the page language.</summary>
+    public string FleetImportNoteText =>
+        StringLocalizer.Get(AppStringKeys.FleetImportNote, _languageCode);
+
+    /// <summary>The "Machines" heading, in the page language.</summary>
+    public string FleetMachinesTitleText =>
+        StringLocalizer.Get(AppStringKeys.FleetMachinesTitle, _languageCode);
+
+    /// <summary>The "Export all machines" button label, in the page language.</summary>
+    public string FleetExportAllButtonText =>
+        StringLocalizer.Get(AppStringKeys.FleetExportAllButton, _languageCode);
+
+    /// <summary>The "Export fleet as CSV" button label, in the page language.</summary>
+    public string FleetExportFleetCsvButtonText =>
+        StringLocalizer.Get(AppStringKeys.FleetExportFleetCsvButton, _languageCode);
+
+    /// <summary>The table note, in the page language.</summary>
+    public string FleetTableNoteText =>
+        StringLocalizer.Get(AppStringKeys.FleetTableNote, _languageCode);
+
+    /// <summary>The "Machine" column header, in the page language.</summary>
+    public string FleetHeaderMachineText =>
+        StringLocalizer.Get(AppStringKeys.FleetHeaderMachine, _languageCode);
+
+    /// <summary>The "Scans" column header, in the page language.</summary>
+    public string FleetHeaderScansText =>
+        StringLocalizer.Get(AppStringKeys.FleetHeaderScans, _languageCode);
+
+    /// <summary>The "Last scan" column header, in the page language.</summary>
+    public string FleetHeaderLastScanText =>
+        StringLocalizer.Get(AppStringKeys.FleetHeaderLastScan, _languageCode);
+
+    /// <summary>The "Score" column header, in the page language.</summary>
+    public string FleetHeaderScoreText =>
+        StringLocalizer.Get(AppStringKeys.FleetHeaderScore, _languageCode);
+
+    /// <summary>The "Verdict" column header, in the page language.</summary>
+    public string FleetHeaderVerdictText =>
+        StringLocalizer.Get(AppStringKeys.FleetHeaderVerdict, _languageCode);
+
+    /// <summary>The "Worst component" column header, in the page language.</summary>
+    public string FleetHeaderWorstComponentText =>
+        StringLocalizer.Get(AppStringKeys.FleetHeaderWorstComponent, _languageCode);
+
+    /// <summary>The "Export" column header, in the page language.</summary>
+    public string FleetHeaderExportText =>
+        StringLocalizer.Get(AppStringKeys.FleetHeaderExport, _languageCode);
+
+    /// <summary>The "Remove" column header, in the page language.</summary>
+    public string FleetHeaderRemoveText =>
+        StringLocalizer.Get(AppStringKeys.FleetHeaderRemove, _languageCode);
+
+    /// <summary>
+    /// Re-renders this page in the given language, in place: every
+    /// localized text is re-resolved from the stored state, and every
+    /// row re-renders its button labels. Called by the shell when the
+    /// user picks a language in Settings; a page created after the
+    /// switch is already built in the new language by the
+    /// constructor. An unknown code falls back to English through the
+    /// localizer, never to a blank. Measured data (machine names, row
+    /// cell values, file and folder paths) is untouched.
+    /// </summary>
+    public void ApplyLanguage(string? languageCode)
+    {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        OnPropertyChanged(nameof(FleetEyebrowText));
+        OnPropertyChanged(nameof(FleetTitleText));
+        OnPropertyChanged(nameof(FleetIntroText));
+        OnPropertyChanged(nameof(FleetImportButtonText));
+        OnPropertyChanged(nameof(FleetImportNoteText));
+        OnPropertyChanged(nameof(FleetMachinesTitleText));
+        OnPropertyChanged(nameof(FleetExportAllButtonText));
+        OnPropertyChanged(nameof(FleetExportFleetCsvButtonText));
+        OnPropertyChanged(nameof(FleetTableNoteText));
+        OnPropertyChanged(nameof(FleetHeaderMachineText));
+        OnPropertyChanged(nameof(FleetHeaderScansText));
+        OnPropertyChanged(nameof(FleetHeaderLastScanText));
+        OnPropertyChanged(nameof(FleetHeaderScoreText));
+        OnPropertyChanged(nameof(FleetHeaderVerdictText));
+        OnPropertyChanged(nameof(FleetHeaderWorstComponentText));
+        OnPropertyChanged(nameof(FleetHeaderExportText));
+        OnPropertyChanged(nameof(FleetHeaderRemoveText));
+        StatusMessage = ResolveStatusMessage();
+        SummaryText = ResolveSummaryText();
+        foreach (var row in Rows)
+        {
+            row.ApplyLanguage(_languageCode);
+        }
+    }
+
+    /// <summary>Records which status line is showing and renders it in the page language.</summary>
+    private void SetStatus(
+        FleetStatusKind kind,
+        string? error = null,
+        string? machine = null,
+        int count = 0,
+        ExportAllMachinesResult? exportAll = null,
+        int exportAllTotal = 0,
+        IReadOnlyList<string>? imported = null,
+        IReadOnlyList<string>? skipped = null)
+    {
+        _statusKind = kind;
+        _statusError = error;
+        _statusMachine = machine;
+        _statusCount = count;
+        _lastExportAllResult = exportAll;
+        _lastExportAllTotal = exportAllTotal;
+        _lastImported = imported ?? Array.Empty<string>();
+        _lastImportSkipped = skipped ?? Array.Empty<string>();
+        StatusMessage = ResolveStatusMessage();
+    }
+
+    /// <summary>Resolves the stored status kind to its sentence in the page language.</summary>
+    private string ResolveStatusMessage() => _statusKind switch
+    {
+        FleetStatusKind.Loading => StringLocalizer.Get(AppStringKeys.FleetLoading, _languageCode),
+        FleetStatusKind.Unavailable => StringLocalizer.Get(AppStringKeys.FleetUnavailable, _languageCode),
+        FleetStatusKind.NoScans => StringLocalizer.Get(AppStringKeys.FleetNoScans, _languageCode),
+        FleetStatusKind.Loaded => StringLocalizer.Get(AppStringKeys.FleetLoaded, _languageCode),
+        FleetStatusKind.ReadFailed => StringLocalizer.GetFormatted(AppStringKeys.FleetReadFailed, _languageCode, _statusError ?? string.Empty),
+        FleetStatusKind.MachineExportUnavailable => StringLocalizer.Get(AppStringKeys.FleetMachineExportUnavailable, _languageCode),
+        FleetStatusKind.MachineExportNoScan => StringLocalizer.GetFormatted(AppStringKeys.FleetMachineExportNoScan, _languageCode, _statusMachine ?? string.Empty),
+        FleetStatusKind.ExportAllUnavailable => StringLocalizer.Get(AppStringKeys.FleetExportAllUnavailable, _languageCode),
+        FleetStatusKind.ExportAllNoFleet => StringLocalizer.Get(AppStringKeys.FleetExportAllNoFleet, _languageCode),
+        FleetStatusKind.ExportAllFailed => StringLocalizer.GetFormatted(AppStringKeys.FleetExportAllFailed, _languageCode, _statusError ?? string.Empty),
+        FleetStatusKind.ExportAllResult => _lastExportAllResult is null
+            ? string.Empty
+            : BuildExportAllStatus(_lastExportAllResult, _lastExportAllTotal),
+        FleetStatusKind.RemoveUnavailable => StringLocalizer.Get(AppStringKeys.FleetRemoveUnavailable, _languageCode),
+        FleetStatusKind.RemoveArm => _statusCount == 1
+            ? StringLocalizer.GetFormatted(
+                AppStringKeys.FleetRemoveArmOne,
+                _languageCode,
+                _statusMachine ?? string.Empty,
+                StringLocalizer.Get(AppStringKeys.FleetRowConfirmRemoveButton, _languageCode))
+            : StringLocalizer.GetFormatted(
+                AppStringKeys.FleetRemoveArmMany,
+                _languageCode,
+                _statusMachine ?? string.Empty,
+                _statusCount,
+                StringLocalizer.Get(AppStringKeys.FleetRowConfirmRemoveButton, _languageCode)),
+        FleetStatusKind.RemoveNothing => StringLocalizer.GetFormatted(AppStringKeys.FleetRemoveNothing, _languageCode, _statusMachine ?? string.Empty),
+        FleetStatusKind.Removed => _statusCount == 1
+            ? StringLocalizer.GetFormatted(AppStringKeys.FleetRemovedOne, _languageCode, _statusMachine ?? string.Empty)
+            : StringLocalizer.GetFormatted(AppStringKeys.FleetRemovedMany, _languageCode, _statusMachine ?? string.Empty, _statusCount),
+        FleetStatusKind.RemoveFailed => StringLocalizer.GetFormatted(AppStringKeys.FleetRemoveFailed, _languageCode, _statusError ?? string.Empty),
+        FleetStatusKind.ImportUnavailable => StringLocalizer.Get(AppStringKeys.FleetImportUnavailable, _languageCode),
+        FleetStatusKind.ImportNoPicker => StringLocalizer.Get(AppStringKeys.FleetImportNoPicker, _languageCode),
+        FleetStatusKind.ImportResult => BuildImportSummary(_lastImported, _lastImportSkipped),
+        _ => string.Empty,
+    };
+
+    /// <summary>
+    /// Resolves the fleet summary from the loaded rows in the page
+    /// language: how many machines, how many saved scans, and the
+    /// lowest score with its machine. Empty when there is no fleet.
+    /// The score keeps the app's invariant formatting; a lowest score
+    /// that was not measurable reads as the summary's own fallback
+    /// word, not as a number.
+    /// </summary>
+    private string ResolveSummaryText()
+    {
+        var rows = CurrentRows;
+        if (rows is null || rows.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var totalScans = rows.Sum(r => r.ScanCount);
+        var lowest = rows[0];
+        var scoreText = lowest.LatestScore is null
+            ? StringLocalizer.Get(AppStringKeys.FleetScoreNotMeasurable, _languageCode)
+            : lowest.LatestScore.Value.ToString("0.#", CultureInfo.InvariantCulture);
+        return (rows.Count, totalScans) switch
+        {
+            (1, 1) => StringLocalizer.GetFormatted(
+                AppStringKeys.FleetSummaryOneOne,
+                _languageCode,
+                scoreText,
+                lowest.MachineName),
+            (1, _) => StringLocalizer.GetFormatted(
+                AppStringKeys.FleetSummaryOneMany,
+                _languageCode,
+                totalScans,
+                scoreText,
+                lowest.MachineName),
+            (_, 1) => StringLocalizer.GetFormatted(
+                AppStringKeys.FleetSummaryManyOne,
+                _languageCode,
+                rows.Count,
+                scoreText,
+                lowest.MachineName),
+            _ => StringLocalizer.GetFormatted(
+                AppStringKeys.FleetSummaryManyMany,
+                _languageCode,
+                rows.Count,
+                totalScans,
+                scoreText,
+                lowest.MachineName),
+        };
     }
 
     /// <summary>
@@ -116,7 +406,7 @@ public sealed partial class FleetViewModel : ViewModelBase
     public ObservableCollection<FleetRowViewModel> Rows { get; } = new();
 
     [ObservableProperty]
-    public partial string StatusMessage { get; set; } = "Loading fleet...";
+    public partial string StatusMessage { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string SummaryText { get; set; } = string.Empty;
@@ -128,7 +418,7 @@ public sealed partial class FleetViewModel : ViewModelBase
     {
         if (_store is null)
         {
-            StatusMessage = "Snapshot history is unavailable on this machine, so there is no fleet to show yet.";
+            SetStatus(FleetStatusKind.Unavailable);
             return;
         }
 
@@ -152,28 +442,23 @@ public sealed partial class FleetViewModel : ViewModelBase
             Rows.Clear();
             foreach (var row in rows)
             {
-                Rows.Add(new FleetRowViewModel(row, ExportMachineCsvCommand, RemoveMachineCommand));
+                Rows.Add(new FleetRowViewModel(row, ExportMachineCsvCommand, RemoveMachineCommand, _languageCode));
             }
 
             HasFleet = rows.Count > 0;
             if (rows.Count == 0)
             {
-                StatusMessage = "No saved scans yet. Scan a machine, or run the portable app on each machine in the fleet, and its latest scan appears here. You can also import JSON reports exported from other machines with the Import button.";
+                SetStatus(FleetStatusKind.NoScans);
                 SummaryText = string.Empty;
                 return;
             }
 
-            var totalScans = rows.Sum(r => r.ScanCount);
-            var lowest = rows[0];
-            SummaryText = string.Create(
-                CultureInfo.InvariantCulture,
-                $"{rows.Count} machine{(rows.Count == 1 ? string.Empty : "s")} in this data folder, {totalScans} saved scan{(totalScans == 1 ? string.Empty : "s")}. " +
-                $"Lowest score {(lowest.LatestScore is null ? "not measurable" : lowest.LatestScore.Value.ToString("0.#", CultureInfo.InvariantCulture))} ({lowest.MachineName}).");
-            StatusMessage = "Fleet loaded.";
+            SummaryText = ResolveSummaryText();
+            SetStatus(FleetStatusKind.Loaded);
         }
         catch (Exception exception)
         {
-            StatusMessage = $"Fleet could not be read: {exception.Message}";
+            SetStatus(FleetStatusKind.ReadFailed, error: exception.Message);
             HasFleet = false;
         }
     }
@@ -187,13 +472,13 @@ public sealed partial class FleetViewModel : ViewModelBase
 
         if (_exportMachineCsv is null)
         {
-            StatusMessage = "Machine export is unavailable.";
+            SetStatus(FleetStatusKind.MachineExportUnavailable);
             return;
         }
 
         if (!_snapshotsByMachine.TryGetValue(rowViewModel.MachineName, out var snapshot) || snapshot is null)
         {
-            StatusMessage = $"Machine export failed: no saved scan was found for {rowViewModel.MachineName}.";
+            SetStatus(FleetStatusKind.MachineExportNoScan, machine: rowViewModel.MachineName);
             return;
         }
 
@@ -218,14 +503,14 @@ public sealed partial class FleetViewModel : ViewModelBase
 
         if (_exportAllMachinesCsv is null)
         {
-            StatusMessage = "Export all is unavailable.";
+            SetStatus(FleetStatusKind.ExportAllUnavailable);
             return;
         }
 
         var rows = CurrentRows;
         if (rows is null || rows.Count == 0)
         {
-            StatusMessage = "Export all failed: there is no fleet to export yet.";
+            SetStatus(FleetStatusKind.ExportAllNoFleet);
             return;
         }
 
@@ -233,11 +518,11 @@ public sealed partial class FleetViewModel : ViewModelBase
         try
         {
             var result = await _exportAllMachinesCsv(rows, _snapshotsByMachine);
-            StatusMessage = BuildExportAllStatus(result, rows.Count);
+            SetStatus(FleetStatusKind.ExportAllResult, exportAll: result, exportAllTotal: rows.Count);
         }
         catch (Exception exception)
         {
-            StatusMessage = $"Export all failed: {exception.Message}";
+            SetStatus(FleetStatusKind.ExportAllFailed, error: exception.Message);
         }
         finally
         {
@@ -245,23 +530,40 @@ public sealed partial class FleetViewModel : ViewModelBase
         }
     }
 
-    private static string BuildExportAllStatus(ExportAllMachinesResult result, int totalRows)
+    private string BuildExportAllStatus(ExportAllMachinesResult result, int totalRows)
     {
         var exported = result.ExportedPaths.Count;
         if (exported == 0)
         {
             var skipped = result.Skipped.Count == 0
-                ? "there is no fleet to export yet."
-                : $"Skipped {result.Skipped.Count}: {string.Join("; ", result.Skipped.Select(s => $"{s.MachineName}: {s.Reason}"))}.";
-            return $"Exported 0 machines. {skipped}";
+                ? StringLocalizer.Get(AppStringKeys.FleetExportAllZeroNoFleet, _languageCode)
+                : StringLocalizer.GetFormatted(
+                    AppStringKeys.FleetSkipped,
+                    _languageCode,
+                    result.Skipped.Count,
+                    string.Join("; ", result.Skipped.Select(s => $"{s.MachineName}: {s.Reason}"))) + ".";
+            return StringLocalizer.GetFormatted(AppStringKeys.FleetExportAllZero, _languageCode, skipped);
         }
 
-        var summary = string.Create(
-            CultureInfo.InvariantCulture,
-            $"Exported {exported} of {totalRows} machine{(totalRows == 1 ? string.Empty : "s")} to {result.Folder}.");
+        var summary = totalRows == 1
+            ? StringLocalizer.GetFormatted(
+                AppStringKeys.FleetExportAllTotalOne,
+                _languageCode,
+                exported,
+                result.Folder)
+            : StringLocalizer.GetFormatted(
+                AppStringKeys.FleetExportAllTotalMany,
+                _languageCode,
+                exported,
+                totalRows,
+                result.Folder);
         if (result.Skipped.Count > 0)
         {
-            summary += $" Skipped {result.Skipped.Count}: {string.Join("; ", result.Skipped.Select(s => $"{s.MachineName}: {s.Reason}"))}.";
+            summary += " " + StringLocalizer.GetFormatted(
+                AppStringKeys.FleetSkipped,
+                _languageCode,
+                result.Skipped.Count,
+                string.Join("; ", result.Skipped.Select(s => $"{s.MachineName}: {s.Reason}"))) + ".";
         }
 
         return summary;
@@ -288,17 +590,14 @@ public sealed partial class FleetViewModel : ViewModelBase
 
         if (_store is null)
         {
-            StatusMessage = "Remove is unavailable: snapshot history is unavailable on this machine.";
+            SetStatus(FleetStatusKind.RemoveUnavailable);
             return;
         }
 
         if (!rowViewModel.IsRemoveArmed)
         {
             rowViewModel.IsRemoveArmed = true;
-            var scans = rowViewModel.Row.ScanCount;
-            StatusMessage = string.Create(
-                CultureInfo.InvariantCulture,
-                $"Remove {rowViewModel.MachineName}? This deletes all {scans} saved scan{(scans == 1 ? string.Empty : "s")} for this machine from this data folder. Click 'Confirm remove' to delete — nothing is deleted until then.");
+            SetStatus(FleetStatusKind.RemoveArm, machine: rowViewModel.MachineName, count: rowViewModel.Row.ScanCount);
             return;
         }
 
@@ -307,18 +606,17 @@ public sealed partial class FleetViewModel : ViewModelBase
         {
             var removed = await _store.DeleteMachineAsync(rowViewModel.MachineName);
             await LoadAsync();
-            if (!StatusMessage.StartsWith("Fleet could not be read", StringComparison.Ordinal))
+            if (_statusKind != FleetStatusKind.ReadFailed)
             {
-                StatusMessage = removed == 0
-                    ? $"Nothing to remove: no saved scans were found for {rowViewModel.MachineName}."
-                    : string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"Removed {rowViewModel.MachineName} ({removed} saved scan{(removed == 1 ? string.Empty : "s")}).");
+                SetStatus(
+                    removed == 0 ? FleetStatusKind.RemoveNothing : FleetStatusKind.Removed,
+                    machine: rowViewModel.MachineName,
+                    count: removed);
             }
         }
         catch (Exception exception)
         {
-            StatusMessage = $"Remove failed: {exception.Message}";
+            SetStatus(FleetStatusKind.RemoveFailed, error: exception.Message);
         }
         finally
         {
@@ -343,13 +641,13 @@ public sealed partial class FleetViewModel : ViewModelBase
 
         if (_store is null)
         {
-            StatusMessage = "Import is unavailable: snapshot history is unavailable on this machine.";
+            SetStatus(FleetStatusKind.ImportUnavailable);
             return;
         }
 
         if (ReportFilePicker is null)
         {
-            StatusMessage = "Import is unavailable: no file picker is available.";
+            SetStatus(FleetStatusKind.ImportNoPicker);
             return;
         }
 
@@ -388,20 +686,32 @@ public sealed partial class FleetViewModel : ViewModelBase
             }
 
             await LoadAsync();
-            var summary = imported.Count > 0
-                ? $"Imported {imported.Count} report{(imported.Count == 1 ? string.Empty : "s")} ({string.Join(", ", imported)})"
-                : "Imported 0 reports";
-            summary += skipped.Count > 0
-                ? $". Skipped {skipped.Count}: {string.Join("; ", skipped)}"
-                : ".";
-            if (!StatusMessage.StartsWith("Fleet could not be read", StringComparison.Ordinal))
+            if (_statusKind != FleetStatusKind.ReadFailed)
             {
-                StatusMessage = summary;
+                SetStatus(FleetStatusKind.ImportResult, imported: imported, skipped: skipped);
             }
         }
         finally
         {
             _importing = false;
         }
+    }
+
+    private string BuildImportSummary(IReadOnlyList<string> imported, IReadOnlyList<string> skipped)
+    {
+        var summary = imported.Count switch
+        {
+            0 => StringLocalizer.Get(AppStringKeys.FleetImportedNone, _languageCode),
+            1 => StringLocalizer.GetFormatted(AppStringKeys.FleetImportedOne, _languageCode, imported[0]),
+            _ => StringLocalizer.GetFormatted(AppStringKeys.FleetImportedMany, _languageCode, imported.Count, string.Join(", ", imported)),
+        };
+        summary += skipped.Count > 0
+            ? ". " + StringLocalizer.GetFormatted(
+                AppStringKeys.FleetSkipped,
+                _languageCode,
+                skipped.Count,
+                string.Join("; ", skipped))
+            : ".";
+        return summary;
     }
 }

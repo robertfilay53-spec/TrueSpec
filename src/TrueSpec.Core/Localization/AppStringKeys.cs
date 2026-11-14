@@ -439,6 +439,277 @@ public static class AppStringKeys
     public const string HistoryValueNoVerdictNoPrice = "HistoryValueNoVerdictNoPrice";
     public const string HistoryValueNoVerdictMissing = "HistoryValueNoVerdictMissing";
 
+    // Localisation, phase 8 (v2.1.16): Report and Tests pages — the
+    // page chrome only. The data the pages show stays English in this
+    // version: machine names, the verdict text, the score explanation,
+    // the buyer banner and summary, the generated-text line, the DNA
+    // state/hash/verify result texts, the export folder path, the
+    // per-test names and workload descriptions, the measured results
+    // (peak temperature, average clock, rated max, held %), the
+    // fan-health summary/lines/findings, the load-test verdict text
+    // and the live temperature/clock/elapsed values. Fixed status
+    // words DO go in, including the load test's fixed live-line states
+    // ("Temperature: not running", "Clock: measuring...") — the
+    // measured line itself ("Temperature: 72.3 C") stays English.
+    // The load test reuses the test-item status keys ("Not run yet.",
+    // "Running...", "Test failed", the no-result template) instead of
+    // a second copy of the same words, the same reuse rule the
+    // History range labels follow. Templates carry the dynamic values
+    // ({0} = a duration, a temperature or an exception message),
+    // formatted with the invariant culture by
+    // StringLocalizer.GetFormatted, so a number inside a German
+    // sentence keeps the app's existing formatting.
+    //
+    // The second half of phase 8 is the New Laptop Check and Crash
+    // History pages, same chrome-only rule. The New Laptop Check
+    // banner is rebuilt in the ViewModel from the stored result, so
+    // its fixed words translate while the finding title it cites
+    // stays English: the four no-finding sentences are whole keys,
+    // and the finding form is a bare state word plus the finding
+    // title verbatim. The buyer summary ("1 failed, 9 not
+    // applicable, 0 passed") and the authenticity verdict line stay
+    // English with the Report page's buyer banner and summary: they
+    // are verdict text, not page chrome. The authenticity
+    // skipped-checks line is a template ({0} = the count, {1} = the
+    // skipped signal names), with one/many keys instead of the old
+    // inline plural hack. The row status words (Pass / Warning /
+    // Fail / Not applicable) and the authenticity severity words
+    // (Strong / Watch / Info) are fixed vocabularies, so they are
+    // keys, re-resolved from the stored state on a switch. The
+    // "Export Report" button reuses the Overview key instead of a
+    // second copy of the same words. The Crash History alert card
+    // has three fixed sentences (blue screen, fatal hardware error,
+    // both); the cleared-log warning is a template ({0} = the
+    // earliest log date). The crash table's cell fallback ("Not
+    // reported") stays English like the History table's fallbacks,
+    // and the class names, plain meanings and dates are data.
+    // CapturedText reuses the detail page's DetailCaptured template
+    // ("Reading captured {0}") instead of a second copy.
+    //
+    // The final part of phase 8 is the Comparison and Fleet pages,
+    // same chrome-only rule. The Comparison page's chrome is the
+    // eyebrow, title, intro, Before/After labels and picker
+    // placeholders, the Compare button, the Result heading, the DNA
+    // note, the no-changes line, the Added/Removed headings and the
+    // footer note, plus the transient status lines (loading, no
+    // snapshots, one snapshot, the count line, the compared line,
+    // the failure lines) and the DNA state/hash lines. The DNA
+    // heading and the unidentified-parts heading reuse the Report
+    // page's keys instead of second copies of the same words. The
+    // Fleet page's chrome is the eyebrow, title, intro, the Import
+    // button and note, the Machines heading, the two export buttons,
+    // the table note, the eight column headers, the row Export
+    // button and the Remove/Confirm-remove button, plus the
+    // transient status lines (loading, no scans, the summary
+    // templates, the export-all / remove / import lines). The data
+    // stays English: machine names, the comparison summary sentence,
+    // the row cell values (component names, health numbers, delta
+    // words, changed-spec lines, verdicts, worst components, scores,
+    // dates, counts), the DNA changed/unidentified part lines, the
+    // value-comparison verdict sentence and its no-verdict reason,
+    // prices, file/folder paths and exception messages. The Fleet
+    // summary and the export-all / remove / import lines are
+    // templates ({0} = a count, a machine name, a folder or a file
+    // list), with one/many keys instead of inline plural hacks, and
+    // the remove-arm line quotes the translated Confirm-remove
+    // label. The row's "Not measurable" score fallback and "Not
+    // reported" worst-component fallback stay English like the
+    // History table's fallbacks; the summary's lowest-score fallback
+    // is its own key ("not measurable" / "nicht messbar") because it
+    // sits mid-sentence inside a translated line.
+    public const string NewLaptopCheckEyebrow = "NewLaptopCheckEyebrow";
+    public const string NewLaptopCheckBannerPass = "NewLaptopCheckBannerPass";
+    public const string NewLaptopCheckBannerWarning = "NewLaptopCheckBannerWarning";
+    public const string NewLaptopCheckBannerFail = "NewLaptopCheckBannerFail";
+    public const string NewLaptopCheckBannerNotEnoughData = "NewLaptopCheckBannerNotEnoughData";
+    public const string NewLaptopCheckBannerStatePass = "NewLaptopCheckBannerStatePass";
+    public const string NewLaptopCheckBannerStateWarning = "NewLaptopCheckBannerStateWarning";
+    public const string NewLaptopCheckBannerStateFail = "NewLaptopCheckBannerStateFail";
+    public const string NewLaptopCheckBannerStateNotEnoughData = "NewLaptopCheckBannerStateNotEnoughData";
+    public const string NewLaptopCheckAuthenticityTitle = "NewLaptopCheckAuthenticityTitle";
+    public const string NewLaptopCheckNoPriorUse = "NewLaptopCheckNoPriorUse";
+    public const string NewLaptopCheckSkippedOne = "NewLaptopCheckSkippedOne";
+    public const string NewLaptopCheckSkippedMany = "NewLaptopCheckSkippedMany";
+    public const string NewLaptopCheckChecklistTitle = "NewLaptopCheckChecklistTitle";
+    public const string NewLaptopCheckPrintChecklist = "NewLaptopCheckPrintChecklist";
+    public const string NewLaptopCheckAdvertisedRamTitle = "NewLaptopCheckAdvertisedRamTitle";
+    public const string NewLaptopCheckAdvertisedRamNote = "NewLaptopCheckAdvertisedRamNote";
+    public const string NewLaptopCheckAdvertisedRamPlaceholder = "NewLaptopCheckAdvertisedRamPlaceholder";
+    public const string NewLaptopCheckWhatToAsk = "NewLaptopCheckWhatToAsk";
+    public const string NewLaptopCheckNoChecks = "NewLaptopCheckNoChecks";
+    public const string NewLaptopCheckFooterNote = "NewLaptopCheckFooterNote";
+    public const string NewLaptopCheckSourceOne = "NewLaptopCheckSourceOne";
+    public const string NewLaptopCheckSourceTwo = "NewLaptopCheckSourceTwo";
+    public const string BuyerCheckStatePass = "BuyerCheckStatePass";
+    public const string BuyerCheckStateWarning = "BuyerCheckStateWarning";
+    public const string BuyerCheckStateFail = "BuyerCheckStateFail";
+    public const string BuyerCheckStateNotApplicable = "BuyerCheckStateNotApplicable";
+    public const string AuthenticitySeverityStrong = "AuthenticitySeverityStrong";
+    public const string AuthenticitySeverityWatch = "AuthenticitySeverityWatch";
+    public const string AuthenticitySeverityInfo = "AuthenticitySeverityInfo";
+    public const string CrashTitle = "CrashTitle";
+    public const string CrashRecentTitle = "CrashRecentTitle";
+    public const string CrashAlertBoth = "CrashAlertBoth";
+    public const string CrashAlertBugCheck = "CrashAlertBugCheck";
+    public const string CrashAlertWheaFatal = "CrashAlertWheaFatal";
+    public const string CrashFailuresByClass = "CrashFailuresByClass";
+    public const string CrashHeaderClass = "CrashHeaderClass";
+    public const string CrashHeaderCount = "CrashHeaderCount";
+    public const string CrashHeaderFirst = "CrashHeaderFirst";
+    public const string CrashHeaderLast = "CrashHeaderLast";
+    public const string CrashHeaderMeaning = "CrashHeaderMeaning";
+    public const string CrashEmptyNotCollected = "CrashEmptyNotCollected";
+    public const string CrashEmptyNoCrashes = "CrashEmptyNoCrashes";
+    public const string CrashLogCleared = "CrashLogCleared";
+    public const string CrashFooterNote = "CrashFooterNote";
+    public const string ComparisonEyebrow = "ComparisonEyebrow";
+    public const string ComparisonTitle = "ComparisonTitle";
+    public const string ComparisonIntro = "ComparisonIntro";
+    public const string ComparisonBefore = "ComparisonBefore";
+    public const string ComparisonAfter = "ComparisonAfter";
+    public const string ComparisonPickEarlier = "ComparisonPickEarlier";
+    public const string ComparisonPickLater = "ComparisonPickLater";
+    public const string ComparisonCompareButton = "ComparisonCompareButton";
+    public const string ComparisonResultTitle = "ComparisonResultTitle";
+    public const string ComparisonDnaNote = "ComparisonDnaNote";
+    public const string ComparisonNoChanges = "ComparisonNoChanges";
+    public const string ComparisonAddedTitle = "ComparisonAddedTitle";
+    public const string ComparisonRemovedTitle = "ComparisonRemovedTitle";
+    public const string ComparisonFooterNote = "ComparisonFooterNote";
+    public const string ComparisonLoading = "ComparisonLoading";
+    public const string ComparisonHistoryUnavailable = "ComparisonHistoryUnavailable";
+    public const string ComparisonNoSnapshots = "ComparisonNoSnapshots";
+    public const string ComparisonOnlyOneSnapshot = "ComparisonOnlyOneSnapshot";
+    public const string ComparisonSnapshotsCount = "ComparisonSnapshotsCount";
+    public const string ComparisonHistoryReadFailed = "ComparisonHistoryReadFailed";
+    public const string ComparisonPickDifferent = "ComparisonPickDifferent";
+    public const string ComparisonComparing = "ComparisonComparing";
+    public const string ComparisonSnapshotUnreadable = "ComparisonSnapshotUnreadable";
+    public const string ComparisonDnaUnreadable = "ComparisonDnaUnreadable";
+    public const string ComparisonCompared = "ComparisonCompared";
+    public const string ComparisonFailed = "ComparisonFailed";
+    public const string ComparisonDnaNoComparison = "ComparisonDnaNoComparison";
+    public const string ComparisonDnaIdentical = "ComparisonDnaIdentical";
+    public const string ComparisonDnaFingerprintMatches = "ComparisonDnaFingerprintMatches";
+    public const string ComparisonDnaChanged = "ComparisonDnaChanged";
+    public const string ComparisonDnaUnverifiable = "ComparisonDnaUnverifiable";
+    public const string ComparisonDnaNotRecordedState = "ComparisonDnaNotRecordedState";
+    public const string ComparisonDnaHashBefore = "ComparisonDnaHashBefore";
+    public const string ComparisonDnaHashAfter = "ComparisonDnaHashAfter";
+    public const string ComparisonDnaNotRecorded = "ComparisonDnaNotRecorded";
+    public const string FleetEyebrow = "FleetEyebrow";
+    public const string FleetTitle = "FleetTitle";
+    public const string FleetIntro = "FleetIntro";
+    public const string FleetImportButton = "FleetImportButton";
+    public const string FleetImportNote = "FleetImportNote";
+    public const string FleetMachinesTitle = "FleetMachinesTitle";
+    public const string FleetExportAllButton = "FleetExportAllButton";
+    public const string FleetExportFleetCsvButton = "FleetExportFleetCsvButton";
+    public const string FleetTableNote = "FleetTableNote";
+    public const string FleetHeaderMachine = "FleetHeaderMachine";
+    public const string FleetHeaderScans = "FleetHeaderScans";
+    public const string FleetHeaderLastScan = "FleetHeaderLastScan";
+    public const string FleetHeaderScore = "FleetHeaderScore";
+    public const string FleetHeaderVerdict = "FleetHeaderVerdict";
+    public const string FleetHeaderWorstComponent = "FleetHeaderWorstComponent";
+    public const string FleetHeaderExport = "FleetHeaderExport";
+    public const string FleetHeaderRemove = "FleetHeaderRemove";
+    public const string FleetRowExportButton = "FleetRowExportButton";
+    public const string FleetRowConfirmRemoveButton = "FleetRowConfirmRemoveButton";
+    public const string FleetLoading = "FleetLoading";
+    public const string FleetUnavailable = "FleetUnavailable";
+    public const string FleetNoScans = "FleetNoScans";
+    public const string FleetSummaryOneOne = "FleetSummaryOneOne";
+    public const string FleetSummaryOneMany = "FleetSummaryOneMany";
+    public const string FleetSummaryManyOne = "FleetSummaryManyOne";
+    public const string FleetSummaryManyMany = "FleetSummaryManyMany";
+    public const string FleetScoreNotMeasurable = "FleetScoreNotMeasurable";
+    public const string FleetLoaded = "FleetLoaded";
+    public const string FleetReadFailed = "FleetReadFailed";
+    public const string FleetMachineExportUnavailable = "FleetMachineExportUnavailable";
+    public const string FleetMachineExportNoScan = "FleetMachineExportNoScan";
+    public const string FleetExportAllUnavailable = "FleetExportAllUnavailable";
+    public const string FleetExportAllNoFleet = "FleetExportAllNoFleet";
+    public const string FleetExportAllFailed = "FleetExportAllFailed";
+    public const string FleetExportAllZero = "FleetExportAllZero";
+    public const string FleetExportAllZeroNoFleet = "FleetExportAllZeroNoFleet";
+    public const string FleetSkipped = "FleetSkipped";
+    public const string FleetExportAllTotalOne = "FleetExportAllTotalOne";
+    public const string FleetExportAllTotalMany = "FleetExportAllTotalMany";
+    public const string FleetRemoveUnavailable = "FleetRemoveUnavailable";
+    public const string FleetRemoveArmOne = "FleetRemoveArmOne";
+    public const string FleetRemoveArmMany = "FleetRemoveArmMany";
+    public const string FleetRemoveNothing = "FleetRemoveNothing";
+    public const string FleetRemovedOne = "FleetRemovedOne";
+    public const string FleetRemovedMany = "FleetRemovedMany";
+    public const string FleetRemoveFailed = "FleetRemoveFailed";
+    public const string FleetImportUnavailable = "FleetImportUnavailable";
+    public const string FleetImportNoPicker = "FleetImportNoPicker";
+    public const string FleetImportedNone = "FleetImportedNone";
+    public const string FleetImportedOne = "FleetImportedOne";
+    public const string FleetImportedMany = "FleetImportedMany";
+    public const string ReportEyebrow = "ReportEyebrow";
+    public const string ReportTitle = "ReportTitle";
+    public const string ReportIntro = "ReportIntro";
+    public const string ReportScoreLabel = "ReportScoreLabel";
+    public const string ReportExportJson = "ReportExportJson";
+    public const string ReportExportHtml = "ReportExportHtml";
+    public const string ReportExportCsv = "ReportExportCsv";
+    public const string ReportExportPdf = "ReportExportPdf";
+    public const string ReportExportCertificate = "ReportExportCertificate";
+    public const string ReportVerifyMachine = "ReportVerifyMachine";
+    public const string ReportDnaTitle = "ReportDnaTitle";
+    public const string ReportVerifyingMachine = "ReportVerifyingMachine";
+    public const string ReportDnaUnidentifiedTitle = "ReportDnaUnidentifiedTitle";
+    public const string ReportDnaNote = "ReportDnaNote";
+    public const string ReportFormatJsonDescription = "ReportFormatJsonDescription";
+    public const string ReportFormatHtmlDescription = "ReportFormatHtmlDescription";
+    public const string ReportFormatCsvDescription = "ReportFormatCsvDescription";
+    public const string ReportFormatPdfDescription = "ReportFormatPdfDescription";
+    public const string ReportFormatAvailable = "ReportFormatAvailable";
+    public const string ReportPreviewTitle = "ReportPreviewTitle";
+    public const string ReportFooterNote = "ReportFooterNote";
+    public const string ReportExportPrivacyNote = "ReportExportPrivacyNote";
+    public const string TestsEyebrow = "TestsEyebrow";
+    public const string TestsTitle = "TestsTitle";
+    public const string TestsIntro = "TestsIntro";
+    public const string TestsInfoNote = "TestsInfoNote";
+    public const string TestsBenchmarkScopeNote = "TestsBenchmarkScopeNote";
+    public const string TestsItemNotAvailable = "TestsItemNotAvailable";
+    public const string TestsItemReady = "TestsItemReady";
+    public const string TestsItemRunning = "TestsItemRunning";
+    public const string TestsItemFailed = "TestsItemFailed";
+    public const string TestsItemNotRunYet = "TestsItemNotRunYet";
+    public const string TestsItemNotImplementedResult = "TestsItemNotImplementedResult";
+    public const string TestsItemMeasuring = "TestsItemMeasuring";
+    public const string TestsItemNoResult = "TestsItemNoResult";
+    public const string TestsItemRun = "TestsItemRun";
+    public const string TestsItemRunningButton = "TestsItemRunningButton";
+    public const string TestsItemNotAvailableButton = "TestsItemNotAvailableButton";
+    public const string LoadTestTitle = "LoadTestTitle";
+    public const string LoadTestIntro = "LoadTestIntro";
+    public const string LoadTestBatteryNote = "LoadTestBatteryNote";
+    public const string LoadTestDurationLabel = "LoadTestDurationLabel";
+    public const string LoadTestStart = "LoadTestStart";
+    public const string LoadTestCancel = "LoadTestCancel";
+    public const string LoadTestFanHealthTitle = "LoadTestFanHealthTitle";
+    public const string LoadTestFanHealthNote = "LoadTestFanHealthNote";
+    public const string LoadTestTemperatureCaption = "LoadTestTemperatureCaption";
+    public const string LoadTestWarning = "LoadTestWarning";
+    public const string LoadTestFunctionalCheck = "LoadTestFunctionalCheck";
+    public const string LoadTestStoppedTemperature = "LoadTestStoppedTemperature";
+    public const string LoadTestStoppedSensorLost = "LoadTestStoppedSensorLost";
+    public const string LoadTestCancelled = "LoadTestCancelled";
+    public const string LoadTestComplete = "LoadTestComplete";
+    public const string LoadTestTempNotRunning = "LoadTestTempNotRunning";
+    public const string LoadTestTempMeasuring = "LoadTestTempMeasuring";
+    public const string LoadTestTempFinished = "LoadTestTempFinished";
+    public const string LoadTestTempNotReported = "LoadTestTempNotReported";
+    public const string LoadTestClockNotRunning = "LoadTestClockNotRunning";
+    public const string LoadTestClockMeasuring = "LoadTestClockMeasuring";
+    public const string LoadTestClockFinished = "LoadTestClockFinished";
+    public const string LoadTestClockNotReported = "LoadTestClockNotReported";
+
     /// <summary>Every key in the catalogue, in the order above.</summary>
     public static IReadOnlyList<string> All { get; } = new[]
     {
@@ -757,5 +1028,197 @@ public static class AppStringKeys
         HistoryValueNoVerdictNoScore,
         HistoryValueNoVerdictNoPrice,
         HistoryValueNoVerdictMissing,
+        ReportEyebrow,
+        ReportTitle,
+        ReportIntro,
+        ReportScoreLabel,
+        ReportExportJson,
+        ReportExportHtml,
+        ReportExportCsv,
+        ReportExportPdf,
+        ReportExportCertificate,
+        ReportVerifyMachine,
+        ReportDnaTitle,
+        ReportVerifyingMachine,
+        ReportDnaUnidentifiedTitle,
+        ReportDnaNote,
+        ReportFormatJsonDescription,
+        ReportFormatHtmlDescription,
+        ReportFormatCsvDescription,
+        ReportFormatPdfDescription,
+        ReportFormatAvailable,
+        ReportPreviewTitle,
+        ReportFooterNote,
+        ReportExportPrivacyNote,
+        TestsEyebrow,
+        TestsTitle,
+        TestsIntro,
+        TestsInfoNote,
+        TestsBenchmarkScopeNote,
+        TestsItemNotAvailable,
+        TestsItemReady,
+        TestsItemRunning,
+        TestsItemFailed,
+        TestsItemNotRunYet,
+        TestsItemNotImplementedResult,
+        TestsItemMeasuring,
+        TestsItemNoResult,
+        TestsItemRun,
+        TestsItemRunningButton,
+        TestsItemNotAvailableButton,
+        LoadTestTitle,
+        LoadTestIntro,
+        LoadTestBatteryNote,
+        LoadTestDurationLabel,
+        LoadTestStart,
+        LoadTestCancel,
+        LoadTestFanHealthTitle,
+        LoadTestFanHealthNote,
+        LoadTestTemperatureCaption,
+        LoadTestWarning,
+        LoadTestFunctionalCheck,
+        LoadTestStoppedTemperature,
+        LoadTestStoppedSensorLost,
+        LoadTestCancelled,
+        LoadTestComplete,
+        LoadTestTempNotRunning,
+        LoadTestTempMeasuring,
+        LoadTestTempFinished,
+        LoadTestTempNotReported,
+        LoadTestClockNotRunning,
+        LoadTestClockMeasuring,
+        LoadTestClockFinished,
+        LoadTestClockNotReported,
+        NewLaptopCheckEyebrow,
+        NewLaptopCheckBannerPass,
+        NewLaptopCheckBannerWarning,
+        NewLaptopCheckBannerFail,
+        NewLaptopCheckBannerNotEnoughData,
+        NewLaptopCheckBannerStatePass,
+        NewLaptopCheckBannerStateWarning,
+        NewLaptopCheckBannerStateFail,
+        NewLaptopCheckBannerStateNotEnoughData,
+        NewLaptopCheckAuthenticityTitle,
+        NewLaptopCheckNoPriorUse,
+        NewLaptopCheckSkippedOne,
+        NewLaptopCheckSkippedMany,
+        NewLaptopCheckChecklistTitle,
+        NewLaptopCheckPrintChecklist,
+        NewLaptopCheckAdvertisedRamTitle,
+        NewLaptopCheckAdvertisedRamNote,
+        NewLaptopCheckAdvertisedRamPlaceholder,
+        NewLaptopCheckWhatToAsk,
+        NewLaptopCheckNoChecks,
+        NewLaptopCheckFooterNote,
+        NewLaptopCheckSourceOne,
+        NewLaptopCheckSourceTwo,
+        BuyerCheckStatePass,
+        BuyerCheckStateWarning,
+        BuyerCheckStateFail,
+        BuyerCheckStateNotApplicable,
+        AuthenticitySeverityStrong,
+        AuthenticitySeverityWatch,
+        AuthenticitySeverityInfo,
+        CrashTitle,
+        CrashRecentTitle,
+        CrashAlertBoth,
+        CrashAlertBugCheck,
+        CrashAlertWheaFatal,
+        CrashFailuresByClass,
+        CrashHeaderClass,
+        CrashHeaderCount,
+        CrashHeaderFirst,
+        CrashHeaderLast,
+        CrashHeaderMeaning,
+        CrashEmptyNotCollected,
+        CrashEmptyNoCrashes,
+        CrashLogCleared,
+        CrashFooterNote,
+        ComparisonEyebrow,
+        ComparisonTitle,
+        ComparisonIntro,
+        ComparisonBefore,
+        ComparisonAfter,
+        ComparisonPickEarlier,
+        ComparisonPickLater,
+        ComparisonCompareButton,
+        ComparisonResultTitle,
+        ComparisonDnaNote,
+        ComparisonNoChanges,
+        ComparisonAddedTitle,
+        ComparisonRemovedTitle,
+        ComparisonFooterNote,
+        ComparisonLoading,
+        ComparisonHistoryUnavailable,
+        ComparisonNoSnapshots,
+        ComparisonOnlyOneSnapshot,
+        ComparisonSnapshotsCount,
+        ComparisonHistoryReadFailed,
+        ComparisonPickDifferent,
+        ComparisonComparing,
+        ComparisonSnapshotUnreadable,
+        ComparisonDnaUnreadable,
+        ComparisonCompared,
+        ComparisonFailed,
+        ComparisonDnaNoComparison,
+        ComparisonDnaIdentical,
+        ComparisonDnaFingerprintMatches,
+        ComparisonDnaChanged,
+        ComparisonDnaUnverifiable,
+        ComparisonDnaNotRecordedState,
+        ComparisonDnaHashBefore,
+        ComparisonDnaHashAfter,
+        ComparisonDnaNotRecorded,
+        FleetEyebrow,
+        FleetTitle,
+        FleetIntro,
+        FleetImportButton,
+        FleetImportNote,
+        FleetMachinesTitle,
+        FleetExportAllButton,
+        FleetExportFleetCsvButton,
+        FleetTableNote,
+        FleetHeaderMachine,
+        FleetHeaderScans,
+        FleetHeaderLastScan,
+        FleetHeaderScore,
+        FleetHeaderVerdict,
+        FleetHeaderWorstComponent,
+        FleetHeaderExport,
+        FleetHeaderRemove,
+        FleetRowExportButton,
+        FleetRowConfirmRemoveButton,
+        FleetLoading,
+        FleetUnavailable,
+        FleetNoScans,
+        FleetSummaryOneOne,
+        FleetSummaryOneMany,
+        FleetSummaryManyOne,
+        FleetSummaryManyMany,
+        FleetScoreNotMeasurable,
+        FleetLoaded,
+        FleetReadFailed,
+        FleetMachineExportUnavailable,
+        FleetMachineExportNoScan,
+        FleetExportAllUnavailable,
+        FleetExportAllNoFleet,
+        FleetExportAllFailed,
+        FleetExportAllZero,
+        FleetExportAllZeroNoFleet,
+        FleetSkipped,
+        FleetExportAllTotalOne,
+        FleetExportAllTotalMany,
+        FleetRemoveUnavailable,
+        FleetRemoveArmOne,
+        FleetRemoveArmMany,
+        FleetRemoveNothing,
+        FleetRemovedOne,
+        FleetRemovedMany,
+        FleetRemoveFailed,
+        FleetImportUnavailable,
+        FleetImportNoPicker,
+        FleetImportedNone,
+        FleetImportedOne,
+        FleetImportedMany,
     };
 }

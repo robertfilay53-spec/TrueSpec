@@ -6,19 +6,49 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TrueSpec.Core.Collectors;
 using TrueSpec.Core.History;
+using TrueSpec.Core.Localization;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Scoring;
 
 namespace TrueSpec.App.ViewModels;
 
-/// <summary>Buyer mode: a PASS / WARNING / FAIL banner plus the checklist.</summary>
+/// <summary>
+/// Buyer mode: a PASS / WARNING / FAIL banner plus the checklist.
+///
+/// Localisation, phase 8 (v2.1.16): the page chrome renders in the
+/// current language — the eyebrow, the banner's fixed words, the
+/// Authenticity heading, the no-prior-use line, the skipped-checks
+/// line, the checklist heading and buttons, the advertised-RAM card,
+/// the "What to ask the seller" label, the no-checks line, the footer
+/// note, the row status words and the source labels — so the page
+/// follows the language the user picked in Settings, with no restart.
+/// The banner is rebuilt here from the stored result, so its fixed
+/// words translate while the finding title it cites stays English:
+/// the four no-finding sentences are whole keys, and the finding
+/// form is a bare state word plus the finding title verbatim. The
+/// data the page shows stays English: the machine name, the buyer
+/// summary and the authenticity verdict line (verdict text, like the
+/// Report page's buyer banner and summary), the check titles,
+/// details and what-to-ask lines, the authenticity evidence lines
+/// and the source strings themselves. The page is cached by the
+/// shell, so the strings resolve from the stored language code and
+/// re-render through <see cref="ApplyLanguage"/>, the same in-place
+/// pattern the Overview and History pages use.
+/// </summary>
 public sealed partial class NewLaptopCheckViewModel : ViewModelBase
 {
     private readonly SystemSnapshot _snapshot;
     private readonly IBuyerCheckEvaluator _evaluator;
     private readonly Action<BuyerCheckResult, string?>? _onChecksChanged;
+    private string _languageCode;
 
     private BuyerCheckResult _result;
+
+    /// <summary>The skipped authenticity signal names, joined once so a language switch re-resolves the line instead of rebuilding it.</summary>
+    private readonly int _skippedCount;
+
+    /// <summary>The skipped authenticity signal names, joined once (data, stays English inside the translated sentence).</summary>
+    private readonly string _skippedNames;
 
     public NewLaptopCheckViewModel(
         SystemSnapshot snapshot,
@@ -26,8 +56,10 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
         ICommand? exportChecklistCommand = null,
         IBuyerCheckEvaluator? evaluator = null,
         Action<BuyerCheckResult, string?>? onChecksChanged = null,
-        string? advertisedRam = null)
+        string? advertisedRam = null,
+        string? languageCode = null)
     {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
         _snapshot = snapshot;
         _evaluator = evaluator ?? new BuyerCheckEvaluator();
         _onChecksChanged = onChecksChanged;
@@ -36,7 +68,7 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
         MachineName = snapshot.MachineName;
         _result = snapshot.BuyerChecks;
         Checks = new ObservableCollection<BuyerCheckRowViewModel>(
-            _result.Checks.Select(c => new BuyerCheckRowViewModel(c)));
+            _result.Checks.Select(c => new BuyerCheckRowViewModel(c, _languageCode)));
         HasChecks = Checks.Count > 0;
         Summary = BuildSummary(_result);
 
@@ -46,12 +78,11 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
         // collector and never changes when the advertised RAM changes.
         Authenticity = AuthenticityAnalyzer.Analyze(snapshot);
         AuthenticityChecks = new ObservableCollection<AuthenticityCheckRowViewModel>(
-            Authenticity.Checks.Select(c => new AuthenticityCheckRowViewModel(c)));
+            Authenticity.Checks.Select(c => new AuthenticityCheckRowViewModel(c, _languageCode)));
         HasAuthenticityChecks = AuthenticityChecks.Count > 0;
         AuthenticitySummary = Authenticity.Summary;
-        AuthenticitySkippedText = Authenticity.SkippedChecks.Count == 0
-            ? string.Empty
-            : $"{Authenticity.SkippedChecks.Count} authenticity check(s) could not run because a signal was not reported: {string.Join("; ", Authenticity.SkippedChecks)}";
+        _skippedCount = Authenticity.SkippedChecks.Count;
+        _skippedNames = string.Join("; ", Authenticity.SkippedChecks);
 
         // Restore the advertised size the shell kept (for example after a
         // refresh rebuilt this page): the text box must not come back empty.
@@ -63,9 +94,112 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
         }
     }
 
+    /// <summary>The page eyebrow, in the page language.</summary>
+    public string NewLaptopCheckEyebrowText =>
+        StringLocalizer.Get(AppStringKeys.NewLaptopCheckEyebrow, _languageCode);
+
+    /// <summary>The "Authenticity" section heading, in the page language.</summary>
+    public string AuthenticityTitleText =>
+        StringLocalizer.Get(AppStringKeys.NewLaptopCheckAuthenticityTitle, _languageCode);
+
+    /// <summary>The empty-state line shown when no authenticity check fired, in the page language.</summary>
+    public string NoPriorUseText =>
+        StringLocalizer.Get(AppStringKeys.NewLaptopCheckNoPriorUse, _languageCode);
+
+    /// <summary>
+    /// Names the rules that could not run, or empty when all ran. The
+    /// count and the signal names are values; only the surrounding
+    /// words translate, with one/many keys instead of the old inline
+    /// plural hack. In the page language.
+    /// </summary>
+    public string AuthenticitySkippedText => _skippedCount == 0
+        ? string.Empty
+        : _skippedCount == 1
+            ? StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSkippedOne, _languageCode, _skippedNames)
+            : StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSkippedMany, _languageCode, _skippedCount, _skippedNames);
+
+    /// <summary>The "Checklist" section heading, in the page language.</summary>
+    public string ChecklistTitleText =>
+        StringLocalizer.Get(AppStringKeys.NewLaptopCheckChecklistTitle, _languageCode);
+
+    /// <summary>The "Print checklist" button, in the page language.</summary>
+    public string PrintChecklistText =>
+        StringLocalizer.Get(AppStringKeys.NewLaptopCheckPrintChecklist, _languageCode);
+
+    /// <summary>The "Export Report" button, in the page language. Reuses the Overview key: the same words, not a second copy.</summary>
+    public string ExportReportText =>
+        StringLocalizer.Get(AppStringKeys.OverviewExportReport, _languageCode);
+
+    /// <summary>The advertised-RAM card heading, in the page language.</summary>
+    public string AdvertisedRamTitleText =>
+        StringLocalizer.Get(AppStringKeys.NewLaptopCheckAdvertisedRamTitle, _languageCode);
+
+    /// <summary>The advertised-RAM card note, in the page language.</summary>
+    public string AdvertisedRamNoteText =>
+        StringLocalizer.Get(AppStringKeys.NewLaptopCheckAdvertisedRamNote, _languageCode);
+
+    /// <summary>The advertised-RAM text box placeholder, in the page language.</summary>
+    public string AdvertisedRamPlaceholderText =>
+        StringLocalizer.Get(AppStringKeys.NewLaptopCheckAdvertisedRamPlaceholder, _languageCode);
+
+    /// <summary>The empty-state line shown when the scan produced no buyer checks, in the page language.</summary>
+    public string NoChecksText =>
+        StringLocalizer.Get(AppStringKeys.NewLaptopCheckNoChecks, _languageCode);
+
+    /// <summary>The footer note under the checklist, in the page language.</summary>
+    public string FooterNoteText =>
+        StringLocalizer.Get(AppStringKeys.NewLaptopCheckFooterNote, _languageCode);
+
+    /// <summary>
+    /// Re-renders this page in the given language, in place: every
+    /// localized text is re-resolved, and each checklist and
+    /// authenticity row re-renders too. Called by the shell when the
+    /// user picks a language in Settings; a page created after the
+    /// switch is already built in the new language by the
+    /// constructor. An unknown code falls back to English through the
+    /// localizer, never to a blank. Measured data (machine name,
+    /// summary, authenticity verdict, check titles and details,
+    /// evidence lines, source strings, the finding title inside the
+    /// banner) is untouched.
+    /// </summary>
+    public void ApplyLanguage(string? languageCode)
+    {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        foreach (var check in Checks)
+        {
+            check.ApplyLanguage(_languageCode);
+        }
+
+        foreach (var check in AuthenticityChecks)
+        {
+            check.ApplyLanguage(_languageCode);
+        }
+
+        OnPropertyChanged(nameof(NewLaptopCheckEyebrowText));
+        OnPropertyChanged(nameof(BannerText));
+        OnPropertyChanged(nameof(AuthenticityTitleText));
+        OnPropertyChanged(nameof(NoPriorUseText));
+        OnPropertyChanged(nameof(AuthenticitySkippedText));
+        OnPropertyChanged(nameof(ChecklistTitleText));
+        OnPropertyChanged(nameof(PrintChecklistText));
+        OnPropertyChanged(nameof(ExportReportText));
+        OnPropertyChanged(nameof(AdvertisedRamTitleText));
+        OnPropertyChanged(nameof(AdvertisedRamNoteText));
+        OnPropertyChanged(nameof(AdvertisedRamPlaceholderText));
+        OnPropertyChanged(nameof(NoChecksText));
+        OnPropertyChanged(nameof(FooterNoteText));
+    }
+
     public string MachineName { get; }
 
-    public string BannerText => _result.BannerText;
+    /// <summary>
+    /// The banner headline, rebuilt from the stored result so its
+    /// fixed words follow the page language: the four no-finding
+    /// sentences are whole keys, and the finding form is a bare state
+    /// word plus the finding title verbatim (the title is data, so it
+    /// stays English). Identical to Core's BannerText in English.
+    /// </summary>
+    public string BannerText => ResolveBannerText();
 
     public BuyerCheckState OverallState => _result.OverallState;
 
@@ -84,9 +218,6 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
 
     /// <summary>Plain-English verdict line for the Authenticity section.</summary>
     public string AuthenticitySummary { get; }
-
-    /// <summary>Names the rules that could not run, or empty when all ran.</summary>
-    public string AuthenticitySkippedText { get; }
 
     /// <summary>True when at least one authenticity rule could not run.</summary>
     public bool HasAuthenticitySkippedText => AuthenticitySkippedText.Length > 0;
@@ -109,7 +240,7 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
             string.IsNullOrWhiteSpace(value) ? null : value.Trim());
         _result = _evaluator.Evaluate(_snapshot.Components, context);
         Checks = new ObservableCollection<BuyerCheckRowViewModel>(
-            _result.Checks.Select(c => new BuyerCheckRowViewModel(c)));
+            _result.Checks.Select(c => new BuyerCheckRowViewModel(c, _languageCode)));
         HasChecks = Checks.Count > 0;
         Summary = BuildSummary(_result);
 
@@ -120,21 +251,76 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
         _onChecksChanged?.Invoke(_result, value);
     }
 
+    private string ResolveBannerText()
+    {
+        var finding = StrongestFindingTitle();
+        if (finding is null)
+        {
+            return OverallState switch
+            {
+                BuyerCheckState.Pass => StringLocalizer.Get(AppStringKeys.NewLaptopCheckBannerPass, _languageCode),
+                BuyerCheckState.Warning => StringLocalizer.Get(AppStringKeys.NewLaptopCheckBannerWarning, _languageCode),
+                BuyerCheckState.Fail => StringLocalizer.Get(AppStringKeys.NewLaptopCheckBannerFail, _languageCode),
+                _ => StringLocalizer.Get(AppStringKeys.NewLaptopCheckBannerNotEnoughData, _languageCode),
+            };
+        }
+
+        // The banner names the strongest finding, so the buyer sees why
+        // the verdict dropped without hunting through the checklist.
+        // Only the state word translates; the finding title is data.
+        var stateText = OverallState switch
+        {
+            BuyerCheckState.Pass => StringLocalizer.Get(AppStringKeys.NewLaptopCheckBannerStatePass, _languageCode),
+            BuyerCheckState.Warning => StringLocalizer.Get(AppStringKeys.NewLaptopCheckBannerStateWarning, _languageCode),
+            BuyerCheckState.Fail => StringLocalizer.Get(AppStringKeys.NewLaptopCheckBannerStateFail, _languageCode),
+            _ => StringLocalizer.Get(AppStringKeys.NewLaptopCheckBannerStateNotEnoughData, _languageCode),
+        };
+
+        return $"{stateText} - {finding}";
+    }
+
+    /// <summary>
+    /// The title of the strongest Fail findings entry, or null when no
+    /// finding failed. Mirrors Core's ranking: authenticity outranks
+    /// crashes, which outrank the load test.
+    /// </summary>
+    private string? StrongestFindingTitle()
+    {
+        var authenticity = _result.Checks.FirstOrDefault(c =>
+            c.Id == BuyerCheckResult.AuthenticityCheckId && c.State == BuyerCheckState.Fail);
+        if (authenticity is not null)
+        {
+            return authenticity.Title;
+        }
+
+        var crashes = _result.Checks.FirstOrDefault(c =>
+            c.Id == BuyerCheckResult.RecentCrashesCheckId && c.State == BuyerCheckState.Fail);
+        if (crashes is not null)
+        {
+            return crashes.Title;
+        }
+
+        return _result.Checks.FirstOrDefault(c =>
+            c.Id == BuyerCheckResult.LoadTestCheckId && c.State == BuyerCheckState.Fail)?.Title;
+    }
+
     private static string BuildSummary(BuyerCheckResult result) =>
         $"{result.SummaryText}.";
 }
 
-public sealed class BuyerCheckRowViewModel
+public sealed class BuyerCheckRowViewModel : ViewModelBase
 {
-    public BuyerCheckRowViewModel(BuyerCheck check)
+    private string _languageCode;
+
+    public BuyerCheckRowViewModel(BuyerCheck check, string? languageCode = null)
     {
         Title = check.Title;
         Detail = check.Detail;
         WhatToAsk = check.WhatToAsk;
         State = check.State;
-        StateText = check.StateText;
         Status = check.ToHealthStatus();
         NeedsAttention = check.State is BuyerCheckState.Fail or BuyerCheckState.Warning;
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
     }
 
     public string Title { get; }
@@ -145,11 +331,30 @@ public sealed class BuyerCheckRowViewModel
 
     public BuyerCheckState State { get; }
 
-    public string StateText { get; }
+    /// <summary>The fixed state word (Pass / Warning / Fail / Not applicable), in the page language, re-resolved from the stored state.</summary>
+    public string StateText => State switch
+    {
+        BuyerCheckState.Pass => StringLocalizer.Get(AppStringKeys.BuyerCheckStatePass, _languageCode),
+        BuyerCheckState.Warning => StringLocalizer.Get(AppStringKeys.BuyerCheckStateWarning, _languageCode),
+        BuyerCheckState.Fail => StringLocalizer.Get(AppStringKeys.BuyerCheckStateFail, _languageCode),
+        _ => StringLocalizer.Get(AppStringKeys.BuyerCheckStateNotApplicable, _languageCode),
+    };
+
+    /// <summary>The "What to ask the seller" label, in the page language, re-resolved from the stored language code.</summary>
+    public string WhatToAskLabelText =>
+        StringLocalizer.Get(AppStringKeys.NewLaptopCheckWhatToAsk, _languageCode);
 
     public HealthStatus Status { get; }
 
     public bool NeedsAttention { get; }
+
+    /// <summary>Re-renders this row in the given language, in place: the state word is re-resolved from the stored state.</summary>
+    public void ApplyLanguage(string? languageCode)
+    {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        OnPropertyChanged(nameof(StateText));
+        OnPropertyChanged(nameof(WhatToAskLabelText));
+    }
 }
 
 /// <summary>
@@ -158,14 +363,15 @@ public sealed class BuyerCheckRowViewModel
 /// the shared health colours (Strong = Problem, Watch = Watch, Info =
 /// Healthy) so the view reuses the existing Status brushes, no new tokens.
 /// </summary>
-public sealed class AuthenticityCheckRowViewModel
+public sealed class AuthenticityCheckRowViewModel : ViewModelBase
 {
-    public AuthenticityCheckRowViewModel(AuthenticityCheck check)
+    private string _languageCode;
+
+    public AuthenticityCheckRowViewModel(AuthenticityCheck check, string? languageCode = null)
     {
         Title = check.Title;
         EvidenceLine = check.EvidenceLine;
         Severity = check.Severity;
-        SeverityText = check.Severity.ToString();
         SourceA = check.SourceA;
         SourceB = check.SourceB;
         Status = check.Severity switch
@@ -174,6 +380,7 @@ public sealed class AuthenticityCheckRowViewModel
             AuthenticitySeverity.Watch => HealthStatus.Watch,
             _ => HealthStatus.Healthy,
         };
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
     }
 
     public string Title { get; }
@@ -182,11 +389,34 @@ public sealed class AuthenticityCheckRowViewModel
 
     public AuthenticitySeverity Severity { get; }
 
-    public string SeverityText { get; }
+    /// <summary>The fixed severity word (Strong / Watch / Info), in the page language, re-resolved from the stored severity.</summary>
+    public string SeverityText => Severity switch
+    {
+        AuthenticitySeverity.Strong => StringLocalizer.Get(AppStringKeys.AuthenticitySeverityStrong, _languageCode),
+        AuthenticitySeverity.Watch => StringLocalizer.Get(AppStringKeys.AuthenticitySeverityWatch, _languageCode),
+        _ => StringLocalizer.Get(AppStringKeys.AuthenticitySeverityInfo, _languageCode),
+    };
 
     public string SourceA { get; }
 
     public string SourceB { get; }
 
+    /// <summary>The first source, with its fixed "Source 1:" label in the page language; the source string itself is data and stays English.</summary>
+    public string SourceAText =>
+        StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSourceOne, _languageCode, SourceA);
+
+    /// <summary>The second source, with its fixed "Source 2:" label in the page language; the source string itself is data and stays English.</summary>
+    public string SourceBText =>
+        StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSourceTwo, _languageCode, SourceB);
+
     public HealthStatus Status { get; }
+
+    /// <summary>Re-renders this row in the given language, in place: the severity word and the source labels are re-resolved from the stored values.</summary>
+    public void ApplyLanguage(string? languageCode)
+    {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        OnPropertyChanged(nameof(SeverityText));
+        OnPropertyChanged(nameof(SourceAText));
+        OnPropertyChanged(nameof(SourceBText));
+    }
 }

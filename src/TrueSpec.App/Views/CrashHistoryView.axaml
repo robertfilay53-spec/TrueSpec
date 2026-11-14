@@ -11,7 +11,7 @@
         <StackPanel Margin="24" Spacing="18">
             <Border Classes="card" Padding="22">
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Crash history" Classes="h1" />
+                    <TextBlock Text="{Binding CrashTitleText}" Classes="h1" />
                     <TextBlock Text="{Binding Headline}" FontSize="14" Classes="muted" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding CapturedText}" FontSize="11" Classes="muted" />
                 </StackPanel>
@@ -19,21 +19,21 @@
 
             <Border Classes="card" Padding="18" IsVisible="{Binding HasRecentAlert}">
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Recent crash" Classes="h3" />
+                    <TextBlock Text="{Binding RecentCrashTitleText}" Classes="h3" />
                     <TextBlock Text="{Binding AlertText}" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 
             <Border Classes="card" Padding="18" IsVisible="{Binding HasHistory}">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Failures by class" Classes="h3" />
+                    <TextBlock Text="{Binding FailuresByClassText}" Classes="h3" />
 
                     <Grid ColumnDefinitions="*,Auto,Auto,Auto,2*" ColumnSpacing="16" IsVisible="{Binding HasRows}">
-                        <TextBlock Text="Class" Classes="muted" FontSize="11" FontWeight="SemiBold" />
-                        <TextBlock Grid.Column="1" Text="Count (90 days)" Classes="muted" FontSize="11" FontWeight="SemiBold" />
-                        <TextBlock Grid.Column="2" Text="First" Classes="muted" FontSize="11" FontWeight="SemiBold" />
-                        <TextBlock Grid.Column="3" Text="Last" Classes="muted" FontSize="11" FontWeight="SemiBold" />
-                        <TextBlock Grid.Column="4" Text="Meaning" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding HeaderClassText}" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1" Text="{Binding HeaderCountText}" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="2" Text="{Binding HeaderFirstText}" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="3" Text="{Binding HeaderLastText}" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="4" Text="{Binding HeaderMeaningText}" Classes="muted" FontSize="11" FontWeight="SemiBold" />
                     </Grid>
 
                     <ItemsControl ItemsSource="{Binding Rows}">
@@ -73,7 +73,7 @@
                            TextWrapping="Wrap" />
             </Border>
 
-            <TextBlock Text="Counts cover the last 90 days; first and last cover all recorded time. Meanings are fixed labels, not diagnoses."
+            <TextBlock Text="{Binding FooterNoteText}"
                        Classes="muted"
                        FontSize="11"
                        TextWrapping="Wrap" />

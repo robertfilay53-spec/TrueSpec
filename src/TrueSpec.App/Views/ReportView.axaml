@@ -10,9 +10,9 @@
     <ScrollViewer>
         <StackPanel Margin="24" Spacing="18">
             <StackPanel Spacing="6">
-                <TextBlock Text="REPORT" Classes="eyebrow" />
-                <TextBlock Text="Export the truth" Classes="h1" />
-                <TextBlock Text="One data model with JSON, HTML, CSV and PDF outputs. Everything is generated on this machine."
+                <TextBlock Text="{Binding ReportEyebrowText}" Classes="eyebrow" />
+                <TextBlock Text="{Binding ReportTitleText}" Classes="h1" />
+                <TextBlock Text="{Binding ReportIntroText}"
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
@@ -29,7 +29,7 @@
                                        FontSize="28"
                                        FontWeight="Bold"
                                        HorizontalAlignment="Center" />
-                            <TextBlock Text="score" Classes="muted" FontSize="10" HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding ReportScoreLabelText}" Classes="muted" FontSize="10" HorizontalAlignment="Center" />
                         </StackPanel>
                     </Border>
 
@@ -46,34 +46,34 @@
 
                     <StackPanel Grid.Column="2" Spacing="8" VerticalAlignment="Center" Width="150">
                         <Button Classes="primary"
-                                Content="Export JSON"
+                                Content="{Binding ReportExportJsonText}"
                                 Command="{Binding ExportJsonCommand}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center" />
                         <Button Classes="secondary"
-                                Content="Export HTML"
+                                Content="{Binding ReportExportHtmlText}"
                                 Command="{Binding ExportHtmlCommand}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center" />
                         <Button Classes="secondary"
-                                Content="Export CSV"
+                                Content="{Binding ReportExportCsvText}"
                                 Command="{Binding ExportCsvCommand}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center" />
                         <Button Classes="secondary"
-                                Content="Export PDF"
+                                Content="{Binding ReportExportPdfText}"
                                 Command="{Binding ExportPdfCommand}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center"
                                 IsVisible="{Binding HasPdfExport}" />
                         <Button Classes="secondary"
-                                Content="Buyer certificate (PDF)"
+                                Content="{Binding ReportExportCertificateText}"
                                 Command="{Binding ExportCertificateCommand}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center"
                                 IsVisible="{Binding HasCertificateExport}" />
                         <Button Classes="secondary"
-                                Content="Verify this machine"
+                                Content="{Binding ReportVerifyMachineText}"
                                 Command="{Binding VerifyMachineCommand}"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center"
@@ -85,11 +85,11 @@
 
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="Machine DNA" Classes="h3" />
+                    <TextBlock Text="{Binding ReportDnaTitleText}" Classes="h3" />
                     <TextBlock Text="{Binding DnaStateText}" FontWeight="SemiBold" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding DnaHashText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding VerifyResultText}" Classes="muted" TextWrapping="Wrap" />
-                    <TextBlock Text="Verifying this machine, re-scanning hardware..."
+                    <TextBlock Text="{Binding ReportVerifyingMachineText}"
                                Classes="muted"
                                IsVisible="{Binding IsVerifyingMachine}" />
                     <ItemsControl ItemsSource="{Binding DnaChangedParts}">
@@ -99,7 +99,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Text="Not identified in one of the scans:"
+                    <TextBlock Text="{Binding ReportDnaUnidentifiedTitleText}"
                                Classes="muted" FontSize="11" FontWeight="SemiBold"
                                IsVisible="{Binding HasDnaUnidentifiedParts}" />
                     <ItemsControl ItemsSource="{Binding DnaUnidentifiedParts}" IsVisible="{Binding HasDnaUnidentifiedParts}">
@@ -109,7 +109,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Text="DNA is identity, not health: it never changes the score or the verdict above. It only certifies which machine the score belongs to. A standard-user scan without elevation still verifies, but parts that need elevation to read may show as unidentified instead of a match."
+                    <TextBlock Text="{Binding ReportDnaNoteText}"
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap" />
@@ -124,36 +124,36 @@
                 <Border Classes="card" Padding="16">
                     <StackPanel Spacing="5">
                         <TextBlock Text="JSON" Classes="h3" />
-                        <TextBlock Text="Machine readable data for scripts and support." Classes="muted" TextWrapping="Wrap" />
-                        <TextBlock Text="Available" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding ReportFormatJsonDescriptionText}" Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ReportFormatAvailableText}" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="1" Classes="card" Padding="16">
                     <StackPanel Spacing="5">
                         <TextBlock Text="HTML" Classes="h3" />
-                        <TextBlock Text="A clean page you can open in any browser." Classes="muted" TextWrapping="Wrap" />
-                        <TextBlock Text="Available" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding ReportFormatHtmlDescriptionText}" Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ReportFormatAvailableText}" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="2" Classes="card" Padding="16">
                     <StackPanel Spacing="5">
                         <TextBlock Text="CSV" Classes="h3" />
-                        <TextBlock Text="A spreadsheet of every spec, safe to open in Excel. Values that look like formulas are neutralised." Classes="muted" TextWrapping="Wrap" />
-                        <TextBlock Text="Available" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding ReportFormatCsvDescriptionText}" Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ReportFormatAvailableText}" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="3" Classes="card" Padding="16">
                     <StackPanel Spacing="5">
                         <TextBlock Text="PDF" Classes="h3" />
-                        <TextBlock Text="A printable report to hand to a seller or keep with the receipt. Built on this machine, no extra software." Classes="muted" TextWrapping="Wrap" />
-                        <TextBlock Text="Available" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding ReportFormatPdfDescriptionText}" Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ReportFormatAvailableText}" Foreground="{DynamicResource HealthyBrush}" FontSize="11" FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
             </Grid>
 
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="Report preview" Classes="h3" />
+                    <TextBlock Text="{Binding ReportPreviewTitleText}" Classes="h3" />
                     <ItemsControl ItemsSource="{Binding Components}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ReportComponentRow">
@@ -180,7 +180,7 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="Report exports are written to the folder shown above. No upload, no cloud."
+            <TextBlock Text="{Binding ReportFooterNoteText}"
                        Classes="muted"
                        FontSize="11" />
         </StackPanel>
