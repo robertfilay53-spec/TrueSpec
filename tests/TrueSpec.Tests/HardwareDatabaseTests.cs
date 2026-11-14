@@ -164,10 +164,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.5.0", database.Version);
+        Assert.Equal("1.6.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
         Assert.Equal(74, database.CpuCount);
-        Assert.Equal(70, database.GpuCount);
+        Assert.Equal(72, database.GpuCount);
     }
 
     [Fact]
@@ -340,6 +340,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("NVIDIA GeForce RTX 4060 Ti", "RTX 4060 TI")]
     [InlineData("NVIDIA GeForce RTX 3080", "RTX 3080")]
     [InlineData("NVIDIA GeForce GTX 1060 6GB", "GTX 1060 6GB")]
+    [InlineData("NVIDIA GeForce GTX 1650 SUPER", "GTX 1650 SUPER")]
+    [InlineData("NVIDIA GeForce GTX 1630", "GTX 1630")]
     [InlineData("NVIDIA GeForce RTX 3050 6GB Laptop GPU", "RTX 3050 6GB LAPTOP")]
     [InlineData("AMD Radeon RX 7800 XT", "RX 7800 XT")]
     [InlineData("AMD Radeon(TM) RX 6600", "RX 6600")]
@@ -544,6 +546,40 @@ public sealed class HardwareDatabaseTests
         Assert.Null(rtx3080.TdpW);
         Assert.Equal("TGP 320 W (10 GB) / 350 W (12 GB); no single figure for the shared device name", rtx3080.TdpNote);
         Assert.StartsWith("https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3080/", rtx3080.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Gtx1650SuperAndGtx1630CarryCompleteFigures()
+    {
+        // Dataset v1.6.0: the GTX 16-series desktop family is complete.
+        // The 1650 SUPER and the 1630 were the two cards in the family
+        // the dataset never listed and the deliberately-absent list never
+        // mentioned: every cycle checked the absent list, but neither card
+        // was on it, so the gap went unnoticed until this cycle listed the
+        // whole family against the dataset. Both figures were verified by
+        // hand against NVIDIA's own GeForce compare page (the same page
+        // the shipped 1660/1660 SUPER/1660 Ti/1650 entries cite), read
+        // 2026-11-14. The page's GTX 16 Series table lists, in column
+        // order 1660 Ti / 1660 SUPER / 1660 / 1650 SUPER / 1650 (G5) /
+        // 1650 (G6) / 1630: Boost Clock 1725 MHz, 4 GB GDDR6 and
+        // Graphics Card Power 100 W for the 1650 SUPER; Boost Clock
+        // 1785 MHz, 4 GB GDDR6 and 75 W for the 1630. Both are single
+        // variants with one figure each, so both entries are complete —
+        // unlike the GTX 1650, whose G5 (1665 MHz) and G6 (1590 MHz)
+        // variants differ and which therefore still carries no boost.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1650 SUPER", out var gtx1650Super));
+        Assert.Equal("NVIDIA", gtx1650Super.Vendor);
+        Assert.Equal(1.725, gtx1650Super.BoostGhz);
+        Assert.Equal(4, gtx1650Super.MemoryGb);
+        Assert.Equal(100, gtx1650Super.TdpW);
+        Assert.StartsWith("https://www.nvidia.com/en-us/geforce/graphics-cards/compare/?section=compare-20", gtx1650Super.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1630", out var gtx1630));
+        Assert.Equal("NVIDIA", gtx1630.Vendor);
+        Assert.Equal(1.785, gtx1630.BoostGhz);
+        Assert.Equal(4, gtx1630.MemoryGb);
+        Assert.Equal(75, gtx1630.TdpW);
+        Assert.StartsWith("https://www.nvidia.com/en-us/geforce/graphics-cards/compare/?section=compare-20", gtx1630.SourceUrl, StringComparison.Ordinal);
     }
 
     [Fact]
