@@ -166,10 +166,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.9.0", database.Version);
+        Assert.Equal("1.10.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
         Assert.Equal(77, database.CpuCount);
-        Assert.Equal(83, database.GpuCount);
+        Assert.Equal(86, database.GpuCount);
     }
 
     [Fact]
@@ -351,6 +351,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Radeon(TM) RX 6600", "RX 6600")]
     [InlineData("AMD Radeon RX 5700 XT", "RX 5700 XT")]
     [InlineData("AMD Radeon RX 5500 XT", "RX 5500 XT")]
+    [InlineData("AMD Radeon RX Vega 64", "RX VEGA 64")]
+    [InlineData("AMD Radeon VII", "VII")]
     [InlineData("Intel(R) Arc(TM) A750 Graphics", "ARC A750")]
     [InlineData("Intel(R) Arc(TM) A770 Graphics", "ARC A770")]
     [InlineData("Intel(R) Arc(TM) A580 Graphics", "ARC A580")]
@@ -735,6 +737,47 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(1.845, rx5500.BoostGhz);
         Assert.Equal(4, rx5500.MemoryGb);
         Assert.Equal(150, rx5500.TdpW);
+    }
+
+    [Fact]
+    public void Default_RxVegaSeriesDesktopGpusCarryVerifiedFigures()
+    {
+        // Dataset v1.10.0: the AMD Radeon RX Vega series desktop
+        // family, the whole family the dataset never listed and the
+        // deliberately-absent list never mentioned: every cycle checked
+        // the absent list, but no Vega desktop card was on it, so the
+        // gap went unnoticed until this cycle listed the whole AMD
+        // family against the dataset. All figures were verified by
+        // hand against AMD's own driver/spec pages (the same pages
+        // the shipped RX 5000/6000/7000/9000 entries cite), read
+        // 2026-11-14: the RX Vega 64 at Boost Frequency up to 1546
+        // MHz, 8 GB HBM2 and Typical Board Power 295 W; the RX Vega
+        // 56 at 1471 MHz, 8 GB and 210 W; the Radeon VII at 1750
+        // MHz, 16 GB HBM2 and 300 W. All three are single variants
+        // with one figure each, so all three entries are complete.
+        // The RX Vega 64 Liquid Cooled Edition (1677 MHz, 345 W) is
+        // a separate device name, not a variant of the air-cooled
+        // card, so it is not folded into this entry. AMD lists the
+        // Radeon VII under the Radeon RX Vega Series, so it ships
+        // with this family even though its name carries no RX.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX Vega 64", out var rxVega64));
+        Assert.Equal("AMD", rxVega64.Vendor);
+        Assert.Equal(1.546, rxVega64.BoostGhz);
+        Assert.Equal(8, rxVega64.MemoryGb);
+        Assert.Equal(295, rxVega64.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-vega-series/radeon-rx-vega-64.html", rxVega64.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX Vega 56", out var rxVega56));
+        Assert.Equal(1.471, rxVega56.BoostGhz);
+        Assert.Equal(8, rxVega56.MemoryGb);
+        Assert.Equal(210, rxVega56.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-vega-series/radeon-rx-vega-56.html", rxVega56.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon VII", out var radeonVii));
+        Assert.Equal(1.75, radeonVii.BoostGhz);
+        Assert.Equal(16, radeonVii.MemoryGb);
+        Assert.Equal(300, radeonVii.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-vega-series/amd-radeon-vii.html", radeonVii.SourceUrl, StringComparison.Ordinal);
     }
 
     [Fact]
