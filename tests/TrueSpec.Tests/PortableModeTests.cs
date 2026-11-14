@@ -394,6 +394,62 @@ public class PortableModeTests
     }
 
     [Fact]
+    public void SpanishLanguage_ReturnsSpanishMessages()
+    {
+        // Localisation, phase 3, Spanish (v2.1.29): the toggle takes a
+        // language code and its outcome message comes back in it —
+        // mirror of FrenchLanguage_ReturnsFrenchMessages. The default
+        // (no language) stays English, as the tests above pin. Values
+        // read from the real Spanish pack with the scratch dump program
+        // (~/workspace/es-pack-dump/).
+        var exeDir = TempExeDir();
+
+        try
+        {
+            var enabled = PortableMode.SetEnabled(exeDir, enable: true, environmentValue: null, languageCode: "es");
+            Assert.True(enabled.Success);
+            Assert.True(enabled.IsPortable);
+            Assert.Equal("El modo portátil está activado. Reinicia TrueSpec: a partir de entonces, la configuración, el historial y el registro de sensores se guardan junto a la aplicación en lugar de en la carpeta predeterminada. Los análisis ya guardados permanecen en la carpeta anterior.", enabled.Message);
+
+            var alreadyOn = PortableMode.SetEnabled(exeDir, enable: true, environmentValue: null, languageCode: "es");
+            Assert.True(alreadyOn.Success);
+            Assert.Equal("El modo portátil ya está activado. Reinicia TrueSpec para que surta efecto.", alreadyOn.Message);
+
+            var disabled = PortableMode.SetEnabled(exeDir, enable: false, environmentValue: null, languageCode: "es");
+            Assert.True(disabled.Success);
+            Assert.False(disabled.IsPortable);
+            Assert.Equal("El modo portátil está desactivado. Reinicia TrueSpec: a partir de entonces, los datos se guardan en la carpeta predeterminada. Los análisis ya guardados junto a la aplicación permanecen allí.", disabled.Message);
+
+            var alreadyOff = PortableMode.SetEnabled(exeDir, enable: false, environmentValue: null, languageCode: "es");
+            Assert.True(alreadyOff.Success);
+            Assert.Equal("El modo portátil ya está desactivado.", alreadyOff.Message);
+        }
+        finally
+        {
+            Directory.Delete(exeDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SpanishLanguage_NoMarkerButEnvVar_NamesEnvVarInSpanish()
+    {
+        var exeDir = TempExeDir();
+
+        try
+        {
+            var result = PortableMode.SetEnabled(exeDir, enable: false, environmentValue: "yes", languageCode: "es");
+
+            Assert.True(result.Success);
+            Assert.True(result.IsPortable);
+            Assert.Equal("No hay ningún archivo marcador que eliminar: el modo portátil está activado mediante la variable de entorno TRUESPEC_PORTABLE. Anula la variable para desactivarlo.", result.Message);
+        }
+        finally
+        {
+            Directory.Delete(exeDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void UnknownLanguage_FallsBackToEnglishMessage()
     {
         var exeDir = TempExeDir();
@@ -429,6 +485,9 @@ public class PortableModeTests
             // A `with` copy in French reads French too (v2.1.22).
             var french = result with { LanguageCode = "fr" };
             Assert.Equal("Le mode portable est activé. Redémarrez TrueSpec : à partir de là, les paramètres, l'historique et le journal des capteurs sont conservés à côté de l'application au lieu du dossier par défaut. Les scans déjà enregistrés restent dans l'ancien dossier.", french.Message);
+            // A `with` copy in Spanish reads Spanish too (v2.1.29).
+            var spanish = result with { LanguageCode = "es" };
+            Assert.Equal("El modo portátil está activado. Reinicia TrueSpec: a partir de entonces, la configuración, el historial y el registro de sensores se guardan junto a la aplicación en lugar de en la carpeta predeterminada. Los análisis ya guardados permanecen en la carpeta anterior.", spanish.Message);
             // The original is untouched: a `with` copy never mutates.
             Assert.Contains("Restart", result.Message, StringComparison.Ordinal);
         }
