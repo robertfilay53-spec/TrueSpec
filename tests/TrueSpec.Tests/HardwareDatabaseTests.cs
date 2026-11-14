@@ -164,10 +164,55 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.1.0", database.Version);
+        Assert.Equal("1.2.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
         Assert.Equal(74, database.CpuCount);
-        Assert.Equal(53, database.GpuCount);
+        Assert.Equal(59, database.GpuCount);
+    }
+
+    [Fact]
+    public void Default_Rtx50SeriesLaptopGpusCarryVerifiedFigures()
+    {
+        // Dataset v1.2.0: the six RTX 50-series laptop GPUs, verified by
+        // hand against NVIDIA's laptop compare page
+        // (nvidia.com/en-us/geforce/laptops/compare/, read 2026-11-14).
+        // Boost is the upper end of NVIDIA's published Boost Clock range
+        // and board power is the maximum of the published TGP range, per
+        // the dataset's own definitions. The RTX 5070 Laptop GPU carries
+        // no memory figure: NVIDIA lists 12 GB and 8 GB configurations
+        // under one device name, so the entry guesses neither.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 5090 Laptop GPU", out var rtx5090));
+        Assert.Equal("NVIDIA", rtx5090.Vendor);
+        Assert.Equal(2.16, rtx5090.BoostGhz);
+        Assert.Equal(24, rtx5090.MemoryGb);
+        Assert.Equal(150, rtx5090.TdpW);
+        Assert.Equal("TGP range 95-150 W; figure is the maximum", rtx5090.TdpNote);
+        Assert.StartsWith("https://www.nvidia.com/en-us/geforce/laptops/compare/", rtx5090.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 5080 Laptop GPU", out var rtx5080));
+        Assert.Equal(2.287, rtx5080.BoostGhz);
+        Assert.Equal(16, rtx5080.MemoryGb);
+        Assert.Equal(150, rtx5080.TdpW);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 5070 Ti Laptop GPU", out var rtx5070Ti));
+        Assert.Equal(2.22, rtx5070Ti.BoostGhz);
+        Assert.Equal(12, rtx5070Ti.MemoryGb);
+        Assert.Equal(115, rtx5070Ti.TdpW);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 5070 Laptop GPU", out var rtx5070));
+        Assert.Equal(2.347, rtx5070.BoostGhz);
+        Assert.Null(rtx5070.MemoryGb);
+        Assert.Equal(100, rtx5070.TdpW);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 5060 Laptop GPU", out var rtx5060));
+        Assert.Equal(2.497, rtx5060.BoostGhz);
+        Assert.Equal(8, rtx5060.MemoryGb);
+        Assert.Equal(100, rtx5060.TdpW);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 5050 Laptop GPU", out var rtx5050));
+        Assert.Equal(2.662, rtx5050.BoostGhz);
+        Assert.Equal(8, rtx5050.MemoryGb);
+        Assert.Equal(100, rtx5050.TdpW);
     }
 
     [Fact]
@@ -192,6 +237,7 @@ public sealed class HardwareDatabaseTests
 
     [Theory]
     [InlineData("NVIDIA GeForce RTX 4060 Laptop GPU", "RTX 4060 LAPTOP")]
+    [InlineData("NVIDIA GeForce RTX 5090 Laptop GPU", "RTX 5090 LAPTOP")]
     [InlineData("NVIDIA GeForce RTX 4060", "RTX 4060")]
     [InlineData("NVIDIA GeForce GTX 1060 6GB", "GTX 1060 6GB")]
     [InlineData("NVIDIA GeForce RTX 3050 6GB Laptop GPU", "RTX 3050 6GB LAPTOP")]
