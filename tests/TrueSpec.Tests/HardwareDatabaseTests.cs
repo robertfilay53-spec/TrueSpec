@@ -164,10 +164,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.4.0", database.Version);
+        Assert.Equal("1.5.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
         Assert.Equal(74, database.CpuCount);
-        Assert.Equal(68, database.GpuCount);
+        Assert.Equal(70, database.GpuCount);
     }
 
     [Fact]
@@ -337,6 +337,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("NVIDIA GeForce RTX 4060 Laptop GPU", "RTX 4060 LAPTOP")]
     [InlineData("NVIDIA GeForce RTX 5090 Laptop GPU", "RTX 5090 LAPTOP")]
     [InlineData("NVIDIA GeForce RTX 4060", "RTX 4060")]
+    [InlineData("NVIDIA GeForce RTX 4060 Ti", "RTX 4060 TI")]
+    [InlineData("NVIDIA GeForce RTX 3080", "RTX 3080")]
     [InlineData("NVIDIA GeForce GTX 1060 6GB", "GTX 1060 6GB")]
     [InlineData("NVIDIA GeForce RTX 3050 6GB Laptop GPU", "RTX 3050 6GB LAPTOP")]
     [InlineData("AMD Radeon RX 7800 XT", "RX 7800 XT")]
@@ -509,15 +511,53 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_Rtx4060TiAndRtx3080CarryBoostOnlyFigures()
+    {
+        // Dataset v1.5.0: the two desktop GPUs the deliberately-absent
+        // list excluded for a split board power. That exclusion was
+        // written when board power was a required figure; v2.1.35 made
+        // it optional end to end for the RX 9060 XT, which unblocks
+        // boost-only entries, and nobody re-examined the absent list
+        // after that change. Both figures were verified by hand against
+        // NVIDIA's own product pages, read 2026-11-14. RTX 4060 Ti:
+        // Boost Clock 2.54 GHz, the single figure on NVIDIA's
+        // 4060/4060 Ti page; memory "16 GB or 8 GB" and Total Graphics
+        // Power "165 or 160" are both split with no mapping on the
+        // page, so the entry carries neither (the 160 W / 8 GB and
+        // 165 W / 16 GB mapping is corroborated by the board pages).
+        // RTX 3080: Boost Clock 1.71 GHz on NVIDIA's 3080 page (the
+        // 10 GB Founders Edition); the 12 GB variant shares the same
+        // 1.71 GHz boost with 350 W board power against the 10 GB
+        // card's 320 W, so the entry carries the boost only.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 4060 Ti", out var rtx4060Ti));
+        Assert.Equal("NVIDIA", rtx4060Ti.Vendor);
+        Assert.Equal(2.54, rtx4060Ti.BoostGhz);
+        Assert.Null(rtx4060Ti.MemoryGb);
+        Assert.Null(rtx4060Ti.TdpW);
+        Assert.Equal("TGP 160 W (8 GB) / 165 W (16 GB); no single figure for the shared device name", rtx4060Ti.TdpNote);
+        Assert.StartsWith("https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4060-4060ti/", rtx4060Ti.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3080", out var rtx3080));
+        Assert.Equal("NVIDIA", rtx3080.Vendor);
+        Assert.Equal(1.71, rtx3080.BoostGhz);
+        Assert.Null(rtx3080.MemoryGb);
+        Assert.Null(rtx3080.TdpW);
+        Assert.Equal("TGP 320 W (10 GB) / 350 W (12 GB); no single figure for the shared device name", rtx3080.TdpNote);
+        Assert.StartsWith("https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3080/", rtx3080.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Default_UnverifiableGpuModelsMatchNothing()
     {
-        // RTX 4060 Ti and RTX 3080: the board power is split between
-        // variants with no mapping on the NVIDIA page. RTX 3050 desktop:
-        // boost, memory and power all differ between its 8 GB and 6 GB
-        // variants under one device name. AMD laptop GPUs: AMD publishes
-        // Game Frequency, not Boost Frequency, for them.
-        Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 4060 Ti", out _));
-        Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3080", out _));
+        // RTX 3050 desktop: boost, memory and power all differ between
+        // its 8 GB and 6 GB variants under one device name. GTX 1060
+        // 3GB: no power figure on nvidia.com. GTX 1070: the old
+        // nvidia.com 10-series product page now redirects to the RTX 50
+        // Series page, so no boost or power figure exists on nvidia.com
+        // (verified 2026-11-14); the retailer tables that list its
+        // figures do not satisfy the manufacturer-page source policy.
+        // AMD laptop GPUs: AMD publishes Game Frequency, not Boost
+        // Frequency, for them.
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3050", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6600M", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2060 Laptop GPU", out _));
