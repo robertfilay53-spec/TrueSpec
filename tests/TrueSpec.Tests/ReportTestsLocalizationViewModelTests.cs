@@ -140,7 +140,7 @@ public class ReportTestsLocalizationViewModelTests
     [Fact]
     public void Report_UnknownLanguage_FallsBackToEnglish()
     {
-        var report = Report("fr");
+        var report = Report("xx");
 
         Assert.Equal("REPORT", report.ReportEyebrowText);
         Assert.Equal("Export the truth", report.ReportTitleText);
@@ -284,7 +284,7 @@ public class ReportTestsLocalizationViewModelTests
     [Fact]
     public void Tests_UnknownLanguage_FallsBackToEnglish()
     {
-        var viewModel = Tests("fr");
+        var viewModel = Tests("xx");
 
         Assert.Equal("Built-in tests", viewModel.TestsTitleText);
         Assert.Equal("Load test", viewModel.LoadTest.LoadTestTitleText);

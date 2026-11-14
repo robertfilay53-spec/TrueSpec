@@ -240,7 +240,7 @@ public class HistoryLocalizationViewModelTests
     [Fact]
     public void UnknownLanguage_FallsBackToEnglish()
     {
-        var viewModel = new HistoryViewModel(null, TestSnapshots.Healthy(), languageCode: "fr");
+        var viewModel = new HistoryViewModel(null, TestSnapshots.Healthy(), languageCode: "xx");
 
         Assert.Equal("HISTORY", viewModel.HistoryEyebrowText);
         Assert.Equal("Overall score", viewModel.HistoryScoreTitleText);

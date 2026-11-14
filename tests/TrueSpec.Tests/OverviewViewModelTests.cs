@@ -131,7 +131,7 @@ public sealed class OverviewViewModelTests
     [Fact]
     public void UnknownLanguage_FallsBackToEnglish()
     {
-        using var overview = Create(TestSnapshots.Healthy(), "fr");
+        using var overview = Create(TestSnapshots.Healthy(), "xx");
 
         Assert.Equal("Overall health", overview.OverallHealthText);
         Assert.Equal("New Laptop Check", overview.NewLaptopCheckText);

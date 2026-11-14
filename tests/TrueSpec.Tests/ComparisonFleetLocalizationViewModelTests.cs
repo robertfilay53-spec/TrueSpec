@@ -260,7 +260,7 @@ public class ComparisonFleetLocalizationViewModelTests
         var directory = TempDirectory();
         try
         {
-            var viewModel = await ComparedPairAsync(Path.Combine(directory, "snapshots.db"), "fr");
+            var viewModel = await ComparedPairAsync(Path.Combine(directory, "snapshots.db"), "xx");
 
             Assert.Equal("COMPARE", viewModel.ComparisonEyebrowText);
             Assert.Equal("Two snapshots, side by side", viewModel.ComparisonTitleText);
@@ -485,7 +485,7 @@ public class ComparisonFleetLocalizationViewModelTests
         var directory = TempDirectory();
         try
         {
-            var viewModel = await LoadedFleetAsync(directory, "fr");
+            var viewModel = await LoadedFleetAsync(directory, "xx");
 
             Assert.Equal("FLEET", viewModel.FleetEyebrowText);
             Assert.Equal("Every machine in this data folder", viewModel.FleetTitleText);
@@ -566,7 +566,7 @@ public class ComparisonFleetLocalizationViewModelTests
         Assert.Equal("CSV exportieren", german.ExportButtonText);
         Assert.Equal("Entfernen bestätigen", german.RemoveButtonText);
 
-        var unknown = new FleetRowViewModel(row, null, null, "fr");
+        var unknown = new FleetRowViewModel(row, null, null, "xx");
         Assert.Equal("Export CSV", unknown.ExportButtonText);
         Assert.Equal("Remove", unknown.RemoveButtonText);
     }

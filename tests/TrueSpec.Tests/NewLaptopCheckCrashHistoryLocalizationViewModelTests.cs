@@ -210,7 +210,7 @@ public class NewLaptopCheckCrashHistoryLocalizationViewModelTests
     [Fact]
     public void NewLaptopCheck_UnknownLanguage_FallsBackToEnglish()
     {
-        var viewModel = NewLaptopCheck(TestSnapshots.Healthy(), "fr");
+        var viewModel = NewLaptopCheck(TestSnapshots.Healthy(), "xx");
 
         Assert.Equal("NEW LAPTOP CHECK", viewModel.NewLaptopCheckEyebrowText);
         Assert.Equal("PASS - this machine matches a new laptop", viewModel.BannerText);
@@ -416,7 +416,7 @@ public class NewLaptopCheckCrashHistoryLocalizationViewModelTests
     public void CrashHistory_UnknownLanguage_FallsBackToEnglish()
     {
         var now = DateTimeOffset.UtcNow;
-        var viewModel = CrashHistory(SnapshotWith(CrashComponent(now, includeGap: true)), "fr");
+        var viewModel = CrashHistory(SnapshotWith(CrashComponent(now, includeGap: true)), "xx");
 
         Assert.Equal("Crash history", viewModel.CrashTitleText);
         Assert.Equal("A blue screen and a fatal hardware error occurred in the last 30 days.", viewModel.AlertText);
