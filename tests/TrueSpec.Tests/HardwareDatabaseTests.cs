@@ -164,10 +164,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.6.0", database.Version);
+        Assert.Equal("1.7.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
         Assert.Equal(74, database.CpuCount);
-        Assert.Equal(72, database.GpuCount);
+        Assert.Equal(78, database.GpuCount);
     }
 
     [Fact]
@@ -342,6 +342,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("NVIDIA GeForce GTX 1060 6GB", "GTX 1060 6GB")]
     [InlineData("NVIDIA GeForce GTX 1650 SUPER", "GTX 1650 SUPER")]
     [InlineData("NVIDIA GeForce GTX 1630", "GTX 1630")]
+    [InlineData("NVIDIA GeForce RTX 2080 Ti", "RTX 2080 TI")]
+    [InlineData("NVIDIA GeForce RTX 2060 SUPER", "RTX 2060 SUPER")]
     [InlineData("NVIDIA GeForce RTX 3050 6GB Laptop GPU", "RTX 3050 6GB LAPTOP")]
     [InlineData("AMD Radeon RX 7800 XT", "RX 7800 XT")]
     [InlineData("AMD Radeon(TM) RX 6600", "RX 6600")]
@@ -583,10 +585,69 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_Rtx20SeriesDesktopGpusCarryCompleteFigures()
+    {
+        // Dataset v1.7.0: the RTX 20-series desktop family, the whole
+        // family the dataset never listed and the deliberately-absent
+        // list never mentioned: every cycle checked the absent list,
+        // but no RTX 20-series desktop card was on it, so the gap went
+        // unnoticed until this cycle listed the whole RTX family
+        // against the dataset. All figures were verified by hand
+        // against NVIDIA's own GeForce compare page (the same page
+        // the shipped 1660/1660 SUPER/1660 Ti/1650/1650 SUPER/1630
+        // entries cite), read 2026-11-14. The page's RTX 20 Series
+        // table lists, in column order 2080 Ti / 2080 SUPER / 2080 /
+        // 2070 SUPER / 2070 / 2060 SUPER / 2060: Boost Clock 1.64 /
+        // 1.82 / 1.80 / 1.77 / 1.71 / 1.65 GHz, memory 11 / 8 / 8 /
+        // 8 / 8 / 8 GB GDDR6, and Graphics Card Power 260 / 250 / 225
+        // / 215 / 185 / 175 W. All six are single variants with one
+        // figure each, so all six entries are complete. The seventh
+        // card, the RTX 2060, stays absent: its boost (1.65/1.68 GHz),
+        // memory (12/6 GB) and power (185/160 W) are all split between
+        // its 12 GB and 6 GB variants under one device name, with no
+        // mapping on the page.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2080 Ti", out var rtx2080Ti));
+        Assert.Equal("NVIDIA", rtx2080Ti.Vendor);
+        Assert.Equal(1.64, rtx2080Ti.BoostGhz);
+        Assert.Equal(11, rtx2080Ti.MemoryGb);
+        Assert.Equal(260, rtx2080Ti.TdpW);
+        Assert.StartsWith("https://www.nvidia.com/en-us/geforce/graphics-cards/compare/?section=compare-20", rtx2080Ti.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2080 SUPER", out var rtx2080Super));
+        Assert.Equal(1.82, rtx2080Super.BoostGhz);
+        Assert.Equal(8, rtx2080Super.MemoryGb);
+        Assert.Equal(250, rtx2080Super.TdpW);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2080", out var rtx2080));
+        Assert.Equal(1.8, rtx2080.BoostGhz);
+        Assert.Equal(8, rtx2080.MemoryGb);
+        Assert.Equal(225, rtx2080.TdpW);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2070 SUPER", out var rtx2070Super));
+        Assert.Equal(1.77, rtx2070Super.BoostGhz);
+        Assert.Equal(8, rtx2070Super.MemoryGb);
+        Assert.Equal(215, rtx2070Super.TdpW);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2070", out var rtx2070));
+        Assert.Equal(1.71, rtx2070.BoostGhz);
+        Assert.Equal(8, rtx2070.MemoryGb);
+        Assert.Equal(185, rtx2070.TdpW);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2060 SUPER", out var rtx2060Super));
+        Assert.Equal(1.65, rtx2060Super.BoostGhz);
+        Assert.Equal(8, rtx2060Super.MemoryGb);
+        Assert.Equal(175, rtx2060Super.TdpW);
+    }
+
+    [Fact]
     public void Default_UnverifiableGpuModelsMatchNothing()
     {
         // RTX 3050 desktop: boost, memory and power all differ between
-        // its 8 GB and 6 GB variants under one device name. GTX 1060
+        // its 8 GB and 6 GB variants under one device name. RTX 2060
+        // desktop: the same shape, boost 1.65/1.68 GHz, memory 12/6 GB
+        // and power 185/160 W all differ between its 12 GB and 6 GB
+        // variants under one device name, with no mapping on NVIDIA's
+        // compare page. GTX 1060
         // 3GB: no power figure on nvidia.com. GTX 1070: the old
         // nvidia.com 10-series product page now redirects to the RTX 50
         // Series page, so no boost or power figure exists on nvidia.com
@@ -595,6 +656,7 @@ public sealed class HardwareDatabaseTests
         // AMD laptop GPUs: AMD publishes Game Frequency, not Boost
         // Frequency, for them.
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3050", out _));
+        Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2060", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6600M", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2060 Laptop GPU", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1070", out _));
