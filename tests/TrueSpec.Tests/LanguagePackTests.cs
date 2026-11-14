@@ -118,9 +118,11 @@ public sealed class LanguagePackTests
         // fix. The Spanish wording is the worker's own translation, not
         // reviewed by a native speaker (the same honest limitation as the
         // German and French wording). The language card says the rail, the
-        // Settings page, the component detail pages and the Overview page
-        // are translated and the other pages follow in later versions
-        // (phase 5, v2.1.31).
+        // Settings page, the component detail pages, the Overview page,
+        // the History page, the Report page, the Tests page, the New
+        // Laptop Check page, the Crash History page, the Comparison page
+        // and the Fleet page are translated and every page is now
+        // translated (phase 7, v2.1.33).
         var spanish = LanguagePacks.Spanish.Strings;
         Assert.Equal("Vista general", spanish[AppStringKeys.NavOverview]);
         Assert.Equal("Almacenamiento", spanish[AppStringKeys.NavStorage]);
@@ -137,7 +139,7 @@ public sealed class LanguagePackTests
         Assert.Equal("Configuración", spanish[AppStringKeys.NavSettings]);
         Assert.Equal("Idioma", spanish[AppStringKeys.LanguageTitle]);
         Assert.Equal(
-            "La barra de navegación, la página Configuración, las páginas de detalle de componentes, la página Vista general y las páginas Historial, Flota y Comprobación de comprador están traducidas. Las demás páginas seguirán en versiones posteriores.",
+            "La barra de navegación, la página Configuración, las páginas de detalle de componentes, la página Vista general, la página Historial, la página Informe, la página Pruebas, la página Comprobación de comprador, la página Historial de bloqueos, la página Comparar y la página Flota están traducidas. Todas las páginas están traducidas.",
             spanish[AppStringKeys.LanguageNote]);
     }
 
@@ -2453,5 +2455,251 @@ var french = LanguagePacks.French.Strings;
         Assert.Equal(
             "Terminé en 60 s.",
             StringLocalizer.GetFormatted(AppStringKeys.LoadTestElapsedFinished, "fr", "60"));
+    }
+
+    [Fact]
+    public void SpanishPack_ComparisonPageTerms()
+    {
+        // Localisation, phase 7, Spanish (v2.1.33): the Comparison page,
+        // mirror of FrenchPack_ComparisonPageTerms. Same pinning rule
+        // as the Fleet terms: changing one is a deliberate translation
+        // decision, not a typo fix. The data the page shows (the
+        // comparison summary sentence, the row cell values, the DNA
+        // changed/unidentified part lines, file paths and exception
+        // messages) is not in this catalogue; only the page chrome
+        // is. The DNA heading and the unidentified-parts heading
+        // reuse the Report page's keys, so they are pinned with the
+        // Report terms, not here. No new keys — the Spanish pack
+        // already covers the whole 523-key catalogue. All values were
+        // read from the real Spanish pack with a scratch dump program
+        // (outside the repo), never hand-translated from the German
+        // or French tests.
+        var spanish = LanguagePacks.Spanish.Strings;
+        Assert.Equal("COMPARAR", spanish[AppStringKeys.ComparisonEyebrow]);
+        Assert.Equal("Dos instantáneas, una al lado de la otra", spanish[AppStringKeys.ComparisonTitle]);
+        Assert.Equal("Elige dos análisis guardados cualesquiera. TrueSpec muestra el cambio de puntuación, cada componente que se movió y cada especificación que cambió. Nada se inventa: un componente que no fue medible en ninguno de los análisis lo dice.", spanish[AppStringKeys.ComparisonIntro]);
+        Assert.Equal("Antes", spanish[AppStringKeys.ComparisonBefore]);
+        Assert.Equal("Después", spanish[AppStringKeys.ComparisonAfter]);
+        Assert.Equal("Elegir una instantánea anterior", spanish[AppStringKeys.ComparisonPickEarlier]);
+        Assert.Equal("Elegir una instantánea posterior", spanish[AppStringKeys.ComparisonPickLater]);
+        Assert.Equal("Comparar", spanish[AppStringKeys.ComparisonCompareButton]);
+        Assert.Equal("Resultado", spanish[AppStringKeys.ComparisonResultTitle]);
+        Assert.Equal("El ADN es identidad, no salud: nunca cambia la puntuación de arriba. Solo dice si los dos análisis son del mismo equipo con las mismas piezas.", spanish[AppStringKeys.ComparisonDnaNote]);
+        Assert.Equal("Ninguna salud de componente cambió ni ninguna especificación cambió entre estas dos instantáneas.", spanish[AppStringKeys.ComparisonNoChanges]);
+        Assert.Equal("Componentes añadidos", spanish[AppStringKeys.ComparisonAddedTitle]);
+        Assert.Equal("Componentes eliminados", spanish[AppStringKeys.ComparisonRemovedTitle]);
+        Assert.Equal("Las instantáneas se guardan localmente después de cada análisis. El historial nunca sale de este equipo.", spanish[AppStringKeys.ComparisonFooterNote]);
+        Assert.Equal("Cargando historial de instantáneas...", spanish[AppStringKeys.ComparisonLoading]);
+        Assert.Equal("El historial de instantáneas no está disponible en este equipo, así que aún no hay nada que comparar.", spanish[AppStringKeys.ComparisonHistoryUnavailable]);
+        Assert.Equal("Aún no hay instantáneas guardadas. Las instantáneas se guardan después de cada análisis, así que actualiza el análisis y vuelve para comparar.", spanish[AppStringKeys.ComparisonNoSnapshots]);
+        Assert.Equal("Solo hay una instantánea guardada hasta ahora. Ejecuta otro análisis (actualizar) y vuelve para comparar.", spanish[AppStringKeys.ComparisonOnlyOneSnapshot]);
+        Assert.Equal("{0} instantáneas en el historial. Elige dos y compara.", spanish[AppStringKeys.ComparisonSnapshotsCount]);
+        Assert.Equal("No se pudo leer el historial: {0}", spanish[AppStringKeys.ComparisonHistoryReadFailed]);
+        Assert.Equal("Elige dos instantáneas distintas para comparar.", spanish[AppStringKeys.ComparisonPickDifferent]);
+        Assert.Equal("Comparando instantáneas...", spanish[AppStringKeys.ComparisonComparing]);
+        Assert.Equal("No se pudo leer una de las instantáneas del historial.", spanish[AppStringKeys.ComparisonSnapshotUnreadable]);
+        Assert.Equal("No se pudo comparar el ADN: no se pudieron leer las instantáneas.", spanish[AppStringKeys.ComparisonDnaUnreadable]);
+        Assert.Equal("Se comparó {0} con {1}.", spanish[AppStringKeys.ComparisonCompared]);
+        Assert.Equal("Error en la comparación: {0}", spanish[AppStringKeys.ComparisonFailed]);
+        Assert.Equal("Aún no hay comparación de ADN. Elige dos instantáneas y compara.", spanish[AppStringKeys.ComparisonDnaNoComparison]);
+        Assert.Equal("Mismo equipo, mismas piezas.", spanish[AppStringKeys.ComparisonDnaIdentical]);
+        Assert.Equal("Mismo equipo: la huella coincide.", spanish[AppStringKeys.ComparisonDnaFingerprintMatches]);
+        Assert.Equal("Las piezas cambiaron entre estos dos análisis.", spanish[AppStringKeys.ComparisonDnaChanged]);
+        Assert.Equal("No se pudo verificar el ADN de estos análisis.", spanish[AppStringKeys.ComparisonDnaUnverifiable]);
+        Assert.Equal("ADN no registrado para una o ambas instantáneas.", spanish[AppStringKeys.ComparisonDnaNotRecordedState]);
+        Assert.Equal("Antes: {0}", spanish[AppStringKeys.ComparisonDnaHashBefore]);
+        Assert.Equal("Después: {0}", spanish[AppStringKeys.ComparisonDnaHashAfter]);
+        Assert.Equal("ADN no registrado", spanish[AppStringKeys.ComparisonDnaNotRecorded]);
+
+        // Templates keep the app's number formatting in Spanish too.
+        Assert.Equal(
+            "2 instantáneas en el historial. Elige dos y compara.",
+            StringLocalizer.GetFormatted(AppStringKeys.ComparisonSnapshotsCount, "es", 2));
+        Assert.Equal(
+            "Se comparó 2026-11-10 09:00 con 2026-12-10 09:00.",
+            StringLocalizer.GetFormatted(AppStringKeys.ComparisonCompared, "es", "2026-11-10 09:00", "2026-12-10 09:00"));
+        Assert.Equal(
+            "Antes: abcdef12…34567890",
+            StringLocalizer.GetFormatted(AppStringKeys.ComparisonDnaHashBefore, "es", "abcdef12…34567890"));
+        Assert.Equal(
+            "No se pudo leer el historial: disk vanished",
+            StringLocalizer.GetFormatted(AppStringKeys.ComparisonHistoryReadFailed, "es", "disk vanished"));
+    }
+
+    [Fact]
+    public void SpanishPack_CrashHistoryPageTerms()
+    {
+        // Localisation, phase 7, Spanish (v2.1.33): the Crash History
+        // page, mirror of FrenchPack_CrashHistoryPageTerms. Same
+        // pinning rule as the Comparison terms above: changing one is
+        // a deliberate translation decision, not a typo fix. The data
+        // the page shows (component headline, the "What this means"
+        // fallback, class names, counts and dates, plain meanings,
+        // the "Not reported" date fallback) is not in this
+        // catalogue; only the page chrome is. The captured line
+        // reuses the detail page's DetailCaptured template, so it is
+        // pinned with the detail terms, not here. No new keys — the
+        // Spanish pack already covers the whole 523-key catalogue.
+        // All values were read from the real Spanish pack with a
+        // scratch dump program (outside the repo), never
+        // hand-translated from the German or French tests.
+        var spanish = LanguagePacks.Spanish.Strings;
+        Assert.Equal("Historial de bloqueos", spanish[AppStringKeys.CrashTitle]);
+        Assert.Equal("Bloqueo reciente", spanish[AppStringKeys.CrashRecentTitle]);
+        Assert.Equal("Se produjo una pantalla azul y un error de hardware fatal en los últimos 30 días.", spanish[AppStringKeys.CrashAlertBoth]);
+        Assert.Equal("Se produjo una pantalla azul en los últimos 30 días.", spanish[AppStringKeys.CrashAlertBugCheck]);
+        Assert.Equal("Se produjo un error de hardware fatal en los últimos 30 días.", spanish[AppStringKeys.CrashAlertWheaFatal]);
+        Assert.Equal("Fallos por clase", spanish[AppStringKeys.CrashFailuresByClass]);
+        Assert.Equal("Clase", spanish[AppStringKeys.CrashHeaderClass]);
+        Assert.Equal("Recuento (90 días)", spanish[AppStringKeys.CrashHeaderCount]);
+        Assert.Equal("Primero", spanish[AppStringKeys.CrashHeaderFirst]);
+        Assert.Equal("Último", spanish[AppStringKeys.CrashHeaderLast]);
+        Assert.Equal("Significado", spanish[AppStringKeys.CrashHeaderMeaning]);
+        Assert.Equal("El historial de bloqueos aún no se ha recopilado.", spanish[AppStringKeys.CrashEmptyNotCollected]);
+        Assert.Equal("No se registraron pantallas azules, errores de hardware, apagados inesperados ni errores de disco en los últimos 90 días.", spanish[AppStringKeys.CrashEmptyNoCrashes]);
+        Assert.Equal("El registro de eventos no tiene entradas anteriores a {0}, así que este historial puede estar incompleto. Un registro borrado se lee como un hueco, nunca como un registro limpio.", spanish[AppStringKeys.CrashLogCleared]);
+        Assert.Equal("Los recuentos cubren los últimos 90 días; el primero y el último cubren todo el tiempo registrado. Los significados son etiquetas fijas, no diagnósticos.", spanish[AppStringKeys.CrashFooterNote]);
+
+        // Templates keep the app's number formatting in Spanish too.
+        Assert.Equal(
+            "El registro de eventos no tiene entradas anteriores a 2026-10-25, así que este historial puede estar incompleto. Un registro borrado se lee como un hueco, nunca como un registro limpio.",
+            StringLocalizer.GetFormatted(AppStringKeys.CrashLogCleared, "es", "2026-10-25"));
+    }
+
+    [Fact]
+    public void SpanishPack_ReportPageTerms()
+    {
+        // Localisation, phase 7, Spanish (v2.1.33): the Report page,
+        // mirror of FrenchPack_ReportPageTerms. Same pinning rule as
+        // the Crash History terms above: changing one is a deliberate
+        // translation decision, not a typo fix. The data the page
+        // shows (machine name, verdict text, score explanation,
+        // buyer banner and summary, generated-text line, DNA
+        // state/hash/verify result texts, export folder path) is not
+        // in this catalogue; only the page chrome is. The format
+        // headings (JSON, HTML, CSV, PDF) are format names and stay
+        // untranslated, like CPU and GPU. No new keys — the Spanish
+        // pack already covers the whole 523-key catalogue. All values
+        // were read from the real Spanish pack with a scratch dump
+        // program (outside the repo), never hand-translated from the
+        // German or French tests.
+        var spanish = LanguagePacks.Spanish.Strings;
+        Assert.Equal("INFORME", spanish[AppStringKeys.ReportEyebrow]);
+        Assert.Equal("Exportar la verdad", spanish[AppStringKeys.ReportTitle]);
+        Assert.Equal(
+            "Un modelo de datos con salidas JSON, HTML, CSV y PDF. Todo se genera en este equipo.",
+            spanish[AppStringKeys.ReportIntro]);
+        Assert.Equal("puntuación", spanish[AppStringKeys.ReportScoreLabel]);
+        Assert.Equal("Exportar JSON", spanish[AppStringKeys.ReportExportJson]);
+        Assert.Equal("Exportar HTML", spanish[AppStringKeys.ReportExportHtml]);
+        Assert.Equal("Exportar CSV", spanish[AppStringKeys.ReportExportCsv]);
+        Assert.Equal("Exportar PDF", spanish[AppStringKeys.ReportExportPdf]);
+        Assert.Equal("Certificado de comprador (PDF)", spanish[AppStringKeys.ReportExportCertificate]);
+        Assert.Equal("Verificar este equipo", spanish[AppStringKeys.ReportVerifyMachine]);
+        Assert.Equal("ADN del equipo", spanish[AppStringKeys.ReportDnaTitle]);
+        Assert.Equal("Verificando este equipo, volviendo a analizar el hardware...", spanish[AppStringKeys.ReportVerifyingMachine]);
+        Assert.Equal("No identificado en uno de los análisis:", spanish[AppStringKeys.ReportDnaUnidentifiedTitle]);
+        Assert.Equal(
+            "El ADN es identidad, no salud: nunca cambia la puntuación ni el veredicto de arriba. Solo certifica a qué equipo pertenece la puntuación. Un análisis de usuario estándar sin elevación también se verifica, pero las partes que necesitan elevación para leerse pueden aparecer como no identificadas en lugar de una coincidencia.",
+            spanish[AppStringKeys.ReportDnaNote]);
+        Assert.Equal("Datos legibles por máquina para scripts y soporte.", spanish[AppStringKeys.ReportFormatJsonDescription]);
+        Assert.Equal("Una página limpia que puedes abrir en cualquier navegador.", spanish[AppStringKeys.ReportFormatHtmlDescription]);
+        Assert.Equal("Una hoja de cálculo con todas las especificaciones, segura para abrir en Excel. Los valores que parecen fórmulas se neutralizan.", spanish[AppStringKeys.ReportFormatCsvDescription]);
+        Assert.Equal("Un informe imprimible para entregar al vendedor o guardar con el recibo. Creado en este equipo, sin software adicional.", spanish[AppStringKeys.ReportFormatPdfDescription]);
+        Assert.Equal("Disponible", spanish[AppStringKeys.ReportFormatAvailable]);
+        Assert.Equal("Vista previa del informe", spanish[AppStringKeys.ReportPreviewTitle]);
+        Assert.Equal("Las exportaciones de informes se escriben en la carpeta mostrada arriba. Sin subidas, sin nube.", spanish[AppStringKeys.ReportFooterNote]);
+        Assert.Equal(
+            "Los informes exportados contienen los números de serie de hardware de este equipo, las direcciones MAC, las direcciones IP y los nombres de redes Wi-Fi. Compártelos solo con personas de confianza.",
+            spanish[AppStringKeys.ReportExportPrivacyNote]);
+    }
+
+    [Fact]
+    public void SpanishPack_TestsPageTerms()
+    {
+        // Localisation, phase 7, Spanish (v2.1.33): the Tests page,
+        // mirror of FrenchPack_TestsPageTerms. Same pinning rule as
+        // the Report terms above: changing one is a deliberate
+        // translation decision, not a typo fix. The data the page
+        // shows (per-test names and workload descriptions, measured
+        // result summaries and details, load-test measured results,
+        // verdict text and live values) is not in this catalogue;
+        // only the page chrome is. The load test reuses the test-item
+        // status keys ("Aún no ejecutada.", "En ejecución...", "La
+        // prueba falló", the no-result template) instead of a second
+        // copy of the same words. No new keys — the Spanish pack
+        // already covers the whole 523-key catalogue. All values were
+        // read from the real Spanish pack with a scratch dump program
+        // (outside the repo), never hand-translated from the German
+        // or French tests.
+        var spanish = LanguagePacks.Spanish.Strings;
+        Assert.Equal("PRUEBAS", spanish[AppStringKeys.TestsEyebrow]);
+        Assert.Equal("Pruebas integradas", spanish[AppStringKeys.TestsTitle]);
+        Assert.Equal("Un clic cada una. Sin subidas ocultas, sin cuenta, y nada se ejecuta sin que tú lo inicies.", spanish[AppStringKeys.TestsIntro]);
+        Assert.Equal("Las pruebas de CPU y disco realizan mediciones locales reales. Las pruebas que no están implementadas permanecen desactivadas y no muestran ningún resultado.", spanish[AppStringKeys.TestsInfoNote]);
+        Assert.Equal(
+            "Estas pruebas de rendimiento miden solo este equipo, con la carga de trabajo exacta que se muestra en cada resultado. No sustituyen a Geekbench (comparación entre plataformas) ni a 3DMark (renderizado de GPU). Un resultado obtenido mientras otro programa usaba la CPU lo indica en el propio resultado.",
+            spanish[AppStringKeys.TestsBenchmarkScopeNote]);
+        Assert.Equal("No disponible en esta compilación", spanish[AppStringKeys.TestsItemNotAvailable]);
+        Assert.Equal("Listo", spanish[AppStringKeys.TestsItemReady]);
+        Assert.Equal("En ejecución...", spanish[AppStringKeys.TestsItemRunning]);
+        Assert.Equal("La prueba falló", spanish[AppStringKeys.TestsItemFailed]);
+        Assert.Equal("Aún no ejecutada.", spanish[AppStringKeys.TestsItemNotRunYet]);
+        Assert.Equal("Esta prueba aún no está implementada, así que no se muestra ningún resultado.", spanish[AppStringKeys.TestsItemNotImplementedResult]);
+        Assert.Equal("Midiendo localmente. Nada se sube.", spanish[AppStringKeys.TestsItemMeasuring]);
+        Assert.Equal("No se muestra ningún resultado porque la prueba no se completó: {0}", spanish[AppStringKeys.TestsItemNoResult]);
+        Assert.Equal("Ejecutar prueba", spanish[AppStringKeys.TestsItemRun]);
+        Assert.Equal("En ejecución…", spanish[AppStringKeys.TestsItemRunningButton]);
+        Assert.Equal("No disponible", spanish[AppStringKeys.TestsItemNotAvailableButton]);
+        Assert.Equal("Prueba de carga", spanish[AppStringKeys.LoadTestTitle]);
+        Assert.Equal("Carga la CPU en todos los núcleos, ejercita la memoria y el disco, y observa la temperatura y la velocidad de reloj cada segundo.", spanish[AppStringKeys.LoadTestIntro]);
+        Assert.Equal("Este equipo funciona con batería; los resultados pueden estar limitados por la energía.", spanish[AppStringKeys.LoadTestBatteryNote]);
+        Assert.Equal("Duración (segundos):", spanish[AppStringKeys.LoadTestDurationLabel]);
+        Assert.Equal("Iniciar prueba de carga", spanish[AppStringKeys.LoadTestStart]);
+        Assert.Equal("Cancelar", spanish[AppStringKeys.LoadTestCancel]);
+        Assert.Equal("Salud del ventilador", spanish[AppStringKeys.LoadTestFanHealthTitle]);
+        Assert.Equal("TrueSpec solo informa de la salud del ventilador; nunca controla los ventiladores.", spanish[AppStringKeys.LoadTestFanHealthNote]);
+        Assert.Equal("Temperatura durante la prueba (°C). Un hueco en la línea significa que el sensor no informó de ese segundo.", spanish[AppStringKeys.LoadTestTemperatureCaption]);
+        Assert.Equal("Esto cargará tu CPU durante {0} segundos. Se detiene automáticamente si la temperatura supera los {1} °C.", spanish[AppStringKeys.LoadTestWarning]);
+        Assert.Equal("Una prueba de {0} segundos es una comprobación funcional, no un certificado de resistencia.", spanish[AppStringKeys.LoadTestFunctionalCheck]);
+        Assert.Equal("Detenido automáticamente: se alcanzó el límite de temperatura.", spanish[AppStringKeys.LoadTestStoppedTemperature]);
+        Assert.Equal("Detenido: los sensores dejaron de informar.", spanish[AppStringKeys.LoadTestStoppedSensorLost]);
+        Assert.Equal("Cancelado.", spanish[AppStringKeys.LoadTestCancelled]);
+        Assert.Equal("Prueba de carga completada.", spanish[AppStringKeys.LoadTestComplete]);
+        Assert.Equal("Temperatura: no en ejecución", spanish[AppStringKeys.LoadTestTempNotRunning]);
+        Assert.Equal("Temperatura: midiendo...", spanish[AppStringKeys.LoadTestTempMeasuring]);
+        Assert.Equal("Temperatura: prueba terminada", spanish[AppStringKeys.LoadTestTempFinished]);
+        Assert.Equal("Temperatura: no informada por el hardware", spanish[AppStringKeys.LoadTestTempNotReported]);
+        Assert.Equal("Reloj: no en ejecución", spanish[AppStringKeys.LoadTestClockNotRunning]);
+        Assert.Equal("Reloj: midiendo...", spanish[AppStringKeys.LoadTestClockMeasuring]);
+        Assert.Equal("Reloj: prueba terminada", spanish[AppStringKeys.LoadTestClockFinished]);
+        Assert.Equal("Reloj: no informado por el hardware", spanish[AppStringKeys.LoadTestClockNotReported]);
+
+        // Localisation polish (v2.1.18): the measured live lines and
+        // the elapsed line translate their labels too, via templates;
+        // only the measured value stays data.
+        Assert.Equal("Temperatura: {0}", spanish[AppStringKeys.LoadTestTempMeasured]);
+        Assert.Equal("Reloj: {0}", spanish[AppStringKeys.LoadTestClockMeasured]);
+        Assert.Equal("Terminado en {0} s.", spanish[AppStringKeys.LoadTestElapsedFinished]);
+
+        // Templates keep the app's number formatting in Spanish too.
+        Assert.Equal(
+            "Esto cargará tu CPU durante 60 segundos. Se detiene automáticamente si la temperatura supera los 95 °C.",
+            StringLocalizer.GetFormatted(AppStringKeys.LoadTestWarning, "es", "60", "95"));
+        Assert.Equal(
+            "Una prueba de 60 segundos es una comprobación funcional, no un certificado de resistencia.",
+            StringLocalizer.GetFormatted(AppStringKeys.LoadTestFunctionalCheck, "es", "60"));
+        Assert.Equal(
+            "No se muestra ningún resultado porque la prueba no se completó: disk vanished",
+            StringLocalizer.GetFormatted(AppStringKeys.TestsItemNoResult, "es", "disk vanished"));
+        Assert.Equal(
+            "Temperatura: 72.3 C",
+            StringLocalizer.GetFormatted(AppStringKeys.LoadTestTempMeasured, "es", "72.3 C"));
+        Assert.Equal(
+            "Reloj: 4200 MHz",
+            StringLocalizer.GetFormatted(AppStringKeys.LoadTestClockMeasured, "es", "4200 MHz"));
+        Assert.Equal(
+            "Terminado en 60 s.",
+            StringLocalizer.GetFormatted(AppStringKeys.LoadTestElapsedFinished, "es", "60"));
     }
 }

@@ -23,10 +23,10 @@ namespace TrueSpec.Tests;
 /// ReportTestsLocalizationViewModelTests: excluded from the net10.0
 /// leg in the csproj. French phase 6 (v2.1.25) mirrors the German
 /// Fleet tests in French; Spanish phase 6 (v2.1.32) mirrors the French
-/// Fleet tests in Spanish; the Comparison page is not French yet, so
-/// only the Fleet half is mirrored here. French phase 7 (v2.1.26)
-/// mirrors the German Comparison tests in French too, so both halves
-/// are mirrored here now.
+/// Fleet tests in Spanish. French phase 7 (v2.1.26) mirrors the German
+/// Comparison tests in French; Spanish phase 7 (v2.1.33) mirrors the
+/// French Comparison tests in Spanish, so both halves are mirrored
+/// here in all three languages now.
 /// </summary>
 public class ComparisonFleetLocalizationViewModelTests
 {
@@ -482,6 +482,180 @@ public class ComparisonFleetLocalizationViewModelTests
                 () => oneSnapshot.StatusMessage != "Chargement de l'historique des instantanés...",
                 "Status never left loading.");
             Assert.Equal("Un seul instantané est enregistré pour l'instant. Lancez un autre scan (actualiser) et revenez pour comparer.", oneSnapshot.StatusMessage);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Comparison_SpanishSeeded_RendersWholePageInSpanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var viewModel = await ComparedPairAsync(Path.Combine(directory, "snapshots.db"), "es");
+
+            Assert.Equal("COMPARAR", viewModel.ComparisonEyebrowText);
+            Assert.Equal("Dos instantáneas, una al lado de la otra", viewModel.ComparisonTitleText);
+            Assert.Equal("Elige dos análisis guardados cualesquiera. TrueSpec muestra el cambio de puntuación, cada componente que se movió y cada especificación que cambió. Nada se inventa: un componente que no fue medible en ninguno de los análisis lo dice.", viewModel.ComparisonIntroText);
+            Assert.Equal("Antes", viewModel.ComparisonBeforeText);
+            Assert.Equal("Después", viewModel.ComparisonAfterText);
+            Assert.Equal("Elegir una instantánea anterior", viewModel.ComparisonPickEarlierText);
+            Assert.Equal("Elegir una instantánea posterior", viewModel.ComparisonPickLaterText);
+            Assert.Equal("Comparar", viewModel.ComparisonCompareButtonText);
+            Assert.Equal("Resultado", viewModel.ComparisonResultTitleText);
+            Assert.Equal("ADN del equipo", viewModel.ComparisonDnaTitleText);
+            Assert.Equal("No identificado en uno de los análisis:", viewModel.ComparisonDnaUnidentifiedTitleText);
+            Assert.Equal("El ADN es identidad, no salud: nunca cambia la puntuación de arriba. Solo dice si los dos análisis son del mismo equipo con las mismas piezas.", viewModel.ComparisonDnaNoteText);
+            Assert.Equal("Ninguna salud de componente cambió ni ninguna especificación cambió entre estas dos instantáneas.", viewModel.ComparisonNoChangesText);
+            Assert.Equal("Componentes añadidos", viewModel.ComparisonAddedTitleText);
+            Assert.Equal("Componentes eliminados", viewModel.ComparisonRemovedTitleText);
+            Assert.Equal("Las instantáneas se guardan localmente después de cada análisis. El historial nunca sale de este equipo.", viewModel.ComparisonFooterNoteText);
+            Assert.Equal(
+                $"Se comparó {viewModel.SelectedBefore!.CapturedAt:yyyy-MM-dd HH:mm} con {viewModel.SelectedAfter!.CapturedAt:yyyy-MM-dd HH:mm}.",
+                viewModel.StatusMessage);
+            Assert.Equal("ADN no registrado para una o ambas instantáneas.", viewModel.DnaStateText);
+            Assert.Equal("Antes: ADN no registrado", viewModel.DnaHashBeforeText);
+            Assert.Equal("Después: ADN no registrado", viewModel.DnaHashAfterText);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Comparison_SpanishSeeded_IdenticalDna_SaysSameMachineInSpanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var fake = new FakeMachineDnaVerifier
+            {
+                DescribeResult = MachineDnaVerification.Identical("abcdef12…34567890"),
+                CompareResult = MachineDnaVerification.Identical("abcdef12…34567890"),
+            };
+            var viewModel = await ComparedPairAsync(Path.Combine(directory, "snapshots.db"), "es", fake);
+
+            Assert.Equal("Mismo equipo, mismas piezas.", viewModel.DnaStateText);
+            Assert.Equal("Antes: abcdef12…34567890", viewModel.DnaHashBeforeText);
+            Assert.Equal("Después: abcdef12…34567890", viewModel.DnaHashAfterText);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Comparison_ApplyLanguage_SwitchesToSpanishAndBack()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var viewModel = await ComparedPairAsync(Path.Combine(directory, "snapshots.db"));
+
+            viewModel.ApplyLanguage("es");
+            Assert.Equal("COMPARAR", viewModel.ComparisonEyebrowText);
+            Assert.Equal("Dos instantáneas, una al lado de la otra", viewModel.ComparisonTitleText);
+            Assert.Equal("Comparar", viewModel.ComparisonCompareButtonText);
+            Assert.Equal("ADN no registrado para una o ambas instantáneas.", viewModel.DnaStateText);
+            Assert.Equal("Antes: ADN no registrado", viewModel.DnaHashBeforeText);
+            Assert.Equal(
+                $"Se comparó {viewModel.SelectedBefore!.CapturedAt:yyyy-MM-dd HH:mm} con {viewModel.SelectedAfter!.CapturedAt:yyyy-MM-dd HH:mm}.",
+                viewModel.StatusMessage);
+
+            viewModel.ApplyLanguage("en");
+            Assert.Equal("COMPARE", viewModel.ComparisonEyebrowText);
+            Assert.Equal("Two snapshots, side by side", viewModel.ComparisonTitleText);
+            Assert.Equal("Compare", viewModel.ComparisonCompareButtonText);
+            Assert.Equal("DNA not recorded for one or both snapshots.", viewModel.DnaStateText);
+            Assert.Equal("Before: DNA not recorded", viewModel.DnaHashBeforeText);
+            Assert.Equal(
+                $"Compared {viewModel.SelectedBefore!.CapturedAt:yyyy-MM-dd HH:mm} with {viewModel.SelectedAfter!.CapturedAt:yyyy-MM-dd HH:mm}.",
+                viewModel.StatusMessage);
+
+            viewModel.ApplyLanguage("es");
+            Assert.Equal("COMPARAR", viewModel.ComparisonEyebrowText);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Comparison_DataStaysEnglish_WhenChromeIsSpanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var english = await ComparedPairAsync(Path.Combine(directory, "en.db"));
+            var spanish = await ComparedPairAsync(Path.Combine(directory, "es.db"), "es");
+
+            Assert.Equal(english.SummaryText, spanish.SummaryText);
+            Assert.Equal(english.Rows.Select(r => r.ComponentName), spanish.Rows.Select(r => r.ComponentName));
+            Assert.Equal(english.Rows.Select(r => r.HealthBefore), spanish.Rows.Select(r => r.HealthBefore));
+            Assert.Equal(english.Rows.Select(r => r.HealthAfter), spanish.Rows.Select(r => r.HealthAfter));
+            Assert.Equal(english.Rows.Select(r => r.DeltaText), spanish.Rows.Select(r => r.DeltaText));
+            Assert.Equal(english.Rows.Select(r => r.ChangedSpecs), spanish.Rows.Select(r => r.ChangedSpecs));
+            Assert.Equal(english.AddedComponents, spanish.AddedComponents);
+            Assert.Equal(english.RemovedComponents, spanish.RemovedComponents);
+            Assert.Equal(english.DnaChangedParts, spanish.DnaChangedParts);
+            Assert.Equal(english.DnaUnidentifiedParts, spanish.DnaUnidentifiedParts);
+
+            // A switch re-renders the chrome in place, keeping the data.
+            spanish.ApplyLanguage("en");
+            Assert.Equal(english.ComparisonEyebrowText, spanish.ComparisonEyebrowText);
+            Assert.Equal(english.StatusMessage, spanish.StatusMessage);
+            Assert.Equal(english.SummaryText, spanish.SummaryText);
+            Assert.Equal(english.Rows.Select(r => r.ChangedSpecs), spanish.Rows.Select(r => r.ChangedSpecs));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Comparison_EmptyStates_StayHonestInSpanish()
+    {
+        var noStore = new ComparisonViewModel(null, TestSnapshots.Healthy(), null, "es");
+        await WaitForAsync(
+            () => noStore.StatusMessage != "Cargando historial de instantáneas...",
+            "Status never left loading.");
+        Assert.Equal("El historial de instantáneas no está disponible en este equipo, así que aún no hay nada que comparar.", noStore.StatusMessage);
+
+        var directory = TempDirectory();
+        try
+        {
+            var store = new SqliteSnapshotStore(Path.Combine(directory, "snapshots.db"));
+            await store.InitializeAsync();
+            var only = TestSnapshots.HistorySnapshot(82, "90%", "120", "4", "12400", DateTimeOffset.UtcNow);
+            await store.SaveAsync(only);
+
+            var oneSnapshot = new ComparisonViewModel(store, only, null, "es");
+            await WaitForAsync(
+                () => oneSnapshot.StatusMessage != "Cargando historial de instantáneas...",
+                "Status never left loading.");
+            Assert.Equal("Solo hay una instantánea guardada hasta ahora. Ejecuta otro análisis (actualizar) y vuelve para comparar.", oneSnapshot.StatusMessage);
         }
         finally
         {
