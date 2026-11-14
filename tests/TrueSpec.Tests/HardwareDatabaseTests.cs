@@ -59,6 +59,20 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen AI 7 445", "RYZEN AI 7 445")]
     [InlineData("AMD Ryzen AI 5 435", "RYZEN AI 5 435")]
     [InlineData("AMD Ryzen AI 5 430", "RYZEN AI 5 430")]
+    [InlineData("AMD Ryzen 9 270", "RYZEN 9 270")]
+    [InlineData("AMD Ryzen 7 260", "RYZEN 7 260")]
+    [InlineData("AMD Ryzen 7 250", "RYZEN 7 250")]
+    [InlineData("AMD Ryzen 5 240", "RYZEN 5 240")]
+    [InlineData("AMD Ryzen 5 230", "RYZEN 5 230")]
+    [InlineData("AMD Ryzen 5 220", "RYZEN 5 220")]
+    [InlineData("AMD Ryzen 3 210", "RYZEN 3 210")]
+    [InlineData("AMD Ryzen 7 253", "RYZEN 7 253")]
+    [InlineData("AMD Ryzen 7 249", "RYZEN 7 249")]
+    [InlineData("AMD Ryzen 5 225", "RYZEN 5 225")]
+    [InlineData("AMD Ryzen 5 224", "RYZEN 5 224")]
+    [InlineData("AMD Ryzen 7 217", "RYZEN 7 217")]
+    [InlineData("AMD Ryzen 5 216", "RYZEN 5 216")]
+    [InlineData("AMD Ryzen 3 205", "RYZEN 3 205")]
     [InlineData("intel core i5-12400", "I5-12400")]
     [InlineData("Intel(R) Core(TM) i5-12400F Processor", "I5-12400F")]
     [InlineData("Intel(R) Core(TM) i5-14400", "I5-14400")]
@@ -199,9 +213,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.26.0", database.Version);
+        Assert.Equal("1.27.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(120, database.CpuCount);
+        Assert.Equal(134, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1622,5 +1636,142 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(2.0, ryzenAi5430.BaseGhz);
         Assert.Equal(4.5, ryzenAi5430.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-400-series/amd-ryzen-ai-5-430.html", ryzenAi5430.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Ryzen200MobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.27.0: the fourteen AMD Ryzen 200 mobile CPUs (Zen 4,
+        // Hawk Point), the whole consumer Ryzen 200 family, which the
+        // dataset never listed. Seven launched at CES 2025 on January 6,
+        // 2025, with systems from Q2 2025: the Ryzen 9 270 is the 8-core
+        // flagship, the Ryzen 7 260 and 250 are the 8-core mid stack, the
+        // Ryzen 5 240, 230 and 220 are the 6-core parts, and the Ryzen 3
+        // 210 is the 4-core entry part. Seven more were added on June 2,
+        // 2026: the Ryzen 7 253 and 249, the Ryzen 5 225 and 224, the
+        // Ryzen 7 217 and Ryzen 5 216, and the Ryzen 3 205. All figures
+        // were verified by hand against AMD's own product pages, read
+        // 2026-11-15 from fresh fetches, and cross-checked against AMD's
+        // CES 2025 press release for the original seven: the Ryzen 9 270
+        // at Base Clock 4.0 GHz and Max Boost Clock up to 5.2 GHz; the
+        // Ryzen 7 260 at 3.8 and up to 5.1 GHz; the Ryzen 7 250 at 3.3
+        // and up to 5.1 GHz; the Ryzen 5 240 at 4.3 and up to 5.0 GHz;
+        // the Ryzen 5 230 at 3.5 and up to 4.9 GHz; the Ryzen 5 220 at
+        // 3.2 and up to 4.9 GHz; the Ryzen 3 210 at 3.0 and up to 4.7
+        // GHz; the Ryzen 7 253 at 3.6 and up to 4.9 GHz; the Ryzen 7 249
+        // at 3.1 and up to 4.9 GHz; the Ryzen 5 225 at 4.1 and up to 4.8
+        // GHz; the Ryzen 5 224 at 3.3 and up to 4.8 GHz; the Ryzen 7 217
+        // at 3.0 and up to 4.8 GHz; the Ryzen 5 216 at 2.9 and up to 4.7
+        // GHz; the Ryzen 3 205 at 2.8 and up to 4.6 GHz. The dataset's
+        // base_ghz is AMD's headline Base Clock and boost_ghz is AMD's
+        // Max Boost Clock, per its own definition. Five of the chips are
+        // hybrid Zen 4 plus Zen 4c parts (the 220, 210, 217, 216 and
+        // 205), and AMD also lists per-core-type clocks for them (for
+        // example the 220 at Zen4 Base Clock 3.7 GHz, Zen4c Base Clock
+        // 3.0 GHz and Max Zen4c Clock up to 3.5 GHz); those are
+        // per-core-type figures, not the headline Base Clock and Max
+        // Boost Clock, so they are not the dataset's figures, following
+        // the same rule as the AI 400 chips' Max Zen5c Clock. Two
+        // naming quirks are real, not errors: the Ryzen 3 205 has six
+        // cores but only eight threads (two Zen 4 plus four Zen 4c
+        // cores), and the Ryzen 7 217 is a six-core part (two Zen 4
+        // plus four Zen 4c cores). The PRO variants stay out (Ryzen 7
+        // PRO 250, Ryzen 5 PRO 230, Ryzen 5 PRO 220, Ryzen 3 PRO 210):
+        // the dataset covers consumer parts, and no PRO chip has been
+        // listed in any cycle. No code change was needed: the CPU
+        // normalizer already maps "AMD Ryzen 9 270" to "RYZEN 9 270",
+        // "AMD Ryzen 7 260" to "RYZEN 7 260", "AMD Ryzen 7 250" to
+        // "RYZEN 7 250", "AMD Ryzen 5 240" to "RYZEN 5 240", "AMD Ryzen
+        // 5 230" to "RYZEN 5 230", "AMD Ryzen 5 220" to "RYZEN 5 220",
+        // "AMD Ryzen 3 210" to "RYZEN 3 210", "AMD Ryzen 7 253" to
+        // "RYZEN 7 253", "AMD Ryzen 7 249" to "RYZEN 7 249", "AMD Ryzen
+        // 5 225" to "RYZEN 5 225", "AMD Ryzen 5 224" to "RYZEN 5 224",
+        // "AMD Ryzen 7 217" to "RYZEN 7 217", "AMD Ryzen 5 216" to
+        // "RYZEN 5 216" and "AMD Ryzen 3 205" to "RYZEN 3 205", and the
+        // Settings card shows the CPU count from the dataset, so it reads
+        // 134 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 9 270", out var ryzen9270));
+        Assert.Equal("AMD", ryzen9270.Vendor);
+        Assert.Equal(4.0, ryzen9270.BaseGhz);
+        Assert.Equal(5.2, ryzen9270.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-9-270.html", ryzen9270.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 260", out var ryzen7260));
+        Assert.Equal("AMD", ryzen7260.Vendor);
+        Assert.Equal(3.8, ryzen7260.BaseGhz);
+        Assert.Equal(5.1, ryzen7260.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-7-260.html", ryzen7260.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 250", out var ryzen7250));
+        Assert.Equal("AMD", ryzen7250.Vendor);
+        Assert.Equal(3.3, ryzen7250.BaseGhz);
+        Assert.Equal(5.1, ryzen7250.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-7-250.html", ryzen7250.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 240", out var ryzen5240));
+        Assert.Equal("AMD", ryzen5240.Vendor);
+        Assert.Equal(4.3, ryzen5240.BaseGhz);
+        Assert.Equal(5.0, ryzen5240.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-5-240.html", ryzen5240.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 230", out var ryzen5230));
+        Assert.Equal("AMD", ryzen5230.Vendor);
+        Assert.Equal(3.5, ryzen5230.BaseGhz);
+        Assert.Equal(4.9, ryzen5230.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-5-230.html", ryzen5230.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 220", out var ryzen5220));
+        Assert.Equal("AMD", ryzen5220.Vendor);
+        Assert.Equal(3.2, ryzen5220.BaseGhz);
+        Assert.Equal(4.9, ryzen5220.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-5-220.html", ryzen5220.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 3 210", out var ryzen3210));
+        Assert.Equal("AMD", ryzen3210.Vendor);
+        Assert.Equal(3.0, ryzen3210.BaseGhz);
+        Assert.Equal(4.7, ryzen3210.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-3-210.html", ryzen3210.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 253", out var ryzen7253));
+        Assert.Equal("AMD", ryzen7253.Vendor);
+        Assert.Equal(3.6, ryzen7253.BaseGhz);
+        Assert.Equal(4.9, ryzen7253.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-7-253.html", ryzen7253.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 249", out var ryzen7249));
+        Assert.Equal("AMD", ryzen7249.Vendor);
+        Assert.Equal(3.1, ryzen7249.BaseGhz);
+        Assert.Equal(4.9, ryzen7249.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-7-249.html", ryzen7249.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 225", out var ryzen5225));
+        Assert.Equal("AMD", ryzen5225.Vendor);
+        Assert.Equal(4.1, ryzen5225.BaseGhz);
+        Assert.Equal(4.8, ryzen5225.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-5-225.html", ryzen5225.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 224", out var ryzen5224));
+        Assert.Equal("AMD", ryzen5224.Vendor);
+        Assert.Equal(3.3, ryzen5224.BaseGhz);
+        Assert.Equal(4.8, ryzen5224.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-5-224.html", ryzen5224.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 217", out var ryzen7217));
+        Assert.Equal("AMD", ryzen7217.Vendor);
+        Assert.Equal(3.0, ryzen7217.BaseGhz);
+        Assert.Equal(4.8, ryzen7217.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-7-217.html", ryzen7217.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 216", out var ryzen5216));
+        Assert.Equal("AMD", ryzen5216.Vendor);
+        Assert.Equal(2.9, ryzen5216.BaseGhz);
+        Assert.Equal(4.7, ryzen5216.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-5-216.html", ryzen5216.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 3 205", out var ryzen3205));
+        Assert.Equal("AMD", ryzen3205.Vendor);
+        Assert.Equal(2.8, ryzen3205.BaseGhz);
+        Assert.Equal(4.6, ryzen3205.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-3-205.html", ryzen3205.SourceUrl, StringComparison.Ordinal);
     }
 }
