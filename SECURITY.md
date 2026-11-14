@@ -166,10 +166,10 @@ dependency.
 
 ## Build and release checklist
 
-1. `dotnet build TrueSpec.sln -c Release` — 0 warnings, 0 errors.
-2. `dotnet test TrueSpec.sln -c Release` — all tests pass (run on Windows;
+1. `dotnet build TrueSpec.sln -c Release`, 0 warnings, 0 errors.
+2. `dotnet test TrueSpec.sln -c Release`, all tests pass (run on Windows;
    the Linux CI build compiles the tests; the Windows CI run executes them).
-3. `dotnet list package --vulnerable --include-transitive` — no vulnerable
+3. `dotnet list package --vulnerable --include-transitive`, no vulnerable
    packages.
-4. `grep` the tree for `HttpClient`, `wmic`, passwords and API keys — none.
+4. `grep` the tree for `HttpClient`, `wmic`, passwords and API keys, none.
 5. Sign the installer when code signing is set up (see `installer/`).

@@ -166,10 +166,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.8.0", database.Version);
+        Assert.Equal("1.9.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
         Assert.Equal(77, database.CpuCount);
-        Assert.Equal(78, database.GpuCount);
+        Assert.Equal(83, database.GpuCount);
     }
 
     [Fact]
@@ -349,6 +349,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("NVIDIA GeForce RTX 3050 6GB Laptop GPU", "RTX 3050 6GB LAPTOP")]
     [InlineData("AMD Radeon RX 7800 XT", "RX 7800 XT")]
     [InlineData("AMD Radeon(TM) RX 6600", "RX 6600")]
+    [InlineData("AMD Radeon RX 5700 XT", "RX 5700 XT")]
+    [InlineData("AMD Radeon RX 5500 XT", "RX 5500 XT")]
     [InlineData("Intel(R) Arc(TM) A750 Graphics", "ARC A750")]
     [InlineData("Intel(R) Arc(TM) A770 Graphics", "ARC A770")]
     [InlineData("Intel(R) Arc(TM) A580 Graphics", "ARC A580")]
@@ -679,6 +681,60 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.0, r73700U.BoostGhz);
         Assert.Null(r73700U.ECoreBoostGhz);
         Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/processors/ryzen/ryzen-3000-series/amd-ryzen-7-3700u.html", r73700U.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Rx5000SeriesDesktopGpusCarryVerifiedFigures()
+    {
+        // Dataset v1.9.0: the AMD Radeon RX 5000-series desktop family,
+        // the whole family the dataset never listed and the
+        // deliberately-absent list never mentioned: every cycle checked
+        // the absent list, but no RX 5000-series desktop card was on
+        // it, so the gap went unnoticed until this cycle listed the
+        // whole AMD family against the dataset. All figures were
+        // verified by hand against AMD's own driver/spec pages (the
+        // same pages the shipped RX 6000/7000/9000 entries cite), read
+        // 2026-11-14: the RX 5700 XT at Boost Frequency up to 1905
+        // MHz, 8 GB GDDR6 and Typical Board Power 225 W; the RX 5700
+        // at 1725 MHz, 8 GB and 180 W; the RX 5600 XT at 1560 MHz,
+        // 6 GB and 150 W; the RX 5500 XT at 1845 MHz and 130 W; the
+        // RX 5500 at 1845 MHz, 4 GB and 150 W. The RX 5500 XT
+        // carries no memory figure: AMD lists 8 GB and 4 GB
+        // configurations under one device name, so the entry guesses
+        // neither, the same precedent as the RTX 5070 Laptop GPU and
+        // the RX 9060 XT. The RX 5500 is the OEM card of the family,
+        // but AMD's own page lists it as a desktop board with single
+        // figures, so it is recorded like the rest. The 5600 XT page
+        // lists two memory speeds (up to 12 Gbps / up to 14 Gbps, the
+        // vBIOS update), but the memory size is a single 6 GB, so the
+        // entry is complete.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 5700 XT", out var rx5700Xt));
+        Assert.Equal("AMD", rx5700Xt.Vendor);
+        Assert.Equal(1.905, rx5700Xt.BoostGhz);
+        Assert.Equal(8, rx5700Xt.MemoryGb);
+        Assert.Equal(225, rx5700Xt.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-5000-series/amd-radeon-rx-5700-xt.html", rx5700Xt.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 5700", out var rx5700));
+        Assert.Equal(1.725, rx5700.BoostGhz);
+        Assert.Equal(8, rx5700.MemoryGb);
+        Assert.Equal(180, rx5700.TdpW);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 5600 XT", out var rx5600Xt));
+        Assert.Equal(1.56, rx5600Xt.BoostGhz);
+        Assert.Equal(6, rx5600Xt.MemoryGb);
+        Assert.Equal(150, rx5600Xt.TdpW);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 5500 XT", out var rx5500Xt));
+        Assert.Equal(1.845, rx5500Xt.BoostGhz);
+        Assert.Null(rx5500Xt.MemoryGb);
+        Assert.Equal(130, rx5500Xt.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-5000-series/amd-radeon-rx-5500-xt.html", rx5500Xt.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 5500", out var rx5500));
+        Assert.Equal(1.845, rx5500.BoostGhz);
+        Assert.Equal(4, rx5500.MemoryGb);
+        Assert.Equal(150, rx5500.TdpW);
     }
 
     [Fact]

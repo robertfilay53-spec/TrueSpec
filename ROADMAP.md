@@ -6,7 +6,7 @@ source named, or it says "Not reported by hardware". No network calls
 at runtime, no elevation prompts, no invented values. A feature that
 cannot meet those rules does not ship, however useful it sounds.
 
-## v1.0.1 — shipped in this release
+## v1.0.1, shipped in this release
 
 ### 1. History and trends (new History page)
 
@@ -77,7 +77,7 @@ buyer does not recognise is worth asking the seller about.
 - Tests: `StartupProgramParserTests` (Core, runs everywhere) and
   `StartupCollectorTests` (Windows leg only, reads the real registry).
 
-## v1.1 — shipped in this release
+## v1.1, shipped in this release
 
 ### 1. Storage volume breakdown (on the Storage page)
 
@@ -108,7 +108,7 @@ space and filesystem from Win32_LogicalDisk (read-only, standard user).
 **Design decision (the open question this release answers): volumes
 belong on the Storage page, not in their own component.** Three reasons,
 all from the existing structure. First, volumes are the logical view of
-the same storage subsystem the Storage page already reports — in
+the same storage subsystem the Storage page already reports, in
 domain terms they are entities inside the Storage bounded context, not
 a second context, and the buyer question is the same ("is this drive
 nearly full?"). Second, a separate component would add a 19th nav item
@@ -149,7 +149,7 @@ used (see "Rejected").
   unreadable, never an exception out of the collector. The component is
   NotMeasurable, so the score is unchanged. Managed machines: a WSUS
   server configured by policy (`WUServer`) means the organization
-  controls updates, and the UI says so — the "Update management" spec
+  controls updates, and the UI says so, the "Update management" spec
   reads "Managed - updates controlled by your organization (WSUS:
   ...)", and the page text explains the last-success time is the last
   install the organization allowed, not proof every patch is installed.
@@ -177,7 +177,7 @@ data already existed; only the band rule and wording are new.
   `TrueSpec.Core/History/HistoryTrends.cs`, surfaced as
   `HistoryTrend.BatteryAlert` (null = no alert). Two rules, both aligned
   with the battery bands already in `HardwareMath` (Normal 80-100%,
-  Worn 60-79%, Replace below 60%) — no second scale is invented:
+  Worn 60-79%, Replace below 60%), no second scale is invented:
   **band drop**: the latest measured health sits in a worse band than
   the first measured health ("Battery health dropped from Normal
   (85%) to Worn (78%) since the first saved scan."); **fast fall**:
@@ -198,7 +198,7 @@ data already existed; only the band rule and wording are new.
   health, both band drops, fast fall within one band, single scan,
   gaps, already-Replace, the 80% / 5-point boundaries).
 
-## v1.2 — shipped
+## v1.2, shipped
 
 - **Driver age summary on the History page.** Driver dates are
   already collected; trending the oldest-driver date across scans
@@ -221,7 +221,7 @@ data already existed; only the band rule and wording are new.
   compared row by row (score, battery health, storage wear, oldest
   driver date).
 
-## v2.0.3 — shipped
+## v2.0.3, shipped
 
 - **Technician mode: fleet summary.** The plan's Beyond v2.0 item 1,
   first step: a Fleet page listing every machine in the local snapshot
@@ -240,7 +240,7 @@ data already existed; only the band rule and wording are new.
   `FleetCsvExporterTests`, store tests for the new query,
   `FleetViewModelTests`, navigation tests.
 
-## v2.0.4 — shipped
+## v2.0.4, shipped
 
 - **Technician mode: per-machine CSV export.** The plan's Beyond v2.0 item 1,
   second step: every row of the Fleet table has an Export CSV button that
@@ -261,12 +261,12 @@ data already existed; only the band rule and wording are new.
   percent text) is used by the Fleet and per-machine exporters. Tests:
   `FleetSummaryTests`, `FleetCsvExporterTests`.
 
-## v2.0.5 — shipped
+## v2.0.5, shipped
 
 - **Honest limits: the MemTest86 direction.** The world-class plan
   (section 8) says MemTest86 is the one tool this plan deliberately does
   not replace, and the product should say that on the memory page rather
-  than hide it — that sentence is a feature, the proof the rest of the
+  than hide it, that sentence is a feature, the proof the rest of the
   claims are honest. The RAM page now says TrueSpec's memory check is a
   quick in-OS pattern exercise during the load test, not a definitive RAM
   test, and that no in-OS tool can replace the bootable MemTest86. When
@@ -282,13 +282,13 @@ data already existed; only the band rule and wording are new.
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.0.1 and v2.0.4 (only the `<Version>` bump,
-  a comment, and test-file exclusions — zero `PackageReference`
+  a comment, and test-file exclusions, zero `PackageReference`
   changes), so the result carries forward.
 
-## v2.0.6 — shipped
+## v2.0.6, shipped
 
 - **Windows Memory Diagnostic result on the RAM page.** The "Memory
-  test" row said "Not run" without ever checking the log — a hardcoded
+  test" row said "Not run" without ever checking the log, a hardcoded
   label, not a measurement. It now reads the System event log
   (provider `Microsoft-Windows-MemoryDiagnostics-Results`, result
   events 1101 / 1201 for a pass, 1102 / 1202 for a failure, newest
@@ -307,15 +307,15 @@ data already existed; only the band rule and wording are new.
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.0.4 and v2.0.5 (only the `<Version>` bump
-  and a test-file exclusion — zero `PackageReference` changes), so the
+  and a test-file exclusion, zero `PackageReference` changes), so the
   result carries forward.
 
-## v2.0.7 — shipped
+## v2.0.7, shipped
 
 - **Every WMI query pinned.** The pinning tests (`CollectorWmiSelectionTests`)
   covered System, Motherboard, CPU, Battery, GPU, RAM, Drivers, Machine
   DNA and Software, but Network, Display, Storage, Security, Crash and
-  Updates still wrote their queries inline — the exact shape that let
+  Updates still wrote their queries inline, the exact shape that let
   the F9 BIOS-vendor defect happen (a property read but not selected
   comes back null, and the value silently shows as not reported). Their
   queries are now named `internal const string` constants on the
@@ -338,10 +338,10 @@ data already existed; only the band rule and wording are new.
   v2.0.5; the audit was re-run with
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
-  version changed between v2.0.5 and v2.0.6 (only the `<Version>` bump
-  — zero `PackageReference` changes), so the result carries forward.
+  version changed between v2.0.5 and v2.0.6 (only the `<Version>` bump,
+  zero `PackageReference` changes), so the result carries forward.
 
-## v2.0.8 — shipped
+## v2.0.8, shipped
 
 - **History timestamps: latest scan by parsed time, not ISO string
   order.** A scan's capture time is stored as ISO with an offset, and
@@ -349,7 +349,7 @@ data already existed; only the band rule and wording are new.
   change: 01:30 at -04:00 (05:30 UTC) sorts after 01:15 at -05:00
   (06:15 UTC) as text, even though it is older. Two readers picked by
   string order and could get the wrong row: `GetLatestPerMachineAsync`
-  (the Fleet page's latest scan per machine — its own comment admitted
+  (the Fleet page's latest scan per machine, its own comment admitted
   a machine scanned twice inside the transition hour could show its
   second-latest scan as latest) and the retention prune in `SaveAsync`
   (which could evict the truly-newest scan once a machine passed 200
@@ -369,10 +369,10 @@ data already existed; only the band rule and wording are new.
   v2.0.6; the audit was re-run with
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
-  version changed between v2.0.6 and v2.0.7 (only the `<Version>` bump
-  — zero `PackageReference` changes), so the result carries forward.
+  version changed between v2.0.6 and v2.0.7 (only the `<Version>` bump,
+  zero `PackageReference` changes), so the result carries forward.
 
-## v2.0.9 — shipped
+## v2.0.9, shipped
 
 - **History sensor-log chart: time-proportional horizontal axis.** The
   chart plotted samples by index, so its line lied about time: two
@@ -380,9 +380,9 @@ data already existed; only the band rule and wording are new.
   adjacent, and a burst a second apart looked stretched. The chart now
   positions samples by their timestamps, so the horizontal axis is time,
   not sample count. The line breaks at a stretch where logging was not
-  running — more than 60 seconds between two consecutive measured
+  running, more than 60 seconds between two consecutive measured
   samples, twice the maximum 30-second refresh interval (`AppSettings.
-  MaxRefreshSeconds`) — in addition to the existing break where the
+  MaxRefreshSeconds`), in addition to the existing break where the
   sensor did not report. The mapping is a pure function in Core
   (`SensorLogChartMapper.BuildSegments`, `SensorLogChartPoint`):
   points are sorted by time (a hand-edited row with an out-of-order
@@ -407,10 +407,10 @@ data already existed; only the band rule and wording are new.
   v2.0.7; the audit was re-run with
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
-  version changed between v2.0.7 and v2.0.8 (only the `<Version>` bump
-  — zero `PackageReference` changes), so the result carries forward.
+  version changed between v2.0.7 and v2.0.8 (only the `<Version>` bump,
+  zero `PackageReference` changes), so the result carries forward.
 
-## v2.1.0 — shipped
+## v2.1.0, shipped
 
 - **Technician mode: import JSON reports into the fleet store.** The
   plan's Beyond v2.0 item 1, next step after the fleet table (v2.0.3)
@@ -442,10 +442,10 @@ data already existed; only the band rule and wording are new.
   v2.0.8; the audit was re-run with
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
-  version changed between v2.0.8 and v2.0.9 (only the `<Version>` bump
-  — zero `PackageReference` changes), so the result carries forward.
+  version changed between v2.0.8 and v2.0.9 (only the `<Version>` bump,
+  zero `PackageReference` changes), so the result carries forward.
 
-## v2.1.1 — shipped
+## v2.1.1, shipped
 
 - **Portable buyer kit works out of the box.** The released portable
   zip shipped only the exe, so a buyer who extracted it to a USB stick
@@ -478,10 +478,10 @@ data already existed; only the band rule and wording are new.
   v2.0.9; the audit was re-run with
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
-  version changed between v2.0.9 and v2.1.0 (only the `<Version>` bump
-  — zero `PackageReference` changes), so the result carries forward.
+  version changed between v2.0.9 and v2.1.0 (only the `<Version>` bump,
+  zero `PackageReference` changes), so the result carries forward.
 
-## v2.1.2 — shipped
+## v2.1.2, shipped
 
 - **Technician mode: remove a machine from the fleet.** The fleet
   could import machines (v2.1.0) but never remove one: a wrong import,
@@ -491,7 +491,7 @@ data already existed; only the band rule and wording are new.
   (exact stored-name match, returns the deleted-row count; a prefix or
   a case variant is a different machine and is never touched). App:
   `FleetViewModel.RemoveMachineCommand` with a two-step confirm on the
-  row — the app has no modal confirm dialog, so the first click arms
+  row, the app has no modal confirm dialog, so the first click arms
   the button to "Confirm remove" and names the scan count, and only
   the second click deletes; the armed flag resets when the fleet
   reloads. The status line states the store's own deleted-row count,
@@ -510,7 +510,7 @@ data already existed; only the band rule and wording are new.
   changes in `git diff 38dc7d4 a31d021 -- '*csproj'`), so the result
   carries forward.
 
-## v2.1.3 — shipped
+## v2.1.3, shipped
 
 - **History: delete one saved scan.** The fleet could remove a whole
   machine (v2.1.2), but the History table could not remove a single
@@ -522,7 +522,7 @@ data already existed; only the band rule and wording are new.
   which names, in the same order as the points, the saved snapshot
   each point came from, so a table row can never drift from its scan.
   App: `HistoryViewModel.RemoveScanCommand` with the same two-step
-  confirm as the fleet — the first click arms the button to "Confirm
+  confirm as the fleet, the first click arms the button to "Confirm
   remove" and names the scan date, and only the second click deletes;
   the armed flag resets when the trend reloads. The status line states
   the store's own deleted-row count, including 0 when the scan was
@@ -544,7 +544,7 @@ data already existed; only the band rule and wording are new.
   changes in `git diff a31d021 0e6a153 -- '*csproj'`), so the result
   carries forward.
 
-## v2.1.4 — shipped
+## v2.1.4, shipped
 
 - **Technician mode: export all machines.** The fleet could export
   the whole table as one CSV, or one machine at a time from its row,
@@ -567,9 +567,9 @@ data already existed; only the band rule and wording are new.
   delegate wired up, and renders the status line from the result:
   how many machines were exported, the folder, and any machine
   skipped by name with its reason. `MainViewModel` raises the same
-  unmissable export confirmation as the other exports — the banner
+  unmissable export confirmation as the other exports, the banner
   names the folder and the count, and "Open folder" opens the folder
-  the files landed in — with no banner when nothing was exported.
+  the files landed in, with no banner when nothing was exported.
   Tests: `ExportAllMachinesTests` (one CSV per machine with contents
   agreeing with `MachineCsvExporter.Build`, no-score machine skipped
   and the rest still export, missing snapshot skipped, same-second
@@ -588,7 +588,7 @@ data already existed; only the band rule and wording are new.
   changes in `git diff 0e6a153 a31402b -- '*csproj'`), so the result
   carries forward.
 
-## v2.1.5 — shipped
+## v2.1.5, shipped
 
 - **Collector plug-ins, phase 1: versioned contract + manifest +
   discovery.** The plan's Beyond v2.0 item 2, first slice: the
@@ -632,7 +632,7 @@ data already existed; only the band rule and wording are new.
   changes in `git diff a31402b 3d7a59e -- '*csproj'`), so the result
   carries forward.
 
-## v2.1.6 — shipped
+## v2.1.6, shipped
 
 - **Linux collector parity study (Beyond v2.0, item 3).** The plan
   says study first, build only if a real user base asks for it, and
@@ -688,19 +688,19 @@ data already existed; only the band rule and wording are new.
 
   Tests: `LinuxCollectorParityTests` (every collector has exactly one
   row, every row names a source and a reason, spot mappings pinned,
-  Security is NotFeasible, no row reaches Full — the test pins that
+  Security is NotFeasible, no row reaches Full, the test pins that
   headline, so a future port claiming Full must update it
-  deliberately — Get returns null for an unknown id, throws on null).
+  deliberately, Get returns null for an unknown id, throws on null).
 - **Dependency audit re-attested for v2.1.5.** `SECURITY.md` said
   v2.1.4; the audit was re-run with
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
-  version changed between v2.1.4 and v2.1.5 (only the `<Version>` bump
-  — zero `PackageReference` changes in
+  version changed between v2.1.4 and v2.1.5 (only the `<Version>` bump,
+  zero `PackageReference` changes in
   `git diff 3d7a59e 526ed0a -- '*csproj'`), so the result carries
   forward.
 
-## v2.1.7 — shipped
+## v2.1.7, shipped
 
 - **Localisation, phase 1: the navigation rail in German (Beyond
   v2.0, item 4).** The plan lists localisation after the feature set
@@ -712,8 +712,8 @@ data already existed; only the band rule and wording are new.
   an empty translation or a malformed code all fail), built-in
   English and German packs (`LanguagePacks`, in code like the Linux
   parity catalogue), and a localizer (`StringLocalizer`) whose
-  fallback rule never shows a blank — a missing translation falls
-  back to English, an unknown key shows the key itself — and never
+  fallback rule never shows a blank, a missing translation falls
+  back to English, an unknown key shows the key itself, and never
   throws. The localizer never changes the thread culture, so measured
   values keep the app's existing number and date formatting:
   localisation touches chrome only, never a measurement, a unit or a
@@ -723,7 +723,7 @@ data already existed; only the band rule and wording are new.
   card too. Settings has a Language picker (English / Deutsch); the
   choice is saved in `AppSettings.LanguageCode` (sanitized to a
   supported code, unknown codes fall back to English) and applies
-  right away — the main view model rebuilds the rail on settings
+  right away, the main view model rebuilds the rail on settings
   apply, re-selecting by key so the user stays on the same page, and
   the rebuild never navigates (a guard flag), because re-selecting
   during the Settings page's own construction would re-enter page
@@ -742,12 +742,12 @@ data already existed; only the band rule and wording are new.
   v2.1.5; the audit was re-run with
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
-  version changed between v2.1.5 and v2.1.6 (only the `<Version>` bump
-  — zero `PackageReference` changes in
+  version changed between v2.1.5 and v2.1.6 (only the `<Version>` bump,
+  zero `PackageReference` changes in
   `git diff 526ed0a 859308c -- '*csproj'`), so the result carries
   forward.
 
-## v2.1.8 — shipped
+## v2.1.8, shipped
 
 - **Localisation, phase 2: the Settings page in German (Beyond
   v2.0, item 4).** Phase 1 translated the rail; this version
@@ -769,7 +769,7 @@ data already existed; only the band rule and wording are new.
   duration pickers no longer use a converter: their options are
   (value, text) pairs rebuilt for the current language
   (`RefreshOption`), so the picker shows "5 Sekunden" and still saves
-  the number 5. The old `RefreshSecondsToTextConverter` is deleted —
+  the number 5. The old `RefreshSecondsToTextConverter` is deleted,
   it had no language to read, and a converter cannot see the view
   model. When the language changes, the view model raises every
   localized property, including the two option lists, and re-resolves
@@ -792,12 +792,12 @@ data already existed; only the band rule and wording are new.
   v2.1.6; the audit was re-run with
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
-  version changed between v2.1.6 and v2.1.7 (only the `<Version>` bump
-  — zero `PackageReference` changes in
+  version changed between v2.1.6 and v2.1.7 (only the `<Version>` bump,
+  zero `PackageReference` changes in
   `git diff 859308c 233fbf0 -- '*csproj'`), so the result carries
   forward.
 
-## v2.1.9 — shipped
+## v2.1.9, shipped
 
 - **Localisation, phase 3: the Core diagnostic strings in German
   (Beyond v2.0, item 4).** Phase 2 translated the Settings page but
@@ -842,19 +842,19 @@ data already existed; only the band rule and wording are new.
   v2.1.7; the audit was re-run with
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
-  version changed between v2.1.7 and v2.1.8 (only the `<Version>` bump
-  — zero `PackageReference` changes in
+  version changed between v2.1.7 and v2.1.8 (only the `<Version>` bump,
+  zero `PackageReference` changes in
   `git diff 233fbf0 1188692 -- '*csproj'`), so the result carries
   forward.
 
-## v2.1.10 — shipped
+## v2.1.10, shipped
 
 - **Localisation, phase 4: the component detail pages in German
   (Beyond v2.0, item 4).** Phases 1-3 translated the rail, the
   Settings page and the Core diagnostic strings; this version
   translates the next complete surface, the shared detail view
   (`ComponentDetailView`), which every one of the 15 component pages
-  uses — one surface, all detail pages at once. The catalogue grows
+  uses, one surface, all detail pages at once. The catalogue grows
   by 14 keys (119 to 133): the six section labels (Specifications,
   search placeholder, copy hint, Age signals title + intro, What this
   means), the captured line, the two empty states (nothing collected,
@@ -876,7 +876,7 @@ data already existed; only the band rule and wording are new.
   Deliberately NOT translated in this version, and named on the
   page's own terms in the docs: component names, headlines, health
   and status texts, spec labels, values and sources, and the "What
-  this means" text are measured data produced by the collectors —
+  this means" text are measured data produced by the collectors,
   translating them is a later slice. The language card's note now
   says Navigation, Settings and component detail pages are
   translated. Tests: `LanguagePackTests` (German detail terms
@@ -890,12 +890,12 @@ data already existed; only the band rule and wording are new.
   v2.1.8; the audit was re-run with
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
-  version changed between v2.1.8 and v2.1.9 (only the `<Version>` bump
-  — zero `PackageReference` changes in
+  version changed between v2.1.8 and v2.1.9 (only the `<Version>` bump,
+  zero `PackageReference` changes in
   `git diff 1188692 a0b0326 -- '*csproj'`), so the result carries
   forward.
 
-## v2.1.11 — shipped
+## v2.1.11, shipped
 
 - **Localisation, phase 5: the Overview page in German (Beyond
   v2.0, item 4).** Phases 1-4 translated the rail, the Settings page,
@@ -917,7 +917,7 @@ data already existed; only the band rule and wording are new.
   of the same words. The live strip is built from stable keys
   (`LiveMetricViewModel.CpuTempKey` etc.): the display name resolves
   in the page language and re-resolves through `ApplyLanguage`, while
-  the key the strip updates by never changes — a metric built with
+  the key the strip updates by never changes, a metric built with
   the legacy (name, unit) constructor keeps its old behaviour
   exactly and `ApplyLanguage` is a no-op for it. The view model
   takes an optional language code, exposes every chrome string as a
@@ -931,7 +931,7 @@ data already existed; only the band rule and wording are new.
   page's own terms in the docs: component names, headlines, health
   and status texts, spec labels, values and sources, the score
   explanation and the verdict text are measured data produced by the
-  collectors and the scoring engine — translating them is a later
+  collectors and the scoring engine, translating them is a later
   slice; the admin notice and the threshold-alert texts are
   diagnostic strings produced by Core with no language parameter
   yet. The language card's note now says Navigation, Settings,
@@ -950,18 +950,18 @@ data already existed; only the band rule and wording are new.
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.1.9 and v2.1.10 (only the `<Version>`
-  bump and test-file exclusions — zero `PackageReference` changes in
+  bump and test-file exclusions, zero `PackageReference` changes in
   `git diff a0b0326 9925866 -- '*csproj'`), so the result carries
   forward.
 
-## v2.1.12 — shipped
+## v2.1.12, shipped
 
 - **Localisation, phase 6: the History page in German (Beyond
   v2.0, item 4).** Phases 1-5 translated the rail, the Settings page,
   the Core diagnostic strings, the component detail pages and the
   Overview page; this version translates the next complete surface,
   the History page (`HistoryViewModel` + `HistoryView` + its row and
-  winner view models) — the trend cards, the saved-scans table, the
+  winner view models), the trend cards, the saved-scans table, the
   two-machine comparison and the value comparison, plus the CPU
   temperature log. The catalogue grows by 91 keys (169 to 260): the
   headings, the machine picker, the trend-card titles, the sensor-log
@@ -998,7 +998,7 @@ data already existed; only the band rule and wording are new.
   label is its Core-owned label too); and the table's cell fallbacks
   ("Not measurable" / "Not reported") are measured-data fallbacks
   that the CSV export agrees with row for row, so the CSV contract
-  stays English — translating them is a later slice. The language
+  stays English, translating them is a later slice. The language
   card's note now says Navigation, Settings, component detail pages,
   the Overview page and the History page are translated. Tests:
   `LanguagePackTests` (German History terms pinned, LanguageNote
@@ -1015,7 +1015,7 @@ data already existed; only the band rule and wording are new.
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.1.10 and v2.1.11 (only the `<Version>`
-  bump and test-file exclusions — zero `PackageReference` changes in
+  bump and test-file exclusions, zero `PackageReference` changes in
   `git diff 9925866 8413746 -- '*csproj'`), so the result carries
   forward.
 - **`.gitignore` guard for the local-only files.** The v2.1.11 bump
@@ -1030,7 +1030,7 @@ data already existed; only the band rule and wording are new.
   them as untracked). The rule stands: stage named files only, never
   `git add -A` in this repo.
 
-## v2.1.13 — shipped
+## v2.1.13, shipped
 
 - **Localisation, phase 7: the History page's remaining Core-owned
   wordings in German (Beyond v2.0, item 4).** Phase 6 translated the
@@ -1070,7 +1070,7 @@ data already existed; only the band rule and wording are new.
   `ApplyTrend` method used by both the load path and
   `ApplyLanguage` (which re-analyses in the new language; the
   status line is not touched, so a transient remove status survives
-  a switch), and re-runs the value comparison on a switch — but
+  a switch), and re-runs the value comparison on a switch, but
   only while the price fields still hold the prices the stored
   result was built on, so a price typed since the last compare is
   never silently applied by a language switch. Deliberately NOT
@@ -1098,7 +1098,7 @@ data already existed; only the band rule and wording are new.
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.1.11 and v2.1.12 (only the `<Version>`
-  bump and test-file exclusions — zero `PackageReference` changes in
+  bump and test-file exclusions, zero `PackageReference` changes in
   `git diff 8413746 0788596 -- '*csproj'`), so the result carries
   forward.
 - **Hardware database: rated CPU boost clocks from a bundled dataset
@@ -1134,7 +1134,7 @@ data already existed; only the band rule and wording are new.
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.1.13 and v2.1.14 (only the `<Version>`
-  bump and the embedded-resource entry for the dataset — zero
+  bump and the embedded-resource entry for the dataset, zero
   `PackageReference` changes in `git diff cd0392e HEAD -- '*csproj'`),
   so the result carries forward.
 - **Hardware database: rated GPU specs from the bundled dataset
@@ -1182,12 +1182,12 @@ data already existed; only the band rule and wording are new.
   `git diff 9dab61a HEAD -- '*csproj'`), so the result carries
   forward.
 
-## v2.1.16 — shipped
+## v2.1.16, shipped
 
 - **Localisation, phase 8: the Comparison and Fleet pages in German
   (Beyond v2.0, item 4).** The final part of phase 8 translates the
   last two untranslated pages' chrome, closing the item: the
-  catalogue grows by 86 keys (421 to 507) — 35 Comparison, 51 Fleet.
+  catalogue grows by 86 keys (421 to 507), 35 Comparison, 51 Fleet.
   The Comparison page moves its eyebrow, title, intro, Before/After
   labels and picker placeholders, the Compare button, the Result
   heading, the DNA note, the no-changes line, the Added/Removed
@@ -1244,17 +1244,17 @@ data already existed; only the band rule and wording are new.
   `dotnet list package --vulnerable --include-transitive` on all four
   projects (no vulnerable packages, including transitive). No package
   version changed between v2.1.15 and v2.1.16 (only the `<Version>`
-  bump and test-file exclusions — zero `PackageReference` changes in
+  bump and test-file exclusions, zero `PackageReference` changes in
   `git diff 0d71547 HEAD -- '*csproj'`), so the result carries
   forward.
 
-## v2.1.17 — shipped
+## v2.1.17, shipped
 
 - **Maintenance: the seven noted major dependency upgrades.** The
   majors that the v2.1.14/15/16 cycles noted and deliberately did not
   fold in land here, one commit per package so a bad one reverts
   cleanly: Microsoft.Data.Sqlite 10.0.0 to 11.0.0 and
-  SQLitePCLRaw.bundle_e_sqlite3 2.1.14 to 3.0.5 (coupled — Sqlite 11
+  SQLitePCLRaw.bundle_e_sqlite3 2.1.14 to 3.0.5 (coupled, Sqlite 11
   refuses to restore against bundle 2.x with NU1605, so they land
   together), System.Diagnostics.EventLog and System.Management
   10.0.14 to 11.0.0 (Windows-only project: restore clean locally,
@@ -1278,115 +1278,126 @@ data already existed; only the band rule and wording are new.
   diff for the parent to apply via GitHub web (workflow files are
   parent-only, and the token has no workflow scope).
 
-## v2.1.39 — shipped
+## v2.1.41, shipped
 
-- **Hardware database: RTX 20-series desktop GPUs (Beyond v2.0, item 5).** The dataset grows from v1.6.0 to v1.7.0 with the six GeForce RTX 20-series desktop GPUs (2080 Ti, 2080 SUPER, 2080, 2070 SUPER, 2070, 2060 SUPER), the whole family the dataset never listed. The slice was picked after verification that nothing else was genuinely unshipped: the repo has no open GitHub issues, `dotnet list package --outdated` reports zero outdated packages on all four projects, `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages on any project, every roadmap item through v2.1.38 is shipped (localisation complete in German, French and Spanish; U1-U12 and Beyond v2.0 items 1-5 shipped), and the three "not implemented" Tests-page items are deliberately not in the build (the battery runtime estimate is a rejected invented number, the Wi-Fi speed test would need the network, the quick memory test needs a reboot). Plug-in loading stays gated on the code-signing decision, and the Linux port starts only if users ask for it, so neither was picked. The gap itself is the finding: every cycle re-examined the deliberately-absent list, but no RTX 20-series desktop card was on it, so the gap went unnoticed until this cycle listed the whole RTX family against the dataset and found the missing family. Every figure was compiled by hand from NVIDIA's own GeForce compare page (CC0 compilation; each entry records its source URL and retrieval date), read 2026-11-14 — the same page the shipped 1660/1660 SUPER/1660 Ti/1650/1650 SUPER/1630 entries cite. The page's RTX 20 Series table lists, in column order 2080 Ti / 2080 SUPER / 2080 / 2070 SUPER / 2070 / 2060 SUPER / 2060: the RTX 2080 Ti at Boost Clock 1.64 GHz, 11 GB GDDR6 and Graphics Card Power 260 W; the RTX 2080 SUPER at 1.82 GHz, 8 GB GDDR6 and 250 W; the RTX 2080 at 1.80 GHz, 8 GB GDDR6 and 225 W; the RTX 2070 SUPER at 1.77 GHz, 8 GB GDDR6 and 215 W; the RTX 2070 at 1.71 GHz, 8 GB GDDR6 and 185 W; the RTX 2060 SUPER at 1.65 GHz, 8 GB GDDR6 and 175 W. All six are single variants with one figure each, so all six entries are complete. The RTX 2060 stays absent: its boost (1.65/1.68 GHz), memory (12/6 GB) and power (185/160 W) are all split between its 12 GB and 6 GB variants under one device name, with no mapping on the page. The GPU page shows their "Rated boost clock", "Rated memory" and "Rated board power" under their own labels with the dataset version as their source; they never replace the measured dedicated memory or the live GPU clock, and a model that is not listed gets no rated specs. No code change was needed: the GPU normalizer already maps "NVIDIA GeForce RTX 2080 Ti" to "RTX 2080 TI" and the other five names the same way, and the Settings card shows the GPU count from the dataset, so it reads 78 with no code change. Tests: `HardwareDatabaseTests` (bundled dataset pinned at version 1.7.0, 74 CPUs and 78 GPUs, and the verified 2080 Ti / 2080 SUPER / 2080 / 2070 SUPER / 2070 / 2060 SUPER figures, the RTX 2060 now in the deliberately-absent assertions, plus the two normalizer cases) and `SettingsViewModelTests` (the dataset-version seed strings updated to v1.7.0 in German, French and Spanish).
+- **Hardware database: AMD Radeon RX 5000-series desktop GPUs (Beyond v2.0, item 5).** The dataset grows from v1.8.0 to v1.9.0 with the five Radeon RX 5000-series desktop GPUs (5700 XT, 5700, 5600 XT, 5500 XT, 5500), the whole family the dataset never listed. The slice was picked after verification that nothing else was genuinely unshipped: the repo has no open GitHub issues, `dotnet list package --outdated` reports zero outdated packages on all four projects, `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages on any project, every roadmap item through v2.1.40 is shipped (localisation complete in German, French and Spanish; U1-U12 and Beyond v2.0 items 1-5 shipped), and the three "not implemented" Tests-page items are deliberately not in the build (the battery runtime estimate is a rejected invented number, the Wi-Fi speed test would need the network, the quick memory test needs a reboot). Plug-in loading stays gated on the code-signing decision, and the Linux port starts only if users ask for it, so neither was picked. The gap itself is the finding: every cycle re-examined the deliberately-absent list, but no RX 5000-series desktop card was on it, so the gap went unnoticed until this cycle listed the whole AMD family against the dataset and found the missing family. Every figure was compiled by hand from AMD's own driver/spec pages (CC0 compilation; each entry records its source URL and retrieval date), read 2026-11-14, the same pages the shipped RX 6000/7000/9000 entries cite: the RX 5700 XT at Boost Frequency up to 1905 MHz, 8 GB GDDR6 and Typical Board Power 225 W; the RX 5700 at 1725 MHz, 8 GB and 180 W; the RX 5600 XT at 1560 MHz, 6 GB and 150 W; the RX 5500 XT at 1845 MHz and 130 W; the RX 5500 at 1845 MHz, 4 GB and 150 W. The RX 5500 XT carries no memory figure: AMD lists 8 GB and 4 GB configurations under one device name, so the entry guesses neither, the same precedent as the RTX 5070 Laptop GPU and the RX 9060 XT. The RX 5500 is the OEM card of the family, but AMD's own page lists it as a desktop board with single figures, so it is recorded like the rest. The 5600 XT page lists two memory speeds (up to 12 Gbps / up to 14 Gbps, the vBIOS update), but the memory size is a single 6 GB, so the entry is complete. The GPU page shows their "Rated boost clock", "Rated memory" and "Rated board power" under their own labels with the dataset version as their source; they never replace the measured dedicated memory or the live GPU clock, and a model that is not listed gets no rated specs. No code change was needed: the GPU normalizer already maps "AMD Radeon RX 5700 XT" to "RX 5700 XT" and the other four names the same way, and the Settings card shows the GPU count from the dataset, so it reads 83 with no code change. Tests: `HardwareDatabaseTests` (bundled dataset pinned at version 1.9.0, 77 CPUs and 83 GPUs, and the verified 5700 XT / 5700 / 5600 XT / 5500 XT / 5500 figures including the 5500 XT null-memory case, plus the two normalizer cases) and `SettingsViewModelTests` (the dataset-version seed strings updated to v1.9.0 in German, French and Spanish).
+- **Documentation: the em dashes are gone from the repo docs.** README.md, ROADMAP.md and SECURITY.md carried 232 em dashes in older entries; every one is now a comma or a period, with the wording otherwise unchanged, and new entries carry none. The v2.1.40 cycle never added a roadmap entry, so this version backfills it below.
+- **Dependency audit re-attested for v2.1.41:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.40 and v2.1.41.
+
+## v2.1.40, shipped
+
+- **Hardware database: Intel Core i5-14400 / 14400F and AMD Ryzen 7 3700U (Beyond v2.0, item 5).** The dataset grows from v1.7.0 to v1.8.0 with the three CPUs the v1.0.0 deliberately-absent list named without a blocking reason, every figure verified by hand against a manufacturer page, read 2026-11-14, each entry carrying its source URL and retrieval date, 77 CPUs and 78 GPUs in total. The Core i5-14400 at base 2.5 GHz, boost 4.7 GHz and E-core boost 3.5 GHz, against Intel's own product page (ARK ID 236788), and the same figures for the i5-14400F (ARK ID 236777; Intel's ARK page returned 403 to the reader, so its figures rest on the ARK-sourced listings, which agree exactly with the 14400). The Ryzen 7 3700U at base 2.3 GHz and Max Boost Clock up to 4.0 GHz, against AMD's own driver/spec page for the chip. The i9-11980HK stays absent: Intel's own current product page lists up to 4.90 GHz while ARK-era sources list 5.00 GHz Max Turbo, so no single verifiable figure exists. The CPU page shows their "Rated boost clock" under its own label with the dataset version as their source; it never replaces the measured Max clock, and a model that is not listed gets no rated spec at all. The database is optional (Settings, takes effect after restart) and 100% local. Tests: `HardwareDatabaseTests` (the verified 14400 / 14400F / 3700U figures) and `SettingsViewModelTests` (the dataset-version seed strings updated to v1.8.0 in German, French and Spanish).
+- **Dependency audit re-attested for v2.1.40:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.39 and v2.1.40; `dotnet list package --outdated` reports zero outdated packages on all four projects.
+
+## v2.1.39, shipped
+
+- **Hardware database: RTX 20-series desktop GPUs (Beyond v2.0, item 5).** The dataset grows from v1.6.0 to v1.7.0 with the six GeForce RTX 20-series desktop GPUs (2080 Ti, 2080 SUPER, 2080, 2070 SUPER, 2070, 2060 SUPER), the whole family the dataset never listed. The slice was picked after verification that nothing else was genuinely unshipped: the repo has no open GitHub issues, `dotnet list package --outdated` reports zero outdated packages on all four projects, `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages on any project, every roadmap item through v2.1.38 is shipped (localisation complete in German, French and Spanish; U1-U12 and Beyond v2.0 items 1-5 shipped), and the three "not implemented" Tests-page items are deliberately not in the build (the battery runtime estimate is a rejected invented number, the Wi-Fi speed test would need the network, the quick memory test needs a reboot). Plug-in loading stays gated on the code-signing decision, and the Linux port starts only if users ask for it, so neither was picked. The gap itself is the finding: every cycle re-examined the deliberately-absent list, but no RTX 20-series desktop card was on it, so the gap went unnoticed until this cycle listed the whole RTX family against the dataset and found the missing family. Every figure was compiled by hand from NVIDIA's own GeForce compare page (CC0 compilation; each entry records its source URL and retrieval date), read 2026-11-14, the same page the shipped 1660/1660 SUPER/1660 Ti/1650/1650 SUPER/1630 entries cite. The page's RTX 20 Series table lists, in column order 2080 Ti / 2080 SUPER / 2080 / 2070 SUPER / 2070 / 2060 SUPER / 2060: the RTX 2080 Ti at Boost Clock 1.64 GHz, 11 GB GDDR6 and Graphics Card Power 260 W; the RTX 2080 SUPER at 1.82 GHz, 8 GB GDDR6 and 250 W; the RTX 2080 at 1.80 GHz, 8 GB GDDR6 and 225 W; the RTX 2070 SUPER at 1.77 GHz, 8 GB GDDR6 and 215 W; the RTX 2070 at 1.71 GHz, 8 GB GDDR6 and 185 W; the RTX 2060 SUPER at 1.65 GHz, 8 GB GDDR6 and 175 W. All six are single variants with one figure each, so all six entries are complete. The RTX 2060 stays absent: its boost (1.65/1.68 GHz), memory (12/6 GB) and power (185/160 W) are all split between its 12 GB and 6 GB variants under one device name, with no mapping on the page. The GPU page shows their "Rated boost clock", "Rated memory" and "Rated board power" under their own labels with the dataset version as their source; they never replace the measured dedicated memory or the live GPU clock, and a model that is not listed gets no rated specs. No code change was needed: the GPU normalizer already maps "NVIDIA GeForce RTX 2080 Ti" to "RTX 2080 TI" and the other five names the same way, and the Settings card shows the GPU count from the dataset, so it reads 78 with no code change. Tests: `HardwareDatabaseTests` (bundled dataset pinned at version 1.7.0, 74 CPUs and 78 GPUs, and the verified 2080 Ti / 2080 SUPER / 2080 / 2070 SUPER / 2070 / 2060 SUPER figures, the RTX 2060 now in the deliberately-absent assertions, plus the two normalizer cases) and `SettingsViewModelTests` (the dataset-version seed strings updated to v1.7.0 in German, French and Spanish).
 - **Dependency audit re-attested for v2.1.39:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.38 and v2.1.39; `dotnet list package --outdated` reports zero outdated packages on all four projects.
 
-## v2.1.38 — shipped
+## v2.1.38, shipped
 
-- **Hardware database: GTX 1650 SUPER and GTX 1630 desktop GPUs (Beyond v2.0, item 5).** The dataset grows from v1.5.0 to v1.6.0 with the two cards that complete the GTX 16-series desktop family. The slice was picked after verification that nothing else was genuinely unshipped: the repo has no open GitHub issues, `dotnet list package --outdated` reports zero outdated packages on all four projects, `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages on any project, every roadmap item through v2.1.37 is shipped (localisation complete in German, French and Spanish; U1-U12 and Beyond v2.0 items 1-5 shipped), and the three "not implemented" Tests-page items are deliberately not in the build (the battery runtime estimate is a rejected invented number, the Wi-Fi speed test would need the network, the quick memory test needs a reboot). Plug-in loading stays gated on the code-signing decision, and the Linux port starts only if users ask for it, so neither was picked. The gap itself is the finding: every cycle re-examined the deliberately-absent list, but neither the 1650 SUPER nor the 1630 was on it, so the gap went unnoticed until this cycle listed the whole GTX 16-series family against the dataset and found the two missing cards. Every figure was compiled by hand from NVIDIA's own GeForce compare page (CC0 compilation; each entry records its source URL and retrieval date), read 2026-11-14 — the same page the shipped 1660/1660 SUPER/1660 Ti/1650 entries cite. The page's GTX 16 Series table lists, in column order 1660 Ti / 1660 SUPER / 1660 / 1650 SUPER / 1650 (G5) / 1650 (G6) / 1630: the GTX 1650 SUPER at Boost Clock 1725 MHz, 4 GB GDDR6 and Graphics Card Power 100 W; the GTX 1630 at Boost Clock 1785 MHz, 4 GB GDDR6 and 75 W. Both are single variants with one figure each, so both entries are complete — unlike the GTX 1650, whose G5 (1665 MHz) and G6 (1590 MHz) variants differ and which therefore still carries no rated boost. The GPU page shows their "Rated boost clock", "Rated memory" and "Rated board power" under their own labels with the dataset version as their source; they never replace the measured dedicated memory or the live GPU clock, and a model that is not listed gets no rated specs. No code change was needed: the GPU normalizer already maps "NVIDIA GeForce GTX 1650 SUPER" to "GTX 1650 SUPER" and "NVIDIA GeForce GTX 1630" to "GTX 1630", and the Settings card shows the GPU count from the dataset, so it reads 72 with no code change. Tests: `HardwareDatabaseTests` (bundled dataset pinned at version 1.6.0, 74 CPUs and 72 GPUs, and the verified 1650 SUPER / 1630 figures, plus the two normalizer cases) and `SettingsViewModelTests` (the dataset-version seed strings updated to v1.6.0 in German, French and Spanish).
+- **Hardware database: GTX 1650 SUPER and GTX 1630 desktop GPUs (Beyond v2.0, item 5).** The dataset grows from v1.5.0 to v1.6.0 with the two cards that complete the GTX 16-series desktop family. The slice was picked after verification that nothing else was genuinely unshipped: the repo has no open GitHub issues, `dotnet list package --outdated` reports zero outdated packages on all four projects, `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages on any project, every roadmap item through v2.1.37 is shipped (localisation complete in German, French and Spanish; U1-U12 and Beyond v2.0 items 1-5 shipped), and the three "not implemented" Tests-page items are deliberately not in the build (the battery runtime estimate is a rejected invented number, the Wi-Fi speed test would need the network, the quick memory test needs a reboot). Plug-in loading stays gated on the code-signing decision, and the Linux port starts only if users ask for it, so neither was picked. The gap itself is the finding: every cycle re-examined the deliberately-absent list, but neither the 1650 SUPER nor the 1630 was on it, so the gap went unnoticed until this cycle listed the whole GTX 16-series family against the dataset and found the two missing cards. Every figure was compiled by hand from NVIDIA's own GeForce compare page (CC0 compilation; each entry records its source URL and retrieval date), read 2026-11-14, the same page the shipped 1660/1660 SUPER/1660 Ti/1650 entries cite. The page's GTX 16 Series table lists, in column order 1660 Ti / 1660 SUPER / 1660 / 1650 SUPER / 1650 (G5) / 1650 (G6) / 1630: the GTX 1650 SUPER at Boost Clock 1725 MHz, 4 GB GDDR6 and Graphics Card Power 100 W; the GTX 1630 at Boost Clock 1785 MHz, 4 GB GDDR6 and 75 W. Both are single variants with one figure each, so both entries are complete, unlike the GTX 1650, whose G5 (1665 MHz) and G6 (1590 MHz) variants differ and which therefore still carries no rated boost. The GPU page shows their "Rated boost clock", "Rated memory" and "Rated board power" under their own labels with the dataset version as their source; they never replace the measured dedicated memory or the live GPU clock, and a model that is not listed gets no rated specs. No code change was needed: the GPU normalizer already maps "NVIDIA GeForce GTX 1650 SUPER" to "GTX 1650 SUPER" and "NVIDIA GeForce GTX 1630" to "GTX 1630", and the Settings card shows the GPU count from the dataset, so it reads 72 with no code change. Tests: `HardwareDatabaseTests` (bundled dataset pinned at version 1.6.0, 74 CPUs and 72 GPUs, and the verified 1650 SUPER / 1630 figures, plus the two normalizer cases) and `SettingsViewModelTests` (the dataset-version seed strings updated to v1.6.0 in German, French and Spanish).
 - **Dependency audit re-attested for v2.1.38:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.37 and v2.1.38; `dotnet list package --outdated` reports zero outdated packages on all four projects.
 
-## v2.1.37 — shipped
+## v2.1.37, shipped
 
-- **Hardware database: RTX 4060 Ti and RTX 3080 desktop GPUs (Beyond v2.0, item 5).** The dataset grows from v1.4.0 to v1.5.0 with the two desktop GPUs the deliberately-absent list excluded for a split board power. The slice was picked after verification that nothing else was genuinely unshipped: the repo has no open GitHub issues, `dotnet list package --outdated` reports zero outdated packages on all four projects, `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages on any project, every roadmap item through v2.1.36 is shipped (localisation complete in German, French and Spanish; U1-U12 and Beyond v2.0 items 1-5 shipped), and the three "not implemented" Tests-page items are deliberately not in the build (the battery runtime estimate is a rejected invented number, the Wi-Fi speed test would need the network, the quick memory test needs a reboot). Plug-in loading stays gated on the code-signing decision, and the Linux port starts only if users ask for it, so neither was picked. The exclusion was written when board power was a required figure; v2.1.35 made it optional end to end for the RX 9060 XT, which unblocks boost-only entries, and this cycle re-examined the absent list after that change. Both cards show a rated boost clock only, following the RX 9060 XT precedent exactly. Every figure was compiled by hand from NVIDIA's own product pages (CC0 compilation; each entry records its source URL and retrieval date), read 2026-11-14: the RTX 4060 Ti from NVIDIA's 4060/4060 Ti page (Boost Clock 2.54 GHz, the single figure on the page; memory "16 GB or 8 GB" and Total Graphics Power "165 or 160" are both split with no mapping on the page, so the entry carries neither — the 160 W / 8 GB and 165 W / 16 GB mapping is corroborated by the board pages); the RTX 3080 from NVIDIA's 3080 page (Boost Clock 1.71 GHz, the 10 GB Founders Edition; the 12 GB variant shares the same 1.71 GHz boost with 350 W board power against the 10 GB card's 320 W, corroborated by the launch coverage). The GPU page shows their "Rated boost clock" under its own label with the dataset version as their source; it never replaces the measured dedicated memory or the live GPU clock, and a model that is not listed gets no rated specs. The GTX 1070 stays absent, and this cycle verified the reason instead of carrying it forward blindly: its old nvidia.com 10-series product page now redirects to the RTX 50 Series page, so no boost or power figure exists on nvidia.com, and the retailer tables that list its figures do not satisfy the manufacturer-page source policy. RTX 3050 desktop (boost differs between variants), GTX 1060 3GB (no power figure on nvidia.com), RTX 20-series and GTX 16-series laptop GPUs and all AMD laptop GPUs stay absent for the same reasons as before. The dataset's board-power definition is fixed as part of this slice: it used to say the note is null for desktop cards, which the RX 9060 XT already broke in v1.3.0 — it now says the note records the split when one device name covers variants with different board power. No code change was needed: the GPU normalizer already maps "NVIDIA GeForce RTX 4060 Ti" to "RTX 4060 TI" and "NVIDIA GeForce RTX 3080" to "RTX 3080", null memory and null board power are already handled end to end, and the Settings card shows the GPU count from the dataset, so it reads 70 with no code change. Tests: `HardwareDatabaseTests` (bundled dataset pinned at version 1.5.0, 74 CPUs and 70 GPUs, and the verified 4060 Ti / 3080 boost-only figures including their split-power notes, the 4060 Ti and 3080 no longer in the deliberately-absent assertions, plus the two normalizer cases) and `SettingsViewModelTests` (the dataset-version seed strings updated to v1.5.0 in German, French and Spanish).
+- **Hardware database: RTX 4060 Ti and RTX 3080 desktop GPUs (Beyond v2.0, item 5).** The dataset grows from v1.4.0 to v1.5.0 with the two desktop GPUs the deliberately-absent list excluded for a split board power. The slice was picked after verification that nothing else was genuinely unshipped: the repo has no open GitHub issues, `dotnet list package --outdated` reports zero outdated packages on all four projects, `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages on any project, every roadmap item through v2.1.36 is shipped (localisation complete in German, French and Spanish; U1-U12 and Beyond v2.0 items 1-5 shipped), and the three "not implemented" Tests-page items are deliberately not in the build (the battery runtime estimate is a rejected invented number, the Wi-Fi speed test would need the network, the quick memory test needs a reboot). Plug-in loading stays gated on the code-signing decision, and the Linux port starts only if users ask for it, so neither was picked. The exclusion was written when board power was a required figure; v2.1.35 made it optional end to end for the RX 9060 XT, which unblocks boost-only entries, and this cycle re-examined the absent list after that change. Both cards show a rated boost clock only, following the RX 9060 XT precedent exactly. Every figure was compiled by hand from NVIDIA's own product pages (CC0 compilation; each entry records its source URL and retrieval date), read 2026-11-14: the RTX 4060 Ti from NVIDIA's 4060/4060 Ti page (Boost Clock 2.54 GHz, the single figure on the page; memory "16 GB or 8 GB" and Total Graphics Power "165 or 160" are both split with no mapping on the page, so the entry carries neither, the 160 W / 8 GB and 165 W / 16 GB mapping is corroborated by the board pages); the RTX 3080 from NVIDIA's 3080 page (Boost Clock 1.71 GHz, the 10 GB Founders Edition; the 12 GB variant shares the same 1.71 GHz boost with 350 W board power against the 10 GB card's 320 W, corroborated by the launch coverage). The GPU page shows their "Rated boost clock" under its own label with the dataset version as their source; it never replaces the measured dedicated memory or the live GPU clock, and a model that is not listed gets no rated specs. The GTX 1070 stays absent, and this cycle verified the reason instead of carrying it forward blindly: its old nvidia.com 10-series product page now redirects to the RTX 50 Series page, so no boost or power figure exists on nvidia.com, and the retailer tables that list its figures do not satisfy the manufacturer-page source policy. RTX 3050 desktop (boost differs between variants), GTX 1060 3GB (no power figure on nvidia.com), RTX 20-series and GTX 16-series laptop GPUs and all AMD laptop GPUs stay absent for the same reasons as before. The dataset's board-power definition is fixed as part of this slice: it used to say the note is null for desktop cards, which the RX 9060 XT already broke in v1.3.0, it now says the note records the split when one device name covers variants with different board power. No code change was needed: the GPU normalizer already maps "NVIDIA GeForce RTX 4060 Ti" to "RTX 4060 TI" and "NVIDIA GeForce RTX 3080" to "RTX 3080", null memory and null board power are already handled end to end, and the Settings card shows the GPU count from the dataset, so it reads 70 with no code change. Tests: `HardwareDatabaseTests` (bundled dataset pinned at version 1.5.0, 74 CPUs and 70 GPUs, and the verified 4060 Ti / 3080 boost-only figures including their split-power notes, the 4060 Ti and 3080 no longer in the deliberately-absent assertions, plus the two normalizer cases) and `SettingsViewModelTests` (the dataset-version seed strings updated to v1.5.0 in German, French and Spanish).
 - **Dependency audit re-attested for v2.1.37:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.36 and v2.1.37; `dotnet list package --outdated` reports zero outdated packages on all four projects.
 
-## v2.1.36 — shipped
+## v2.1.36, shipped
 
 - **Hardware database: Intel Arc A-series desktop GPUs (Beyond v2.0, item 5).** The dataset grows from v1.3.0 to v1.4.0 with the four Intel Arc A-series desktop GPUs (A770, A750, A580, A380), the last Arc family the dataset was missing. The slice was picked after verification that nothing else was genuinely unshipped: the repo has no open GitHub issues, `dotnet list package --outdated` reports zero outdated packages on all four projects, every roadmap item through v2.1.35 is shipped (localisation complete in German, French and Spanish; U1-U12 and Beyond v2.0 items 1-5 shipped), and the three "not implemented" Tests-page items are deliberately not in the build (the battery runtime estimate is a rejected invented number, the Wi-Fi speed test would need the network, the quick memory test needs a reboot). Plug-in loading stays gated on the code-signing decision, and the Linux port starts only if users ask for it, so neither was picked. The dataset used to say no manufacturer spec page could be located for the Arc A580/A750/A770; that turned out to be wrong, and the note is removed with this slice. Every figure was compiled by hand from an Intel page (CC0 compilation; each entry records its source URL and retrieval date), read 2026-11-14: the A770 from Intel's ARK page for the 16 GB variant (Graphics Clock 2100 MHz, Total Board Power 225 W; the 8 GB variant shares the same clock and power, only the memory differs, which is why no memory figure is recorded); the A750 from Intel's ARK page (Graphics Clock 2050 MHz, 8 GB, Total Board Power 225 W, confirmed against Intel's own A750 datasheet); the A580 from Intel's own launch announcement (Graphics Clock 1700 MHz, 8 GB, Total Board Power 185 W from Intel's published launch spec table, corroborated by the launch reviews; a few secondary databases list 175 W with no Intel document behind them, so the Intel-published figure is recorded); the A380 from Intel's own A-series spec reveal plus Intel's A380 product brief (Graphics Clock 2000 MHz, 6 GB, Total Board Power 75 W; the brief's 2300 MHz / 87 W figures are the Deep Link Dynamic Power Share conditional, not the standard rating). Intel publishes a single Graphics Clock for Arc cards, recorded as the boost figure, and the dataset definition already says so. A figure with no single value for a shared device name is left out rather than guessed: the A770 carries no memory figure (Intel lists 16 GB and 8 GB configurations under one device name), the same precedent as the RTX 5070 Laptop GPU and the RX 9060 XT. The GPU page shows the rated boost clock, memory and board power under their own labels ("Rated boost clock", "Rated memory", "Rated board power") with the dataset version as their source; they never replace the measured dedicated memory or the live GPU clock, and a model that is not listed gets no rated specs. No code change was needed: the GPU normalizer already maps "Intel(R) Arc(TM) A770/A750/A580/A380 Graphics" to "ARC A770/A750/A580/A380" (it strips the Intel prefix and keeps ARC), null memory is already handled end to end, and the Settings card shows the GPU count from the dataset, so it reads 68 with no code change. Deliberately absent in v1.4.0 (unchanged from v1.3.0 except the Arc A-series, now shipped): RTX 4060 Ti and RTX 3080 desktop, RTX 3050 desktop, GTX 1060 3GB, GTX 1070, GTX 1080 Ti, RTX 20-series and GTX 16-series laptop GPUs, all AMD laptop GPUs. Tests: `HardwareDatabaseTests` (bundled dataset pinned at version 1.4.0, 74 CPUs and 68 GPUs, and the verified A770/A750/A580/A380 figures including the A770 null-memory case, the A750 no longer in the deliberately-absent assertions, plus the A770/A580/A380 normalizer cases).
 - **Dependency audit re-attested for v2.1.36:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.35 and v2.1.36; `dotnet list package --outdated` reports zero outdated packages on all four projects.
 
-## v2.1.35 — shipped
+## v2.1.35, shipped
 
-- **Hardware database: Intel Arc B-series, RX 9060 / 9060 XT and RTX 5050 desktop GPUs (Beyond v2.0, item 5).** The dataset grows from v1.2.0 to v1.3.0 with five desktop GPUs launched after v1.1.0: Intel Arc B580 and B570, AMD Radeon RX 9060 and RX 9060 XT, and the GeForce RTX 5050. The slice was picked after verification that nothing else was genuinely unshipped: the repo has no open GitHub issues, `dotnet list package --outdated` reports zero outdated packages on all four projects, every roadmap item through v2.1.34 is shipped (localisation complete in German, French and Spanish; U1-U12 and Beyond v2.0 items 1-5 shipped), and the three "not implemented" Tests-page items are deliberately not in the build (the battery runtime estimate is a rejected invented number, the Wi-Fi speed test would need the network, the quick memory test needs a reboot). Plug-in loading stays gated on the code-signing decision, and the Linux port starts only if users ask for it, so neither was picked. Every figure was compiled by hand from a manufacturer page (CC0 compilation; each entry records its source URL and retrieval date), read 2026-11-14: the RTX 5050 from NVIDIA's 50-series page (Boost Clock 2.57 GHz, 8 GB, Total Graphics Power 130 W); the RX 9060 from AMD's driver/spec page (Boost Frequency up to 2.99 GHz, 8 GB, Typical Board Power 132 W); the RX 9060 XT from AMD's driver/spec page plus AMD's own how-to-sell sheet (Boost Frequency up to 3.13 GHz, the same for both memory variants); the Arc B580 and B570 from Intel's own published B-Series Graphics Quick Reference Guide (Graphics Clock 2670 MHz / 2500 MHz, 12 GB / 10 GB, Total Board Power 190 W / 150 W) — intel.com returned 403 to the reader, so the guide PDF is the cited Intel source, corroborated by the launch reviews. Intel publishes a single Graphics Clock for Arc cards, recorded as the boost figure, and the dataset definition now says so. A figure with no single value for a shared device name is left out rather than guessed: the RX 9060 XT carries no memory or board-power figure (AMD lists 8 GB / 150 W and 16 GB / 160 W configurations under one device name), the same precedent as the RTX 5070 Laptop GPU. The GPU page shows the rated boost clock, memory and board power under their own labels ("Rated boost clock", "Rated memory", "Rated board power") with the dataset version as their source; they never replace the measured dedicated memory or the live GPU clock, and a model that is not listed gets no rated specs. **The board-power figure is now optional end to end, not just in the data:** the RX 9060 XT is the first entry with no board-power figure, and the collector used to render that spec unconditionally (`(double)rated.TdpW`), which would have thrown on this card. `GpuSpec.TdpW` is now `int?`, the loader accepts a missing or null `tdp_w` (a present value must still be a positive whole number of watts, and a zero is still a data bug), and the collector renders the spec only when a figure exists. The Settings card shows the GPU count from the dataset, so it reads 64 with no code change. Deliberately absent in v1.3.0 (unchanged from v1.2.0): RTX 4060 Ti and RTX 3080 desktop, RTX 3050 desktop, GTX 1060 3GB, GTX 1070, GTX 1080 Ti, RTX 20-series and GTX 16-series laptop GPUs, all AMD laptop GPUs, Intel Arc A580/A750/A770. Tests: `HardwareDatabaseTests` (bundled dataset pinned at version 1.3.0, 74 CPUs and 64 GPUs, and the verified B580/B570/9060/9060 XT/5050 figures including the 9060 XT null-memory/null-power case, the invalid-entry test extended so a null board power loads like a null boost, plus the B580 normalizer case) and `GpuCollectorTests` (a model with no memory and no board power shows its rated boost clock and nothing else, and the collector does not crash).
+- **Hardware database: Intel Arc B-series, RX 9060 / 9060 XT and RTX 5050 desktop GPUs (Beyond v2.0, item 5).** The dataset grows from v1.2.0 to v1.3.0 with five desktop GPUs launched after v1.1.0: Intel Arc B580 and B570, AMD Radeon RX 9060 and RX 9060 XT, and the GeForce RTX 5050. The slice was picked after verification that nothing else was genuinely unshipped: the repo has no open GitHub issues, `dotnet list package --outdated` reports zero outdated packages on all four projects, every roadmap item through v2.1.34 is shipped (localisation complete in German, French and Spanish; U1-U12 and Beyond v2.0 items 1-5 shipped), and the three "not implemented" Tests-page items are deliberately not in the build (the battery runtime estimate is a rejected invented number, the Wi-Fi speed test would need the network, the quick memory test needs a reboot). Plug-in loading stays gated on the code-signing decision, and the Linux port starts only if users ask for it, so neither was picked. Every figure was compiled by hand from a manufacturer page (CC0 compilation; each entry records its source URL and retrieval date), read 2026-11-14: the RTX 5050 from NVIDIA's 50-series page (Boost Clock 2.57 GHz, 8 GB, Total Graphics Power 130 W); the RX 9060 from AMD's driver/spec page (Boost Frequency up to 2.99 GHz, 8 GB, Typical Board Power 132 W); the RX 9060 XT from AMD's driver/spec page plus AMD's own how-to-sell sheet (Boost Frequency up to 3.13 GHz, the same for both memory variants); the Arc B580 and B570 from Intel's own published B-Series Graphics Quick Reference Guide (Graphics Clock 2670 MHz / 2500 MHz, 12 GB / 10 GB, Total Board Power 190 W / 150 W), intel.com returned 403 to the reader, so the guide PDF is the cited Intel source, corroborated by the launch reviews. Intel publishes a single Graphics Clock for Arc cards, recorded as the boost figure, and the dataset definition now says so. A figure with no single value for a shared device name is left out rather than guessed: the RX 9060 XT carries no memory or board-power figure (AMD lists 8 GB / 150 W and 16 GB / 160 W configurations under one device name), the same precedent as the RTX 5070 Laptop GPU. The GPU page shows the rated boost clock, memory and board power under their own labels ("Rated boost clock", "Rated memory", "Rated board power") with the dataset version as their source; they never replace the measured dedicated memory or the live GPU clock, and a model that is not listed gets no rated specs. **The board-power figure is now optional end to end, not just in the data:** the RX 9060 XT is the first entry with no board-power figure, and the collector used to render that spec unconditionally (`(double)rated.TdpW`), which would have thrown on this card. `GpuSpec.TdpW` is now `int?`, the loader accepts a missing or null `tdp_w` (a present value must still be a positive whole number of watts, and a zero is still a data bug), and the collector renders the spec only when a figure exists. The Settings card shows the GPU count from the dataset, so it reads 64 with no code change. Deliberately absent in v1.3.0 (unchanged from v1.2.0): RTX 4060 Ti and RTX 3080 desktop, RTX 3050 desktop, GTX 1060 3GB, GTX 1070, GTX 1080 Ti, RTX 20-series and GTX 16-series laptop GPUs, all AMD laptop GPUs, Intel Arc A580/A750/A770. Tests: `HardwareDatabaseTests` (bundled dataset pinned at version 1.3.0, 74 CPUs and 64 GPUs, and the verified B580/B570/9060/9060 XT/5050 figures including the 9060 XT null-memory/null-power case, the invalid-entry test extended so a null board power loads like a null boost, plus the B580 normalizer case) and `GpuCollectorTests` (a model with no memory and no board power shows its rated boost clock and nothing else, and the collector does not crash).
 - **Dependency audit re-attested for v2.1.35:** no vulnerable packages in any project, including transitive dependencies; `dotnet list package --outdated` reports zero outdated packages on all four projects, so there are no major bumps to note this cycle.
 
-## v2.1.34 — shipped
+## v2.1.34, shipped
 
 - **Hardware database: RTX 50-series laptop GPUs (Beyond v2.0, item 5).** The dataset grows from v1.1.0 to v1.2.0 with the six GeForce RTX 50-series laptop GPUs (5090, 5080, 5070 Ti, 5070, 5060, 5050 Laptop), compiled by hand from NVIDIA's laptop compare page (nvidia.com/en-us/geforce/laptops/compare/, read 2026-11-14; CC0 compilation; each entry records its source URL and retrieval date). The slice was picked after verification that nothing else was genuinely unshipped: the repo has no open GitHub issues, `dotnet list package --outdated` reports zero outdated packages on all four projects, every roadmap item through v2.1.33 is shipped (localisation complete in German, French and Spanish; U1-U12 and Beyond v2.0 items 1-5 shipped), and the three "not implemented" Tests-page items are deliberately not in the build (the battery runtime estimate is a rejected invented number, the Wi-Fi speed test would need the network, the quick memory test needs a reboot). The GPU page shows the rated boost clock, memory and board power under their own labels ("Rated boost clock", "Rated memory", "Rated board power") with the dataset version as their source; they never replace the measured dedicated memory or the live GPU clock, and a model that is not listed gets no rated specs. Boost is the upper end of NVIDIA's published Boost Clock range and board power is the maximum of the manufacturer-published TGP range, and the range is recorded in the dataset, exactly like the RTX 40/30-series laptop entries. A figure with no single value for a shared device name is left out rather than guessed: the RTX 5070 Laptop GPU carries no memory figure (NVIDIA lists 12 GB and 8 GB configurations under one device name), the same precedent as the RTX 3060 and RTX 5060 Ti. No separate 12 GB entry was added: there is no evidence Windows reports a distinct device name for it, and inventing one would be a guess. Deliberately absent in v1.2.0 (unchanged from v1.1.0): RTX 4060 Ti and RTX 3080 desktop, RTX 3050 desktop, GTX 1060 3GB, GTX 1070, GTX 1080 Ti, RTX 20-series and GTX 16-series laptop GPUs, all AMD laptop GPUs, Intel Arc A580/A750/A770. Tests: `HardwareDatabaseTests` (bundled dataset pinned at version 1.2.0, 74 CPUs and 59 GPUs, and the verified RTX 5090/5080/5070 Ti/5070/5060/5050 Laptop figures including the 5070 null-memory case, plus the 5090 Laptop normalizer case) and the existing `GpuCollectorTests` (rated specs under their own labels, null-memory case). The Settings card shows the GPU count from the dataset, so it reads 59 with no code change.
 - **Dependency audit re-attested for v2.1.34:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.33 and v2.1.34; `dotnet list package --outdated` reports zero outdated packages on all four projects.
 
-## v2.1.33 — shipped
+## v2.1.33, shipped
 
-- **Localisation, phase 7: the Comparison, Crash History, Report, and Tests pages in Spanish (Beyond v2.0, item 4):** the same four surfaces German phase 8 (v2.1.16) and French phase 7 (v2.1.26) translated, now pinned in Spanish — the Comparison page's whole chrome including the compared-pair status template, the identical-DNA lines and the empty states; the Crash History page's whole chrome including the alert card, the table headers, the cleared-log warning and the empty states; the Report page's whole chrome including the export buttons, the DNA card and the format descriptions; and the Tests page's whole chrome including the load-test card and the per-test status words, with the failure line re-resolving from the stored exception message on a switch instead of resetting. All re-render in place on a language switch, with no restart, and transient status lines re-resolve from stored state instead of resetting. The feature already worked in Spanish — the view models take a language code generically and the Spanish pack already covers the whole 523-key catalogue — but there were no Spanish-pinned tests; this version adds them, mirroring the French phase 7 tests, plus Spanish pack tests pinning all 35 Comparison, 15 Crash History, 22 Report and 42 Tests strings and Spanish template formatting with invariant numbers. No new keys and no source change was needed, except the Spanish language card note, which now says every page is translated. The data stays English by design: machine names, the comparison summary sentence, the row cell values, the DNA changed/unidentified part lines, the crash component headline, the "What this means" fallback, the crash class names, counts, dates and plain meanings, the per-dollar verdict sentence (shown verbatim in every language), the verdict text, the score explanation, the buyer banner and summary, the generated-text line, the DNA state/hash/verify result texts, the export folder path, the per-test names and workload descriptions, the measured result summaries and details, and the load-test measured results, verdict text and live values, file and folder paths, and exception messages. With this phase every page is translated in Spanish. The Spanish wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German and French wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
+- **Localisation, phase 7: the Comparison, Crash History, Report, and Tests pages in Spanish (Beyond v2.0, item 4):** the same four surfaces German phase 8 (v2.1.16) and French phase 7 (v2.1.26) translated, now pinned in Spanish, the Comparison page's whole chrome including the compared-pair status template, the identical-DNA lines and the empty states; the Crash History page's whole chrome including the alert card, the table headers, the cleared-log warning and the empty states; the Report page's whole chrome including the export buttons, the DNA card and the format descriptions; and the Tests page's whole chrome including the load-test card and the per-test status words, with the failure line re-resolving from the stored exception message on a switch instead of resetting. All re-render in place on a language switch, with no restart, and transient status lines re-resolve from stored state instead of resetting. The feature already worked in Spanish, the view models take a language code generically and the Spanish pack already covers the whole 523-key catalogue, but there were no Spanish-pinned tests; this version adds them, mirroring the French phase 7 tests, plus Spanish pack tests pinning all 35 Comparison, 15 Crash History, 22 Report and 42 Tests strings and Spanish template formatting with invariant numbers. No new keys and no source change was needed, except the Spanish language card note, which now says every page is translated. The data stays English by design: machine names, the comparison summary sentence, the row cell values, the DNA changed/unidentified part lines, the crash component headline, the "What this means" fallback, the crash class names, counts, dates and plain meanings, the per-dollar verdict sentence (shown verbatim in every language), the verdict text, the score explanation, the buyer banner and summary, the generated-text line, the DNA state/hash/verify result texts, the export folder path, the per-test names and workload descriptions, the measured result summaries and details, and the load-test measured results, verdict text and live values, file and folder paths, and exception messages. With this phase every page is translated in Spanish. The Spanish wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German and French wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.33:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.32 and v2.1.33.
 
-## v2.1.32 — shipped
+## v2.1.32, shipped
 
 - **Localisation, phase 6: the History, Fleet, and Buyer Check pages in Spanish (Beyond v2.0, item 4):** the same sixth surface German phase 6 and French phase 6 (v2.1.25) translated, now pinned in Spanish. Three Spanish-seeded view models prove the three pages' chrome in place and with no restart: the History trend summary, the forecast texts, the driver-age summary, the value no-verdict reasons and the asking-price row label, the sensor-log statuses, and the remove-scan messages; the Fleet summary, the row remove/export states, the import-skipped status and the empty states; and the Buyer Check approved banner, the finding banner and the skipped-checks note. A page already open when the language changes re-analyses its stored snapshots in place, so the wordings follow the language while the measured values stay identical. The feature already worked in Spanish, the view models take a language code generically and the Spanish pack already covers the whole 523-key catalogue, but there were no Spanish-pinned tests; this version adds them, mirroring the French phase 6 tests (11 History, 8 Fleet, 4 Buyer Check view-model tests), plus three Spanish pack tests pinning all 185 History, Fleet, and Buyer Check strings. All values were read from the real Spanish pack with a scratch dump program (outside the repo), never hand-translated from the German or French tests. No new keys and no source change was needed, except the Spanish language card note, which now says the navigation rail, the Settings page, the component detail pages, the Overview page, and the History, Fleet, and Buyer Check pages are translated. The data stays English by design: component names, headlines, health and status texts, spec labels, values and sources, the "What this means" text, and the per-dollar verdict sentence are measured data from the collectors, translated in a later slice. The Spanish wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German and French wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.32:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.31 and v2.1.32.
 
-## v2.1.31 — shipped
+## v2.1.31, shipped
 
 - **Localisation, phase 5: the Overview page in Spanish (Beyond v2.0, item 4):** the same fifth surface German phase 5 (v2.1.11) and French phase 5 (v2.1.24) translated, now pinned in Spanish. One Spanish-seeded view model proves the whole landing page's chrome in place and with no restart: hero labels, section headings, the two buttons, the score note, the key-stat labels, the live-strip names, and the sensor-log and alert-setting sentences. The live strip is updated by stable key, never by display name, so a switch cannot strand a metric; a metric built with the legacy (name, unit) constructor keeps its old behaviour exactly. The feature already worked in Spanish, the view model takes a language code generically and the Spanish pack already covers the whole 523-key catalogue, but there were no Spanish-pinned tests; this version adds them, mirroring the French phase 5 tests, plus a Spanish pack test pinning all 36 Overview-page strings and Spanish template formatting with invariant numbers. All values were read from the real Spanish pack with a scratch dump program (outside the repo), never hand-translated from the German or French tests. No new keys and no source change was needed, except the Spanish language card note, which now says the navigation rail, the Settings page, the component detail pages and the Overview page are translated. The data stays English by design: component names, headlines, health and status texts, spec labels, values and sources, the score explanation and the verdict text are measured data from the collectors, translated in a later slice. The Spanish wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German and French wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.31:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.30 and v2.1.31.
 
-## v2.1.30 — shipped
+## v2.1.30, shipped
 
 - **Localisation, phase 4: the component detail pages in Spanish (Beyond v2.0, item 4):** the same fourth surface German phase 4 (v2.1.10) and French phase 4 (v2.1.23) translated, now pinned in Spanish. One Spanish-seeded view model proves all 15 pages' chrome, the in-place re-render on a language switch and back, the missing-component fallbacks, the no-match search message naming the search, the estimate suffix, the age-signals chrome and skipped-checks note, and the untrusted-signal reliability text. The feature already worked in Spanish, the view model takes a language code generically and the Spanish pack already covers the whole 523-key catalogue, but there were no Spanish-pinned tests; this version adds them, mirroring the French phase 4 tests, plus a Spanish pack test pinning all 14 detail-page strings. All values were read from the real Spanish pack with a scratch dump program (outside the repo), never hand-translated from the German or French tests. No new keys and no source change was needed, except the Spanish language card note, which now says the navigation rail, the Settings page and the component detail pages are translated. The data stays English by design: component names, headlines, health and status texts, spec labels, values and sources, and the "What this means" text are measured data from the collectors, translated in a later slice. The Spanish wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German and French wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.30:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.29 and v2.1.30.
 
-## v2.1.29 — shipped
+## v2.1.29, shipped
 
-- **Localisation, phase 3: the Core diagnostic strings in Spanish (Beyond v2.0, item 4):** the same third surface German phase 3 (v2.1.9) and French phase 3 (v2.1.22) translated, now pinned in Spanish at the Core level — the plug-in list's per-item status and reason, the manifest parser's errors, and the portable-toggle result messages, including the `with { LanguageCode = "es" }` re-resolution of a toggle result. The feature already worked in Spanish — v2.1.28's Settings-level tests proved the plug-in list and toggle message render Spanish — but the Core APIs themselves had no Spanish-pinned tests; this version adds them, mirroring the French phase 3 tests, plus a Spanish pack test pinning the same 20 Core diagnostic strings and Spanish template formatting with invariant numbers. No new keys — the Spanish pack already covers the whole 523-key catalogue — and no source change was needed: the Core APIs take a language code generically. File names, manifest field names, collector ids and TRUESPEC_PORTABLE stay untranslated inside the sentences. Detail pages stay English in Spanish in this version — the Spanish language card note stays accurate. The Spanish wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German and French wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
+- **Localisation, phase 3: the Core diagnostic strings in Spanish (Beyond v2.0, item 4):** the same third surface German phase 3 (v2.1.9) and French phase 3 (v2.1.22) translated, now pinned in Spanish at the Core level, the plug-in list's per-item status and reason, the manifest parser's errors, and the portable-toggle result messages, including the `with { LanguageCode = "es" }` re-resolution of a toggle result. The feature already worked in Spanish, v2.1.28's Settings-level tests proved the plug-in list and toggle message render Spanish, but the Core APIs themselves had no Spanish-pinned tests; this version adds them, mirroring the French phase 3 tests, plus a Spanish pack test pinning the same 20 Core diagnostic strings and Spanish template formatting with invariant numbers. No new keys, the Spanish pack already covers the whole 523-key catalogue, and no source change was needed: the Core APIs take a language code generically. File names, manifest field names, collector ids and TRUESPEC_PORTABLE stay untranslated inside the sentences. Detail pages stay English in Spanish in this version, the Spanish language card note stays accurate. The Spanish wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German and French wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.29:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.28 and v2.1.29.
 
-## v2.1.28 — shipped
+## v2.1.28, shipped
 
-- **Localisation, phase 2: the Settings page in Spanish (Beyond v2.0, item 4):** picking Spanish now translates the whole Settings page, the same second surface German phase 2 (v2.1.8) and French phase 2 (v2.1.21) translated — header, Appearance, refresh rate (options rebuild per language, "5 segundos", still saving the number 5), sensor logging and alerts (the alert summary keeps the app's number formatting inside the Spanish sentence, "Avisar cuando la temperatura de la CPU llegue a 90 °C durante 30 segundos."), hardware database, export folder, data location (all five portable summaries, both toggle actions), plug-ins card chrome and count lines, and Privacy — right away, with no restart, and back to English the same way. The per-item plug-in status/reason and the portable-toggle result message render Spanish too: they are Core diagnostic strings that take a language code, the same mechanism German phase 3 (v2.1.9) added. No new keys — the Spanish pack already covers the whole 523-key catalogue. One wording correction from the phase-1 catalogue: the alert threshold label is "Umbral de alerta (°C)", the term Windows itself uses, not "Avisar por encima de". The other pages stay English in Spanish in this version — the Spanish language card now says the navigation rail and the Settings page are translated, and the other pages follow in later versions. The Spanish wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German and French wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
+- **Localisation, phase 2: the Settings page in Spanish (Beyond v2.0, item 4):** picking Spanish now translates the whole Settings page, the same second surface German phase 2 (v2.1.8) and French phase 2 (v2.1.21) translated, header, Appearance, refresh rate (options rebuild per language, "5 segundos", still saving the number 5), sensor logging and alerts (the alert summary keeps the app's number formatting inside the Spanish sentence, "Avisar cuando la temperatura de la CPU llegue a 90 °C durante 30 segundos."), hardware database, export folder, data location (all five portable summaries, both toggle actions), plug-ins card chrome and count lines, and Privacy, right away, with no restart, and back to English the same way. The per-item plug-in status/reason and the portable-toggle result message render Spanish too: they are Core diagnostic strings that take a language code, the same mechanism German phase 3 (v2.1.9) added. No new keys, the Spanish pack already covers the whole 523-key catalogue. One wording correction from the phase-1 catalogue: the alert threshold label is "Umbral de alerta (°C)", the term Windows itself uses, not "Avisar por encima de". The other pages stay English in Spanish in this version, the Spanish language card now says the navigation rail and the Settings page are translated, and the other pages follow in later versions. The Spanish wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German and French wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.28:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.27 and v2.1.28.
 
-## v2.1.27 — shipped
+## v2.1.27, shipped
 
-- **Localisation, phase 1: the navigation rail in Spanish (Beyond v2.0, item 4):** TrueSpec now ships a fourth language. Settings has a Language picker (English / Deutsch / Français / Español); picking Spanish translates the whole navigation rail (all 22 items, using the standard terms Windows itself uses in Spanish: Almacenamiento, Pantalla, Inicio, Configuración) and the language card itself, right away, with no restart. The choice is saved in settings and survives a restart. Detail pages stay English in Spanish in this version — the Spanish language card says so honestly — and follow in later versions. The foundation is in place for them: the Spanish pack covers the whole 523-key catalogue (the coverage test pins it: a pack that misses a key fails), so later phases only translate surfaces, never add keys. The Spanish wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German and French wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
+- **Localisation, phase 1: the navigation rail in Spanish (Beyond v2.0, item 4):** TrueSpec now ships a fourth language. Settings has a Language picker (English / Deutsch / Français / Español); picking Spanish translates the whole navigation rail (all 22 items, using the standard terms Windows itself uses in Spanish: Almacenamiento, Pantalla, Inicio, Configuración) and the language card itself, right away, with no restart. The choice is saved in settings and survives a restart. Detail pages stay English in Spanish in this version, the Spanish language card says so honestly, and follow in later versions. The foundation is in place for them: the Spanish pack covers the whole 523-key catalogue (the coverage test pins it: a pack that misses a key fails), so later phases only translate surfaces, never add keys. The Spanish wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German and French wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.27:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.26 and v2.1.27.
 
-## v2.1.26 — shipped
+## v2.1.26, shipped
 
-- **Localisation, phase 7: the Comparison, Crash History, Report, and Tests pages in French (Beyond v2.0, item 4):** the same four surfaces German phase 8 (v2.1.16) translated, now pinned in French — the Comparison page's whole chrome including the compared-pair status template, the identical-DNA lines and the empty states; the Crash History page's whole chrome including the alert card, the table headers, the cleared-log warning and the empty states; the Report page's whole chrome including the export buttons, the DNA card and the format descriptions; and the Tests page's whole chrome including the load-test card and the per-test status words, with the failure line re-resolving from the stored exception message on a switch instead of resetting. All re-render in place on a language switch, with no restart, and transient status lines re-resolve from stored state instead of resetting. The feature already worked in French — the view models take a language code generically and the French pack already covers the whole 523-key catalogue — but there were no French-pinned tests; this version adds them, mirroring the German phase 8 tests, plus French pack tests pinning all 35 Comparison, 15 Crash History, 22 Report and 42 Tests strings and French template formatting with invariant numbers. No new keys and no source change was needed, except the French language card note, which now says every page is translated. The data stays English by design: machine names, the comparison summary sentence, the row cell values, the DNA changed/unidentified part lines, the crash component headline, the "What this means" fallback, the crash class names, counts, dates and plain meanings, the per-dollar verdict sentence (shown verbatim in every language), the verdict text, the score explanation, the buyer banner and summary, the generated-text line, the DNA state/hash/verify result texts, the export folder path, the per-test names and workload descriptions, the measured result summaries and details, and the load-test measured results, verdict text and live values, file and folder paths, and exception messages. With this phase every page is translated in French. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
+- **Localisation, phase 7: the Comparison, Crash History, Report, and Tests pages in French (Beyond v2.0, item 4):** the same four surfaces German phase 8 (v2.1.16) translated, now pinned in French, the Comparison page's whole chrome including the compared-pair status template, the identical-DNA lines and the empty states; the Crash History page's whole chrome including the alert card, the table headers, the cleared-log warning and the empty states; the Report page's whole chrome including the export buttons, the DNA card and the format descriptions; and the Tests page's whole chrome including the load-test card and the per-test status words, with the failure line re-resolving from the stored exception message on a switch instead of resetting. All re-render in place on a language switch, with no restart, and transient status lines re-resolve from stored state instead of resetting. The feature already worked in French, the view models take a language code generically and the French pack already covers the whole 523-key catalogue, but there were no French-pinned tests; this version adds them, mirroring the German phase 8 tests, plus French pack tests pinning all 35 Comparison, 15 Crash History, 22 Report and 42 Tests strings and French template formatting with invariant numbers. No new keys and no source change was needed, except the French language card note, which now says every page is translated. The data stays English by design: machine names, the comparison summary sentence, the row cell values, the DNA changed/unidentified part lines, the crash component headline, the "What this means" fallback, the crash class names, counts, dates and plain meanings, the per-dollar verdict sentence (shown verbatim in every language), the verdict text, the score explanation, the buyer banner and summary, the generated-text line, the DNA state/hash/verify result texts, the export folder path, the per-test names and workload descriptions, the measured result summaries and details, and the load-test measured results, verdict text and live values, file and folder paths, and exception messages. With this phase every page is translated in French. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.26:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.25 and v2.1.26.
 
-## v2.1.25 — shipped
+## v2.1.25, shipped
 
-- **Localisation, phase 6: the History, Fleet, and Buyer Check pages in French (Beyond v2.0, item 4):** the same sixth surface German phase 6 (v2.1.12) translated, plus the Fleet and New Laptop Check pages (the same two surfaces German phase 8 translated), now pinned in French — the History page's whole chrome (trend cards, saved-scans table, two-machine comparison, value comparison, CPU temperature log) and its Core-owned wordings (trend summary, forecast texts, no-verdict reason, verified against the real Core code on the exact fixtures), the Fleet page's whole chrome including the remove arm, export-all totals and skip reasons, empty states and import skipped-file line, and the New Laptop Check page's whole chrome including the finding banner, which keeps the finding title English with only the state word translating. All re-render in place on a language switch, with no restart, and transient status lines re-resolve from stored state instead of resetting. The feature already worked in French — the view models and the Core APIs take a language code generically and the French pack already covers the whole 523-key catalogue — but there were no French-pinned tests; this version adds them, mirroring the German phase 6 and phase 8 tests, plus French pack tests pinning all 96 History, 72 Fleet and 33 New Laptop Check strings and French template formatting with invariant numbers. No new keys and no source change was needed. The data stays English by design: machine names, the per-dollar verdict sentence (shown verbatim in every language), the table's "Not measurable" / "Not reported" cell fallbacks, check titles, details and what-to-ask lines, authenticity evidence lines and source strings, file and folder paths, and exception messages. Comparison, Crash History, Report and Tests stay English in French in this version. The French language card now says the navigation rail, the Settings page, the component detail pages, the Overview page, the History page, the Fleet page and the New Laptop Check page are translated, and the other pages follow in later versions. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
+- **Localisation, phase 6: the History, Fleet, and Buyer Check pages in French (Beyond v2.0, item 4):** the same sixth surface German phase 6 (v2.1.12) translated, plus the Fleet and New Laptop Check pages (the same two surfaces German phase 8 translated), now pinned in French, the History page's whole chrome (trend cards, saved-scans table, two-machine comparison, value comparison, CPU temperature log) and its Core-owned wordings (trend summary, forecast texts, no-verdict reason, verified against the real Core code on the exact fixtures), the Fleet page's whole chrome including the remove arm, export-all totals and skip reasons, empty states and import skipped-file line, and the New Laptop Check page's whole chrome including the finding banner, which keeps the finding title English with only the state word translating. All re-render in place on a language switch, with no restart, and transient status lines re-resolve from stored state instead of resetting. The feature already worked in French, the view models and the Core APIs take a language code generically and the French pack already covers the whole 523-key catalogue, but there were no French-pinned tests; this version adds them, mirroring the German phase 6 and phase 8 tests, plus French pack tests pinning all 96 History, 72 Fleet and 33 New Laptop Check strings and French template formatting with invariant numbers. No new keys and no source change was needed. The data stays English by design: machine names, the per-dollar verdict sentence (shown verbatim in every language), the table's "Not measurable" / "Not reported" cell fallbacks, check titles, details and what-to-ask lines, authenticity evidence lines and source strings, file and folder paths, and exception messages. Comparison, Crash History, Report and Tests stay English in French in this version. The French language card now says the navigation rail, the Settings page, the component detail pages, the Overview page, the History page, the Fleet page and the New Laptop Check page are translated, and the other pages follow in later versions. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.25:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.24 and v2.1.25.
 
-## v2.1.24 — shipped
+## v2.1.24, shipped
 
-- **Localisation, phase 5: the Overview page in French (Beyond v2.0, item 4):** the same fifth surface German phase 5 (v2.1.11) translated, now pinned in French — the landing page, the first screen a user sees, renders its whole chrome in French, in place on language switch and back to English the same way, with no restart. The live strip is updated by stable key, never by display name, so a switch cannot strand a metric. The feature already worked in French — the view model takes a language code generically and the French pack already covers the whole 523-key catalogue — but there were no French-pinned tests; this version adds them, mirroring the German phase 5 tests (OverviewViewModelTests, LiveMetricViewModelTests), plus a French pack test pinning all 36 Overview-page strings and French template formatting with invariant numbers. No new keys and no source change was needed. The data stays English by design: component names, headlines, health and status texts, spec labels, values and sources, and the score explanation and verdict text are measured data, translated in a later slice. The French language card now says the navigation rail, the Settings page, the component detail pages and the Overview page are translated, and the other pages follow in later versions. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
+- **Localisation, phase 5: the Overview page in French (Beyond v2.0, item 4):** the same fifth surface German phase 5 (v2.1.11) translated, now pinned in French, the landing page, the first screen a user sees, renders its whole chrome in French, in place on language switch and back to English the same way, with no restart. The live strip is updated by stable key, never by display name, so a switch cannot strand a metric. The feature already worked in French, the view model takes a language code generically and the French pack already covers the whole 523-key catalogue, but there were no French-pinned tests; this version adds them, mirroring the German phase 5 tests (OverviewViewModelTests, LiveMetricViewModelTests), plus a French pack test pinning all 36 Overview-page strings and French template formatting with invariant numbers. No new keys and no source change was needed. The data stays English by design: component names, headlines, health and status texts, spec labels, values and sources, and the score explanation and verdict text are measured data, translated in a later slice. The French language card now says the navigation rail, the Settings page, the component detail pages and the Overview page are translated, and the other pages follow in later versions. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.24:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.23 and v2.1.24.
 
-## v2.1.23 — shipped
+## v2.1.23, shipped
 
-- **Localisation, phase 4: the component detail pages in French (Beyond v2.0, item 4):** the same fourth surface German phase 4 (v2.1.10) translated, now pinned in French — the shared detail view all 15 component pages use renders its chrome in French, in place on language switch and back to English the same way, with no restart. The feature already worked in French — the view model takes a language code generically and the French pack already covers the whole 523-key catalogue — but there were no French-pinned tests; this version adds them, mirroring the German phase 4 tests (ComponentDetailViewModelTests), plus a French pack test pinning all 14 detail-page strings. No new keys and no source change was needed. The data stays English by design: component names, headlines, health and status texts, spec labels, values and sources, and the "What this means" text are measured data, translated in a later slice. The French language card now says the navigation rail, the Settings page and the component detail pages are translated, and the other pages follow in later versions. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
+- **Localisation, phase 4: the component detail pages in French (Beyond v2.0, item 4):** the same fourth surface German phase 4 (v2.1.10) translated, now pinned in French, the shared detail view all 15 component pages use renders its chrome in French, in place on language switch and back to English the same way, with no restart. The feature already worked in French, the view model takes a language code generically and the French pack already covers the whole 523-key catalogue, but there were no French-pinned tests; this version adds them, mirroring the German phase 4 tests (ComponentDetailViewModelTests), plus a French pack test pinning all 14 detail-page strings. No new keys and no source change was needed. The data stays English by design: component names, headlines, health and status texts, spec labels, values and sources, and the "What this means" text are measured data, translated in a later slice. The French language card now says the navigation rail, the Settings page and the component detail pages are translated, and the other pages follow in later versions. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.23:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.22 and v2.1.23.
 
-## v2.1.22 — shipped
+## v2.1.22, shipped
 
-- **Localisation, phase 3: the Core diagnostic strings in French (Beyond v2.0, item 4):** the same third surface German phase 3 (v2.1.9) translated, now pinned in French at the Core level — the plug-in list's per-item status and reason, the manifest parser's errors, and the portable-toggle result messages, including the `with { LanguageCode = "fr" }` re-resolution of a toggle result. The feature already worked in French — v2.1.21's Settings-level tests proved the plug-in list and toggle message render French — but the Core APIs themselves had no French-pinned tests; this version adds them, mirroring the German phase 3 tests (PluginDiscoveryTests, PluginManifestTests, PortableModeTests), plus a French pack test pinning the same 20 Core diagnostic strings and French template formatting with invariant numbers. No new keys — the French pack already covers the whole 523-key catalogue — and no source change was needed: the Core APIs take a language code generically. File names, manifest field names, collector ids and TRUESPEC_PORTABLE stay untranslated inside the sentences. Detail pages stay English in French in this version — the French language card note stays accurate. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
+- **Localisation, phase 3: the Core diagnostic strings in French (Beyond v2.0, item 4):** the same third surface German phase 3 (v2.1.9) translated, now pinned in French at the Core level, the plug-in list's per-item status and reason, the manifest parser's errors, and the portable-toggle result messages, including the `with { LanguageCode = "fr" }` re-resolution of a toggle result. The feature already worked in French, v2.1.21's Settings-level tests proved the plug-in list and toggle message render French, but the Core APIs themselves had no French-pinned tests; this version adds them, mirroring the German phase 3 tests (PluginDiscoveryTests, PluginManifestTests, PortableModeTests), plus a French pack test pinning the same 20 Core diagnostic strings and French template formatting with invariant numbers. No new keys, the French pack already covers the whole 523-key catalogue, and no source change was needed: the Core APIs take a language code generically. File names, manifest field names, collector ids and TRUESPEC_PORTABLE stay untranslated inside the sentences. Detail pages stay English in French in this version, the French language card note stays accurate. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.22:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.21 and v2.1.22.
 
-## v2.1.21 — shipped
+## v2.1.21, shipped
 
-- **Localisation, phase 2: the Settings page in French (Beyond v2.0, item 4):** picking French now translates the whole Settings page, the same second surface German phase 2 (v2.1.8) translated — header, Appearance, refresh rate (options rebuild per language, "5 secondes", still saving the number 5), sensor logging and alerts (the alert summary keeps the app's number formatting inside the French sentence), hardware database, export folder, data location (all five portable summaries, both toggle actions), plug-ins card chrome and count lines, and Privacy — right away, with no restart, and back to English the same way. The per-item plug-in status/reason and the portable-toggle result message render French too: they are Core diagnostic strings that take a language code, the same mechanism German phase 3 (v2.1.9) added. No new keys — the French pack already covers the whole 523-key catalogue (the coverage test pins it). One wording correction from the phase-1 catalogue: the alert threshold label is "Seuil d'alerte (°C)", the term Windows itself uses, not "Alerte au-dessus de". Detail pages stay English in French in this version — the French language card now says the navigation rail and the Settings page are translated, and the other pages follow in later versions. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language. Tests: French-seeded whole-page render, pick-French-and-back re-render, French alert summary with numbers, French plug-ins (status/reason), language-switch plug-in re-discovery in French, and language-switch portable-toggle message re-resolution in French.
+- **Localisation, phase 2: the Settings page in French (Beyond v2.0, item 4):** picking French now translates the whole Settings page, the same second surface German phase 2 (v2.1.8) translated, header, Appearance, refresh rate (options rebuild per language, "5 secondes", still saving the number 5), sensor logging and alerts (the alert summary keeps the app's number formatting inside the French sentence), hardware database, export folder, data location (all five portable summaries, both toggle actions), plug-ins card chrome and count lines, and Privacy, right away, with no restart, and back to English the same way. The per-item plug-in status/reason and the portable-toggle result message render French too: they are Core diagnostic strings that take a language code, the same mechanism German phase 3 (v2.1.9) added. No new keys, the French pack already covers the whole 523-key catalogue (the coverage test pins it). One wording correction from the phase-1 catalogue: the alert threshold label is "Seuil d'alerte (°C)", the term Windows itself uses, not "Alerte au-dessus de". Detail pages stay English in French in this version, the French language card now says the navigation rail and the Settings page are translated, and the other pages follow in later versions. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language. Tests: French-seeded whole-page render, pick-French-and-back re-render, French alert summary with numbers, French plug-ins (status/reason), language-switch plug-in re-discovery in French, and language-switch portable-toggle message re-resolution in French.
 - **Dependency audit re-attested for v2.1.21:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.20 and v2.1.21.
 
-## v2.1.20 — shipped
+## v2.1.20, shipped
 
-- **Localisation, phase 1: the navigation rail in French (Beyond v2.0, item 4):** TrueSpec now ships a third language. Settings has a Language picker (English / Deutsch / Français); picking French translates the whole navigation rail (all 22 items, using the standard terms Windows itself uses in French: Stockage, Affichage, Démarrage, Paramètres) and the language card itself, right away, with no restart. The choice is saved in settings and survives a restart. Detail pages stay English in French in this version — the French language card says so honestly — and follow in later versions. The foundation is in place for them: the French pack covers the whole 523-key catalogue (the coverage test pins it: a pack that misses a key fails), so later phases only translate surfaces, never add keys. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
+- **Localisation, phase 1: the navigation rail in French (Beyond v2.0, item 4):** TrueSpec now ships a third language. Settings has a Language picker (English / Deutsch / Français); picking French translates the whole navigation rail (all 22 items, using the standard terms Windows itself uses in French: Stockage, Affichage, Démarrage, Paramètres) and the language card itself, right away, with no restart. The choice is saved in settings and survives a restart. Detail pages stay English in French in this version, the French language card says so honestly, and follow in later versions. The foundation is in place for them: the French pack covers the whole 523-key catalogue (the coverage test pins it: a pack that misses a key fails), so later phases only translate surfaces, never add keys. The French wording is the worker's own translation, not reviewed by a native speaker (the same honest limitation as the German wording). Measured values, units, numbers, dates and thresholds are never translated: localisation touches chrome only, so a measurement can never change with the language.
 - **Dependency audit re-attested for v2.1.20:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.19 and v2.1.20.
-- **Verification note (H1/H2):** the Nov 12 review's two High defects were verified against main before this slice was picked, and both are already fixed — H1 (load-test clock average dragged ~19% low by the Bus Speed sensor) and H2 (DriversCollector silently truncating at the WMI 1000-row cap) were both fixed in commit 94288de, shipped in v1.5.0, with tests (Bus Speed exclusion in SensorSnapshotTests, end-to-end Bus Speed average in LoadTestRunnerTests, 3 truncation tests in DriversCollectorTests). Nothing was re-fixed here.
+- **Verification note (H1/H2):** the Nov 12 review's two High defects were verified against main before this slice was picked, and both are already fixed, H1 (load-test clock average dragged ~19% low by the Bus Speed sensor) and H2 (DriversCollector silently truncating at the WMI 1000-row cap) were both fixed in commit 94288de, shipped in v1.5.0, with tests (Bus Speed exclusion in SensorSnapshotTests, end-to-end Bus Speed average in LoadTestRunnerTests, 3 truncation tests in DriversCollectorTests). Nothing was re-fixed here.
 
-## v2.1.19 — shipped
+## v2.1.19, shipped
 
 - **Localisation polish: the Fleet export-all skip reasons in German.** The export-all path was the separate leftover from v2.1.18: it shares no code with import (the reasons are produced in `ExportOrchestrator`, rendered in `FleetViewModel`), and its skipped machines were still rendered from plain-English reason strings inside the German status line. A skipped machine now carries a structured `ExportAllSkipReasonKind` (no saved scan, no score, write failed) plus the write error when the write itself failed, and the Fleet page renders the reason in the page language from the kind. The machine name and the write error stay data, and a language switch re-renders the stored result instead of keeping the old language's reason. Catalogue 520 to 523 keys. Tests: German export-all with a no-score skip and a write-failed skip (German reasons, no English fragment, re-renders both ways on a language switch), reason-rendering tests in both languages, orchestrator kind assertions, and the zero-export German line updated to the translated reasons.
 - **Dependency audit re-attested for v2.1.19:** no vulnerable packages in any project, including transitive dependencies; `dotnet list package --outdated` reports zero outdated packages on all four projects, so there are no major bumps to note this cycle.
 
-## v2.1.18 — shipped
+## v2.1.18, shipped
 
-- **Localisation polish: the three honest limitations from the phase 8 report.** (1) Fleet import skip reasons: the two English fragments in the import status line ("could not be imported.", "could not be read (...)") were only the visible half — every real failure reason came from the importer's English sentence. The importer now returns a structured `SnapshotImportFailureKind` (too large, empty, wrong schema version, no scan, no machine name, missing part, score not a number, not a JSON report) alongside the unchanged English `Error` text, and the Fleet page renders the reason in the page language from the kind. The skipped entries are stored structured (file name, kind, schema version, exception message) so a language switch re-renders them instead of keeping the old language's reason. (2) New Laptop Check banner: the ViewModel's mirror of Core's `StrongestFinding` ranking is gone — Core now exposes `StrongestFailingFinding()` and its private ranking delegates to it, and the ViewModel calls it, so the banner can never name a different finding than Core's own banner. No Core logic or behaviour changed; the finding title stays English data inside the translated state word. (3) Load-test live lines: the measured branches ("Temperature: 72.3 C", "Clock: 4200 MHz") and the elapsed line ("Finished in 60 s.") are templates now, so a German user mid-test sees "Temperatur: 72.3 C", "Takt: 4200 MHz" and "Abgeschlossen in 60 s."; only the measured values stay data. Catalogue 507 to 520 keys. Tests: German Fleet import with a bad file (German reason, no English fragment, re-renders both ways on a language switch), importer kind assertions plus a reason-rendering test in both languages, banner ranking parity across all failing combos, and a real 5-second German run with a scripted monitor asserting the live lines and the elapsed line.
+- **Localisation polish: the three honest limitations from the phase 8 report.** (1) Fleet import skip reasons: the two English fragments in the import status line ("could not be imported.", "could not be read (...)") were only the visible half, every real failure reason came from the importer's English sentence. The importer now returns a structured `SnapshotImportFailureKind` (too large, empty, wrong schema version, no scan, no machine name, missing part, score not a number, not a JSON report) alongside the unchanged English `Error` text, and the Fleet page renders the reason in the page language from the kind. The skipped entries are stored structured (file name, kind, schema version, exception message) so a language switch re-renders them instead of keeping the old language's reason. (2) New Laptop Check banner: the ViewModel's mirror of Core's `StrongestFinding` ranking is gone, Core now exposes `StrongestFailingFinding()` and its private ranking delegates to it, and the ViewModel calls it, so the banner can never name a different finding than Core's own banner. No Core logic or behaviour changed; the finding title stays English data inside the translated state word. (3) Load-test live lines: the measured branches ("Temperature: 72.3 C", "Clock: 4200 MHz") and the elapsed line ("Finished in 60 s.") are templates now, so a German user mid-test sees "Temperatur: 72.3 C", "Takt: 4200 MHz" and "Abgeschlossen in 60 s."; only the measured values stay data. Catalogue 507 to 520 keys. Tests: German Fleet import with a bad file (German reason, no English fragment, re-renders both ways on a language switch), importer kind assertions plus a reason-rendering test in both languages, banner ranking parity across all failing combos, and a real 5-second German run with a scripted monitor asserting the live lines and the elapsed line.
 - **Dependency audit re-attested for v2.1.18:** no vulnerable packages in any project, including transitive dependencies; `dotnet list package --outdated` reports zero outdated packages on all four projects, so there are no major bumps to note this cycle.
 
 ## Rejected
