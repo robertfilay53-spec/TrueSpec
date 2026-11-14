@@ -25,7 +25,8 @@ namespace TrueSpec.Tests;
 /// Windows leg only (it drives TrueSpec.App's ViewModels), like
 /// ReportTestsLocalizationViewModelTests: excluded from the net10.0
 /// leg in the csproj. French phase 6 (v2.1.25) mirrors the German
-/// New Laptop Check tests in French; the Crash History page is not
+/// New Laptop Check tests in French; Spanish phase 6 (v2.1.32) mirrors
+/// the French New Laptop Check tests in Spanish; the Crash History page is not
 /// French yet, so only the New Laptop Check half is mirrored here.
 /// French phase 7 (v2.1.26) mirrors the German Crash History tests
 /// in French too, so both halves are mirrored here now.
@@ -570,6 +571,123 @@ public class NewLaptopCheckCrashHistoryLocalizationViewModelTests
         Assert.Equal(english.Headline, german.Headline);
         Assert.Equal(english.Rows.Select(r => r.Meaning), german.Rows.Select(r => r.Meaning));
     }
+
+    [Fact]
+    public void NewLaptopCheck_SpanishSeeded_RendersWholePageInSpanish()
+    {
+        var viewModel = NewLaptopCheck(TestSnapshots.Healthy(), "es");
+
+        Assert.Equal("COMPROBACIÓN DE PORTÁTIL NUEVO", viewModel.NewLaptopCheckEyebrowText);
+        Assert.Equal("APROBADO: este equipo coincide con un portátil nuevo", viewModel.BannerText);
+        Assert.Equal("Autenticidad", viewModel.AuthenticityTitleText);
+        Assert.Equal("No se encontraron indicios de uso previo en las señales de antigüedad que se pudieron comprobar.", viewModel.NoPriorUseText);
+        Assert.Equal("Lista de verificación", viewModel.ChecklistTitleText);
+        Assert.Equal("Imprimir lista de verificación", viewModel.PrintChecklistText);
+        Assert.Equal("Exportar informe", viewModel.ExportReportText);
+        Assert.Equal("RAM anunciada (opcional)", viewModel.AdvertisedRamTitleText);
+        Assert.Equal("Solo se usa para la comprobación de RAM. Nunca se trata como una lectura de hardware.", viewModel.AdvertisedRamNoteText);
+        Assert.Equal("p. ej., 16 GB", viewModel.AdvertisedRamPlaceholderText);
+        Assert.Equal("No se produjeron comprobaciones de comprador para este análisis.", viewModel.NoChecksText);
+        Assert.Equal("Las comprobaciones de comprador usan las mismas reglas honestas que el resto de la aplicación: solo valores medidos, sin números inventados.", viewModel.FooterNoteText);
+        Assert.StartsWith("3 comprobaciones de autenticidad no se pudieron ejecutar porque no se informó de una señal: ", viewModel.AuthenticitySkippedText, StringComparison.Ordinal);
+
+        var failedRow = new BuyerCheckRowViewModel(
+            new BuyerCheck("x", "Title", "Detail", BuyerCheckState.Fail, "Ask the seller."),
+            "es");
+        Assert.Equal("Suspenso", failedRow.StateText);
+        Assert.Equal("Qué preguntar al vendedor", failedRow.WhatToAskLabelText);
+
+        var strongRow = new AuthenticityCheckRowViewModel(
+            new AuthenticityCheck("Title", "Evidence.", AuthenticitySeverity.Strong, "BIOS date", "Windows install date"),
+            "es");
+        Assert.Equal("Fuerte", strongRow.SeverityText);
+        Assert.Equal("Fuente 1: BIOS date", strongRow.SourceAText);
+        Assert.Equal("Fuente 2: Windows install date", strongRow.SourceBText);
+    }
+
+    [Fact]
+    public void NewLaptopCheck_ApplyLanguage_SwitchesToSpanishAndBack()
+    {
+        var viewModel = NewLaptopCheck(TestSnapshots.Healthy());
+        var failedRow = new BuyerCheckRowViewModel(
+            new BuyerCheck("x", "Title", "Detail", BuyerCheckState.Fail, "Ask the seller."));
+
+        viewModel.ApplyLanguage("es");
+        failedRow.ApplyLanguage("es");
+        Assert.Equal("APROBADO: este equipo coincide con un portátil nuevo", viewModel.BannerText);
+        Assert.Equal("Autenticidad", viewModel.AuthenticityTitleText);
+        Assert.Equal("Imprimir lista de verificación", viewModel.PrintChecklistText);
+        Assert.Equal("Exportar informe", viewModel.ExportReportText);
+        Assert.Equal("Suspenso", failedRow.StateText);
+        Assert.Equal("Qué preguntar al vendedor", failedRow.WhatToAskLabelText);
+
+        viewModel.ApplyLanguage("en");
+        failedRow.ApplyLanguage("en");
+        Assert.Equal("PASS - this machine matches a new laptop", viewModel.BannerText);
+        Assert.Equal("Authenticity", viewModel.AuthenticityTitleText);
+        Assert.Equal("Print checklist", viewModel.PrintChecklistText);
+        Assert.Equal("Export Report", viewModel.ExportReportText);
+        Assert.Equal("Fail", failedRow.StateText);
+        Assert.Equal("What to ask the seller", failedRow.WhatToAskLabelText);
+
+        viewModel.ApplyLanguage("es");
+        Assert.Equal("APROBADO: este equipo coincide con un portátil nuevo", viewModel.BannerText);
+    }
+
+    [Fact]
+    public void NewLaptopCheck_FindingBanner_KeepsFindingTitleEnglishInSpanish()
+    {
+        var english = NewLaptopCheck(FindingSnapshot());
+        var spanish = NewLaptopCheck(FindingSnapshot(), "es");
+
+        // The finding title is data, so it stays English inside the
+        // translated banner; only the state word translates.
+        Assert.Equal(BuyerCheckState.Warning, english.OverallState);
+        Assert.Equal("WARNING - Signs of prior use (BIOS date vs Windows install date)", english.BannerText);
+        Assert.Equal("ADVERTENCIA - Signs of prior use (BIOS date vs Windows install date)", spanish.BannerText);
+
+        // Six authenticity rules could not run on the empty snapshot:
+        // the skipped line translates its words, not the signal names.
+        // These assertions run before the ApplyLanguage("en") below:
+        // after the switch the Spanish VM's skipped line is English.
+        Assert.Equal(6, english.Authenticity.SkippedChecks.Count);
+        Assert.StartsWith("6 authenticity checks could not run because a signal was not reported: ", english.AuthenticitySkippedText, StringComparison.Ordinal);
+        Assert.StartsWith("6 comprobaciones de autenticidad no se pudieron ejecutar porque no se informó de una señal: ", spanish.AuthenticitySkippedText, StringComparison.Ordinal);
+
+        spanish.ApplyLanguage("en");
+        Assert.Equal("WARNING - Signs of prior use (BIOS date vs Windows install date)", spanish.BannerText);
+    }
+
+    [Fact]
+    public void NewLaptopCheck_DataStaysEnglish_WhenChromeIsSpanish()
+    {
+        var english = NewLaptopCheck(TestSnapshots.Healthy());
+        var spanish = NewLaptopCheck(TestSnapshots.Healthy(), "es");
+
+        Assert.Equal(english.MachineName, spanish.MachineName);
+        Assert.Equal(english.Summary, spanish.Summary);
+        Assert.Equal(english.AuthenticitySummary, spanish.AuthenticitySummary);
+        Assert.Equal(english.Checks.Select(c => c.Title), spanish.Checks.Select(c => c.Title));
+        Assert.Equal(english.Checks.Select(c => c.Detail), spanish.Checks.Select(c => c.Detail));
+        Assert.Equal(english.Checks.Select(c => c.WhatToAsk), spanish.Checks.Select(c => c.WhatToAsk));
+        Assert.Equal(
+            english.AuthenticityChecks.Select(c => c.EvidenceLine),
+            spanish.AuthenticityChecks.Select(c => c.EvidenceLine));
+        Assert.Equal(
+            english.AuthenticityChecks.Select(c => c.SourceA),
+            spanish.AuthenticityChecks.Select(c => c.SourceA));
+        Assert.Equal(
+            english.AuthenticityChecks.Select(c => c.SourceB),
+            spanish.AuthenticityChecks.Select(c => c.SourceB));
+
+        // A switch re-renders the chrome in place, keeping the data.
+        spanish.ApplyLanguage("en");
+        Assert.Equal(english.NewLaptopCheckEyebrowText, spanish.NewLaptopCheckEyebrowText);
+        Assert.Equal(english.BannerText, spanish.BannerText);
+        Assert.Equal(english.MachineName, spanish.MachineName);
+        Assert.Equal(english.Summary, spanish.Summary);
+    }
+
 
     [Fact]
     public void CrashHistory_FrenchSeeded_RendersWholePageInFrench()

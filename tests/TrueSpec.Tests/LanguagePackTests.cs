@@ -137,7 +137,7 @@ public sealed class LanguagePackTests
         Assert.Equal("Configuración", spanish[AppStringKeys.NavSettings]);
         Assert.Equal("Idioma", spanish[AppStringKeys.LanguageTitle]);
         Assert.Equal(
-            "La barra de navegación, la página Configuración, las páginas de detalle de componentes y la página Vista general están traducidas. Las demás páginas seguirán en versiones posteriores.",
+            "La barra de navegación, la página Configuración, las páginas de detalle de componentes, la página Vista general y las páginas Historial, Flota y Comprobación de comprador están traducidas. Las demás páginas seguirán en versiones posteriores.",
             spanish[AppStringKeys.LanguageNote]);
     }
 
@@ -495,6 +495,457 @@ public sealed class LanguagePackTests
             StringLocalizer.GetFormatted(AppStringKeys.OverviewSensorLogOn, "de", @"C:\TrueSpec\sensor-log.csv"));
         Assert.Equal("Gewicht 2.5", StringLocalizer.GetFormatted(AppStringKeys.OverviewWeight, "de", "2.5"));
         Assert.Equal("+5 Pkt.", StringLocalizer.GetFormatted(AppStringKeys.OverviewContribution, "de", "5"));
+    }
+
+    [Fact]
+    public void SpanishPack_HistoryPageTerms()
+    {
+        // Localisation, phase 6, Spanish (v2.1.32): the History page —
+        // the trend cards, the saved-scans table, the two-machine
+        // comparison and the value comparison, plus the CPU temperature
+        // log. Same pinning rule as the French phase 6 terms: changing
+        // one is a deliberate translation decision, not a typo fix. The
+        // data the page shows (machine names, trend summary and
+        // forecast texts, the value verdict sentence and its no-verdict
+        // reason, the table's cell fallbacks) is not in this catalogue;
+        // only the page chrome is. The range labels reuse the table
+        // header keys instead of a second copy of the same words. No
+        // new keys — the Spanish pack already covers the whole 523-key
+        // catalogue. All values were read from the real Spanish pack
+        // with a scratch dump program (outside the repo), never
+        // hand-translated from the German or French tests.
+        var spanish = LanguagePacks.Spanish.Strings;
+        Assert.Equal("HISTORIAL", spanish[AppStringKeys.HistoryEyebrow]);
+        Assert.Equal("Cómo cambia este equipo con el tiempo", spanish[AppStringKeys.HistoryTitle]);
+        Assert.Equal(
+            "Cada análisis se guarda en una base de datos local en este equipo. TrueSpec sigue la tendencia de la puntuación general, la salud de la batería y el desgaste del almacenamiento en esos análisis. Un valor que un análisis no informó es un hueco, nunca un cero.",
+            spanish[AppStringKeys.HistoryIntro]);
+        Assert.Equal("Equipo", spanish[AppStringKeys.HistoryMachineTitle]);
+        Assert.Equal("Elige un equipo", spanish[AppStringKeys.HistoryPickMachine]);
+        Assert.Equal(
+            "El historial se muestra para un equipo a la vez. Elige otro equipo para ver su propia tendencia.",
+            spanish[AppStringKeys.HistoryMachineNote]);
+        Assert.Equal("ALERTA DE SALUD DE LA BATERÍA", spanish[AppStringKeys.HistoryBatteryAlertEyebrow]);
+        Assert.Equal("Puntuación general", spanish[AppStringKeys.HistoryScoreTitle]);
+        Assert.Equal("Salud de la batería", spanish[AppStringKeys.HistoryBatteryTitle]);
+        Assert.Equal("Desgaste del almacenamiento", spanish[AppStringKeys.HistoryWearTitle]);
+        Assert.Equal("PRONÓSTICO", spanish[AppStringKeys.HistoryForecastEyebrow]);
+        Assert.Equal("Registro de temperatura de la CPU", spanish[AppStringKeys.HistoryCpuLogTitle]);
+        Assert.Equal("Actualizar gráfico", spanish[AppStringKeys.HistoryRefreshChart]);
+        Assert.Equal(
+            "El eje horizontal es el tiempo, no el número de muestras. Los huecos en la línea son muestras en las que el sensor de temperatura de la CPU no informó, o periodos en los que el registro no estaba en ejecución (la aplicación estaba cerrada o el equipo estaba en suspensión). La línea nunca conecta a través de un hueco. La línea discontinua es tu umbral de alerta, cuando hay uno establecido. El registro es un archivo CSV local en %LocalAppData%\\TrueSpec; nada se sube.",
+            spanish[AppStringKeys.HistoryChartCaption]);
+        Assert.Equal("ANTIGÜEDAD DE LOS CONTROLADORES", spanish[AppStringKeys.HistoryDriverAgeEyebrow]);
+        Assert.Equal("Análisis guardados", spanish[AppStringKeys.HistorySavedScansTitle]);
+        Assert.Equal("Exportar historial como CSV", spanish[AppStringKeys.HistoryExportCsv]);
+        Assert.Equal(
+            "El más antiguo primero. Un guion significa que ese análisis no informó del valor. Eliminar borra ese análisis de esta carpeta de datos: el primer clic pregunta, el segundo elimina.",
+            spanish[AppStringKeys.HistoryTableNote]);
+        Assert.Equal("Analizado", spanish[AppStringKeys.HistoryHeaderScanned]);
+        Assert.Equal("Puntuación", spanish[AppStringKeys.HistoryHeaderScore]);
+        Assert.Equal("Ciclos", spanish[AppStringKeys.HistoryHeaderCycles]);
+        Assert.Equal("Horas de encendido", spanish[AppStringKeys.HistoryHeaderPowerOnHours]);
+        Assert.Equal("Eliminar", spanish[AppStringKeys.HistoryRemoveButton]);
+        Assert.Equal("Confirmar eliminación", spanish[AppStringKeys.HistoryConfirmRemoveButton]);
+        Assert.Equal("Comparar dos equipos", spanish[AppStringKeys.HistoryCompareTitle]);
+        Assert.Equal(
+            "Equipos distintos: se muestran uno al lado del otro, nunca mezclados en una misma tendencia.",
+            spanish[AppStringKeys.HistoryCompareNote]);
+        Assert.Equal("Equipo A", spanish[AppStringKeys.HistoryMachineA]);
+        Assert.Equal("Equipo B", spanish[AppStringKeys.HistoryMachineB]);
+        Assert.Equal("Comparar", spanish[AppStringKeys.HistoryCompareButton]);
+        Assert.Equal("¿Cuál es la mejor compra?", spanish[AppStringKeys.HistoryValueTitle]);
+        Assert.Equal(
+            "Escribe el precio que pide cada vendedor. El precio es tuyo, no medido, y solo se usa para esta comparación. Nunca se guarda con el análisis.",
+            spanish[AppStringKeys.HistoryValueIntro]);
+        Assert.Equal("Precio solicitado (lo introduces tú, no medido)", spanish[AppStringKeys.HistoryAskingPriceLabel]);
+        Assert.Equal("Por ejemplo, 500", spanish[AppStringKeys.HistoryPriceExample]);
+        Assert.Equal("Comparar valor", spanish[AppStringKeys.HistoryCompareValueButton]);
+        Assert.Equal("Ganador por componente (solo salud medida)", spanish[AppStringKeys.HistoryWinnersTitle]);
+        Assert.Equal("Cómo cambia {0} con el tiempo", spanish[AppStringKeys.HistorySubtitleTemplate]);
+        Assert.Equal("Cargando historial de instantáneas...", spanish[AppStringKeys.HistoryLoading]);
+        Assert.Equal(
+            "El historial de instantáneas no está disponible en este equipo, así que aún no hay nada que mostrar en tendencia.",
+            spanish[AppStringKeys.HistoryUnavailable]);
+        Assert.Equal(
+            "Aún no hay análisis guardados. Ejecuta un análisis (actualizar) y vuelve: cada análisis se guarda en el historial local.",
+            spanish[AppStringKeys.HistoryNoScans]);
+        Assert.Equal(
+            "Solo hay 1 análisis guardado hasta ahora. Ejecuta otro análisis (actualizar) y vuelve para ver la tendencia.",
+            spanish[AppStringKeys.HistoryOneScan]);
+        Assert.Equal("{0} análisis en el historial, el más antiguo primero.", spanish[AppStringKeys.HistoryScansCount]);
+        Assert.Equal("No se pudo leer el historial: {0}", spanish[AppStringKeys.HistoryReadFailed]);
+        Assert.Equal(
+            "Eliminar no está disponible: el historial de instantáneas no está disponible en este equipo.",
+            spanish[AppStringKeys.HistoryRemoveUnavailable]);
+        Assert.Equal(
+            "¿Eliminar el análisis de {0}? Esto elimina ese análisis guardado de esta carpeta de datos. Haz clic en 'Confirmar eliminación' para eliminar: no se elimina nada hasta entonces.",
+            spanish[AppStringKeys.HistoryRemoveConfirm]);
+        Assert.Equal("No hay nada que eliminar: ese análisis ya no estaba.", spanish[AppStringKeys.HistoryRemoveGone]);
+        Assert.Equal(
+            "Se eliminó el análisis de {0}. No quedan análisis guardados.",
+            spanish[AppStringKeys.HistoryRemovedNone]);
+        Assert.Equal("Se eliminó el análisis de {0}. Queda 1 análisis.", spanish[AppStringKeys.HistoryRemovedOne]);
+        Assert.Equal("Se eliminó el análisis de {0}. Quedan {1} análisis.", spanish[AppStringKeys.HistoryRemovedMany]);
+        Assert.Equal("Error al eliminar: {0}", spanish[AppStringKeys.HistoryRemoveFailed]);
+        Assert.Equal(
+            "El historial de instantáneas no está disponible en este equipo, así que aún no hay nada que comparar.",
+            spanish[AppStringKeys.HistoryCompareUnavailable]);
+        Assert.Equal(
+            "Solo hay un equipo en el historial hasta ahora. Ejecuta un análisis en un segundo equipo y su historial aparecerá aquí para compararlo.",
+            spanish[AppStringKeys.HistoryOnlyOneMachine]);
+        Assert.Equal("Elige dos equipos distintos.", spanish[AppStringKeys.HistoryPickDifferent]);
+        Assert.Equal(
+            "Elige dos equipos y compáralos. Los equipos distintos se muestran uno al lado del otro, nunca mezclados en una misma tendencia.",
+            spanish[AppStringKeys.HistoryPickTwoCompare]);
+        Assert.Equal("Elige dos equipos para comparar.", spanish[AppStringKeys.HistoryPickTwo]);
+        Assert.Equal("Comparando equipos...", spanish[AppStringKeys.HistoryComparing]);
+        Assert.Equal(
+            "Se comparó {0} con {1}. Los equipos distintos se muestran uno al lado del otro, nunca mezclados en una misma tendencia.",
+            spanish[AppStringKeys.HistoryCompared]);
+        Assert.Equal("Error en la comparación: {0}", spanish[AppStringKeys.HistoryCompareFailed]);
+        Assert.Equal(
+            "Introduce el precio solicitado por cada vendedor para comparar el valor.",
+            spanish[AppStringKeys.HistoryValuePrompt]);
+        Assert.Equal(
+            "Compara primero dos equipos y luego introduce los precios solicitados.",
+            spanish[AppStringKeys.HistoryValueCompareFirst]);
+        Assert.Equal(
+            "Introduce un precio solicitado superior a cero para cada equipo (solo números, por ejemplo, 500). El precio es tuyo, no medido.",
+            spanish[AppStringKeys.HistoryValueBadPrice]);
+        Assert.Equal(
+            "Los precios son tuyos, no medidos. La cifra por dólar es un cálculo aritmético sobre la puntuación medida y el precio que introdujiste, etiquetada como ESTIMACIÓN. No se usan datos de precios de mercado.",
+            spanish[AppStringKeys.HistoryValueHonestyNote]);
+        Assert.Equal("Análisis en el historial", spanish[AppStringKeys.HistoryRowScans]);
+        Assert.Equal("Primer análisis", spanish[AppStringKeys.HistoryRowFirstScan]);
+        Assert.Equal("Último análisis", spanish[AppStringKeys.HistoryRowLastScan]);
+        Assert.Equal("Última puntuación", spanish[AppStringKeys.HistoryRowLatestScore]);
+        Assert.Equal("Última salud de la batería", spanish[AppStringKeys.HistoryRowLatestBattery]);
+        Assert.Equal("Último desgaste del almacenamiento", spanish[AppStringKeys.HistoryRowLatestWear]);
+        Assert.Equal("Fecha del controlador más antiguo", spanish[AppStringKeys.HistoryRowLatestDriver]);
+        Assert.Equal("Última instalación de actualización", spanish[AppStringKeys.HistoryRowLastUpdate]);
+        Assert.Equal("Puntuación por 1 $ (ESTIMACIÓN)", spanish[AppStringKeys.HistoryValueScorePerDollar]);
+        Assert.Equal("El equipo A gana ({0} frente a {1})", spanish[AppStringKeys.HistoryWinnerA]);
+        Assert.Equal("El equipo B gana ({0} frente a {1})", spanish[AppStringKeys.HistoryWinnerB]);
+        Assert.Equal("Empate ({0} frente a {1})", spanish[AppStringKeys.HistoryWinnerTie]);
+        Assert.Equal("No medible en uno o ambos equipos", spanish[AppStringKeys.HistoryWinnerNotMeasurable]);
+        Assert.Equal("{0}: no informado en ningún análisis guardado.", spanish[AppStringKeys.HistoryRangeNone]);
+        Assert.Equal("{0}: {1} (solo un análisis).", spanish[AppStringKeys.HistoryRangeOne]);
+        Assert.Equal("{0}: de {1} a {2} en {3} análisis.", spanish[AppStringKeys.HistoryRangeMany]);
+        Assert.Equal("Cargando registro de sensores...", spanish[AppStringKeys.HistoryLogLoading]);
+        Assert.Equal(
+            "El registro de sensores está desactivado. Actívalo en Configuración y el gráfico de temperatura de la CPU aparecerá aquí.",
+            spanish[AppStringKeys.HistoryLogOff]);
+        Assert.Equal(
+            "Aún no se han registrado muestras de sensores. Deja TrueSpec en ejecución y el gráfico de temperatura de la CPU aparecerá aquí.",
+            spanish[AppStringKeys.HistoryLogNoSamples]);
+        Assert.Equal(
+            "El registro de este equipo no tiene sensor de temperatura de la CPU, así que no hay nada que graficar.",
+            spanish[AppStringKeys.HistoryLogNoCpuSensor]);
+        Assert.Equal(
+            "No se registraron lecturas de temperatura en {0} muestras: el hardware de este equipo no informa de un sensor de temperatura de la CPU. Esto es normal en equipos cuyo sensor no está expuesto, así que no hay ningún gráfico de temperatura de la CPU que mostrar.",
+            spanish[AppStringKeys.HistoryLogNoReadings]);
+        Assert.Equal(
+            "Solo se registró una lectura de temperatura en {0} muestras, así que no hay suficientes datos para dibujar un gráfico.",
+            spanish[AppStringKeys.HistoryLogOneReading]);
+        Assert.Equal(
+            "Las lecturas de temperatura están demasiado separadas en el tiempo para dibujar una línea: cada lectura está sola porque el registro no estaba en ejecución entre ellas.",
+            spanish[AppStringKeys.HistoryLogTooFarApart]);
+        Assert.Equal("Temperatura de la CPU, {0} muestras de {1} a {2}.", spanish[AppStringKeys.HistoryLogSummary]);
+        Assert.Equal(
+            "Mostrando las {0} más recientes de {1} muestras, {2}.",
+            spanish[AppStringKeys.HistoryLogSummaryNewest]);
+        Assert.Equal("{0} muestras, {1}.", spanish[AppStringKeys.HistoryLogSummaryAll]);
+        Assert.Equal("sin huecos", spanish[AppStringKeys.HistoryLogGapNone]);
+        Assert.Equal("1 hueco en el que el sensor no informó", spanish[AppStringKeys.HistoryLogGapOne]);
+        Assert.Equal("{0} huecos en los que el sensor no informó", spanish[AppStringKeys.HistoryLogGapMany]);
+        Assert.Equal("No se pudo leer el registro de sensores: {0}", spanish[AppStringKeys.HistoryLogReadFailed]);
+
+        // Templates keep the app's number formatting in Spanish too.
+        Assert.Equal(
+            "Cómo cambia Test Laptop con el tiempo",
+            StringLocalizer.GetFormatted(AppStringKeys.HistorySubtitleTemplate, "es", "Test Laptop"));
+        Assert.Equal(
+            "2 análisis en el historial, el más antiguo primero.",
+            StringLocalizer.GetFormatted(AppStringKeys.HistoryScansCount, "es", 2));
+        Assert.Equal(
+            "Se eliminó el análisis de 2026-11-10 09:00. Quedan 2 análisis.",
+            StringLocalizer.GetFormatted(AppStringKeys.HistoryRemovedMany, "es", "2026-11-10 09:00", 2));
+        Assert.Equal(
+            "Score: de 90 a 85 en 2 análisis.",
+            StringLocalizer.GetFormatted(AppStringKeys.HistoryRangeMany, "es", "Score", "90", "85", 2));
+        Assert.Equal(
+            "No se registraron lecturas de temperatura en 3 muestras: el hardware de este equipo no informa de un sensor de temperatura de la CPU. Esto es normal en equipos cuyo sensor no está expuesto, así que no hay ningún gráfico de temperatura de la CPU que mostrar.",
+            StringLocalizer.GetFormatted(AppStringKeys.HistoryLogNoReadings, "es", 3));
+    }
+
+    [Fact]
+    public void SpanishPack_NewLaptopCheckPageTerms()
+    {
+        // Localisation, phase 6, Spanish (v2.1.32): the New Laptop Check
+        // page — the eyebrow, the banner's fixed words, the
+        // Authenticity heading, the no-prior-use line, the
+        // skipped-checks line, the checklist heading and buttons, the
+        // advertised-RAM card, the "What to ask the seller" label, the
+        // no-checks line, the footer note, the row status words and the
+        // source labels. Same pinning rule as the French phase 6 terms:
+        // changing one is a deliberate translation decision, not a typo
+        // fix. The data the page shows (machine name, buyer summary,
+        // authenticity verdict line, check titles, details and
+        // what-to-ask lines, authenticity evidence lines, source
+        // strings, the finding title inside the banner) is not in this
+        // catalogue; only the page chrome is. The "Export Report"
+        // button reuses the Overview key, so it is pinned with the
+        // Overview terms, not here. The skipped-checks line uses
+        // one/many keys instead of the old inline plural hack. No new
+        // keys — the Spanish pack already covers the whole 523-key
+        // catalogue. All values were read from the real Spanish pack
+        // with a scratch dump program (outside the repo), never
+        // hand-translated from the German or French tests.
+        var spanish = LanguagePacks.Spanish.Strings;
+        Assert.Equal("COMPROBACIÓN DE PORTÁTIL NUEVO", spanish[AppStringKeys.NewLaptopCheckEyebrow]);
+        Assert.Equal(
+            "APROBADO: este equipo coincide con un portátil nuevo",
+            spanish[AppStringKeys.NewLaptopCheckBannerPass]);
+        Assert.Equal(
+            "ADVERTENCIA: revisa los elementos destacados",
+            spanish[AppStringKeys.NewLaptopCheckBannerWarning]);
+        Assert.Equal("SUSPENSO: este equipo no parece nuevo", spanish[AppStringKeys.NewLaptopCheckBannerFail]);
+        Assert.Equal(
+            "No hay suficientes datos para un veredicto",
+            spanish[AppStringKeys.NewLaptopCheckBannerNotEnoughData]);
+        Assert.Equal("APROBADO", spanish[AppStringKeys.NewLaptopCheckBannerStatePass]);
+        Assert.Equal("ADVERTENCIA", spanish[AppStringKeys.NewLaptopCheckBannerStateWarning]);
+        Assert.Equal("SUSPENSO", spanish[AppStringKeys.NewLaptopCheckBannerStateFail]);
+        Assert.Equal("No hay suficientes datos", spanish[AppStringKeys.NewLaptopCheckBannerStateNotEnoughData]);
+        Assert.Equal("Autenticidad", spanish[AppStringKeys.NewLaptopCheckAuthenticityTitle]);
+        Assert.Equal(
+            "No se encontraron indicios de uso previo en las señales de antigüedad que se pudieron comprobar.",
+            spanish[AppStringKeys.NewLaptopCheckNoPriorUse]);
+        Assert.Equal(
+            "1 comprobación de autenticidad no se pudo ejecutar porque no se informó de una señal: {0}",
+            spanish[AppStringKeys.NewLaptopCheckSkippedOne]);
+        Assert.Equal(
+            "{0} comprobaciones de autenticidad no se pudieron ejecutar porque no se informó de una señal: {1}",
+            spanish[AppStringKeys.NewLaptopCheckSkippedMany]);
+        Assert.Equal("Lista de verificación", spanish[AppStringKeys.NewLaptopCheckChecklistTitle]);
+        Assert.Equal("Imprimir lista de verificación", spanish[AppStringKeys.NewLaptopCheckPrintChecklist]);
+        Assert.Equal("RAM anunciada (opcional)", spanish[AppStringKeys.NewLaptopCheckAdvertisedRamTitle]);
+        Assert.Equal(
+            "Solo se usa para la comprobación de RAM. Nunca se trata como una lectura de hardware.",
+            spanish[AppStringKeys.NewLaptopCheckAdvertisedRamNote]);
+        Assert.Equal("p. ej., 16 GB", spanish[AppStringKeys.NewLaptopCheckAdvertisedRamPlaceholder]);
+        Assert.Equal("Qué preguntar al vendedor", spanish[AppStringKeys.NewLaptopCheckWhatToAsk]);
+        Assert.Equal(
+            "No se produjeron comprobaciones de comprador para este análisis.",
+            spanish[AppStringKeys.NewLaptopCheckNoChecks]);
+        Assert.Equal(
+            "Las comprobaciones de comprador usan las mismas reglas honestas que el resto de la aplicación: solo valores medidos, sin números inventados.",
+            spanish[AppStringKeys.NewLaptopCheckFooterNote]);
+        Assert.Equal("Fuente 1: {0}", spanish[AppStringKeys.NewLaptopCheckSourceOne]);
+        Assert.Equal("Fuente 2: {0}", spanish[AppStringKeys.NewLaptopCheckSourceTwo]);
+        Assert.Equal("Aprobado", spanish[AppStringKeys.BuyerCheckStatePass]);
+        Assert.Equal("Advertencia", spanish[AppStringKeys.BuyerCheckStateWarning]);
+        Assert.Equal("Suspenso", spanish[AppStringKeys.BuyerCheckStateFail]);
+        Assert.Equal("No aplicable", spanish[AppStringKeys.BuyerCheckStateNotApplicable]);
+        Assert.Equal("Fuerte", spanish[AppStringKeys.AuthenticitySeverityStrong]);
+        Assert.Equal("Vigilar", spanish[AppStringKeys.AuthenticitySeverityWatch]);
+        Assert.Equal("Información", spanish[AppStringKeys.AuthenticitySeverityInfo]);
+
+        // Templates keep the app's number formatting in Spanish too.
+        Assert.Equal(
+            "1 comprobación de autenticidad no se pudo ejecutar porque no se informó de una señal: Windows install date",
+            StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSkippedOne, "es", "Windows install date"));
+        Assert.Equal(
+            "3 comprobaciones de autenticidad no se pudieron ejecutar porque no se informó de una señal: BIOS date; Windows install date",
+            StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSkippedMany, "es", 3, "BIOS date; Windows install date"));
+        Assert.Equal(
+            "Fuente 1: BIOS date",
+            StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSourceOne, "es", "BIOS date"));
+    }
+
+    [Fact]
+    public void SpanishPack_FleetPageTerms()
+    {
+        // Localisation, phase 6, Spanish (v2.1.32): the Fleet page — the
+        // eyebrow, title, intro, the Import button and note, the
+        // Machines heading, the two export buttons, the table note,
+        // the column headers, the row Export button and the
+        // Remove/Confirm-remove button, the transient status lines
+        // (loading, no scans, the summary templates, the export-all /
+        // remove / import lines, and the import skip reasons since
+        // v2.1.18). Same pinning rule as the French phase 6 terms:
+        // changing one is a deliberate translation decision, not a typo
+        // fix. The data the page shows (machine names, the row
+        // cell values, file and folder paths, exception messages) is
+        // not in this catalogue; only the page chrome is. The summary
+        // and the export-all / remove / import lines are templates
+        // with one/many keys instead of inline plural hacks, and the
+        // remove-arm line quotes the translated Confirm-remove label.
+        // The row's "Not measurable" score fallback and "Not
+        // reported" worst-component fallback stay English like the
+        // History table's fallbacks; the summary's lowest-score
+        // fallback is its own key because it sits mid-sentence inside
+        // a translated line. No new keys — the Spanish pack already
+        // covers the whole 523-key catalogue. All values were read
+        // from the real Spanish pack with a scratch dump program
+        // (outside the repo), never hand-translated from the German
+        // or French tests.
+        var spanish = LanguagePacks.Spanish.Strings;
+        Assert.Equal("FLOTA", spanish[AppStringKeys.FleetEyebrow]);
+        Assert.Equal("Todos los equipos de esta carpeta de datos", spanish[AppStringKeys.FleetTitle]);
+        Assert.Equal(
+            "Modo técnico: lleva la aplicación portátil en una memoria USB, analiza cada equipo, y cada análisis llega al mismo almacén en la memoria. Esta página enumera el análisis más reciente de cada equipo, con la puntuación más baja primero y el peor componente nombrado, de modo que el equipo que necesita atención está arriba. Los equipos analizados con la aplicación instalada se pueden traer con Importar informes JSON, que lee los archivos JSON que exporta la página Informe. Exportar todos los equipos escribe un CSV por equipo en la carpeta de exportación, de modo que toda la flota se puede archivar a la vez en lugar de un clic de Exportar por fila. Para sacar un equipo de la flota, usa Eliminar en su fila: borra todos los análisis guardados de ese equipo de esta carpeta de datos, en dos clics para que un clic accidental no pueda borrar nada.",
+            spanish[AppStringKeys.FleetIntro]);
+        Assert.Equal("Importar informes JSON", spanish[AppStringKeys.FleetImportButton]);
+        Assert.Equal(
+            "Importa informes JSON de TrueSpec exportados desde otros equipos, para que sus análisis se unan a esta flota. Un archivo que no es un informe de TrueSpec se omite, y importar el mismo archivo dos veces almacena un solo análisis.",
+            spanish[AppStringKeys.FleetImportNote]);
+        Assert.Equal("Equipos", spanish[AppStringKeys.FleetMachinesTitle]);
+        Assert.Equal("Exportar todos los equipos", spanish[AppStringKeys.FleetExportAllButton]);
+        Assert.Equal("Exportar flota como CSV", spanish[AppStringKeys.FleetExportFleetCsvButton]);
+        Assert.Equal(
+            "La puntuación más baja primero. Un guion significa que ese análisis no informó del valor.",
+            spanish[AppStringKeys.FleetTableNote]);
+        Assert.Equal("Equipo", spanish[AppStringKeys.FleetHeaderMachine]);
+        Assert.Equal("Análisis", spanish[AppStringKeys.FleetHeaderScans]);
+        Assert.Equal("Último análisis", spanish[AppStringKeys.FleetHeaderLastScan]);
+        Assert.Equal("Puntuación", spanish[AppStringKeys.FleetHeaderScore]);
+        Assert.Equal("Veredicto", spanish[AppStringKeys.FleetHeaderVerdict]);
+        Assert.Equal("Peor componente", spanish[AppStringKeys.FleetHeaderWorstComponent]);
+        Assert.Equal("Exportar", spanish[AppStringKeys.FleetHeaderExport]);
+        Assert.Equal("Eliminar", spanish[AppStringKeys.FleetHeaderRemove]);
+        Assert.Equal("Exportar CSV", spanish[AppStringKeys.FleetRowExportButton]);
+        Assert.Equal("Confirmar eliminación", spanish[AppStringKeys.FleetRowConfirmRemoveButton]);
+        Assert.Equal("Cargando flota...", spanish[AppStringKeys.FleetLoading]);
+        Assert.Equal(
+            "El historial de instantáneas no está disponible en este equipo, así que aún no hay flota que mostrar.",
+            spanish[AppStringKeys.FleetUnavailable]);
+        Assert.Equal(
+            "Aún no hay análisis guardados. Analiza un equipo, o ejecuta la aplicación portátil en cada equipo de la flota, y su análisis más reciente aparecerá aquí. También puedes importar informes JSON exportados desde otros equipos con el botón Importar.",
+            spanish[AppStringKeys.FleetNoScans]);
+        Assert.Equal(
+            "1 equipo en esta carpeta de datos, 1 análisis guardado. Puntuación más baja: {0} ({1}).",
+            spanish[AppStringKeys.FleetSummaryOneOne]);
+        Assert.Equal(
+            "1 equipo en esta carpeta de datos, {0} análisis guardados. Puntuación más baja: {1} ({2}).",
+            spanish[AppStringKeys.FleetSummaryOneMany]);
+        Assert.Equal(
+            "{0} equipos en esta carpeta de datos, 1 análisis guardado. Puntuación más baja: {1} ({2}).",
+            spanish[AppStringKeys.FleetSummaryManyOne]);
+        Assert.Equal(
+            "{0} equipos en esta carpeta de datos, {1} análisis guardados. Puntuación más baja: {2} ({3}).",
+            spanish[AppStringKeys.FleetSummaryManyMany]);
+        Assert.Equal("no medible", spanish[AppStringKeys.FleetScoreNotMeasurable]);
+        Assert.Equal("Flota cargada.", spanish[AppStringKeys.FleetLoaded]);
+        Assert.Equal("No se pudo leer la flota: {0}", spanish[AppStringKeys.FleetReadFailed]);
+        Assert.Equal(
+            "La exportación de equipos no está disponible.",
+            spanish[AppStringKeys.FleetMachineExportUnavailable]);
+        Assert.Equal(
+            "Error al exportar el equipo: no se encontró ningún análisis guardado para {0}.",
+            spanish[AppStringKeys.FleetMachineExportNoScan]);
+        Assert.Equal("Exportar todo no está disponible.", spanish[AppStringKeys.FleetExportAllUnavailable]);
+        Assert.Equal(
+            "Error al exportar todo: aún no hay flota que exportar.",
+            spanish[AppStringKeys.FleetExportAllNoFleet]);
+        Assert.Equal("Error al exportar todo: {0}", spanish[AppStringKeys.FleetExportAllFailed]);
+        Assert.Equal("Se exportaron 0 equipos. {0}", spanish[AppStringKeys.FleetExportAllZero]);
+        Assert.Equal("aún no hay flota que exportar.", spanish[AppStringKeys.FleetExportAllZeroNoFleet]);
+        Assert.Equal("Omitido {0}: {1}", spanish[AppStringKeys.FleetSkipped]);
+        Assert.Equal("Se exportó {0} de 1 equipo a {1}.", spanish[AppStringKeys.FleetExportAllTotalOne]);
+        Assert.Equal("Se exportaron {0} de {1} equipos a {2}.", spanish[AppStringKeys.FleetExportAllTotalMany]);
+        Assert.Equal(
+            "Eliminar no está disponible: el historial de instantáneas no está disponible en este equipo.",
+            spanish[AppStringKeys.FleetRemoveUnavailable]);
+        Assert.Equal(
+            "¿Eliminar {0}? Esto elimina el 1 análisis guardado de este equipo de esta carpeta de datos. Haz clic en '{1}' para eliminar: no se elimina nada hasta entonces.",
+            spanish[AppStringKeys.FleetRemoveArmOne]);
+        Assert.Equal(
+            "¿Eliminar {0}? Esto elimina los {1} análisis guardados de este equipo de esta carpeta de datos. Haz clic en '{2}' para eliminar: no se elimina nada hasta entonces.",
+            spanish[AppStringKeys.FleetRemoveArmMany]);
+        Assert.Equal(
+            "No hay nada que eliminar: no se encontraron análisis guardados para {0}.",
+            spanish[AppStringKeys.FleetRemoveNothing]);
+        Assert.Equal("Se eliminó {0} (1 análisis guardado).", spanish[AppStringKeys.FleetRemovedOne]);
+        Assert.Equal("Se eliminó {0} ({1} análisis guardados).", spanish[AppStringKeys.FleetRemovedMany]);
+        Assert.Equal("Error al eliminar: {0}", spanish[AppStringKeys.FleetRemoveFailed]);
+        Assert.Equal(
+            "Importar no está disponible: el historial de instantáneas no está disponible en este equipo.",
+            spanish[AppStringKeys.FleetImportUnavailable]);
+        Assert.Equal(
+            "Importar no está disponible: no hay ningún selector de archivos disponible.",
+            spanish[AppStringKeys.FleetImportNoPicker]);
+        Assert.Equal("Se importaron 0 informes", spanish[AppStringKeys.FleetImportedNone]);
+        Assert.Equal("Se importó 1 informe ({0})", spanish[AppStringKeys.FleetImportedOne]);
+        Assert.Equal("Se importaron {0} informes ({1})", spanish[AppStringKeys.FleetImportedMany]);
+
+        // Localisation polish (v2.1.18): the import skip reasons are
+        // catalogue keys now, so a Spanish user sees Spanish inside the
+        // Spanish import line. The file name and any exception message
+        // stay data and are never in the catalogue.
+        Assert.Equal(
+            "El archivo es demasiado grande para ser un informe de TrueSpec (más de 10 MB) y se omitió.",
+            spanish[AppStringKeys.SnapshotImportTooLarge]);
+        Assert.Equal(
+            "El archivo está vacío y no es un informe JSON de TrueSpec.",
+            spanish[AppStringKeys.SnapshotImportEmpty]);
+        Assert.Equal(
+            "El archivo usa la versión '{0}' del esquema de informe, que esta versión de TrueSpec no puede importar. Solo se pueden importar informes de la versión 1.0.",
+            spanish[AppStringKeys.SnapshotImportWrongSchemaVersion]);
+        Assert.Equal(
+            "El archivo no contiene ningún análisis, así que no hay nada que importar.",
+            spanish[AppStringKeys.SnapshotImportNoSnapshot]);
+        Assert.Equal(
+            "El archivo contiene un análisis sin nombre de equipo, así que no se puede incluir en la flota.",
+            spanish[AppStringKeys.SnapshotImportNoMachineName]);
+        Assert.Equal(
+            "Al archivo le falta parte del análisis (componentes, puntuación o comprobaciones de comprador), así que no se puede importar.",
+            spanish[AppStringKeys.SnapshotImportMissingPart]);
+        Assert.Equal(
+            "El archivo contiene una puntuación que no es un número, así que no se puede importar.",
+            spanish[AppStringKeys.SnapshotImportScoreNotFinite]);
+        Assert.Equal(
+            "El archivo no es un informe JSON de TrueSpec, así que se omitió.",
+            spanish[AppStringKeys.SnapshotImportNotJsonReport]);
+        Assert.Equal("no se pudo importar.", spanish[AppStringKeys.FleetImportCouldNotBeImported]);
+        Assert.Equal("no se pudo leer ({0}).", spanish[AppStringKeys.FleetImportCouldNotBeRead]);
+
+        // Localisation polish (v2.1.19): the export-all skip reasons
+        // are catalogue keys now, the same pattern as the import
+        // reasons. The machine name and any write error stay data and
+        // are never in the catalogue.
+        Assert.Equal("no se encontró ningún análisis guardado", spanish[AppStringKeys.FleetExportAllSkipNoSavedScan]);
+        Assert.Equal(
+            "el análisis más reciente no tiene puntuación que exportar",
+            spanish[AppStringKeys.FleetExportAllSkipNoScore]);
+        Assert.Equal("no se pudo escribir ({0})", spanish[AppStringKeys.FleetExportAllSkipWriteFailed]);
+        Assert.Equal(
+            "no se pudo escribir (Acceso denegado)",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetExportAllSkipWriteFailed, "es", "Acceso denegado"));
+
+        // Templates keep the app's number formatting in Spanish too.
+        Assert.Equal(
+            "2 equipos en esta carpeta de datos, 3 análisis guardados. Puntuación más baja: 58 (SHOP-PC-BAD).",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetSummaryManyMany, "es", 2, 3, "58", "SHOP-PC-BAD"));
+        Assert.Equal(
+            "1 equipo en esta carpeta de datos, 1 análisis guardado. Puntuación más baja: no medible (SHOP-PC-BAD).",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetSummaryOneOne, "es", "no medible", "SHOP-PC-BAD"));
+        Assert.Equal(
+            "Se exportaron 2 de 2 equipos a C:\\Exports.",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetExportAllTotalMany, "es", 2, 2, "C:\\Exports"));
+        Assert.Equal(
+            "¿Eliminar SHOP-PC-BAD? Esto elimina los 2 análisis guardados de este equipo de esta carpeta de datos. Haz clic en 'Confirmar eliminación' para eliminar: no se elimina nada hasta entonces.",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetRemoveArmMany, "es", "SHOP-PC-BAD", 2, "Confirmar eliminación"));
+        Assert.Equal("Se importaron 2 informes (SHOP-PC-A, SHOP-PC-B). Omitido 1: bad.json: El archivo no es un informe JSON de TrueSpec, así que se omitió.",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetImportedMany, "es", 2, "SHOP-PC-A, SHOP-PC-B")
+                + ". " + StringLocalizer.GetFormatted(AppStringKeys.FleetSkipped, "es", 1, "bad.json: El archivo no es un informe JSON de TrueSpec, así que se omitió."));
+        Assert.Equal(
+            "El archivo usa la versión '2.0' del esquema de informe, que esta versión de TrueSpec no puede importar. Solo se pueden importar informes de la versión 1.0.",
+            StringLocalizer.GetFormatted(AppStringKeys.SnapshotImportWrongSchemaVersion, "es", "2.0"));
+        Assert.Equal(
+            "bad.json: no se pudo leer (Acceso denegado).",
+            "bad.json: " + StringLocalizer.GetFormatted(AppStringKeys.FleetImportCouldNotBeRead, "es", "Acceso denegado"));
     }
 
     [Fact]

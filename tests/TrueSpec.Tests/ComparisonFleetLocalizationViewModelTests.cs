@@ -22,7 +22,8 @@ namespace TrueSpec.Tests;
 /// Windows leg only (it drives TrueSpec.App's ViewModels), like
 /// ReportTestsLocalizationViewModelTests: excluded from the net10.0
 /// leg in the csproj. French phase 6 (v2.1.25) mirrors the German
-/// Fleet tests in French; the Comparison page is not French yet, so
+/// Fleet tests in French; Spanish phase 6 (v2.1.32) mirrors the French
+/// Fleet tests in Spanish; the Comparison page is not French yet, so
 /// only the Fleet half is mirrored here. French phase 7 (v2.1.26)
 /// mirrors the German Comparison tests in French too, so both halves
 /// are mirrored here now.
@@ -1237,6 +1238,322 @@ public class ComparisonFleetLocalizationViewModelTests
             // the file name and the read-failure reason stay English,
             // like exception messages elsewhere on the page.
             Assert.Contains("0 rapport importé. Ignoré 1 : bad.json:", viewModel.StatusMessage, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+    [Fact]
+    public async Task Fleet_SpanishSeeded_RendersWholePageInSpanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var viewModel = await LoadedFleetAsync(directory, "es");
+
+            Assert.Equal("FLOTA", viewModel.FleetEyebrowText);
+            Assert.Equal("Todos los equipos de esta carpeta de datos", viewModel.FleetTitleText);
+            Assert.Equal("Modo técnico: lleva la aplicación portátil en una memoria USB, analiza cada equipo, y cada análisis llega al mismo almacén en la memoria. Esta página enumera el análisis más reciente de cada equipo, con la puntuación más baja primero y el peor componente nombrado, de modo que el equipo que necesita atención está arriba. Los equipos analizados con la aplicación instalada se pueden traer con Importar informes JSON, que lee los archivos JSON que exporta la página Informe. Exportar todos los equipos escribe un CSV por equipo en la carpeta de exportación, de modo que toda la flota se puede archivar a la vez en lugar de un clic de Exportar por fila. Para sacar un equipo de la flota, usa Eliminar en su fila: borra todos los análisis guardados de ese equipo de esta carpeta de datos, en dos clics para que un clic accidental no pueda borrar nada.", viewModel.FleetIntroText);
+            Assert.Equal("Importar informes JSON", viewModel.FleetImportButtonText);
+            Assert.Equal("Importa informes JSON de TrueSpec exportados desde otros equipos, para que sus análisis se unan a esta flota. Un archivo que no es un informe de TrueSpec se omite, y importar el mismo archivo dos veces almacena un solo análisis.", viewModel.FleetImportNoteText);
+            Assert.Equal("Equipos", viewModel.FleetMachinesTitleText);
+            Assert.Equal("Exportar todos los equipos", viewModel.FleetExportAllButtonText);
+            Assert.Equal("Exportar flota como CSV", viewModel.FleetExportFleetCsvButtonText);
+            Assert.Equal("La puntuación más baja primero. Un guion significa que ese análisis no informó del valor.", viewModel.FleetTableNoteText);
+            Assert.Equal("Equipo", viewModel.FleetHeaderMachineText);
+            Assert.Equal("Análisis", viewModel.FleetHeaderScansText);
+            Assert.Equal("Último análisis", viewModel.FleetHeaderLastScanText);
+            Assert.Equal("Puntuación", viewModel.FleetHeaderScoreText);
+            Assert.Equal("Veredicto", viewModel.FleetHeaderVerdictText);
+            Assert.Equal("Peor componente", viewModel.FleetHeaderWorstComponentText);
+            Assert.Equal("Exportar", viewModel.FleetHeaderExportText);
+            Assert.Equal("Eliminar", viewModel.FleetHeaderRemoveText);
+            Assert.Equal("Flota cargada.", viewModel.StatusMessage);
+            Assert.Equal("2 equipos en esta carpeta de datos, 3 análisis guardados. Puntuación más baja: 58 (SHOP-PC-BAD).", viewModel.SummaryText);
+
+            Assert.Equal(2, viewModel.Rows.Count);
+            Assert.Equal("SHOP-PC-BAD", viewModel.Rows[0].MachineName);
+            Assert.Equal("Exportar CSV", viewModel.Rows[0].ExportButtonText);
+            Assert.Equal("Eliminar", viewModel.Rows[0].RemoveButtonText);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Fleet_ApplyLanguage_SwitchesToSpanishAndBack()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var viewModel = await LoadedFleetAsync(directory);
+
+            viewModel.ApplyLanguage("es");
+            Assert.Equal("FLOTA", viewModel.FleetEyebrowText);
+            Assert.Equal("Todos los equipos de esta carpeta de datos", viewModel.FleetTitleText);
+            Assert.Equal("Exportar todos los equipos", viewModel.FleetExportAllButtonText);
+            Assert.Equal("Flota cargada.", viewModel.StatusMessage);
+            Assert.Equal("2 equipos en esta carpeta de datos, 3 análisis guardados. Puntuación más baja: 58 (SHOP-PC-BAD).", viewModel.SummaryText);
+            Assert.Equal("Exportar CSV", viewModel.Rows[0].ExportButtonText);
+            Assert.Equal("Eliminar", viewModel.Rows[0].RemoveButtonText);
+
+            viewModel.ApplyLanguage("en");
+            Assert.Equal("FLEET", viewModel.FleetEyebrowText);
+            Assert.Equal("Every machine in this data folder", viewModel.FleetTitleText);
+            Assert.Equal("Export all machines", viewModel.FleetExportAllButtonText);
+            Assert.Equal("Fleet loaded.", viewModel.StatusMessage);
+            Assert.Equal("2 machines in this data folder, 3 saved scans. Lowest score 58 (SHOP-PC-BAD).", viewModel.SummaryText);
+            Assert.Equal("Export CSV", viewModel.Rows[0].ExportButtonText);
+            Assert.Equal("Remove", viewModel.Rows[0].RemoveButtonText);
+
+            viewModel.ApplyLanguage("es");
+            Assert.Equal("FLOTA", viewModel.FleetEyebrowText);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Fleet_DataStaysEnglish_WhenChromeIsSpanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var english = await LoadedFleetAsync(Path.Combine(directory, "en"));
+            var spanish = await LoadedFleetAsync(Path.Combine(directory, "es"), "es");
+
+            Assert.Equal(english.Rows.Select(r => r.MachineName), spanish.Rows.Select(r => r.MachineName));
+            Assert.Equal(english.Rows.Select(r => r.ScanCountText), spanish.Rows.Select(r => r.ScanCountText));
+            Assert.Equal(english.Rows.Select(r => r.LastScanText), spanish.Rows.Select(r => r.LastScanText));
+            Assert.Equal(english.Rows.Select(r => r.ScoreText), spanish.Rows.Select(r => r.ScoreText));
+            Assert.Equal(english.Rows.Select(r => r.VerdictText), spanish.Rows.Select(r => r.VerdictText));
+            Assert.Equal(english.Rows.Select(r => r.WorstComponentText), spanish.Rows.Select(r => r.WorstComponentText));
+
+            // A switch re-renders the chrome in place, keeping the data.
+            spanish.ApplyLanguage("en");
+            Assert.Equal(english.FleetEyebrowText, spanish.FleetEyebrowText);
+            Assert.Equal(english.SummaryText, spanish.SummaryText);
+            Assert.Equal(english.Rows.Select(r => r.WorstComponentText), spanish.Rows.Select(r => r.WorstComponentText));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void FleetRow_RemoveButton_FollowsArmedStateInSpanish()
+    {
+        var row = new FleetMachineRow(
+            "SHOP-PC-BAD",
+            2,
+            new DateTimeOffset(2026, 11, 10, 11, 0, 0, TimeSpan.Zero),
+            58d,
+            "Poor",
+            "storage",
+            58d);
+
+        var english = new FleetRowViewModel(row);
+        Assert.Equal("Export CSV", english.ExportButtonText);
+        Assert.Equal("Remove", english.RemoveButtonText);
+        english.IsRemoveArmed = true;
+        Assert.Equal("Confirm remove", english.RemoveButtonText);
+
+        var spanish = new FleetRowViewModel(row, null, null, "es");
+        Assert.Equal("Exportar CSV", spanish.ExportButtonText);
+        Assert.Equal("Eliminar", spanish.RemoveButtonText);
+        spanish.IsRemoveArmed = true;
+        Assert.Equal("Confirmar eliminación", spanish.RemoveButtonText);
+
+        spanish.ApplyLanguage("en");
+        Assert.Equal("Export CSV", spanish.ExportButtonText);
+        Assert.Equal("Confirm remove", spanish.RemoveButtonText);
+        spanish.ApplyLanguage("es");
+        Assert.Equal("Exportar CSV", spanish.ExportButtonText);
+        Assert.Equal("Confirmar eliminación", spanish.RemoveButtonText);
+
+        var unknown = new FleetRowViewModel(row, null, null, "xx");
+        Assert.Equal("Export CSV", unknown.ExportButtonText);
+        Assert.Equal("Remove", unknown.RemoveButtonText);
+    }
+
+    [Fact]
+    public async Task Fleet_RemoveArmAndConfirm_StatusTranslatesInSpanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var spanish = await LoadedFleetAsync(Path.Combine(directory, "es"), "es");
+            var badRow = spanish.Rows[0];
+            await spanish.RemoveMachineCommand.ExecuteAsync(badRow);
+
+            Assert.True(badRow.IsRemoveArmed);
+            Assert.Equal("Confirmar eliminación", badRow.RemoveButtonText);
+            Assert.Equal(
+                "¿Eliminar SHOP-PC-BAD? Esto elimina los 2 análisis guardados de este equipo de esta carpeta de datos. Haz clic en 'Confirmar eliminación' para eliminar: no se elimina nada hasta entonces.",
+                spanish.StatusMessage);
+
+            // The same flow through to the confirmed delete, in Spanish.
+            await spanish.RemoveMachineCommand.ExecuteAsync(badRow);
+            Assert.Equal("Se eliminó SHOP-PC-BAD (2 análisis guardados).", spanish.StatusMessage);
+            Assert.Single(spanish.Rows);
+            Assert.Equal("SHOP-PC-GOOD", spanish.Rows[0].MachineName);
+
+            // A switch re-resolves the stored result instead of resetting it.
+            spanish.ApplyLanguage("en");
+            Assert.Equal("Removed SHOP-PC-BAD (2 saved scans).", spanish.StatusMessage);
+            spanish.ApplyLanguage("es");
+            Assert.Equal("Se eliminó SHOP-PC-BAD (2 análisis guardados).", spanish.StatusMessage);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Fleet_ExportAll_StatusTranslatesInSpanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var folder = Path.Combine(directory, "exports");
+            Task<ExportAllMachinesResult> ExportAll(
+                IReadOnlyList<FleetMachineRow> rows,
+                IReadOnlyDictionary<string, SystemSnapshot> snapshots) =>
+                Task.FromResult(new ExportAllMachinesResult(
+                    folder,
+                    new[] { Path.Combine(folder, "SHOP-PC-BAD.csv"), Path.Combine(folder, "SHOP-PC-GOOD.csv") },
+                    Array.Empty<ExportAllSkippedMachine>()));
+
+            var spanish = await LoadedFleetAsync(Path.Combine(directory, "es"), "es", ExportAll);
+            await spanish.ExportAllMachinesCommand.ExecuteAsync(null);
+            Assert.Equal(
+                $"Se exportaron 2 de 2 equipos a {folder}.",
+                spanish.StatusMessage);
+
+            // A switch re-resolves the stored result instead of resetting it.
+            spanish.ApplyLanguage("en");
+            Assert.Equal(
+                $"Exported 2 of 2 machines to {folder}.",
+                spanish.StatusMessage);
+            spanish.ApplyLanguage("es");
+            Assert.Equal(
+                $"Se exportaron 2 de 2 equipos a {folder}.",
+                spanish.StatusMessage);
+
+            // Nothing exported: the zero line names what was skipped,
+            // and the skip reasons render in the page language now
+            // (v2.1.19), instead of the old English fragments inside
+            // the Spanish line.
+            Task<ExportAllMachinesResult> ExportNone(
+                IReadOnlyList<FleetMachineRow> rows,
+                IReadOnlyDictionary<string, SystemSnapshot> snapshots) =>
+                Task.FromResult(new ExportAllMachinesResult(
+                    folder,
+                    Array.Empty<string>(),
+                    new[]
+                    {
+                        new ExportAllSkippedMachine("SHOP-PC-BAD", ExportAllSkipReasonKind.NoScore),
+                        new ExportAllSkippedMachine("SHOP-PC-GOOD", ExportAllSkipReasonKind.NoScore),
+                    }));
+
+            var noneSpanish = await LoadedFleetAsync(Path.Combine(directory, "none"), "es", ExportNone);
+            await noneSpanish.ExportAllMachinesCommand.ExecuteAsync(null);
+            Assert.Equal(
+                "Se exportaron 0 equipos. Omitido 2: SHOP-PC-BAD: el análisis más reciente no tiene puntuación que exportar; SHOP-PC-GOOD: el análisis más reciente no tiene puntuación que exportar.",
+                noneSpanish.StatusMessage);
+
+            // A switch re-resolves the stored result instead of resetting it.
+            noneSpanish.ApplyLanguage("en");
+            Assert.Equal(
+                "Exported 0 machines. Skipped 2: SHOP-PC-BAD: the latest scan has no score to export; SHOP-PC-GOOD: the latest scan has no score to export.",
+                noneSpanish.StatusMessage);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Fleet_EmptyStates_StayHonestInSpanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var databasePath = Path.Combine(directory, "snapshots.db");
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var spanish = new FleetViewModel(store, null, null, null, "es");
+            await WaitForAsync(
+                () => spanish.StatusMessage != "Cargando flota...",
+                "Status never left loading.");
+            Assert.Equal("Aún no hay análisis guardados. Analiza un equipo, o ejecuta la aplicación portátil en cada equipo de la flota, y su análisis más reciente aparecerá aquí. También puedes importar informes JSON exportados desde otros equipos con el botón Importar.", spanish.StatusMessage);
+
+            var noStoreSpanish = new FleetViewModel(null, null, null, null, "es");
+            await WaitForAsync(
+                () => noStoreSpanish.StatusMessage != "Cargando flota...",
+                "Status never left loading.");
+            Assert.Equal("El historial de instantáneas no está disponible en este equipo, así que aún no hay flota que mostrar.", noStoreSpanish.StatusMessage);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Fleet_ImportSkippedFile_StatusTranslatesInSpanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var databasePath = Path.Combine(directory, "snapshots.db");
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var missing = Path.Combine(directory, "bad.json");
+            var viewModel = new FleetViewModel(store, null, null, null, "es")
+            {
+                ReportFilePicker = () => Task.FromResult<IReadOnlyList<string>>(new[] { missing }),
+            };
+            await WaitForAsync(
+                () => viewModel.StatusMessage != "Cargando flota...",
+                "Status never left loading.");
+            await viewModel.ImportReportsCommand.ExecuteAsync(null);
+
+            // The head of the line and the skipped count translate;
+            // the file name and the read-failure reason stay English,
+            // like exception messages elsewhere on the page.
+            Assert.Contains("Se importaron 0 informes. Omitido 1: bad.json:", viewModel.StatusMessage, StringComparison.Ordinal);
         }
         finally
         {
