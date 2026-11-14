@@ -281,28 +281,11 @@ public sealed partial class NewLaptopCheckViewModel : ViewModelBase
 
     /// <summary>
     /// The title of the strongest Fail findings entry, or null when no
-    /// finding failed. Mirrors Core's ranking: authenticity outranks
-    /// crashes, which outrank the load test.
+    /// finding failed. Shared from Core, not mirrored here: the
+    /// ViewModel calls <see cref="BuyerCheckResult.StrongestFailingFinding"/>
+    /// so the ranking can never drift from the banner Core builds.
     /// </summary>
-    private string? StrongestFindingTitle()
-    {
-        var authenticity = _result.Checks.FirstOrDefault(c =>
-            c.Id == BuyerCheckResult.AuthenticityCheckId && c.State == BuyerCheckState.Fail);
-        if (authenticity is not null)
-        {
-            return authenticity.Title;
-        }
-
-        var crashes = _result.Checks.FirstOrDefault(c =>
-            c.Id == BuyerCheckResult.RecentCrashesCheckId && c.State == BuyerCheckState.Fail);
-        if (crashes is not null)
-        {
-            return crashes.Title;
-        }
-
-        return _result.Checks.FirstOrDefault(c =>
-            c.Id == BuyerCheckResult.LoadTestCheckId && c.State == BuyerCheckState.Fail)?.Title;
-    }
+    private string? StrongestFindingTitle() => _result.StrongestFailingFinding()?.Title;
 
     private static string BuildSummary(BuyerCheckResult result) =>
         $"{result.SummaryText}.";

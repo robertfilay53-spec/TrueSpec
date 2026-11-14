@@ -449,8 +449,10 @@ public static class AppStringKeys
     // fan-health summary/lines/findings, the load-test verdict text
     // and the live temperature/clock/elapsed values. Fixed status
     // words DO go in, including the load test's fixed live-line states
-    // ("Temperature: not running", "Clock: measuring...") — the
-    // measured line itself ("Temperature: 72.3 C") stays English.
+    // ("Temperature: not running", "Clock: measuring..."). Localisation
+    // polish (v2.1.18): the measured live lines ("Temperature: 72.3 C")
+    // and the elapsed line ("Finished in 60 s.") translate their
+    // labels too, via templates — only the measured value stays data.
     // The load test reuses the test-item status keys ("Not run yet.",
     // "Running...", "Test failed", the no-result template) instead of
     // a second copy of the same words, the same reuse rule the
@@ -709,6 +711,21 @@ public static class AppStringKeys
     public const string LoadTestClockMeasuring = "LoadTestClockMeasuring";
     public const string LoadTestClockFinished = "LoadTestClockFinished";
     public const string LoadTestClockNotReported = "LoadTestClockNotReported";
+    public const string LoadTestTempMeasured = "LoadTestTempMeasured";
+    public const string LoadTestClockMeasured = "LoadTestClockMeasured";
+    public const string LoadTestElapsedFinished = "LoadTestElapsedFinished";
+
+    /// <summary>The reason a JSON report file could not be imported, as a structured kind instead of a sentence.</summary>
+    public const string SnapshotImportTooLarge = "SnapshotImportTooLarge";
+    public const string SnapshotImportEmpty = "SnapshotImportEmpty";
+    public const string SnapshotImportWrongSchemaVersion = "SnapshotImportWrongSchemaVersion";
+    public const string SnapshotImportNoSnapshot = "SnapshotImportNoSnapshot";
+    public const string SnapshotImportNoMachineName = "SnapshotImportNoMachineName";
+    public const string SnapshotImportMissingPart = "SnapshotImportMissingPart";
+    public const string SnapshotImportScoreNotFinite = "SnapshotImportScoreNotFinite";
+    public const string SnapshotImportNotJsonReport = "SnapshotImportNotJsonReport";
+    public const string FleetImportCouldNotBeImported = "FleetImportCouldNotBeImported";
+    public const string FleetImportCouldNotBeRead = "FleetImportCouldNotBeRead";
 
     /// <summary>Every key in the catalogue, in the order above.</summary>
     public static IReadOnlyList<string> All { get; } = new[]
@@ -1089,6 +1106,19 @@ public static class AppStringKeys
         LoadTestClockMeasuring,
         LoadTestClockFinished,
         LoadTestClockNotReported,
+        LoadTestTempMeasured,
+        LoadTestClockMeasured,
+        LoadTestElapsedFinished,
+        SnapshotImportTooLarge,
+        SnapshotImportEmpty,
+        SnapshotImportWrongSchemaVersion,
+        SnapshotImportNoSnapshot,
+        SnapshotImportNoMachineName,
+        SnapshotImportMissingPart,
+        SnapshotImportScoreNotFinite,
+        SnapshotImportNotJsonReport,
+        FleetImportCouldNotBeImported,
+        FleetImportCouldNotBeRead,
         NewLaptopCheckEyebrow,
         NewLaptopCheckBannerPass,
         NewLaptopCheckBannerWarning,

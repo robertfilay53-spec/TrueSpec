@@ -241,6 +241,79 @@ public class FleetViewModelTests
     }
 
     [Fact]
+    public async Task ImportReportsCommand_German_ReportsTheSkipReasonInGerman()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var databasePath = Path.Combine(directory, "snapshots.db");
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+
+            var goodPath = Path.Combine(directory, "good.json");
+            var badPath = Path.Combine(directory, "bad.json");
+            Directory.CreateDirectory(directory);
+            var snapshot = TestSnapshots.Healthy() with { MachineName = "SHOP-PC-IMPORTED" };
+            await using (var stream = File.Create(goodPath))
+            {
+                await new TrueSpec.Core.Reports.JsonReportExporter().ExportAsync(
+                    TrueSpec.Core.Reports.ReportModel.FromSnapshot(snapshot), stream);
+            }
+
+            await File.WriteAllTextAsync(badPath, "not a report at all");
+            var viewModel = new FleetViewModel(store, languageCode: "de")
+            {
+                ReportFilePicker = () => Task.FromResult<IReadOnlyList<string>>(new[] { goodPath, badPath }),
+            };
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (viewModel.StatusMessage == "Gerätepark wird geladen …" && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            await viewModel.ImportReportsCommand.ExecuteAsync(null);
+
+            deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (!viewModel.HasFleet && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.True(viewModel.HasFleet, "Imported machine never appeared in the fleet.");
+
+            // Localisation polish (v2.1.18): the skip reason is a
+            // structured failure kind rendered in the page language,
+            // so the German line holds no English fragment. The file
+            // name stays data.
+            Assert.Contains("1 Bericht importiert", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("SHOP-PC-IMPORTED", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("Übersprungen 1", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("bad.json: Die Datei ist kein TrueSpec-JSON-Bericht und wurde übersprungen.", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.DoesNotContain("could not be imported", viewModel.StatusMessage, StringComparison.Ordinal);
+
+            // The stored entries re-render on a language switch, so
+            // the same status line comes back in English and then in
+            // German again.
+            viewModel.ApplyLanguage("en");
+            Assert.Contains("Imported 1 report", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("Skipped 1", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("bad.json: The file is not a TrueSpec JSON report, so it was skipped.", viewModel.StatusMessage, StringComparison.Ordinal);
+
+            viewModel.ApplyLanguage("de");
+            Assert.Contains("bad.json: Die Datei ist kein TrueSpec-JSON-Bericht und wurde übersprungen.", viewModel.StatusMessage, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task ImportReportsCommand_WithoutPicker_ReportsUnavailable()
     {
         var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));

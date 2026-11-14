@@ -47,7 +47,12 @@ using TrueSpec.Core.Storage;
 /// folder paths, and exception messages. The summary and the
 /// export-all / remove / import lines are templates with one/many
 /// keys instead of inline plural hacks, and the remove-arm line
-/// quotes the translated Confirm-remove label. The page is cached by
+/// quotes the translated Confirm-remove label. Localisation polish
+/// (v2.1.18): the import skip reasons are stored as structured
+/// failure kinds and rendered in the page language too, so a German
+/// user no longer sees English inside the German import line; the
+/// file name and any exception message stay data, and a language
+/// switch re-renders the stored entries. The page is cached by
 /// the shell, so the strings resolve from the stored language code
 /// and re-render through <see cref="ApplyLanguage"/>, the same
 /// in-place pattern the Overview and History pages use.
@@ -85,8 +90,23 @@ public sealed partial class FleetViewModel : ViewModelBase
     /// <summary>The machine names an import status imported, so ApplyLanguage can rebuild its line.</summary>
     private IReadOnlyList<string> _lastImported = Array.Empty<string>();
 
-    /// <summary>The "file: reason" lines an import status skipped, so ApplyLanguage can rebuild its line.</summary>
-    private IReadOnlyList<string> _lastImportSkipped = Array.Empty<string>();
+    /// <summary>
+    /// One file an import skipped, stored as data so ApplyLanguage can
+    /// rebuild its line in the new language instead of keeping the old
+    /// language's reason. A failed import carries its structured
+    /// failure kind (and the schema version the file claimed, when
+    /// that is the failure); an unreadable file carries the exception
+    /// message, which stays English data. When neither is set the
+    /// fallback line is used.
+    /// </summary>
+    private sealed record ImportSkippedEntry(
+        string FileName,
+        SnapshotImportFailureKind? FailureKind,
+        string? SchemaVersion,
+        string? ReadError);
+
+    /// <summary>The files an import status skipped, so ApplyLanguage can rebuild its line.</summary>
+    private IReadOnlyList<ImportSkippedEntry> _lastImportSkipped = Array.Empty<ImportSkippedEntry>();
 
     /// <summary>The transient status lines the Fleet page can show. Stored so a language switch re-resolves the line instead of resetting it.</summary>
     private enum FleetStatusKind
@@ -247,7 +267,7 @@ public sealed partial class FleetViewModel : ViewModelBase
         ExportAllMachinesResult? exportAll = null,
         int exportAllTotal = 0,
         IReadOnlyList<string>? imported = null,
-        IReadOnlyList<string>? skipped = null)
+        IReadOnlyList<ImportSkippedEntry>? skipped = null)
     {
         _statusKind = kind;
         _statusError = error;
@@ -256,7 +276,7 @@ public sealed partial class FleetViewModel : ViewModelBase
         _lastExportAllResult = exportAll;
         _lastExportAllTotal = exportAllTotal;
         _lastImported = imported ?? Array.Empty<string>();
-        _lastImportSkipped = skipped ?? Array.Empty<string>();
+        _lastImportSkipped = skipped ?? Array.Empty<ImportSkippedEntry>();
         StatusMessage = ResolveStatusMessage();
     }
 
@@ -662,7 +682,7 @@ public sealed partial class FleetViewModel : ViewModelBase
 
             var importer = new SnapshotReportImporter();
             var imported = new List<string>();
-            var skipped = new List<string>();
+            var skipped = new List<ImportSkippedEntry>();
             foreach (var path in paths)
             {
                 var fileName = Path.GetFileName(path);
@@ -672,7 +692,11 @@ public sealed partial class FleetViewModel : ViewModelBase
                     var result = await importer.ImportAsync(stream);
                     if (!result.Success || result.Snapshot is null)
                     {
-                        skipped.Add($"{fileName}: {result.Error ?? "could not be imported."}");
+                        skipped.Add(new ImportSkippedEntry(
+                            fileName,
+                            result.FailureKind,
+                            result.SchemaVersion,
+                            ReadError: null));
                         continue;
                     }
 
@@ -681,7 +705,11 @@ public sealed partial class FleetViewModel : ViewModelBase
                 }
                 catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
                 {
-                    skipped.Add($"{fileName}: could not be read ({exception.Message}).");
+                    skipped.Add(new ImportSkippedEntry(
+                        fileName,
+                        FailureKind: null,
+                        SchemaVersion: null,
+                        ReadError: exception.Message));
                 }
             }
 
@@ -697,7 +725,7 @@ public sealed partial class FleetViewModel : ViewModelBase
         }
     }
 
-    private string BuildImportSummary(IReadOnlyList<string> imported, IReadOnlyList<string> skipped)
+    private string BuildImportSummary(IReadOnlyList<string> imported, IReadOnlyList<ImportSkippedEntry> skipped)
     {
         var summary = imported.Count switch
         {
@@ -710,8 +738,25 @@ public sealed partial class FleetViewModel : ViewModelBase
                 AppStringKeys.FleetSkipped,
                 _languageCode,
                 skipped.Count,
-                string.Join("; ", skipped))
+                string.Join("; ", skipped.Select(RenderSkippedEntry)))
             : ".";
         return summary;
+    }
+
+    /// <summary>
+    /// Renders one skipped file as "file: reason" in the page language.
+    /// The reason comes from the stored failure kind (or the stored
+    /// exception message for an unreadable file); the file name stays
+    /// data. The defensive fallback covers a failure with no kind,
+    /// which the importer never produces.
+    /// </summary>
+    private string RenderSkippedEntry(ImportSkippedEntry entry)
+    {
+        var reason = entry.FailureKind is { } kind
+            ? SnapshotImportFailureReason.Text(kind, entry.SchemaVersion, _languageCode)
+            : entry.ReadError is not null
+                ? StringLocalizer.GetFormatted(AppStringKeys.FleetImportCouldNotBeRead, _languageCode, entry.ReadError)
+                : StringLocalizer.Get(AppStringKeys.FleetImportCouldNotBeImported, _languageCode);
+        return $"{entry.FileName}: {reason}";
     }
 }

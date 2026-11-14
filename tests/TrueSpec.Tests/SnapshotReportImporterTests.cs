@@ -72,6 +72,7 @@ public class SnapshotReportImporterTests
         Assert.False(result.Success);
         Assert.Null(result.Snapshot);
         Assert.Contains("not a TrueSpec JSON report", result.Error, StringComparison.Ordinal);
+        Assert.Equal(SnapshotImportFailureKind.NotJsonReport, result.FailureKind);
     }
 
     [Fact]
@@ -86,6 +87,8 @@ public class SnapshotReportImporterTests
 
         Assert.False(result.Success);
         Assert.Contains("schema version", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(SnapshotImportFailureKind.WrongSchemaVersion, result.FailureKind);
+        Assert.Equal("9.9", result.SchemaVersion);
     }
 
     [Fact]
@@ -100,6 +103,7 @@ public class SnapshotReportImporterTests
 
         Assert.False(result.Success);
         Assert.Contains("no scan", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(SnapshotImportFailureKind.NoSnapshot, result.FailureKind);
     }
 
     [Fact]
@@ -112,6 +116,24 @@ public class SnapshotReportImporterTests
 
         Assert.False(result.Success);
         Assert.Contains("machine name", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(SnapshotImportFailureKind.NoMachineName, result.FailureKind);
+    }
+
+    [Fact]
+    public void FailureReason_RendersInTheRequestedLanguage()
+    {
+        // Localisation polish (v2.1.18): the kind carries the reason
+        // across the language boundary; the English sentence stays the
+        // importer's public Error text.
+        Assert.Equal(
+            "The file is not a TrueSpec JSON report, so it was skipped.",
+            SnapshotImportFailureReason.Text(SnapshotImportFailureKind.NotJsonReport, null, "en"));
+        Assert.Equal(
+            "Die Datei ist kein TrueSpec-JSON-Bericht und wurde übersprungen.",
+            SnapshotImportFailureReason.Text(SnapshotImportFailureKind.NotJsonReport, null, "de"));
+        Assert.Equal(
+            "Die Datei verwendet die Berichtsschema-Version „2.0“, die diese TrueSpec-Version nicht importieren kann. Nur Berichte der Version 1.0 können importiert werden.",
+            SnapshotImportFailureReason.Text(SnapshotImportFailureKind.WrongSchemaVersion, "2.0", "de"));
     }
 
     [Fact]

@@ -149,19 +149,14 @@ Audit before every release:
 dotnet list package --vulnerable --include-transitive
 ```
 
-As of the last audit (Nov 14, 2026, TrueSpec v2.1.17, .NET 10):
+As of the last audit (Nov 14, 2026, TrueSpec v2.1.18, .NET 10):
 **no vulnerable packages** in any project, including transitive
 dependencies. The audit was run with
 `dotnet list package --vulnerable --include-transitive` on all four
 projects (TrueSpec.App, TrueSpec.Core, TrueSpec.Collectors.Windows,
-TrueSpec.Tests). Seven package versions changed between v2.1.16 and v2.1.17
-(Microsoft.Data.Sqlite 10.0.0 to 11.0.0, SQLitePCLRaw.bundle_e_sqlite3
-2.1.14 to 3.0.5, System.Diagnostics.EventLog and System.Management
-10.0.14 to 11.0.0, coverlet.collector 6.0.4 to 10.1.0,
-Microsoft.NET.Test.Sdk 17.14.1 to 18.12.0, xunit.runner.visualstudio
-3.1.4 to 4.0.1); the audit was re-run after the upgrades and reports
-no vulnerable packages. `dotnet list package --outdated` reports zero
-outdated packages on all four projects. The build itself now
+TrueSpec.Tests). No package version changed between v2.1.17 and
+v2.1.18; `dotnet list package --outdated` reports zero outdated
+packages on all four projects. The build itself now
 fails on a vulnerable package (NuGetAuditMode=all in
 Directory.Build.props, with TreatWarningsAsErrors), and the CI
 "Check for vulnerable packages" step fails the job when the scan
