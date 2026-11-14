@@ -58,6 +58,9 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 5 9500F", "RYZEN 5 9500F")]
     [InlineData("AMD Ryzen 7 9850X3D", "RYZEN 7 9850X3D")]
     [InlineData("AMD Ryzen 9 9950X3D2 Dual Edition", "RYZEN 9 9950X3D2 DUAL EDITION")]
+    [InlineData("AMD Ryzen 5 5500", "RYZEN 5 5500")]
+    [InlineData("AMD Ryzen 7 5700", "RYZEN 7 5700")]
+    [InlineData("AMD Ryzen 7 5700X", "RYZEN 7 5700X")]
     [InlineData("AMD Ryzen 7 3700U with Radeon Graphics", "RYZEN 7 3700U")]
     [InlineData(null, "")]
     [InlineData("", "")]
@@ -179,9 +182,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.21.0", database.Version);
+        Assert.Equal("1.22.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(100, database.CpuCount);
+        Assert.Equal(103, database.CpuCount);
         Assert.Equal(93, database.GpuCount);
     }
 
@@ -1324,5 +1327,47 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.3, ryzen99950X3d2.BaseGhz);
         Assert.Equal(5.6, ryzen99950X3d2.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/9000-series/amd-ryzen-9-9950x3d2-dual-edition.html", ryzen99950X3d2.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Ryzen5000DesktopCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.22.0: the three AMD Ryzen 5000 desktop CPUs (Zen 3)
+        // the dataset never listed, the remainder of the 5000 desktop
+        // family after the 5600, 5600X, 5800X, 5800X3D, 5900X and 5950X
+        // already in it: the Ryzen 7 5700X (Vermeer), the Ryzen 7 5700
+        // and the Ryzen 5 5500 (both Cezanne). All figures were verified
+        // by hand against AMD's own product pages, read 2026-11-15 from
+        // fresh crawls: the Ryzen 7 5700X at Base Clock 3.4 GHz and Max
+        // Boost Clock up to 4.6 GHz; the Ryzen 7 5700 at 3.7 and up to
+        // 4.6 GHz; the Ryzen 5 5500 at 3.6 and up to 4.2 GHz. The
+        // dataset's boost_ghz is AMD's Max Boost Clock, per its own
+        // definition, and the 5800X already in the dataset follows the
+        // same rule, so these three are consistent with it. AMD moved
+        // these three pages to the support downloads path, so their
+        // source URLs use amd.com/en/support/downloads/drivers.html
+        // instead of the products path the 5800X entry uses. No code
+        // change was needed: the CPU normalizer already maps
+        // "AMD Ryzen 7 5700X" to "RYZEN 7 5700X", "AMD Ryzen 7 5700"
+        // to "RYZEN 7 5700" and "AMD Ryzen 5 5500" to "RYZEN 5 5500",
+        // and the Settings card shows the CPU count from the dataset,
+        // so it reads 103 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 5700X", out var ryzen75700X));
+        Assert.Equal("AMD", ryzen75700X.Vendor);
+        Assert.Equal(3.4, ryzen75700X.BaseGhz);
+        Assert.Equal(4.6, ryzen75700X.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/processors/ryzen/ryzen-5000-series/amd-ryzen-7-5700x.html", ryzen75700X.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 5700", out var ryzen75700));
+        Assert.Equal("AMD", ryzen75700.Vendor);
+        Assert.Equal(3.7, ryzen75700.BaseGhz);
+        Assert.Equal(4.6, ryzen75700.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/processors/ryzen/ryzen-5000-series/amd-ryzen-7-5700.html", ryzen75700.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 5500", out var ryzen55500));
+        Assert.Equal("AMD", ryzen55500.Vendor);
+        Assert.Equal(3.6, ryzen55500.BaseGhz);
+        Assert.Equal(4.2, ryzen55500.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/processors/ryzen/ryzen-5000-series/amd-ryzen-5-5500.html", ryzen55500.SourceUrl, StringComparison.Ordinal);
     }
 }
