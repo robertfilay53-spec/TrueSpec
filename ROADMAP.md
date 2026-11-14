@@ -954,6 +954,82 @@ data already existed; only the band rule and wording are new.
   `git diff a0b0326 9925866 -- '*csproj'`), so the result carries
   forward.
 
+## v2.1.12 — shipped
+
+- **Localisation, phase 6: the History page in German (Beyond
+  v2.0, item 4).** Phases 1-5 translated the rail, the Settings page,
+  the Core diagnostic strings, the component detail pages and the
+  Overview page; this version translates the next complete surface,
+  the History page (`HistoryViewModel` + `HistoryView` + its row and
+  winner view models) — the trend cards, the saved-scans table, the
+  two-machine comparison and the value comparison, plus the CPU
+  temperature log. The catalogue grows by 91 keys (169 to 260): the
+  headings, the machine picker, the trend-card titles, the sensor-log
+  sentences, the table headers and remove buttons, the compare and
+  value labels, and the status lines (loading, empty, one-scan and
+  count, read failures, remove confirmation and removed-scan counts,
+  comparison prompts and results, value prompts and the honesty
+  note), each in both packs, pinned by the existing coverage test (a
+  pack that misses a key fails). Templates carry their dynamic values
+  through `StringLocalizer.GetFormatted` with the invariant culture,
+  so a machine name, a scan date, a sample count and an exception
+  message keep the app's existing formatting inside a German
+  sentence. The range labels reuse the table header keys (Score,
+  Battery health, Storage wear) instead of a second copy of the same
+  words, and the removed-scan message uses two keys (RemovedOne /
+  RemovedMany) instead of the old inline plural hack. The view model
+  takes an optional language code at the end of its constructor, exposes
+  every chrome string as a localized property, and re-renders in place
+  through `ApplyLanguage` (the table rows are rebuilt from the stored
+  trend, the comparison and value rows and the winner rows from the
+  stored comparison, the range texts are re-derived, and the sensor
+  log is re-read); the transient status lines are re-derived from
+  small stored fields (which message is showing, its scan date, its
+  error), so a language switch re-resolves an armed remove
+  confirmation instead of silently resetting it. The shell passes its
+  language at the History construction site and re-languages the
+  cached page when settings are applied, next to the existing sensor
+  settings call. Deliberately NOT translated in this version, and
+  named on the page's own terms in the docs: the trend summary and
+  the battery / storage / driver-age forecast texts are Core-owned
+  wordings produced by the trend analyzer with no language parameter
+  yet; the value verdict sentence and its no-verdict reason are
+  Core-owned wordings produced by ValueComparer (the asking-price row
+  label is its Core-owned label too); and the table's cell fallbacks
+  ("Not measurable" / "Not reported") are measured-data fallbacks
+  that the CSV export agrees with row for row, so the CSV contract
+  stays English — translating them is a later slice. The language
+  card's note now says Navigation, Settings, component detail pages,
+  the Overview page and the History page are translated. Tests:
+  `LanguagePackTests` (German History terms pinned, LanguageNote
+  updated) and `HistoryLocalizationViewModelTests` (English default,
+  German-seeded whole page, switching both ways, unknown-language
+  fallback, data stays English, status and range lines in both
+  languages, remove-button text and armed confirmation across a
+  switch, removed-scan messages in both languages, comparison rows +
+  value rows + winner rows in German with the verdict staying
+  English, value-compare-first prompt, sensor-log statuses in German
+  and across a switch).
+- **Dependency audit re-attested for v2.1.11.** `SECURITY.md` said
+  v2.1.10; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.10 and v2.1.11 (only the `<Version>`
+  bump and test-file exclusions — zero `PackageReference` changes in
+  `git diff 9925866 8413746 -- '*csproj'`), so the result carries
+  forward.
+- **`.gitignore` guard for the local-only files.** The v2.1.11 bump
+  nearly committed 68 local-only files (`WORLD-CLASS-PLAN.md`,
+  `LAPTOP-TEST-RESULTS-2026-11-12.md`,
+  `REVIEW-NEXT-STEPS-2026-11-12.md`, `V1.4.1-FIX-BRIEF.md`,
+  `logo-options/`, `release-artifacts/`) when a `git add -A` swept
+  them into the bump commit; the push was killed in time and the
+  commit was redone with only the named bump files. The root
+  `.gitignore` now guards all six paths (verified: none of them is
+  tracked, so ignoring them is safe, and `git status` no longer shows
+  them as untracked). The rule stands: stage named files only, never
+  `git add -A` in this repo.
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed

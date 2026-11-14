@@ -100,7 +100,7 @@ public sealed class LanguagePackTests
         Assert.Equal("{0} Plug-ins gefunden.", german[AppStringKeys.PluginsSummaryMany]);
         Assert.Equal("Datenschutz", german[AppStringKeys.PrivacyTitle]);
         Assert.Equal(
-            "Navigation, Einstellungen, Komponentendetailseiten und die Übersichtsseite sind übersetzt. Andere Seiten sind noch auf Englisch und folgen in späteren Versionen.",
+            "Navigation, Einstellungen, Komponentendetailseiten, die Übersichtsseite und die Verlaufsseite sind übersetzt. Andere Seiten sind noch auf Englisch und folgen in späteren Versionen.",
             german[AppStringKeys.LanguageNote]);
     }
 
@@ -204,6 +204,141 @@ public sealed class LanguagePackTests
             StringLocalizer.GetFormatted(AppStringKeys.OverviewSensorLogOn, "de", @"C:\TrueSpec\sensor-log.csv"));
         Assert.Equal("Gewicht 2.5", StringLocalizer.GetFormatted(AppStringKeys.OverviewWeight, "de", "2.5"));
         Assert.Equal("+5 Pkt.", StringLocalizer.GetFormatted(AppStringKeys.OverviewContribution, "de", "5"));
+    }
+
+    [Fact]
+    public void GermanPack_HistoryPageTerms()
+    {
+        // Localisation, phase 6 (v2.1.12): the History page — the
+        // trend cards, the saved-scans table, the two-machine
+        // comparison and the value comparison, plus the CPU temperature
+        // log. Same pinning rule as the rail, Settings, Core, detail
+        // and Overview terms: changing one is a deliberate translation
+        // decision, not a typo fix. The data the page shows (machine
+        // names, trend summary and forecast texts, the value verdict
+        // sentence and its no-verdict reason, the table's cell
+        // fallbacks) is not in this catalogue; only the page chrome
+        // is. The range labels reuse the table header keys instead of
+        // a second copy of the same words.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("VERLAUF", german[AppStringKeys.HistoryEyebrow]);
+        Assert.Equal("Wie sich dieses Gerät im Laufe der Zeit verändert", german[AppStringKeys.HistoryTitle]);
+        Assert.Equal(
+            "Jeder Scan wird in einer lokalen Datenbank auf diesem Gerät gespeichert. TrueSpec zeigt den Verlauf von Gesamtpunktzahl, Akkugesundheit und Speicherverschleiß über diese Scans. Ein Wert, den ein Scan nicht gemeldet hat, ist eine Lücke, niemals eine Null.",
+            german[AppStringKeys.HistoryIntro]);
+        Assert.Equal("Gerät", german[AppStringKeys.HistoryMachineTitle]);
+        Assert.Equal("Gerät auswählen", german[AppStringKeys.HistoryPickMachine]);
+        Assert.Equal(
+            "Der Verlauf wird jeweils für ein Gerät angezeigt. Wählen Sie ein anderes Gerät, um dessen Verlauf zu sehen.",
+            german[AppStringKeys.HistoryMachineNote]);
+        Assert.Equal("WARNUNG ZUR AKKUGESUNDHEIT", german[AppStringKeys.HistoryBatteryAlertEyebrow]);
+        Assert.Equal("Gesamtpunktzahl", german[AppStringKeys.HistoryScoreTitle]);
+        Assert.Equal("Akkugesundheit", german[AppStringKeys.HistoryBatteryTitle]);
+        Assert.Equal("Speicherverschleiß", german[AppStringKeys.HistoryWearTitle]);
+        Assert.Equal("PROGNOSE", german[AppStringKeys.HistoryForecastEyebrow]);
+        Assert.Equal("CPU-Temperaturprotokoll", german[AppStringKeys.HistoryCpuLogTitle]);
+        Assert.Equal("Diagramm aktualisieren", german[AppStringKeys.HistoryRefreshChart]);
+        Assert.Equal(
+            "Die horizontale Achse ist die Zeit, nicht die Anzahl der Messwerte. Lücken in der Linie sind Messwerte, bei denen der CPU-Temperatursensor nichts gemeldet hat, oder Zeiträume, in denen die Protokollierung nicht lief (die App war geschlossen oder das Gerät im Ruhezustand). Die Linie verbindet niemals über eine Lücke hinweg. Die gestrichelte Linie ist Ihr Warnschwellenwert, sofern einer festgelegt ist. Das Protokoll ist eine lokale CSV-Datei unter %LocalAppData%\\TrueSpec; nichts wird hochgeladen.",
+            german[AppStringKeys.HistoryChartCaption]);
+        Assert.Equal("TREIBERALTER", german[AppStringKeys.HistoryDriverAgeEyebrow]);
+        Assert.Equal("Gespeicherte Scans", german[AppStringKeys.HistorySavedScansTitle]);
+        Assert.Equal("Verlauf als CSV exportieren", german[AppStringKeys.HistoryExportCsv]);
+        Assert.Equal(
+            "Älteste zuerst. Ein Strich bedeutet, dass dieser Scan den Wert nicht gemeldet hat. „Entfernen\" löscht genau diesen einen Scan aus diesem Datenordner — der erste Klick fragt nach, der zweite löscht.",
+            german[AppStringKeys.HistoryTableNote]);
+        Assert.Equal("Gescannt", german[AppStringKeys.HistoryHeaderScanned]);
+        Assert.Equal("Punktzahl", german[AppStringKeys.HistoryHeaderScore]);
+        Assert.Equal("Zyklen", german[AppStringKeys.HistoryHeaderCycles]);
+        Assert.Equal("Betriebsstunden", german[AppStringKeys.HistoryHeaderPowerOnHours]);
+        Assert.Equal("Entfernen", german[AppStringKeys.HistoryRemoveButton]);
+        Assert.Equal("Entfernen bestätigen", german[AppStringKeys.HistoryConfirmRemoveButton]);
+        Assert.Equal("Zwei Geräte vergleichen", german[AppStringKeys.HistoryCompareTitle]);
+        Assert.Equal("Unterschiedliche Geräte — nebeneinander angezeigt, niemals in einem Verlauf vermischt.", german[AppStringKeys.HistoryCompareNote]);
+        Assert.Equal("Gerät A", german[AppStringKeys.HistoryMachineA]);
+        Assert.Equal("Gerät B", german[AppStringKeys.HistoryMachineB]);
+        Assert.Equal("Vergleichen", german[AppStringKeys.HistoryCompareButton]);
+        Assert.Equal("Welches ist der bessere Kauf?", german[AppStringKeys.HistoryValueTitle]);
+        Assert.Equal(
+            "Geben Sie den Angebotspreis jedes Verkäufers ein. Der Preis stammt von Ihnen, ist nicht gemessen und wird nur für diesen Vergleich verwendet. Er wird niemals mit dem Scan gespeichert.",
+            german[AppStringKeys.HistoryValueIntro]);
+        Assert.Equal("Angebotspreis (Sie geben ihn ein, nicht gemessen)", german[AppStringKeys.HistoryAskingPriceLabel]);
+        Assert.Equal("Zum Beispiel 500", german[AppStringKeys.HistoryPriceExample]);
+        Assert.Equal("Wert vergleichen", german[AppStringKeys.HistoryCompareValueButton]);
+        Assert.Equal("Sieger pro Komponente (nur gemessene Gesundheit)", german[AppStringKeys.HistoryWinnersTitle]);
+        Assert.Equal("Wie sich {0} im Laufe der Zeit verändert", german[AppStringKeys.HistorySubtitleTemplate]);
+        Assert.Equal("Scanverlauf wird geladen …", german[AppStringKeys.HistoryLoading]);
+        Assert.Equal("Der Scanverlauf ist auf diesem Gerät nicht verfügbar, es gibt also noch nichts zu zeigen.", german[AppStringKeys.HistoryUnavailable]);
+        Assert.Equal("Noch keine gespeicherten Scans. Führen Sie einen Scan aus (aktualisieren) und kommen Sie zurück: Jeder Scan wird im lokalen Verlauf gespeichert.", german[AppStringKeys.HistoryNoScans]);
+        Assert.Equal("Bisher ein Scan gespeichert. Führen Sie einen weiteren Scan aus (aktualisieren) und kommen Sie für den Verlauf zurück.", german[AppStringKeys.HistoryOneScan]);
+        Assert.Equal("{0} Scans im Verlauf, älteste zuerst.", german[AppStringKeys.HistoryScansCount]);
+        Assert.Equal("Der Verlauf konnte nicht gelesen werden: {0}", german[AppStringKeys.HistoryReadFailed]);
+        Assert.Equal("Entfernen ist nicht verfügbar: Der Scanverlauf ist auf diesem Gerät nicht verfügbar.", german[AppStringKeys.HistoryRemoveUnavailable]);
+        Assert.Equal("Den Scan vom {0} entfernen? Dadurch wird genau dieser eine gespeicherte Scan aus diesem Datenordner gelöscht. Klicken Sie auf „Entfernen bestätigen\", um zu löschen — bis dahin wird nichts gelöscht.", german[AppStringKeys.HistoryRemoveConfirm]);
+        Assert.Equal("Nichts zu entfernen: Dieser Scan war bereits weg.", german[AppStringKeys.HistoryRemoveGone]);
+        Assert.Equal("Den Scan vom {0} entfernt. Es sind keine gespeicherten Scans mehr vorhanden.", german[AppStringKeys.HistoryRemovedNone]);
+        Assert.Equal("Den Scan vom {0} entfernt. Es verbleibt 1 Scan.", german[AppStringKeys.HistoryRemovedOne]);
+        Assert.Equal("Den Scan vom {0} entfernt. Es verbleiben {1} Scans.", german[AppStringKeys.HistoryRemovedMany]);
+        Assert.Equal("Entfernen fehlgeschlagen: {0}", german[AppStringKeys.HistoryRemoveFailed]);
+        Assert.Equal("Der Scanverlauf ist auf diesem Gerät nicht verfügbar, es gibt also noch nichts zu vergleichen.", german[AppStringKeys.HistoryCompareUnavailable]);
+        Assert.Equal("Bisher ist nur ein Gerät im Verlauf. Führen Sie einen Scan auf einem zweiten Gerät aus, dann erscheint dessen Verlauf hier zum Vergleich.", german[AppStringKeys.HistoryOnlyOneMachine]);
+        Assert.Equal("Wählen Sie zwei unterschiedliche Geräte.", german[AppStringKeys.HistoryPickDifferent]);
+        Assert.Equal("Wählen Sie zwei Geräte und vergleichen Sie sie. Unterschiedliche Geräte werden nebeneinander angezeigt, niemals in einem Verlauf vermischt.", german[AppStringKeys.HistoryPickTwoCompare]);
+        Assert.Equal("Wählen Sie zwei Geräte zum Vergleichen.", german[AppStringKeys.HistoryPickTwo]);
+        Assert.Equal("Geräte werden verglichen …", german[AppStringKeys.HistoryComparing]);
+        Assert.Equal("{0} mit {1} verglichen. Unterschiedliche Geräte werden nebeneinander angezeigt, niemals in einem Verlauf vermischt.", german[AppStringKeys.HistoryCompared]);
+        Assert.Equal("Vergleich fehlgeschlagen: {0}", german[AppStringKeys.HistoryCompareFailed]);
+        Assert.Equal("Geben Sie den Angebotspreis jedes Verkäufers ein, um den Wert zu vergleichen.", german[AppStringKeys.HistoryValuePrompt]);
+        Assert.Equal("Vergleichen Sie zuerst zwei Geräte und geben Sie dann die Angebotspreise ein.", german[AppStringKeys.HistoryValueCompareFirst]);
+        Assert.Equal("Geben Sie für jedes Gerät einen Angebotspreis über null ein (nur Zahlen, zum Beispiel 500). Der Preis stammt von Ihnen, ist nicht gemessen.", german[AppStringKeys.HistoryValueBadPrice]);
+        Assert.Equal("Die Preise stammen von Ihnen, sind nicht gemessen. Die Pro-Dollar-Zahl ist eine Rechnung aus der gemessenen Punktzahl und dem von Ihnen eingegebenen Preis, gekennzeichnet als „geschätzt\". Es werden keine Marktpreisdaten verwendet.", german[AppStringKeys.HistoryValueHonestyNote]);
+        Assert.Equal("Scans im Verlauf", german[AppStringKeys.HistoryRowScans]);
+        Assert.Equal("Erster Scan", german[AppStringKeys.HistoryRowFirstScan]);
+        Assert.Equal("Letzter Scan", german[AppStringKeys.HistoryRowLastScan]);
+        Assert.Equal("Neueste Punktzahl", german[AppStringKeys.HistoryRowLatestScore]);
+        Assert.Equal("Neueste Akkugesundheit", german[AppStringKeys.HistoryRowLatestBattery]);
+        Assert.Equal("Neuester Speicherverschleiß", german[AppStringKeys.HistoryRowLatestWear]);
+        Assert.Equal("Neuestes ältestes Treiberdatum", german[AppStringKeys.HistoryRowLatestDriver]);
+        Assert.Equal("Letzte Updateinstallation", german[AppStringKeys.HistoryRowLastUpdate]);
+        Assert.Equal("Punktzahl pro 1 $ (geschätzt)", german[AppStringKeys.HistoryValueScorePerDollar]);
+        Assert.Equal("Gerät A gewinnt ({0} vs {1})", german[AppStringKeys.HistoryWinnerA]);
+        Assert.Equal("Gerät B gewinnt ({0} vs {1})", german[AppStringKeys.HistoryWinnerB]);
+        Assert.Equal("Gleichstand ({0} vs {1})", german[AppStringKeys.HistoryWinnerTie]);
+        Assert.Equal("Auf einem oder beiden Geräten nicht messbar", german[AppStringKeys.HistoryWinnerNotMeasurable]);
+        Assert.Equal("{0}: in keinem gespeicherten Scan gemeldet.", german[AppStringKeys.HistoryRangeNone]);
+        Assert.Equal("{0}: {1} (nur ein Scan).", german[AppStringKeys.HistoryRangeOne]);
+        Assert.Equal("{0}: {1} bis {2} über {3} Scans.", german[AppStringKeys.HistoryRangeMany]);
+        Assert.Equal("Sensorprotokoll wird geladen …", german[AppStringKeys.HistoryLogLoading]);
+        Assert.Equal("Die Sensorprotokollierung ist aus. Schalten Sie sie in den Einstellungen ein, dann erscheint hier das CPU-Temperaturdiagramm.", german[AppStringKeys.HistoryLogOff]);
+        Assert.Equal("Noch keine Sensormesswerte aufgezeichnet. Lassen Sie TrueSpec laufen, dann erscheint hier das CPU-Temperaturdiagramm.", german[AppStringKeys.HistoryLogNoSamples]);
+        Assert.Equal("Das Protokoll dieses Geräts hat keinen CPU-Temperatursensor, es gibt also nichts zu zeichnen.", german[AppStringKeys.HistoryLogNoCpuSensor]);
+        Assert.Equal("In {0} Messwerten wurden keine Temperaturwerte aufgezeichnet: Die Hardware dieses Geräts meldet keinen CPU-Temperatursensor. Das ist bei Geräten zu erwarten, deren Sensor nicht offengelegt wird, es gibt also kein CPU-Temperaturdiagramm zu zeigen.", german[AppStringKeys.HistoryLogNoReadings]);
+        Assert.Equal("In {0} Messwerten wurde nur ein Temperaturwert aufgezeichnet, es gibt also nicht genug Daten für ein Diagramm.", german[AppStringKeys.HistoryLogOneReading]);
+        Assert.Equal("Die Temperaturwerte liegen zeitlich zu weit auseinander, um eine Linie zu zeichnen: Jeder Wert steht allein, weil die Protokollierung dazwischen nicht lief.", german[AppStringKeys.HistoryLogTooFarApart]);
+        Assert.Equal("CPU-Temperatur, {0} Messwerte von {1} bis {2}.", german[AppStringKeys.HistoryLogSummary]);
+        Assert.Equal("Die neuesten {0} von {1} Messwerten werden gezeigt, {2}.", german[AppStringKeys.HistoryLogSummaryNewest]);
+        Assert.Equal("{0} Messwerte, {1}.", german[AppStringKeys.HistoryLogSummaryAll]);
+        Assert.Equal("keine Lücken", german[AppStringKeys.HistoryLogGapNone]);
+        Assert.Equal("1 Lücke, in der der Sensor nichts gemeldet hat", german[AppStringKeys.HistoryLogGapOne]);
+        Assert.Equal("{0} Lücken, in denen der Sensor nichts gemeldet hat", german[AppStringKeys.HistoryLogGapMany]);
+        Assert.Equal("Das Sensorprotokoll konnte nicht gelesen werden: {0}", german[AppStringKeys.HistoryLogReadFailed]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "Wie sich Test Laptop im Laufe der Zeit verändert",
+            StringLocalizer.GetFormatted(AppStringKeys.HistorySubtitleTemplate, "de", "Test Laptop"));
+        Assert.Equal(
+            "2 Scans im Verlauf, älteste zuerst.",
+            StringLocalizer.GetFormatted(AppStringKeys.HistoryScansCount, "de", 2));
+        Assert.Equal(
+            "Den Scan vom 2026-11-10 09:00 entfernt. Es verbleiben 2 Scans.",
+            StringLocalizer.GetFormatted(AppStringKeys.HistoryRemovedMany, "de", "2026-11-10 09:00", 2));
+        Assert.Equal(
+            "Punktzahl: 90 bis 85 über 2 Scans.",
+            StringLocalizer.GetFormatted(AppStringKeys.HistoryRangeMany, "de", "Punktzahl", "90", "85", 2));
+        Assert.Equal(
+            "In 3 Messwerten wurden keine Temperaturwerte aufgezeichnet: Die Hardware dieses Geräts meldet keinen CPU-Temperatursensor. Das ist bei Geräten zu erwarten, deren Sensor nicht offengelegt wird, es gibt also kein CPU-Temperaturdiagramm zu zeigen.",
+            StringLocalizer.GetFormatted(AppStringKeys.HistoryLogNoReadings, "de", 3));
     }
 
     [Fact]

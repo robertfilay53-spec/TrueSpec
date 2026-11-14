@@ -532,6 +532,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 SensorLogWriter.DefaultFilePath(),
                 _settings.SensorLoggingEnabled,
                 _settings.CpuTemperatureThresholdC);
+            history.ApplyLanguage(_settings.LanguageCode);
         }
 
         // Cached component detail pages re-render in the new language in
@@ -962,7 +963,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: IsScanRunning, exportPdfCommand: ExportPdfCommand, exportCertificateCommand: ExportCertificateCommand, verifyMachineCommand: VerifyMachineCommand, dnaVerification: _lastDnaVerification, isVerifyingMachine: IsVerifyingMachine)),
             "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot, _dnaVerifier)),
             "fleet" => GetOrCreate("fleet", () => new FleetViewModel(_snapshotStore, ExportFleetCsvCommand, ExportMachineCsvAsync, ExportAllMachinesCsvAsync)),
-            "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand, SensorLogWriter.DefaultFilePath(), _settings.SensorLoggingEnabled, _settings.CpuTemperatureThresholdC)),
+            "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand, SensorLogWriter.DefaultFilePath(), _settings.SensorLoggingEnabled, _settings.CpuTemperatureThresholdC, languageCode: _settings.LanguageCode)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
             _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key, _settings.LanguageCode)),
         };

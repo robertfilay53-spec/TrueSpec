@@ -9,6 +9,7 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TrueSpec.Core.History;
+using TrueSpec.Core.Localization;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Sensors;
 using TrueSpec.Core.Storage;
@@ -22,6 +23,26 @@ namespace TrueSpec.App.ViewModels;
 /// in the table, never a zero. History is shown for one machine at a time:
 /// the picker switches the trend, and the compare card puts two machines
 /// side by side without ever mixing them into one trend line.
+///
+/// Localisation, phase 6 (v2.1.12): the page chrome renders in the
+/// current language — the headings, the machine picker, the trend-card
+/// titles, the sensor-log sentences, the saved-scans table headers and
+/// remove buttons, the compare and value sections, and the status
+/// lines — so the page follows the language the user picked in
+/// Settings, with no restart. The data the page shows stays English:
+/// machine names, the trend summary and the battery / storage /
+/// driver-age forecast texts are Core-owned wordings produced by the
+/// trend analyzer with no language parameter yet; the value verdict
+/// sentence and its no-verdict reason are Core-owned wordings produced
+/// by ValueComparer; and the table's cell fallbacks ("Not measurable" /
+/// "Not reported") are measured-data fallbacks that the CSV export
+/// agrees with row for row, so the CSV contract stays English.
+/// Transient status lines are re-derived from small stored fields
+/// (which message is showing, its scan date, its error), so a language
+/// switch re-resolves them instead of silently resetting them. The
+/// shell re-languages this long-lived page through
+/// <see cref="ApplyLanguage"/> when the user picks a language in
+/// Settings, the same in-place pattern the Overview page uses.
 /// </summary>
 public sealed partial class HistoryViewModel : ViewModelBase
 {
@@ -39,6 +60,8 @@ public sealed partial class HistoryViewModel : ViewModelBase
     private double? _cpuTemperatureThresholdC;
     private readonly TimeZoneInfo _displayTimeZone;
 
+    private string _languageCode;
+
     /// <summary>U9: the raw (verdict-free) comparison the value layer sits on top of. Null until two machines are compared.</summary>
     private MachineComparison? _comparison;
 
@@ -48,8 +71,70 @@ public sealed partial class HistoryViewModel : ViewModelBase
     /// <summary>U9: each machine's latest snapshot, for the per-component winners only. Never written to.</summary>
     private SystemSnapshot? _latestSnapshotB;
 
-    public HistoryViewModel(ISnapshotStore? store, SystemSnapshot current, ICommand? exportHistoryCsvCommand = null, string? sensorLogPath = null, bool sensorLoggingEnabled = true, double? cpuTemperatureThresholdC = null, TimeZoneInfo? displayTimeZone = null)
+    /// <summary>U9: the last value-comparison result, kept so ApplyLanguage can rebuild the value rows and winners in the new language.</summary>
+    private ValueComparisonResult? _lastValueResult;
+
+    /// <summary>Which transient status line is showing, so ApplyLanguage can re-resolve it instead of resetting it.</summary>
+    private HistoryStatusKind _statusKind = HistoryStatusKind.Loading;
+
+    /// <summary>The exception message of a read/remove failure status, or null when the current status carries none.</summary>
+    private string? _statusError;
+
+    /// <summary>The scan date of a remove-confirmation or removed-scan status, or null when the current status carries none.</summary>
+    private string? _statusScanDate;
+
+    /// <summary>The remaining scan count of a removed-scan status, or the scan count of a scans-count status.</summary>
+    private int _statusRemaining;
+
+    /// <summary>The machine names of the last successful comparison, so ApplyLanguage can re-resolve the compared sentence.</summary>
+    private string? _comparedMachineA;
+
+    /// <summary>The machine names of the last successful comparison, so ApplyLanguage can re-resolve the compared sentence.</summary>
+    private string? _comparedMachineB;
+
+    /// <summary>The exception message of a failed comparison, or null when no comparison failure is showing.</summary>
+    private string? _compareFailedMessage;
+
+    /// <summary>The exception message of a failed history load, or null when the load did not fail.</summary>
+    private string? _comparisonLoadError;
+
+    /// <summary>Which transient value status is showing, so ApplyLanguage can re-resolve it instead of resetting it.</summary>
+    private HistoryValueStatusKind _valueKind = HistoryValueStatusKind.Prompt;
+
+    /// <summary>The Core-owned no-verdict reason, shown verbatim when the value status is <see cref="HistoryValueStatusKind.NoVerdict"/>.</summary>
+    private string? _valueNoVerdictReason;
+
+    /// <summary>The transient status lines the History page can show. Stored so a language switch re-resolves the line instead of resetting it.</summary>
+    private enum HistoryStatusKind
     {
+        Loading,
+        Unavailable,
+        NoScans,
+        OneScan,
+        ScansCount,
+        ReadFailed,
+        RemoveUnavailable,
+        RemoveConfirm,
+        RemoveGone,
+        RemovedNone,
+        RemovedOne,
+        RemovedMany,
+        RemoveFailed,
+    }
+
+    /// <summary>The transient value statuses the compare-value section can show. Stored so a language switch re-resolves the line instead of resetting it.</summary>
+    private enum HistoryValueStatusKind
+    {
+        Prompt,
+        CompareFirst,
+        BadPrice,
+        HonestyNote,
+        NoVerdict,
+    }
+
+    public HistoryViewModel(ISnapshotStore? store, SystemSnapshot current, ICommand? exportHistoryCsvCommand = null, string? sensorLogPath = null, bool sensorLoggingEnabled = true, double? cpuTemperatureThresholdC = null, TimeZoneInfo? displayTimeZone = null, string? languageCode = null)
+    {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
         _store = store;
         _current = current;
         ExportHistoryCsvCommand = exportHistoryCsvCommand;
@@ -59,7 +144,10 @@ public sealed partial class HistoryViewModel : ViewModelBase
         _cpuTemperatureThresholdC = cpuTemperatureThresholdC;
         _displayTimeZone = displayTimeZone ?? TimeZoneInfo.Local;
         SensorLogThresholdC = cpuTemperatureThresholdC;
-        MachineSubtitleText = $"How {current.MachineName} changes over time";
+        SensorLogStatusText = StringLocalizer.Get(AppStringKeys.HistoryLogLoading, _languageCode);
+        ValueStatusText = ResolveValueStatusText();
+        MachineSubtitleText = StringLocalizer.GetFormatted(AppStringKeys.HistorySubtitleTemplate, _languageCode, current.MachineName);
+        SetStatus(HistoryStatusKind.Loading);
         _ = LoadAsync();
     }
 
@@ -95,6 +183,387 @@ public sealed partial class HistoryViewModel : ViewModelBase
     /// <summary>U9 per-component winners for the two compared machines.</summary>
     public ObservableCollection<ValueWinnerRowViewModel> ValueComponentWinners { get; } = new();
 
+    /// <summary>The page eyebrow, in the page language.</summary>
+    public string HistoryEyebrowText =>
+        StringLocalizer.Get(AppStringKeys.HistoryEyebrow, _languageCode);
+
+    /// <summary>The page title, in the page language.</summary>
+    public string HistoryTitleText =>
+        StringLocalizer.Get(AppStringKeys.HistoryTitle, _languageCode);
+
+    /// <summary>The page introduction, in the page language.</summary>
+    public string HistoryIntroText =>
+        StringLocalizer.Get(AppStringKeys.HistoryIntro, _languageCode);
+
+    /// <summary>The machine-picker card title, in the page language.</summary>
+    public string HistoryMachineTitleText =>
+        StringLocalizer.Get(AppStringKeys.HistoryMachineTitle, _languageCode);
+
+    /// <summary>The machine-picker placeholder, in the page language.</summary>
+    public string HistoryPickMachineText =>
+        StringLocalizer.Get(AppStringKeys.HistoryPickMachine, _languageCode);
+
+    /// <summary>The machine-picker note, in the page language.</summary>
+    public string HistoryMachineNoteText =>
+        StringLocalizer.Get(AppStringKeys.HistoryMachineNote, _languageCode);
+
+    /// <summary>The battery-alert card eyebrow, in the page language.</summary>
+    public string HistoryBatteryAlertEyebrowText =>
+        StringLocalizer.Get(AppStringKeys.HistoryBatteryAlertEyebrow, _languageCode);
+
+    /// <summary>The overall-score card title, in the page language.</summary>
+    public string HistoryScoreTitleText =>
+        StringLocalizer.Get(AppStringKeys.HistoryScoreTitle, _languageCode);
+
+    /// <summary>The battery-health card title, in the page language.</summary>
+    public string HistoryBatteryTitleText =>
+        StringLocalizer.Get(AppStringKeys.HistoryBatteryTitle, _languageCode);
+
+    /// <summary>The storage-wear card title, in the page language.</summary>
+    public string HistoryWearTitleText =>
+        StringLocalizer.Get(AppStringKeys.HistoryWearTitle, _languageCode);
+
+    /// <summary>The forecast eyebrow under the sparkline cards, in the page language.</summary>
+    public string HistoryForecastEyebrowText =>
+        StringLocalizer.Get(AppStringKeys.HistoryForecastEyebrow, _languageCode);
+
+    /// <summary>The CPU temperature log card title, in the page language.</summary>
+    public string HistoryCpuLogTitleText =>
+        StringLocalizer.Get(AppStringKeys.HistoryCpuLogTitle, _languageCode);
+
+    /// <summary>The Refresh chart button, in the page language.</summary>
+    public string HistoryRefreshChartText =>
+        StringLocalizer.Get(AppStringKeys.HistoryRefreshChart, _languageCode);
+
+    /// <summary>The caption under the sensor-log chart, in the page language.</summary>
+    public string HistoryChartCaptionText =>
+        StringLocalizer.Get(AppStringKeys.HistoryChartCaption, _languageCode);
+
+    /// <summary>The driver-age card eyebrow, in the page language.</summary>
+    public string HistoryDriverAgeEyebrowText =>
+        StringLocalizer.Get(AppStringKeys.HistoryDriverAgeEyebrow, _languageCode);
+
+    /// <summary>The saved-scans card title, in the page language.</summary>
+    public string HistorySavedScansTitleText =>
+        StringLocalizer.Get(AppStringKeys.HistorySavedScansTitle, _languageCode);
+
+    /// <summary>The Export history as CSV button, in the page language.</summary>
+    public string HistoryExportCsvText =>
+        StringLocalizer.Get(AppStringKeys.HistoryExportCsv, _languageCode);
+
+    /// <summary>The note under the saved-scans table, in the page language.</summary>
+    public string HistoryTableNoteText =>
+        StringLocalizer.Get(AppStringKeys.HistoryTableNote, _languageCode);
+
+    /// <summary>The Scanned table header, in the page language.</summary>
+    public string HistoryHeaderScannedText =>
+        StringLocalizer.Get(AppStringKeys.HistoryHeaderScanned, _languageCode);
+
+    /// <summary>The Score table header, in the page language.</summary>
+    public string HistoryHeaderScoreText =>
+        StringLocalizer.Get(AppStringKeys.HistoryHeaderScore, _languageCode);
+
+    /// <summary>The Cycles table header, in the page language.</summary>
+    public string HistoryHeaderCyclesText =>
+        StringLocalizer.Get(AppStringKeys.HistoryHeaderCycles, _languageCode);
+
+    /// <summary>The Battery health table header, in the page language (reuses the card title).</summary>
+    public string HistoryHeaderBatteryText =>
+        StringLocalizer.Get(AppStringKeys.HistoryBatteryTitle, _languageCode);
+
+    /// <summary>The Storage wear table header, in the page language (reuses the card title).</summary>
+    public string HistoryHeaderWearText =>
+        StringLocalizer.Get(AppStringKeys.HistoryWearTitle, _languageCode);
+
+    /// <summary>The Power-on hours table header, in the page language.</summary>
+    public string HistoryHeaderPowerOnHoursText =>
+        StringLocalizer.Get(AppStringKeys.HistoryHeaderPowerOnHours, _languageCode);
+
+    /// <summary>The compare card title, in the page language.</summary>
+    public string HistoryCompareTitleText =>
+        StringLocalizer.Get(AppStringKeys.HistoryCompareTitle, _languageCode);
+
+    /// <summary>The compare card note, in the page language.</summary>
+    public string HistoryCompareNoteText =>
+        StringLocalizer.Get(AppStringKeys.HistoryCompareNote, _languageCode);
+
+    /// <summary>The Machine A picker label, in the page language.</summary>
+    public string HistoryMachineAText =>
+        StringLocalizer.Get(AppStringKeys.HistoryMachineA, _languageCode);
+
+    /// <summary>The Machine B picker label, in the page language.</summary>
+    public string HistoryMachineBText =>
+        StringLocalizer.Get(AppStringKeys.HistoryMachineB, _languageCode);
+
+    /// <summary>The Compare button, in the page language.</summary>
+    public string HistoryCompareButtonText =>
+        StringLocalizer.Get(AppStringKeys.HistoryCompareButton, _languageCode);
+
+    /// <summary>The value section title, in the page language.</summary>
+    public string HistoryValueTitleText =>
+        StringLocalizer.Get(AppStringKeys.HistoryValueTitle, _languageCode);
+
+    /// <summary>The value section introduction, in the page language.</summary>
+    public string HistoryValueIntroText =>
+        StringLocalizer.Get(AppStringKeys.HistoryValueIntro, _languageCode);
+
+    /// <summary>The asking-price label above each price box, in the page language.</summary>
+    public string HistoryAskingPriceLabelText =>
+        StringLocalizer.Get(AppStringKeys.HistoryAskingPriceLabel, _languageCode);
+
+    /// <summary>The asking-price placeholder, in the page language.</summary>
+    public string HistoryPriceExampleText =>
+        StringLocalizer.Get(AppStringKeys.HistoryPriceExample, _languageCode);
+
+    /// <summary>The Compare value button, in the page language.</summary>
+    public string HistoryCompareValueButtonText =>
+        StringLocalizer.Get(AppStringKeys.HistoryCompareValueButton, _languageCode);
+
+    /// <summary>The per-component winners heading, in the page language.</summary>
+    public string HistoryWinnersTitleText =>
+        StringLocalizer.Get(AppStringKeys.HistoryWinnersTitle, _languageCode);
+
+    /// <summary>
+    /// Re-renders this page in the given language, in place: every
+    /// localized chrome property is re-resolved, the table rows are
+    /// rebuilt from the stored trend, the comparison and value rows
+    /// and the winner rows are rebuilt from the stored comparison,
+    /// the range texts are re-derived, the transient status lines are
+    /// re-resolved from their stored state, and the sensor-log texts
+    /// are re-read from the log file. Called by the shell when the
+    /// user picks a language in Settings; a page created after the
+    /// switch is already built in the new language by the constructor.
+    /// An unknown code falls back to English through the localizer,
+    /// never to a blank. Measured data (trend values, forecast texts,
+    /// verdict sentence, cell fallbacks) is untouched: it is rebuilt
+    /// from the same trend and comparison, so it keeps its values.
+    /// </summary>
+    public void ApplyLanguage(string? languageCode)
+    {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        MachineSubtitleText = StringLocalizer.GetFormatted(AppStringKeys.HistorySubtitleTemplate, _languageCode, _displayedMachine ?? _current.MachineName);
+        if (CurrentTrend is not null)
+        {
+            RebuildRows(CurrentTrend);
+            RecomputeRangeTexts(CurrentTrend);
+        }
+
+        if (_comparison is not null)
+        {
+            RebuildComparisonRows(_comparison);
+        }
+
+        if (_lastValueResult is not null)
+        {
+            RebuildValueRows(_lastValueResult);
+        }
+
+        StatusMessage = ResolveStatusMessage();
+        ComparisonStatusText = ResolveComparisonStatusText();
+        ValueStatusText = ResolveValueStatusText();
+        LoadSensorLog();
+
+        OnPropertyChanged(nameof(HistoryEyebrowText));
+        OnPropertyChanged(nameof(HistoryTitleText));
+        OnPropertyChanged(nameof(HistoryIntroText));
+        OnPropertyChanged(nameof(HistoryMachineTitleText));
+        OnPropertyChanged(nameof(HistoryPickMachineText));
+        OnPropertyChanged(nameof(HistoryMachineNoteText));
+        OnPropertyChanged(nameof(HistoryBatteryAlertEyebrowText));
+        OnPropertyChanged(nameof(HistoryScoreTitleText));
+        OnPropertyChanged(nameof(HistoryBatteryTitleText));
+        OnPropertyChanged(nameof(HistoryWearTitleText));
+        OnPropertyChanged(nameof(HistoryForecastEyebrowText));
+        OnPropertyChanged(nameof(HistoryCpuLogTitleText));
+        OnPropertyChanged(nameof(HistoryRefreshChartText));
+        OnPropertyChanged(nameof(HistoryChartCaptionText));
+        OnPropertyChanged(nameof(HistoryDriverAgeEyebrowText));
+        OnPropertyChanged(nameof(HistorySavedScansTitleText));
+        OnPropertyChanged(nameof(HistoryExportCsvText));
+        OnPropertyChanged(nameof(HistoryTableNoteText));
+        OnPropertyChanged(nameof(HistoryHeaderScannedText));
+        OnPropertyChanged(nameof(HistoryHeaderScoreText));
+        OnPropertyChanged(nameof(HistoryHeaderCyclesText));
+        OnPropertyChanged(nameof(HistoryHeaderBatteryText));
+        OnPropertyChanged(nameof(HistoryHeaderWearText));
+        OnPropertyChanged(nameof(HistoryHeaderPowerOnHoursText));
+        OnPropertyChanged(nameof(HistoryCompareTitleText));
+        OnPropertyChanged(nameof(HistoryCompareNoteText));
+        OnPropertyChanged(nameof(HistoryMachineAText));
+        OnPropertyChanged(nameof(HistoryMachineBText));
+        OnPropertyChanged(nameof(HistoryCompareButtonText));
+        OnPropertyChanged(nameof(HistoryValueTitleText));
+        OnPropertyChanged(nameof(HistoryValueIntroText));
+        OnPropertyChanged(nameof(HistoryAskingPriceLabelText));
+        OnPropertyChanged(nameof(HistoryPriceExampleText));
+        OnPropertyChanged(nameof(HistoryCompareValueButtonText));
+        OnPropertyChanged(nameof(HistoryWinnersTitleText));
+    }
+
+    /// <summary>Records which status line is showing and renders it in the page language.</summary>
+    private void SetStatus(HistoryStatusKind kind, string? error = null, string? scanDate = null, int remaining = 0)
+    {
+        _statusKind = kind;
+        _statusError = error;
+        _statusScanDate = scanDate;
+        _statusRemaining = remaining;
+        StatusMessage = ResolveStatusMessage();
+    }
+
+    /// <summary>Resolves the stored status kind to its sentence in the page language.</summary>
+    private string ResolveStatusMessage() => _statusKind switch
+    {
+        HistoryStatusKind.Loading => StringLocalizer.Get(AppStringKeys.HistoryLoading, _languageCode),
+        HistoryStatusKind.Unavailable => StringLocalizer.Get(AppStringKeys.HistoryUnavailable, _languageCode),
+        HistoryStatusKind.NoScans => StringLocalizer.Get(AppStringKeys.HistoryNoScans, _languageCode),
+        HistoryStatusKind.OneScan => StringLocalizer.Get(AppStringKeys.HistoryOneScan, _languageCode),
+        HistoryStatusKind.ScansCount => StringLocalizer.GetFormatted(
+            AppStringKeys.HistoryScansCount,
+            _languageCode,
+            (CurrentTrend?.SnapshotCount ?? _statusRemaining).ToString(CultureInfo.InvariantCulture)),
+        HistoryStatusKind.ReadFailed => StringLocalizer.GetFormatted(AppStringKeys.HistoryReadFailed, _languageCode, _statusError ?? string.Empty),
+        HistoryStatusKind.RemoveUnavailable => StringLocalizer.Get(AppStringKeys.HistoryRemoveUnavailable, _languageCode),
+        HistoryStatusKind.RemoveConfirm => StringLocalizer.GetFormatted(AppStringKeys.HistoryRemoveConfirm, _languageCode, _statusScanDate ?? string.Empty),
+        HistoryStatusKind.RemoveGone => StringLocalizer.Get(AppStringKeys.HistoryRemoveGone, _languageCode),
+        HistoryStatusKind.RemovedNone => StringLocalizer.GetFormatted(AppStringKeys.HistoryRemovedNone, _languageCode, _statusScanDate ?? string.Empty),
+        HistoryStatusKind.RemovedOne => StringLocalizer.GetFormatted(AppStringKeys.HistoryRemovedOne, _languageCode, _statusScanDate ?? string.Empty),
+        HistoryStatusKind.RemovedMany => StringLocalizer.GetFormatted(AppStringKeys.HistoryRemovedMany, _languageCode, _statusScanDate ?? string.Empty, _statusRemaining),
+        HistoryStatusKind.RemoveFailed => StringLocalizer.GetFormatted(AppStringKeys.HistoryRemoveFailed, _languageCode, _statusError ?? string.Empty),
+        _ => string.Empty,
+    };
+
+    /// <summary>
+    /// Resolves the comparison status line from the current state in
+    /// the page language. The precedence mirrors the old
+    /// UpdateCompareState: a failed load or comparison and the
+    /// comparing state win first, then the one-machine and
+    /// same-machine guards, then the compared sentence, then the
+    /// pick-two prompts.
+    /// </summary>
+    private string ResolveComparisonStatusText()
+    {
+        if (_store is null)
+        {
+            return StringLocalizer.Get(AppStringKeys.HistoryCompareUnavailable, _languageCode);
+        }
+
+        if (_comparisonLoadError is not null)
+        {
+            return StringLocalizer.GetFormatted(AppStringKeys.HistoryReadFailed, _languageCode, _comparisonLoadError);
+        }
+
+        if (IsComparing)
+        {
+            return StringLocalizer.Get(AppStringKeys.HistoryComparing, _languageCode);
+        }
+
+        if (_compareFailedMessage is not null)
+        {
+            return StringLocalizer.GetFormatted(AppStringKeys.HistoryCompareFailed, _languageCode, _compareFailedMessage);
+        }
+
+        if (!IsLoading && MachineNames.Count < 2)
+        {
+            return StringLocalizer.Get(AppStringKeys.HistoryOnlyOneMachine, _languageCode);
+        }
+
+        if (CompareMachineA is not null && CompareMachineB is not null
+            && string.Equals(CompareMachineA, CompareMachineB, StringComparison.OrdinalIgnoreCase))
+        {
+            return StringLocalizer.Get(AppStringKeys.HistoryPickDifferent, _languageCode);
+        }
+
+        if (HasMachineComparison && _comparedMachineA is not null && _comparedMachineB is not null)
+        {
+            return StringLocalizer.GetFormatted(AppStringKeys.HistoryCompared, _languageCode, _comparedMachineA, _comparedMachineB);
+        }
+
+        if (CompareMachineA is not null && CompareMachineB is not null)
+        {
+            return StringLocalizer.Get(AppStringKeys.HistoryPickTwoCompare, _languageCode);
+        }
+
+        if (!IsLoading && (CompareMachineA is null || CompareMachineB is null))
+        {
+            return StringLocalizer.Get(AppStringKeys.HistoryPickTwo, _languageCode);
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>Resolves the stored value status kind to its sentence in the page language.</summary>
+    private string ResolveValueStatusText() => _valueKind switch
+    {
+        HistoryValueStatusKind.Prompt => StringLocalizer.Get(AppStringKeys.HistoryValuePrompt, _languageCode),
+        HistoryValueStatusKind.CompareFirst => StringLocalizer.Get(AppStringKeys.HistoryValueCompareFirst, _languageCode),
+        HistoryValueStatusKind.BadPrice => StringLocalizer.Get(AppStringKeys.HistoryValueBadPrice, _languageCode),
+        HistoryValueStatusKind.HonestyNote => StringLocalizer.Get(AppStringKeys.HistoryValueHonestyNote, _languageCode),
+        // Core-owned wording (ValueComparer): shown verbatim, never translated.
+        HistoryValueStatusKind.NoVerdict => _valueNoVerdictReason ?? string.Empty,
+        _ => string.Empty,
+    };
+
+    /// <summary>Rebuilds the saved-scans table rows from a trend, in the page language.</summary>
+    private void RebuildRows(HistoryTrend trend)
+    {
+        Rows.Clear();
+        for (var i = 0; i < trend.ScorePoints.Count; i++)
+        {
+            Rows.Add(new HistoryRowViewModel(
+                trend.SnapshotIds[i],
+                trend.ScorePoints[i].CapturedAt,
+                trend.ScorePoints[i].Value,
+                trend.BatteryHealthPoints[i].Value,
+                trend.BatteryCyclePoints[i].Value,
+                trend.StorageWearPoints[i].Value,
+                trend.StoragePowerOnHoursPoints[i].Value,
+                RemoveScanCommand,
+                _languageCode));
+        }
+    }
+
+    /// <summary>Re-derives the three range lines under the sparkline cards from a trend, in the page language.</summary>
+    private void RecomputeRangeTexts(HistoryTrend trend)
+    {
+        ScoreRangeText = RangeText(StringLocalizer.Get(AppStringKeys.HistoryHeaderScore, _languageCode), trend.ScorePoints, value => value.ToString("0.#", CultureInfo.InvariantCulture));
+        BatteryRangeText = RangeText(StringLocalizer.Get(AppStringKeys.HistoryBatteryTitle, _languageCode), trend.BatteryHealthPoints, value => string.Create(CultureInfo.InvariantCulture, $"{value:0.#}%"));
+        WearRangeText = RangeText(StringLocalizer.Get(AppStringKeys.HistoryWearTitle, _languageCode), trend.StorageWearPoints, value => string.Create(CultureInfo.InvariantCulture, $"{value:0.#}%"));
+    }
+
+    /// <summary>Rebuilds the side-by-side comparison rows from a comparison, in the page language.</summary>
+    private void RebuildComparisonRows(MachineComparison comparison)
+    {
+        ComparisonRows.Clear();
+        ComparisonRows.Add(new MachineComparisonRowViewModel(StringLocalizer.Get(AppStringKeys.HistoryRowScans, _languageCode), ScanCountText(comparison.MachineA), ScanCountText(comparison.MachineB)));
+        ComparisonRows.Add(new MachineComparisonRowViewModel(StringLocalizer.Get(AppStringKeys.HistoryRowFirstScan, _languageCode), DateText(comparison.MachineA.FirstScan), DateText(comparison.MachineB.FirstScan)));
+        ComparisonRows.Add(new MachineComparisonRowViewModel(StringLocalizer.Get(AppStringKeys.HistoryRowLastScan, _languageCode), DateText(comparison.MachineA.LastScan), DateText(comparison.MachineB.LastScan)));
+        ComparisonRows.Add(new MachineComparisonRowViewModel(StringLocalizer.Get(AppStringKeys.HistoryRowLatestScore, _languageCode), ScoreText(comparison.MachineA.LatestScore), ScoreText(comparison.MachineB.LatestScore)));
+        ComparisonRows.Add(new MachineComparisonRowViewModel(StringLocalizer.Get(AppStringKeys.HistoryRowLatestBattery, _languageCode), PercentText(comparison.MachineA.LatestBatteryHealth), PercentText(comparison.MachineB.LatestBatteryHealth)));
+        ComparisonRows.Add(new MachineComparisonRowViewModel(StringLocalizer.Get(AppStringKeys.HistoryRowLatestWear, _languageCode), PercentText(comparison.MachineA.LatestStorageWear), PercentText(comparison.MachineB.LatestStorageWear)));
+        ComparisonRows.Add(new MachineComparisonRowViewModel(StringLocalizer.Get(AppStringKeys.HistoryRowLatestDriver, _languageCode), DateText(comparison.MachineA.LatestOldestDriverDate), DateText(comparison.MachineB.LatestOldestDriverDate)));
+        ComparisonRows.Add(new MachineComparisonRowViewModel(StringLocalizer.Get(AppStringKeys.HistoryRowLastUpdate, _languageCode), DateText(comparison.MachineA.LastUpdateInstall), DateText(comparison.MachineB.LastUpdateInstall)));
+    }
+
+    /// <summary>Rebuilds the value rows and per-component winners from a value result, in the page language.</summary>
+    private void RebuildValueRows(ValueComparisonResult result)
+    {
+        ValueRows.Clear();
+        ValueRows.Add(new MachineComparisonRowViewModel(
+            ValueComparer.AskingPriceLabel,
+            PriceText(result.MachineA.AskingPrice, result.MachineA.CurrencySymbol),
+            PriceText(result.MachineB.AskingPrice, result.MachineB.CurrencySymbol)));
+        ValueRows.Add(new MachineComparisonRowViewModel(
+            StringLocalizer.Get(AppStringKeys.HistoryValueScorePerDollar, _languageCode),
+            PerCurrencyText(result.ScorePerCurrencyA),
+            PerCurrencyText(result.ScorePerCurrencyB)));
+
+        ValueComponentWinners.Clear();
+        foreach (var winner in result.ComponentWinners)
+        {
+            ValueComponentWinners.Add(new ValueWinnerRowViewModel(winner, _languageCode));
+        }
+    }
+
     /// <summary>
     /// CPU temperature chart segments from the sensor log, oldest first.
     /// Positions are fractions of the measured time span (<see
@@ -116,7 +585,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
     public partial string SensorLogSummaryText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string SensorLogStatusText { get; set; } = "Loading sensor log...";
+    public partial string SensorLogStatusText { get; set; } = string.Empty;
 
     /// <summary>
     /// Applies new sensor-log settings live (the shell calls this when the
@@ -149,13 +618,13 @@ public sealed partial class HistoryViewModel : ViewModelBase
 
         if (!_sensorLoggingEnabled)
         {
-            SensorLogStatusText = "Sensor logging is off. Turn it on in Settings and the CPU temperature chart will appear here.";
+            SensorLogStatusText = StringLocalizer.Get(AppStringKeys.HistoryLogOff, _languageCode);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(_sensorLogPath) || !File.Exists(_sensorLogPath))
         {
-            SensorLogStatusText = "No sensor samples recorded yet. Leave TrueSpec running and the CPU temperature chart will appear here.";
+            SensorLogStatusText = StringLocalizer.Get(AppStringKeys.HistoryLogNoSamples, _languageCode);
             return;
         }
 
@@ -165,14 +634,14 @@ public sealed partial class HistoryViewModel : ViewModelBase
             var column = SensorLogReader.FindCpuTemperatureColumn(columns);
             if (column is null)
             {
-                SensorLogStatusText = "This machine's log has no CPU temperature sensor, so there is nothing to chart.";
+                SensorLogStatusText = StringLocalizer.Get(AppStringKeys.HistoryLogNoCpuSensor, _languageCode);
                 return;
             }
 
             var series = SensorLogReader.Read(_sensorLogPath, column);
             if (series.RowCount == 0)
             {
-                SensorLogStatusText = "No sensor samples recorded yet. Leave TrueSpec running and the CPU temperature chart will appear here.";
+                SensorLogStatusText = StringLocalizer.Get(AppStringKeys.HistoryLogNoSamples, _languageCode);
                 return;
             }
 
@@ -193,13 +662,13 @@ public sealed partial class HistoryViewModel : ViewModelBase
             var measuredCount = points.Count(p => p.Value is not null);
             if (measuredCount == 0)
             {
-                SensorLogStatusText = $"No temperature readings were recorded in {series.RowCount} samples: this machine's hardware does not report a CPU temperature sensor. This is expected on machines whose sensor is not exposed, so there is no CPU temperature chart to show.";
+                SensorLogStatusText = StringLocalizer.GetFormatted(AppStringKeys.HistoryLogNoReadings, _languageCode, series.RowCount);
                 return;
             }
 
             if (measuredCount == 1)
             {
-                SensorLogStatusText = $"Only one temperature reading was recorded in {series.RowCount} samples, so there is not enough data to draw a chart.";
+                SensorLogStatusText = StringLocalizer.GetFormatted(AppStringKeys.HistoryLogOneReading, _languageCode, series.RowCount);
                 return;
             }
 
@@ -213,7 +682,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
                 // logging was not running, so no line can be drawn. An
                 // empty state, not a blank chart that looks broken.
                 CpuTemperatureLogSegments = null;
-                SensorLogStatusText = "The temperature readings are too far apart in time to draw a line: each reading stands alone because logging was not running between them.";
+                SensorLogStatusText = StringLocalizer.Get(AppStringKeys.HistoryLogTooFarApart, _languageCode);
                 return;
             }
 
@@ -227,23 +696,23 @@ public sealed partial class HistoryViewModel : ViewModelBase
                 ? SensorLogTime.FormatLocalTime(lastAt, _displayTimeZone)
                 : "?";
             var gapText = series.GapCount == 0
-                ? "no gaps"
+                ? StringLocalizer.Get(AppStringKeys.HistoryLogGapNone, _languageCode)
                 : series.GapCount == 1
-                    ? "1 gap where the sensor did not report"
-                    : $"{series.GapCount} gaps where the sensor did not report";
-            SensorLogStatusText = $"CPU temperature, {series.RowCount} samples from {first} to {last}.";
+                    ? StringLocalizer.Get(AppStringKeys.HistoryLogGapOne, _languageCode)
+                    : StringLocalizer.GetFormatted(AppStringKeys.HistoryLogGapMany, _languageCode, series.GapCount);
+            SensorLogStatusText = StringLocalizer.GetFormatted(AppStringKeys.HistoryLogSummary, _languageCode, series.RowCount, first, last);
             SensorLogSummaryText = points.Count < series.Points.Count
-                ? $"Showing the newest {points.Count} of {series.RowCount} samples, {gapText}."
-                : $"{series.RowCount} samples, {gapText}.";
+                ? StringLocalizer.GetFormatted(AppStringKeys.HistoryLogSummaryNewest, _languageCode, points.Count, series.RowCount, gapText)
+                : StringLocalizer.GetFormatted(AppStringKeys.HistoryLogSummaryAll, _languageCode, series.RowCount, gapText);
         }
         catch (Exception exception)
         {
-            SensorLogStatusText = $"Sensor log could not be read: {exception.Message}";
+            SensorLogStatusText = StringLocalizer.GetFormatted(AppStringKeys.HistoryLogReadFailed, _languageCode, exception.Message);
         }
     }
 
     [ObservableProperty]
-    public partial string StatusMessage { get; set; } = "Loading snapshot history...";
+    public partial string StatusMessage { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string SummaryText { get; set; } = string.Empty;
@@ -355,7 +824,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
 
     /// <summary>U9: prompt, parse error, missing-data reason, or the honesty note under the verdict.</summary>
     [ObservableProperty]
-    public partial string ValueStatusText { get; set; } = "Enter each seller's asking price to compare value.";
+    public partial string ValueStatusText { get; set; } = string.Empty;
 
     /// <summary>U9: the one-sentence value verdict, empty when there is none.</summary>
     [ObservableProperty]
@@ -408,23 +877,15 @@ public sealed partial class HistoryViewModel : ViewModelBase
             && CompareMachineB is not null
             && !string.Equals(CompareMachineA, CompareMachineB, StringComparison.OrdinalIgnoreCase);
 
-        if (!IsLoading && MachineNames.Count < 2)
-        {
-            ComparisonStatusText = "Only one machine is in history so far. Run a scan on a second machine and its history will appear here for comparison.";
-        }
-        else if (!IsLoading && CompareMachineA is not null && CompareMachineB is not null
-            && string.Equals(CompareMachineA, CompareMachineB, StringComparison.OrdinalIgnoreCase))
-        {
-            ComparisonStatusText = "Pick two different machines.";
-        }
+        ComparisonStatusText = ResolveComparisonStatusText();
     }
 
     private async Task LoadAsync()
     {
         if (_store is null)
         {
-            StatusMessage = "Snapshot history is unavailable on this machine, so there is nothing to trend yet.";
-            ComparisonStatusText = "Snapshot history is unavailable on this machine, so there is nothing to compare yet.";
+            SetStatus(HistoryStatusKind.Unavailable);
+            ComparisonStatusText = ResolveComparisonStatusText();
             return;
         }
 
@@ -463,17 +924,14 @@ public sealed partial class HistoryViewModel : ViewModelBase
             }
 
             UpdateCompareState();
-            if (CompareMachineA is not null && CompareMachineB is not null)
-            {
-                ComparisonStatusText = "Pick two machines and compare. Different machines are shown side by side, never mixed in one trend.";
-            }
 
             await LoadTrendForMachineAsync(_current.MachineName);
         }
         catch (Exception exception)
         {
-            StatusMessage = $"History could not be read: {exception.Message}";
-            ComparisonStatusText = $"History could not be read: {exception.Message}";
+            SetStatus(HistoryStatusKind.ReadFailed, error: exception.Message);
+            _comparisonLoadError = exception.Message;
+            ComparisonStatusText = ResolveComparisonStatusText();
         }
         finally
         {
@@ -498,8 +956,8 @@ public sealed partial class HistoryViewModel : ViewModelBase
         IsLoading = true;
         IsMachinePickerEnabled = false;
         _displayedMachine = machineName;
-        MachineSubtitleText = $"How {machineName} changes over time";
-        StatusMessage = "Loading snapshot history...";
+        MachineSubtitleText = StringLocalizer.GetFormatted(AppStringKeys.HistorySubtitleTemplate, _languageCode, machineName);
+        SetStatus(HistoryStatusKind.Loading);
         CurrentTrend = null;
         HasHistory = false;
         HasBatteryAlert = false;
@@ -530,7 +988,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
             CurrentTrend = trend;
             if (trend.SnapshotCount == 0)
             {
-                StatusMessage = "No saved scans yet. Run a scan (refresh) and come back: every scan is saved to local history.";
+                SetStatus(HistoryStatusKind.NoScans);
                 return;
             }
 
@@ -546,34 +1004,20 @@ public sealed partial class HistoryViewModel : ViewModelBase
             ScoreValues = MeasuredValues(trend.ScorePoints);
             BatteryHealthValues = MeasuredValues(trend.BatteryHealthPoints);
             StorageWearValues = MeasuredValues(trend.StorageWearPoints);
-            ScoreRangeText = RangeText("Score", trend.ScorePoints, value => value.ToString("0.#", CultureInfo.InvariantCulture));
-            BatteryRangeText = RangeText("Battery health", trend.BatteryHealthPoints, value => string.Create(CultureInfo.InvariantCulture, $"{value:0.#}%"));
-            WearRangeText = RangeText("Storage wear", trend.StorageWearPoints, value => string.Create(CultureInfo.InvariantCulture, $"{value:0.#}%"));
+            RecomputeRangeTexts(trend);
 
-            Rows.Clear();
-            for (var i = 0; i < trend.ScorePoints.Count; i++)
-            {
-                Rows.Add(new HistoryRowViewModel(
-                    trend.SnapshotIds[i],
-                    trend.ScorePoints[i].CapturedAt,
-                    trend.ScorePoints[i].Value,
-                    trend.BatteryHealthPoints[i].Value,
-                    trend.BatteryCyclePoints[i].Value,
-                    trend.StorageWearPoints[i].Value,
-                    trend.StoragePowerOnHoursPoints[i].Value,
-                    RemoveScanCommand));
-            }
+            RebuildRows(trend);
 
             HasHistory = true;
-            StatusMessage = trend.SnapshotCount < 2
-                ? "One scan saved so far. Run another scan (refresh) and come back for the trend."
-                : $"{trend.SnapshotCount} scans in history, oldest first.";
+            SetStatus(
+                trend.SnapshotCount < 2 ? HistoryStatusKind.OneScan : HistoryStatusKind.ScansCount,
+                remaining: trend.SnapshotCount);
         }
         catch (Exception exception)
         {
             if (generation == _loadGeneration)
             {
-                StatusMessage = $"History could not be read: {exception.Message}";
+                SetStatus(HistoryStatusKind.ReadFailed, error: exception.Message);
             }
         }
         finally
@@ -609,7 +1053,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
 
         if (_store is null)
         {
-            StatusMessage = "Remove is unavailable: snapshot history is unavailable on this machine.";
+            SetStatus(HistoryStatusKind.RemoveUnavailable);
             return;
         }
 
@@ -617,9 +1061,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
         if (!rowViewModel.IsRemoveArmed)
         {
             rowViewModel.IsRemoveArmed = true;
-            StatusMessage = string.Create(
-                CultureInfo.InvariantCulture,
-                $"Remove the scan from {scanDate}? This deletes that one saved scan from this data folder. Click 'Confirm remove' to delete — nothing is deleted until then.");
+            SetStatus(HistoryStatusKind.RemoveConfirm, scanDate: scanDate);
             return;
         }
 
@@ -628,20 +1070,29 @@ public sealed partial class HistoryViewModel : ViewModelBase
         {
             var removed = await _store.DeleteSnapshotAsync(rowViewModel.Id);
             await LoadTrendForMachineAsync(_displayedMachine ?? _current.MachineName);
-            if (!StatusMessage.StartsWith("History could not be read", StringComparison.Ordinal))
+            if (_statusKind != HistoryStatusKind.ReadFailed)
             {
-                StatusMessage = removed == 0
-                    ? "Nothing to remove: that scan was already gone."
-                    : CurrentTrend is null || CurrentTrend.SnapshotCount == 0
-                        ? string.Create(CultureInfo.InvariantCulture, $"Removed the scan from {scanDate}. No saved scans remain.")
-                        : string.Create(
-                            CultureInfo.InvariantCulture,
-                            $"Removed the scan from {scanDate}. {CurrentTrend.SnapshotCount} scan{(CurrentTrend.SnapshotCount == 1 ? string.Empty : "s")} remain{(CurrentTrend.SnapshotCount == 1 ? "s" : string.Empty)}.");
+                if (removed == 0)
+                {
+                    SetStatus(HistoryStatusKind.RemoveGone);
+                }
+                else if (CurrentTrend is null || CurrentTrend.SnapshotCount == 0)
+                {
+                    SetStatus(HistoryStatusKind.RemovedNone, scanDate: scanDate);
+                }
+                else if (CurrentTrend.SnapshotCount == 1)
+                {
+                    SetStatus(HistoryStatusKind.RemovedOne, scanDate: scanDate);
+                }
+                else
+                {
+                    SetStatus(HistoryStatusKind.RemovedMany, scanDate: scanDate, remaining: CurrentTrend.SnapshotCount);
+                }
             }
         }
         catch (Exception exception)
         {
-            StatusMessage = $"Remove failed: {exception.Message}";
+            SetStatus(HistoryStatusKind.RemoveFailed, error: exception.Message);
         }
         finally
         {
@@ -654,27 +1105,33 @@ public sealed partial class HistoryViewModel : ViewModelBase
     {
         if (_store is null)
         {
-            ComparisonStatusText = "Snapshot history is unavailable on this machine, so there is nothing to compare yet.";
+            ComparisonStatusText = ResolveComparisonStatusText();
             HasMachineComparison = false;
             return;
         }
 
         if (CompareMachineA is null || CompareMachineB is null)
         {
-            ComparisonStatusText = "Pick two machines to compare.";
+            _compareFailedMessage = null;
+            _comparedMachineA = null;
+            _comparedMachineB = null;
             HasMachineComparison = false;
+            ComparisonStatusText = StringLocalizer.Get(AppStringKeys.HistoryPickTwo, _languageCode);
             return;
         }
 
         if (string.Equals(CompareMachineA, CompareMachineB, StringComparison.OrdinalIgnoreCase))
         {
-            ComparisonStatusText = "Pick two different machines.";
+            _compareFailedMessage = null;
+            _comparedMachineA = null;
+            _comparedMachineB = null;
             HasMachineComparison = false;
+            ComparisonStatusText = StringLocalizer.Get(AppStringKeys.HistoryPickDifferent, _languageCode);
             return;
         }
 
         IsComparing = true;
-        ComparisonStatusText = "Comparing machines...";
+        ComparisonStatusText = ResolveComparisonStatusText();
         ResetValueComparison();
         try
         {
@@ -691,22 +1148,20 @@ public sealed partial class HistoryViewModel : ViewModelBase
 
             MachineAName = comparison.MachineA.MachineName;
             MachineBName = comparison.MachineB.MachineName;
-            ComparisonRows.Clear();
-            ComparisonRows.Add(new MachineComparisonRowViewModel("Scans in history", ScanCountText(comparison.MachineA), ScanCountText(comparison.MachineB)));
-            ComparisonRows.Add(new MachineComparisonRowViewModel("First scan", DateText(comparison.MachineA.FirstScan), DateText(comparison.MachineB.FirstScan)));
-            ComparisonRows.Add(new MachineComparisonRowViewModel("Last scan", DateText(comparison.MachineA.LastScan), DateText(comparison.MachineB.LastScan)));
-            ComparisonRows.Add(new MachineComparisonRowViewModel("Latest score", ScoreText(comparison.MachineA.LatestScore), ScoreText(comparison.MachineB.LatestScore)));
-            ComparisonRows.Add(new MachineComparisonRowViewModel("Latest battery health", PercentText(comparison.MachineA.LatestBatteryHealth), PercentText(comparison.MachineB.LatestBatteryHealth)));
-            ComparisonRows.Add(new MachineComparisonRowViewModel("Latest storage wear", PercentText(comparison.MachineA.LatestStorageWear), PercentText(comparison.MachineB.LatestStorageWear)));
-            ComparisonRows.Add(new MachineComparisonRowViewModel("Latest oldest driver date", DateText(comparison.MachineA.LatestOldestDriverDate), DateText(comparison.MachineB.LatestOldestDriverDate)));
-            ComparisonRows.Add(new MachineComparisonRowViewModel("Last update install", DateText(comparison.MachineA.LastUpdateInstall), DateText(comparison.MachineB.LastUpdateInstall)));
+            RebuildComparisonRows(comparison);
 
+            _comparedMachineA = comparison.MachineA.MachineName;
+            _comparedMachineB = comparison.MachineB.MachineName;
+            _compareFailedMessage = null;
             HasMachineComparison = true;
-            ComparisonStatusText = $"Compared {comparison.MachineA.MachineName} with {comparison.MachineB.MachineName}. Different machines are shown side by side, never mixed in one trend.";
+            ComparisonStatusText = ResolveComparisonStatusText();
         }
         catch (Exception exception)
         {
-            ComparisonStatusText = $"Comparison failed: {exception.Message}";
+            _compareFailedMessage = exception.Message;
+            _comparedMachineA = null;
+            _comparedMachineB = null;
+            ComparisonStatusText = ResolveComparisonStatusText();
             HasMachineComparison = false;
         }
         finally
@@ -729,14 +1184,18 @@ public sealed partial class HistoryViewModel : ViewModelBase
     {
         if (_comparison is null)
         {
-            ValueStatusText = "Compare two machines first, then enter asking prices.";
+            _valueKind = HistoryValueStatusKind.CompareFirst;
+            _valueNoVerdictReason = null;
+            ValueStatusText = ResolveValueStatusText();
             HasValueComparison = false;
             return;
         }
 
         if (!TryParseAskingPrice(PriceAText, out var priceA) || !TryParseAskingPrice(PriceBText, out var priceB))
         {
-            ValueStatusText = "Enter an asking price above zero for each machine (numbers only, for example 500). The price is yours, not measured.";
+            _valueKind = HistoryValueStatusKind.BadPrice;
+            _valueNoVerdictReason = null;
+            ValueStatusText = ResolveValueStatusText();
             ValueVerdictText = string.Empty;
             ValueRows.Clear();
             ValueComponentWinners.Clear();
@@ -745,27 +1204,22 @@ public sealed partial class HistoryViewModel : ViewModelBase
         }
 
         var result = ValueComparer.Compare(_comparison, priceA, priceB, "$", _latestSnapshotA, _latestSnapshotB);
-
-        ValueRows.Clear();
-        ValueRows.Add(new MachineComparisonRowViewModel(
-            ValueComparer.AskingPriceLabel,
-            PriceText(result.MachineA.AskingPrice, result.MachineA.CurrencySymbol),
-            PriceText(result.MachineB.AskingPrice, result.MachineB.CurrencySymbol)));
-        ValueRows.Add(new MachineComparisonRowViewModel(
-            "Score per $1 (ESTIMATE)",
-            PerCurrencyText(result.ScorePerCurrencyA),
-            PerCurrencyText(result.ScorePerCurrencyB)));
-
-        ValueComponentWinners.Clear();
-        foreach (var winner in result.ComponentWinners)
-        {
-            ValueComponentWinners.Add(new ValueWinnerRowViewModel(winner));
-        }
+        _lastValueResult = result;
+        RebuildValueRows(result);
 
         ValueVerdictText = result.VerdictSentence ?? string.Empty;
-        ValueStatusText = result.VerdictSentence is null
-            ? result.NoVerdictReason ?? string.Empty
-            : "Prices are yours, not measured. The per-dollar figure is arithmetic on the measured score and the price you entered, labelled ESTIMATE. No market-price data is used.";
+        if (result.VerdictSentence is null)
+        {
+            _valueKind = HistoryValueStatusKind.NoVerdict;
+            _valueNoVerdictReason = result.NoVerdictReason;
+        }
+        else
+        {
+            _valueKind = HistoryValueStatusKind.HonestyNote;
+            _valueNoVerdictReason = null;
+        }
+
+        ValueStatusText = ResolveValueStatusText();
         HasValueComparison = true;
     }
 
@@ -778,10 +1232,16 @@ public sealed partial class HistoryViewModel : ViewModelBase
         _comparison = null;
         _latestSnapshotA = null;
         _latestSnapshotB = null;
+        _lastValueResult = null;
+        _comparedMachineA = null;
+        _comparedMachineB = null;
+        _compareFailedMessage = null;
         PriceAText = string.Empty;
         PriceBText = string.Empty;
         ValueVerdictText = string.Empty;
-        ValueStatusText = "Enter each seller's asking price to compare value.";
+        _valueKind = HistoryValueStatusKind.Prompt;
+        _valueNoVerdictReason = null;
+        ValueStatusText = ResolveValueStatusText();
         ValueRows.Clear();
         ValueComponentWinners.Clear();
         HasValueComparison = false;
@@ -893,22 +1353,26 @@ public sealed partial class HistoryViewModel : ViewModelBase
         return values.Count < 2 ? null : values;
     }
 
-    private static string RangeText(string label, IReadOnlyList<TrendPoint> points, Func<double, string> format)
+    private string RangeText(string label, IReadOnlyList<TrendPoint> points, Func<double, string> format)
     {
         var measured = points.Where(p => p.Value is not null).Select(p => p.Value!.Value).ToList();
         if (measured.Count == 0)
         {
-            return $"{label}: not reported in any saved scan.";
+            return StringLocalizer.GetFormatted(AppStringKeys.HistoryRangeNone, _languageCode, label);
         }
 
         if (measured.Count == 1)
         {
-            return $"{label}: {format(measured[0])} (one scan only).";
+            return StringLocalizer.GetFormatted(AppStringKeys.HistoryRangeOne, _languageCode, label, format(measured[0]));
         }
 
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"{label}: {format(measured[0])} to {format(measured[^1])} over {measured.Count} scans.");
+        return StringLocalizer.GetFormatted(
+            AppStringKeys.HistoryRangeMany,
+            _languageCode,
+            label,
+            format(measured[0]),
+            format(measured[^1]),
+            measured.Count);
     }
 }
 
@@ -922,6 +1386,8 @@ public sealed partial class HistoryViewModel : ViewModelBase
 /// </summary>
 public sealed partial class HistoryRowViewModel : ViewModelBase
 {
+    private string _languageCode;
+
     public HistoryRowViewModel(
         Guid id,
         DateTimeOffset capturedAt,
@@ -930,8 +1396,10 @@ public sealed partial class HistoryRowViewModel : ViewModelBase
         double? batteryCycles,
         double? storageWear,
         double? storagePowerOnHours,
-        ICommand? removeScanCommand = null)
+        ICommand? removeScanCommand = null,
+        string? languageCode = null)
     {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
         Id = id;
         RemoveScanCommand = removeScanCommand;
         CapturedAt = capturedAt;
@@ -978,8 +1446,17 @@ public sealed partial class HistoryRowViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool IsRemoveArmed { get; set; }
 
-    /// <summary>"Remove" normally, "Confirm remove" once armed.</summary>
-    public string RemoveButtonText => IsRemoveArmed ? "Confirm remove" : "Remove";
+    /// <summary>"Remove" normally, "Confirm remove" once armed, in the row's language.</summary>
+    public string RemoveButtonText => IsRemoveArmed
+        ? StringLocalizer.Get(AppStringKeys.HistoryConfirmRemoveButton, _languageCode)
+        : StringLocalizer.Get(AppStringKeys.HistoryRemoveButton, _languageCode);
+
+    /// <summary>Re-resolves the remove button text in the given language, in place.</summary>
+    public void ApplyLanguage(string? languageCode)
+    {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        OnPropertyChanged(nameof(RemoveButtonText));
+    }
 
     partial void OnIsRemoveArmedChanged(bool value) => OnPropertyChanged(nameof(RemoveButtonText));
 }
@@ -1007,25 +1484,40 @@ public sealed class MachineComparisonRowViewModel
 /// see why, and a component measurable on only one side says so instead of
 /// crowning a winner on missing data.
 /// </summary>
-public sealed class ValueWinnerRowViewModel
+public sealed class ValueWinnerRowViewModel : ViewModelBase
 {
-    public ValueWinnerRowViewModel(ComponentValueWinner winner)
+    private readonly ComponentWinner _winner;
+    private readonly double? _healthA;
+    private readonly double? _healthB;
+    private string _languageCode;
+
+    public ValueWinnerRowViewModel(ComponentValueWinner winner, string? languageCode = null)
     {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        _winner = winner.Winner;
+        _healthA = winner.HealthA;
+        _healthB = winner.HealthB;
         ComponentName = winner.ComponentName;
-        WinnerText = winner.Winner switch
-        {
-            ComponentWinner.MachineA => $"Machine A wins ({HealthText(winner.HealthA)} vs {HealthText(winner.HealthB)})",
-            ComponentWinner.MachineB => $"Machine B wins ({HealthText(winner.HealthA)} vs {HealthText(winner.HealthB)})",
-            ComponentWinner.Tie => $"Tie ({HealthText(winner.HealthA)} vs {HealthText(winner.HealthB)})",
-            _ => "Not measurable on one or both machines",
-        };
     }
 
     public string ComponentName { get; }
 
-    public string WinnerText { get; }
+    /// <summary>The winner sentence, in the row's language. The health figures inside stay as measured.</summary>
+    public string WinnerText => _winner switch
+    {
+        ComponentWinner.MachineA => StringLocalizer.GetFormatted(AppStringKeys.HistoryWinnerA, _languageCode, HealthText(_healthA), HealthText(_healthB)),
+        ComponentWinner.MachineB => StringLocalizer.GetFormatted(AppStringKeys.HistoryWinnerB, _languageCode, HealthText(_healthA), HealthText(_healthB)),
+        ComponentWinner.Tie => StringLocalizer.GetFormatted(AppStringKeys.HistoryWinnerTie, _languageCode, HealthText(_healthA), HealthText(_healthB)),
+        _ => StringLocalizer.Get(AppStringKeys.HistoryWinnerNotMeasurable, _languageCode),
+    };
+
+    /// <summary>Re-resolves the winner sentence in the given language, in place.</summary>
+    public void ApplyLanguage(string? languageCode)
+    {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        OnPropertyChanged(nameof(WinnerText));
+    }
 
     private static string HealthText(double? health) =>
         health is null ? "Not measurable" : string.Create(CultureInfo.InvariantCulture, $"{health.Value:0.#}%");
 }
-
