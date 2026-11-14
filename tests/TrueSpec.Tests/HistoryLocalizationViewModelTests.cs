@@ -643,12 +643,16 @@ public class HistoryLocalizationViewModelTests
         try
         {
             var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
-            var store = await StoreWithAsync(
-                directory,
-                ("Test Laptop", 90d, "90.0%", "10", "2%", "100", baseTime),
-                ("Test Laptop", 85d, "85.0%", "12", "5%", "120", baseTime.AddHours(1)),
-                ("OTHER-PC", 70d, "75.0%", "300", "12%", "45000", baseTime),
-                ("OTHER-PC", 75d, "80.0%", "310", "12%", "45100", baseTime.AddHours(1)));
+            var databasePath = Path.Combine(directory, "snapshots.db");
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+            // Test Laptop: measurable scores. OTHER-PC: no measurable
+            // score, so the value comparison has no verdict and the
+            // reason says which input is missing.
+            await store.SaveAsync(TestSnapshots.HistorySnapshot(90d, "90.0%", "10", "2%", "100", baseTime, machineName: "Test Laptop"));
+            await store.SaveAsync(TestSnapshots.HistorySnapshot(85d, "85.0%", "12", "5%", "120", baseTime.AddHours(1), machineName: "Test Laptop"));
+            await store.SaveAsync(TestSnapshots.HistorySnapshot(70d, "75.0%", "300", "12%", "45000", baseTime, machineName: "OTHER-PC", measurableScore: false));
+            await store.SaveAsync(TestSnapshots.HistorySnapshot(75d, "80.0%", "310", "12%", "45100", baseTime.AddHours(1), machineName: "OTHER-PC", measurableScore: false));
 
             var viewModel = new HistoryViewModel(store, TestSnapshots.Healthy(), languageCode: "en");
             await WaitForLoadAsync(viewModel);
@@ -656,16 +660,20 @@ public class HistoryLocalizationViewModelTests
             await viewModel.CompareMachinesCommand.ExecuteAsync(null);
             Assert.True(viewModel.HasMachineComparison, "Comparison never ran.");
 
-            // A zero price parses but means "no price entered": no
-            // verdict, and the reason says which input is missing.
+            // Both prices are valid, but one machine has no measured
+            // score: no verdict, and the reason says which input is
+            // missing. (A zero price never reaches the comparer:
+            // TryParseAskingPrice rejects it as a bad price first.
+            // The no-price reason is covered at the Core level in
+            // HistoryCoreWordingsTests instead.)
             viewModel.PriceAText = "500";
-            viewModel.PriceBText = "0";
+            viewModel.PriceBText = "400";
             viewModel.CompareValueCommand.Execute(null);
 
             Assert.True(viewModel.HasValueComparison);
             Assert.Equal(string.Empty, viewModel.ValueVerdictText);
             Assert.Equal(
-                "Enter an asking price above zero for each machine to compare value.",
+                "A value verdict needs a measured health score for both machines.",
                 viewModel.ValueStatusText);
 
             // A switch re-runs the comparison in German; the verdict
@@ -673,22 +681,22 @@ public class HistoryLocalizationViewModelTests
             viewModel.ApplyLanguage("de");
             Assert.Equal(string.Empty, viewModel.ValueVerdictText);
             Assert.Equal(
-                "Geben Sie für jedes Gerät einen Angebotspreis über null ein, um den Wert zu vergleichen.",
+                "Für eine Kaufempfehlung braucht es eine gemessene Gesundheitsbewertung für beide Geräte.",
                 viewModel.ValueStatusText);
             Assert.Equal("Angebotspreis (Sie geben ihn ein, nicht gemessen)", viewModel.ValueRows[0].Label);
 
             viewModel.ApplyLanguage("en");
             Assert.Equal(
-                "Enter an asking price above zero for each machine to compare value.",
+                "A value verdict needs a measured health score for both machines.",
                 viewModel.ValueStatusText);
 
             // A price typed since the last compare is NOT applied by a
             // language switch: the stored result (and its reason) stay
             // until Compare runs again.
-            viewModel.PriceBText = "400";
+            viewModel.PriceBText = "450";
             viewModel.ApplyLanguage("de");
             Assert.Equal(
-                "Enter an asking price above zero for each machine to compare value.",
+                "A value verdict needs a measured health score for both machines.",
                 viewModel.ValueStatusText);
         }
         finally
