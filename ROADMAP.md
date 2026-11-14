@@ -1083,11 +1083,16 @@ data already existed; only the band rule and wording are new.
   trend summary / battery alert / driver-age summary / all five
   forecast cases / both step-change directions / both no-verdict
   reasons, the verdict sentence staying English, and the English
-  pins) and `HistoryLocalizationViewModelTests` (a switch
-  re-analyses the summary and both forecasts in place and back, the
-  no-verdict reason follows the language, and the price-typed-since
-  guard; the asking-price row label is German in German and English
-  in English).
+  pins) and `HistoryLocalizationViewModelTests` (the TwoScans test
+  now pins the summary and both forecasts following the language
+  while the row cells stay identical, a switch re-analyses the
+  summary and both forecasts in place and back, the no-verdict
+  reason follows the language, and the price-typed-since guard; the
+  asking-price row label is German in German and English in
+  English). The compare tests wait for the compare to be possible
+  (`CanCompareMachines`) instead of only for the status line: on a
+  loaded runner the status can leave Loading before the load
+  assigns the compare pair, and the compare then silently no-ops.
 - **Dependency audit re-attested for v2.1.12.** `SECURITY.md` said
   v2.1.11; the audit was re-run with
   `dotnet list package --vulnerable --include-transitive` on all four
