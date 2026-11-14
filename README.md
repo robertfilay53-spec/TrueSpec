@@ -124,6 +124,11 @@ The product rule is simple: every number is either **measured** (with its source
 - **Dependency audit re-attested for v2.1.11:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.10 and v2.1.11.
 - **`.gitignore` guard for the local-only files:** the root `.gitignore` now guards the six local-only paths (`WORLD-CLASS-PLAN.md`, `LAPTOP-TEST-RESULTS-2026-11-12.md`, `REVIEW-NEXT-STEPS-2026-11-12.md`, `V1.4.1-FIX-BRIEF.md`, `logo-options/`, `release-artifacts/`), which a `git add -A` nearly committed during the v2.1.11 bump. Stage named files only, never `git add -A` in this repo.
 
+## What's new in v2.1.13
+
+- **Localisation, phase 7: the History page's remaining Core-owned wordings in German (Beyond v2.0, item 4):** picking German now translates the trend summary ("4 Scans von 2026-01-10 bis 2026-04-10. Punktzahl 90 bis 87 (um 3 Punkte gefallen)."), the battery-health alert ("Die Akkugesundheit ist seit dem ersten gespeicherten Scan von Normal (90 %) auf Abgenutzt (70 %) gefallen."), the driver-age summary, the forecast texts ("Akkugesundheit ist um 3 Punkte über 4 Scans (90 Tage) gefallen. Bei dieser gemessenen Rate wird Austausch-Schwelle (Akkugesundheit unter 60 %) in 23 bis 30 Monaten erreicht."), the value no-verdict reasons and the asking-price row label, with no restart. A page already open when the language changes re-analyses its stored snapshots in place, so the wordings follow the language while the measured values stay identical. The data that stays English in this version and is named honestly: the per-dollar verdict sentence ("Machine B scores 82 vs 71 and costs $120 less. On measured health per dollar, B is the better buy."), shown verbatim in every language, and the table's "Not measurable" / "Not reported" cell fallbacks, which the CSV export agrees with row for row.
+- **Dependency audit re-attested for v2.1.12:** no vulnerable packages in any project, including transitive dependencies; no package version changed between v2.1.11 and v2.1.12.
+
 ## Status
 
 Real hardware access is implemented. Windows builds use CIM/WMI collectors, LibreHardwareMonitor live sensors and SATA/NVMe SMART data. There is no sample-data mode: on a platform without hardware access every component is shown as **Not available** with the reason named.

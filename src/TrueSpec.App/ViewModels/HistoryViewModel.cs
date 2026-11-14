@@ -74,6 +74,9 @@ public sealed partial class HistoryViewModel : ViewModelBase
     /// <summary>U9: the last value-comparison result, kept so ApplyLanguage can rebuild the value rows and winners in the new language.</summary>
     private ValueComparisonResult? _lastValueResult;
 
+    /// <summary>The loaded snapshots for the displayed machine, kept so ApplyLanguage can re-analyse the trend in the new language instead of re-reading the store.</summary>
+    private IReadOnlyList<SystemSnapshot>? _snapshots;
+
     /// <summary>Which transient status line is showing, so ApplyLanguage can re-resolve it instead of resetting it.</summary>
     private HistoryStatusKind _statusKind = HistoryStatusKind.Loading;
 
@@ -334,9 +337,12 @@ public sealed partial class HistoryViewModel : ViewModelBase
     /// user picks a language in Settings; a page created after the
     /// switch is already built in the new language by the constructor.
     /// An unknown code falls back to English through the localizer,
-    /// never to a blank. Measured data (trend values, forecast texts,
-    /// verdict sentence, cell fallbacks) is untouched: it is rebuilt
-    /// from the same trend and comparison, so it keeps its values.
+    /// never to a blank. Measured data (trend values, verdict sentence,
+    /// cell fallbacks) is untouched: it is rebuilt from the same
+    /// snapshots and comparison, so it keeps its values. The Core-owned
+    /// wordings (trend summary, battery alert, driver-age summary,
+    /// forecast basis texts, no-verdict reason) are re-derived in the
+    /// new language from those same snapshots.
     /// </summary>
     public void ApplyLanguage(string? languageCode)
     {
@@ -344,8 +350,20 @@ public sealed partial class HistoryViewModel : ViewModelBase
         MachineSubtitleText = StringLocalizer.GetFormatted(AppStringKeys.HistorySubtitleTemplate, _languageCode, _displayedMachine ?? _current.MachineName);
         if (CurrentTrend is not null)
         {
-            RebuildRows(CurrentTrend);
-            RecomputeRangeTexts(CurrentTrend);
+            if (_snapshots is not null)
+            {
+                // Re-analysis from the stored snapshots, so the
+                // Core-owned wordings (trend summary, battery alert,
+                // driver-age summary, forecast basis texts) follow the
+                // new language. Measured values are unchanged: the same
+                // snapshots go in, so the same numbers come out.
+                ApplyTrend(HistoryTrendAnalyzer.Analyze(_snapshots, _languageCode));
+            }
+            else
+            {
+                RebuildRows(CurrentTrend);
+                RecomputeRangeTexts(CurrentTrend);
+            }
         }
 
         if (_comparison is not null)
@@ -355,6 +373,25 @@ public sealed partial class HistoryViewModel : ViewModelBase
 
         if (_lastValueResult is not null)
         {
+            if (_comparison is not null
+                && TryParseAskingPrice(PriceAText, out var priceA)
+                && TryParseAskingPrice(PriceBText, out var priceB)
+                && (priceA <= 0m ? null : priceA) == _lastValueResult.MachineA.AskingPrice
+                && (priceB <= 0m ? null : priceB) == _lastValueResult.MachineB.AskingPrice)
+            {
+                // Re-run the comparison in the new language, but only
+                // while the price fields still hold the prices the
+                // stored result was built on: a price typed since the
+                // last compare is not applied by a language switch, it
+                // waits for Compare. The verdict sentence stays English
+                // by design; only the no-verdict reason follows the
+                // language.
+                var result = ValueComparer.Compare(_comparison, priceA, priceB, "$", _latestSnapshotA, _latestSnapshotB, _languageCode);
+                _lastValueResult = result;
+                ValueVerdictText = result.VerdictSentence ?? string.Empty;
+                _valueNoVerdictReason = result.NoVerdictReason;
+            }
+
             RebuildValueRows(_lastValueResult);
         }
 
@@ -498,7 +535,9 @@ public sealed partial class HistoryViewModel : ViewModelBase
         HistoryValueStatusKind.CompareFirst => StringLocalizer.Get(AppStringKeys.HistoryValueCompareFirst, _languageCode),
         HistoryValueStatusKind.BadPrice => StringLocalizer.Get(AppStringKeys.HistoryValueBadPrice, _languageCode),
         HistoryValueStatusKind.HonestyNote => StringLocalizer.Get(AppStringKeys.HistoryValueHonestyNote, _languageCode),
-        // Core-owned wording (ValueComparer): shown verbatim, never translated.
+        // Core-owned wording (ValueComparer): re-derived in the page
+        // language on a switch, so it follows the language; the verdict
+        // sentence itself stays English by design.
         HistoryValueStatusKind.NoVerdict => _valueNoVerdictReason ?? string.Empty,
         _ => string.Empty,
     };
@@ -549,7 +588,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
     {
         ValueRows.Clear();
         ValueRows.Add(new MachineComparisonRowViewModel(
-            ValueComparer.AskingPriceLabel,
+            StringLocalizer.Get(AppStringKeys.HistoryAskingPriceLabel, _languageCode),
             PriceText(result.MachineA.AskingPrice, result.MachineA.CurrencySymbol),
             PriceText(result.MachineB.AskingPrice, result.MachineB.CurrencySymbol)));
         ValueRows.Add(new MachineComparisonRowViewModel(
@@ -945,6 +984,41 @@ public sealed partial class HistoryViewModel : ViewModelBase
         LoadSensorLog();
     }
 
+    /// <summary>
+    /// Applies a trend to the page: summary, battery alert, forecasts,
+    /// driver-age summary, sparkline values, range texts and table rows.
+    /// The status line is NOT touched: a fresh load sets it afterwards,
+    /// and a language switch keeps the stored status kind instead of
+    /// resetting it. An empty trend clears nothing: the page keeps the
+    /// empty state the load already set.
+    /// </summary>
+    private void ApplyTrend(HistoryTrend trend)
+    {
+        CurrentTrend = trend;
+        if (trend.SnapshotCount == 0)
+        {
+            return;
+        }
+
+        SummaryText = trend.Summary;
+        BatteryAlertText = trend.BatteryAlert;
+        HasBatteryAlert = trend.BatteryAlert is not null;
+        BatteryForecastText = ForecastText(trend.BatteryHealthPoints, points => DegradationForecaster.ForBattery(points, _languageCode));
+        HasBatteryForecast = BatteryForecastText is not null;
+        StorageWearForecastText = ForecastText(trend.StorageWearPoints, points => DegradationForecaster.ForStorageWear(points, _languageCode));
+        HasStorageWearForecast = StorageWearForecastText is not null;
+        DriverAgeSummaryText = trend.DriverAgeSummary;
+        HasDriverAgeSummary = trend.DriverAgeSummary is not null;
+        ScoreValues = MeasuredValues(trend.ScorePoints);
+        BatteryHealthValues = MeasuredValues(trend.BatteryHealthPoints);
+        StorageWearValues = MeasuredValues(trend.StorageWearPoints);
+        RecomputeRangeTexts(trend);
+
+        RebuildRows(trend);
+
+        HasHistory = true;
+    }
+
     private async Task LoadTrendForMachineAsync(string machineName)
     {
         if (_store is null)
@@ -979,36 +1053,23 @@ public sealed partial class HistoryViewModel : ViewModelBase
 
         try
         {
-            var trend = await HistoryTrendAnalyzer.LoadAsync(_store, machineName, 50);
+            var snapshots = await HistoryTrendAnalyzer.LoadSnapshotsAsync(_store, machineName, 50);
             if (generation != _loadGeneration)
             {
                 return;
             }
 
-            CurrentTrend = trend;
+            // Kept so a language switch can re-analyse in the new language
+            // without re-reading the store.
+            _snapshots = snapshots;
+            var trend = HistoryTrendAnalyzer.Analyze(snapshots, _languageCode);
+            ApplyTrend(trend);
             if (trend.SnapshotCount == 0)
             {
                 SetStatus(HistoryStatusKind.NoScans);
                 return;
             }
 
-            SummaryText = trend.Summary;
-            BatteryAlertText = trend.BatteryAlert;
-            HasBatteryAlert = trend.BatteryAlert is not null;
-            BatteryForecastText = ForecastText(trend.BatteryHealthPoints, DegradationForecaster.ForBattery);
-            HasBatteryForecast = BatteryForecastText is not null;
-            StorageWearForecastText = ForecastText(trend.StorageWearPoints, DegradationForecaster.ForStorageWear);
-            HasStorageWearForecast = StorageWearForecastText is not null;
-            DriverAgeSummaryText = trend.DriverAgeSummary;
-            HasDriverAgeSummary = trend.DriverAgeSummary is not null;
-            ScoreValues = MeasuredValues(trend.ScorePoints);
-            BatteryHealthValues = MeasuredValues(trend.BatteryHealthPoints);
-            StorageWearValues = MeasuredValues(trend.StorageWearPoints);
-            RecomputeRangeTexts(trend);
-
-            RebuildRows(trend);
-
-            HasHistory = true;
             SetStatus(
                 trend.SnapshotCount < 2 ? HistoryStatusKind.OneScan : HistoryStatusKind.ScansCount,
                 remaining: trend.SnapshotCount);
@@ -1203,7 +1264,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
             return;
         }
 
-        var result = ValueComparer.Compare(_comparison, priceA, priceB, "$", _latestSnapshotA, _latestSnapshotB);
+        var result = ValueComparer.Compare(_comparison, priceA, priceB, "$", _latestSnapshotA, _latestSnapshotB, _languageCode);
         _lastValueResult = result;
         RebuildValueRows(result);
 

@@ -364,6 +364,72 @@ public static class AppStringKeys
     public const string HistoryLogGapMany = "HistoryLogGapMany";
     public const string HistoryLogReadFailed = "HistoryLogReadFailed";
 
+    // Localisation, phase 7 (v2.1.13): the History page's remaining
+    // Core-owned wordings — the trend summary, the battery-health alert,
+    // the oldest-driver summary and the degradation forecasts (all
+    // produced by Core with no language parameter until now), plus the
+    // value comparison's no-verdict reasons. The U9 verdict sentence
+    // itself is NOT here: it stays English in every language, pending
+    // Jawad's veto decision (see ValueComparer). The table's cell
+    // fallbacks ("Not measurable" / "Not reported") are NOT here
+    // either: the CSV export agrees with the table row for row, so
+    // the CSV contract stays English. Plurals follow the phase 6
+    // pattern (one/many keys instead of an inline plural hack), and
+    // direction words that change German word order are full-sentence
+    // templates per direction, not bare words.
+    public const string HistoryTrendEmptySummary = "HistoryTrendEmptySummary";
+    public const string HistoryTrendScansOne = "HistoryTrendScansOne";
+    public const string HistoryTrendScansMany = "HistoryTrendScansMany";
+    public const string HistoryTrendDeltaNotReported = "HistoryTrendDeltaNotReported";
+    public const string HistoryTrendDeltaReportedOnce = "HistoryTrendDeltaReportedOnce";
+    public const string HistoryTrendDeltaUp = "HistoryTrendDeltaUp";
+    public const string HistoryTrendDeltaDown = "HistoryTrendDeltaDown";
+    public const string HistoryTrendDeltaUnchanged = "HistoryTrendDeltaUnchanged";
+    public const string HistoryTrendPointsUnit = "HistoryTrendPointsUnit";
+    public const string HistoryBatteryAlertBandDrop = "HistoryBatteryAlertBandDrop";
+    public const string HistoryBatteryAlertFastFall = "HistoryBatteryAlertFastFall";
+    public const string HistoryBatteryBandNormal = "HistoryBatteryBandNormal";
+    public const string HistoryBatteryBandWorn = "HistoryBatteryBandWorn";
+    public const string HistoryBatteryBandReplace = "HistoryBatteryBandReplace";
+    public const string HistoryDriverAgeOnlyOne = "HistoryDriverAgeOnlyOne";
+    public const string HistoryDriverAgeFirstLatest = "HistoryDriverAgeFirstLatest";
+    public const string HistoryDriverAgeCountOnThatScan = "HistoryDriverAgeCountOnThatScan";
+    public const string HistoryDriverAgeNewer = "HistoryDriverAgeNewer";
+    public const string HistoryDriverAgeOlder = "HistoryDriverAgeOlder";
+    public const string HistoryDriverAgeUnchanged = "HistoryDriverAgeUnchanged";
+    public const string HistoryDriverAgeCountStayed = "HistoryDriverAgeCountStayed";
+    public const string HistoryDriverAgeCountWent = "HistoryDriverAgeCountWent";
+    public const string HistoryDriverAgeCountFirst = "HistoryDriverAgeCountFirst";
+    public const string HistoryDriverAgeCountLatest = "HistoryDriverAgeCountLatest";
+    public const string HistoryDriverAgeAndJoin = "HistoryDriverAgeAndJoin";
+    public const string HistoryForecastMetricSsdWear = "HistoryForecastMetricSsdWear";
+    public const string HistoryForecastNotEnoughUsedOne = "HistoryForecastNotEnoughUsedOne";
+    public const string HistoryForecastNotEnoughUsedManyNeededOne = "HistoryForecastNotEnoughUsedManyNeededOne";
+    public const string HistoryForecastNotEnoughUsedManyNeededMany = "HistoryForecastNotEnoughUsedManyNeededMany";
+    public const string HistoryForecastNotEnoughDaysOne = "HistoryForecastNotEnoughDaysOne";
+    public const string HistoryForecastNotEnoughDaysMany = "HistoryForecastNotEnoughDaysMany";
+    public const string HistoryForecastNoDecline = "HistoryForecastNoDecline";
+    public const string HistoryForecastAlreadyReached = "HistoryForecastAlreadyReached";
+    public const string HistoryForecastThresholdBattery = "HistoryForecastThresholdBattery";
+    public const string HistoryForecastThresholdStorage = "HistoryForecastThresholdStorage";
+    public const string HistoryForecastReadyFirst = "HistoryForecastReadyFirst";
+    public const string HistoryForecastFell = "HistoryForecastFell";
+    public const string HistoryForecastRose = "HistoryForecastRose";
+    public const string HistoryForecastReadyRange = "HistoryForecastReadyRange";
+    public const string HistoryForecastReadyOpenOne = "HistoryForecastReadyOpenOne";
+    public const string HistoryForecastReadyOpenMany = "HistoryForecastReadyOpenMany";
+    public const string HistoryForecastStepChange = "HistoryForecastStepChange";
+    public const string HistoryForecastJumped = "HistoryForecastJumped";
+    public const string HistoryForecastFellSharply = "HistoryForecastFellSharply";
+    public const string HistoryForecastDropped = "HistoryForecastDropped";
+    public const string HistoryForecastCauseReplaced = "HistoryForecastCauseReplaced";
+    public const string HistoryForecastCauseChanged = "HistoryForecastCauseChanged";
+    public const string HistoryForecastPartBattery = "HistoryForecastPartBattery";
+    public const string HistoryForecastPartStorage = "HistoryForecastPartStorage";
+    public const string HistoryValueNoVerdictNoScore = "HistoryValueNoVerdictNoScore";
+    public const string HistoryValueNoVerdictNoPrice = "HistoryValueNoVerdictNoPrice";
+    public const string HistoryValueNoVerdictMissing = "HistoryValueNoVerdictMissing";
+
     /// <summary>Every key in the catalogue, in the order above.</summary>
     public static IReadOnlyList<string> All { get; } = new[]
     {
@@ -627,5 +693,57 @@ public static class AppStringKeys
         HistoryLogGapOne,
         HistoryLogGapMany,
         HistoryLogReadFailed,
+        HistoryTrendEmptySummary,
+        HistoryTrendScansOne,
+        HistoryTrendScansMany,
+        HistoryTrendDeltaNotReported,
+        HistoryTrendDeltaReportedOnce,
+        HistoryTrendDeltaUp,
+        HistoryTrendDeltaDown,
+        HistoryTrendDeltaUnchanged,
+        HistoryTrendPointsUnit,
+        HistoryBatteryAlertBandDrop,
+        HistoryBatteryAlertFastFall,
+        HistoryBatteryBandNormal,
+        HistoryBatteryBandWorn,
+        HistoryBatteryBandReplace,
+        HistoryDriverAgeOnlyOne,
+        HistoryDriverAgeFirstLatest,
+        HistoryDriverAgeCountOnThatScan,
+        HistoryDriverAgeNewer,
+        HistoryDriverAgeOlder,
+        HistoryDriverAgeUnchanged,
+        HistoryDriverAgeCountStayed,
+        HistoryDriverAgeCountWent,
+        HistoryDriverAgeCountFirst,
+        HistoryDriverAgeCountLatest,
+        HistoryDriverAgeAndJoin,
+        HistoryForecastMetricSsdWear,
+        HistoryForecastNotEnoughUsedOne,
+        HistoryForecastNotEnoughUsedManyNeededOne,
+        HistoryForecastNotEnoughUsedManyNeededMany,
+        HistoryForecastNotEnoughDaysOne,
+        HistoryForecastNotEnoughDaysMany,
+        HistoryForecastNoDecline,
+        HistoryForecastAlreadyReached,
+        HistoryForecastThresholdBattery,
+        HistoryForecastThresholdStorage,
+        HistoryForecastReadyFirst,
+        HistoryForecastFell,
+        HistoryForecastRose,
+        HistoryForecastReadyRange,
+        HistoryForecastReadyOpenOne,
+        HistoryForecastReadyOpenMany,
+        HistoryForecastStepChange,
+        HistoryForecastJumped,
+        HistoryForecastFellSharply,
+        HistoryForecastDropped,
+        HistoryForecastCauseReplaced,
+        HistoryForecastCauseChanged,
+        HistoryForecastPartBattery,
+        HistoryForecastPartStorage,
+        HistoryValueNoVerdictNoScore,
+        HistoryValueNoVerdictNoPrice,
+        HistoryValueNoVerdictMissing,
     };
 }

@@ -2,6 +2,7 @@ namespace TrueSpec.Core.History;
 
 using System.Globalization;
 using TrueSpec.Core.Health;
+using TrueSpec.Core.Localization;
 
 /// <summary>Which wearing part a forecast is about.</summary>
 public enum ForecastMetric
@@ -94,13 +95,21 @@ public static class DegradationForecaster
     /// <summary>Slopes this small are measurement noise, not a decline.</summary>
     private const double NegligibleSlopePerDay = 1e-9d;
 
-    public static DegradationForecast ForBattery(IReadOnlyList<TrendPoint> points) =>
-        Forecast(points, ForecastMetric.Battery);
+    /// <summary>
+    /// Forecasts battery degradation. <paramref name="languageCode"/>
+    /// (optional, English when blank or unknown) localizes the basis text
+    /// and the step-change note; months, counts and percentages keep the
+    /// app's existing formatting. Callers that never pass a language see
+    /// the exact English wordings this method always produced.
+    /// </summary>
+    public static DegradationForecast ForBattery(IReadOnlyList<TrendPoint> points, string? languageCode = null) =>
+        Forecast(points, ForecastMetric.Battery, languageCode);
 
-    public static DegradationForecast ForStorageWear(IReadOnlyList<TrendPoint> points) =>
-        Forecast(points, ForecastMetric.SsdWear);
+    /// <summary>Forecasts storage wear (see <see cref="ForBattery"/>).</summary>
+    public static DegradationForecast ForStorageWear(IReadOnlyList<TrendPoint> points, string? languageCode = null) =>
+        Forecast(points, ForecastMetric.SsdWear, languageCode);
 
-    public static DegradationForecast Forecast(IReadOnlyList<TrendPoint> points, ForecastMetric metric)
+    public static DegradationForecast Forecast(IReadOnlyList<TrendPoint> points, ForecastMetric metric, string? languageCode = null)
     {
         ArgumentNullException.ThrowIfNull(points);
 
@@ -112,7 +121,7 @@ public static class DegradationForecaster
             .Select(p => new ForecastPoint(p.CapturedAt, p.Value!.Value))
             .ToList();
 
-        var (used, stepChangeNote) = RestartAfterStepChange(measured, metric);
+        var (used, stepChangeNote) = RestartAfterStepChange(measured, metric, languageCode);
         var windowDays = used.Count < 2
             ? 0d
             : (used[^1].Date - used[0].Date).TotalDays;
@@ -129,7 +138,7 @@ public static class DegradationForecaster
                 null,
                 null,
                 ThresholdFor(metric),
-                BuildNotEnoughDataText(metric, used.Count, windowDays, scansNeeded, stepChangeNote),
+                BuildNotEnoughDataText(metric, used.Count, windowDays, scansNeeded, stepChangeNote, languageCode),
                 stepChangeNote,
                 scansNeeded);
         }
@@ -147,7 +156,7 @@ public static class DegradationForecaster
                 null,
                 null,
                 ThresholdFor(metric),
-                BuildNoDeclineText(metric, used, windowDays, stepChangeNote),
+                BuildNoDeclineText(metric, used, windowDays, stepChangeNote, languageCode),
                 stepChangeNote,
                 0);
         }
@@ -169,7 +178,7 @@ public static class DegradationForecaster
                 0,
                 0,
                 threshold,
-                BuildAlreadyReachedText(metric, used, windowDays, threshold, stepChangeNote),
+                BuildAlreadyReachedText(metric, used, windowDays, threshold, stepChangeNote, languageCode),
                 stepChangeNote,
                 0);
         }
@@ -225,7 +234,7 @@ public static class DegradationForecaster
             lowRounded,
             highRounded,
             threshold,
-            BuildReadyText(metric, used, windowDays, threshold, lowRounded, highRounded, stepChangeNote),
+            BuildReadyText(metric, used, windowDays, threshold, lowRounded, highRounded, stepChangeNote, languageCode),
             stepChangeNote,
             0);
     }
@@ -252,7 +261,7 @@ public static class DegradationForecaster
     /// this, a replaced part produces a nonsense slope.
     /// </summary>
     private static (IReadOnlyList<ForecastPoint> Used, string? Note) RestartAfterStepChange(
-        IReadOnlyList<ForecastPoint> measured, ForecastMetric metric)
+        IReadOnlyList<ForecastPoint> measured, ForecastMetric metric, string? languageCode)
     {
         var restartAt = 0;
         string? note = null;
@@ -265,7 +274,7 @@ public static class DegradationForecaster
             }
 
             restartAt = i;
-            note = BuildStepChangeNote(metric, measured[i - 1], measured[i], jump);
+            note = BuildStepChangeNote(metric, measured[i - 1], measured[i], jump, languageCode);
         }
 
         return restartAt == 0
@@ -274,28 +283,34 @@ public static class DegradationForecaster
     }
 
     private static string BuildStepChangeNote(
-        ForecastMetric metric, ForecastPoint before, ForecastPoint after, double jump)
+        ForecastMetric metric, ForecastPoint before, ForecastPoint after, double jump, string? languageCode)
     {
-        var label = MetricLabel(metric);
-        var unit = "%";
-        var direction = metric == ForecastMetric.Battery
+        var label = MetricLabel(metric, languageCode);
+        var directionKey = metric == ForecastMetric.Battery
             ? jump > 0d
-                ? "jumped"
-                : "fell sharply"
+                ? AppStringKeys.HistoryForecastJumped
+                : AppStringKeys.HistoryForecastFellSharply
             : jump < 0d
-                ? "dropped"
-                : "jumped";
+                ? AppStringKeys.HistoryForecastDropped
+                : AppStringKeys.HistoryForecastJumped;
+        var direction = StringLocalizer.Get(directionKey, languageCode);
         // A jump in the replacement direction (battery health up, SSD
         // wear down) reads as a new part; a jump the other way is a sharp
         // discontinuity either way, so the earlier scans no longer
         // describe this part. Both restart the window.
         var looksReplaced = metric == ForecastMetric.Battery ? jump > 0d : jump < 0d;
+        var part = PartNoun(metric, languageCode);
         var cause = looksReplaced
-            ? $"the {PartNoun(metric)} looks replaced"
-            : $"the {PartNoun(metric)} changed sharply";
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"{label} {direction} from {before.Value:0.#}{unit} to {after.Value:0.#}{unit} between scans, so {cause}; forecast restarts here.");
+            ? StringLocalizer.GetFormatted(AppStringKeys.HistoryForecastCauseReplaced, languageCode, part)
+            : StringLocalizer.GetFormatted(AppStringKeys.HistoryForecastCauseChanged, languageCode, part);
+        return StringLocalizer.GetFormatted(
+            AppStringKeys.HistoryForecastStepChange,
+            languageCode,
+            label,
+            direction,
+            FormatNumber(before.Value),
+            FormatNumber(after.Value),
+            cause);
     }
 
     /// <summary>
@@ -333,63 +348,92 @@ public static class DegradationForecaster
             : (slope, standardError);
     }
 
-    private static string MetricLabel(ForecastMetric metric) => metric switch
+    private static string MetricLabel(ForecastMetric metric, string? languageCode) => metric switch
     {
-        ForecastMetric.Battery => "Battery health",
-        ForecastMetric.SsdWear => "SSD wear",
+        ForecastMetric.Battery => StringLocalizer.Get(AppStringKeys.HistoryBatteryTitle, languageCode),
+        ForecastMetric.SsdWear => StringLocalizer.Get(AppStringKeys.HistoryForecastMetricSsdWear, languageCode),
         _ => throw new ArgumentOutOfRangeException(nameof(metric), metric, "Unknown forecast metric."),
     };
 
-    private static string PartNoun(ForecastMetric metric) => metric switch
+    /// <summary>
+    /// The part noun with its article ("the battery" / "the drive"), so
+    /// the step-change cause reads in the language's own article and gender.
+    /// </summary>
+    private static string PartNoun(ForecastMetric metric, string? languageCode) => metric switch
     {
-        ForecastMetric.Battery => "battery",
-        ForecastMetric.SsdWear => "drive",
+        ForecastMetric.Battery => StringLocalizer.Get(AppStringKeys.HistoryForecastPartBattery, languageCode),
+        ForecastMetric.SsdWear => StringLocalizer.Get(AppStringKeys.HistoryForecastPartStorage, languageCode),
         _ => throw new ArgumentOutOfRangeException(nameof(metric), metric, "Unknown forecast metric."),
     };
 
-    private static string ThresholdText(ForecastMetric metric, double threshold) => metric switch
+    private static string ThresholdText(ForecastMetric metric, double threshold, string? languageCode) => metric switch
     {
-        ForecastMetric.Battery => string.Create(
-            CultureInfo.InvariantCulture, $"Replace threshold (battery health below {threshold:0.#}%)"),
-        ForecastMetric.SsdWear => string.Create(
-            CultureInfo.InvariantCulture, $"Replace threshold (storage wear above {threshold:0.#}%)"),
+        ForecastMetric.Battery => StringLocalizer.GetFormatted(
+            AppStringKeys.HistoryForecastThresholdBattery, languageCode, FormatNumber(threshold)),
+        ForecastMetric.SsdWear => StringLocalizer.GetFormatted(
+            AppStringKeys.HistoryForecastThresholdStorage, languageCode, FormatNumber(threshold)),
         _ => throw new ArgumentOutOfRangeException(nameof(metric), metric, "Unknown forecast metric."),
     };
+
+    /// <summary>One decimal, invariant culture, for every number passed into a forecast template.</summary>
+    private static string FormatNumber(double value) =>
+        string.Create(CultureInfo.InvariantCulture, $"{value:0.#}");
 
     private static string WithStepNote(string? stepChangeNote, string text) =>
         stepChangeNote is null ? text : stepChangeNote + " " + text;
 
     private static string BuildNotEnoughDataText(
-        ForecastMetric metric, int pointsUsed, double windowDays, int scansNeeded, string? stepChangeNote)
+        ForecastMetric metric, int pointsUsed, double windowDays, int scansNeeded, string? stepChangeNote, string? languageCode)
     {
-        var label = MetricLabel(metric);
-        var text = scansNeeded > 0
-            ? string.Create(
-                CultureInfo.InvariantCulture,
-                $"{label} has {pointsUsed} scan{(pointsUsed == 1 ? string.Empty : "s")} over {windowDays:0.#} days. A forecast needs at least 3 scans over at least 30 days: {scansNeeded} more scan{(scansNeeded == 1 ? string.Empty : "s")} needed.")
-            : string.Create(
-                CultureInfo.InvariantCulture,
-                $"{label} has {pointsUsed} scans over {windowDays:0.#} days. A forecast needs at least 3 scans over at least 30 days: {Math.Ceiling(MinimumWindowDays - windowDays):0} more day{(Math.Ceiling(MinimumWindowDays - windowDays) == 1d ? string.Empty : "s")} of history needed.");
+        var label = MetricLabel(metric, languageCode);
+        var days = FormatNumber(windowDays);
+        string text;
+        if (scansNeeded > 0)
+        {
+            text = pointsUsed == 1
+                ? StringLocalizer.GetFormatted(AppStringKeys.HistoryForecastNotEnoughUsedOne, languageCode, label, days)
+                : scansNeeded == 1
+                    ? StringLocalizer.GetFormatted(AppStringKeys.HistoryForecastNotEnoughUsedManyNeededOne, languageCode, label, pointsUsed, days)
+                    : StringLocalizer.GetFormatted(AppStringKeys.HistoryForecastNotEnoughUsedManyNeededMany, languageCode, label, pointsUsed, days, scansNeeded);
+        }
+        else
+        {
+            var daysNeeded = (int)Math.Ceiling(MinimumWindowDays - windowDays);
+            text = daysNeeded == 1
+                ? StringLocalizer.GetFormatted(AppStringKeys.HistoryForecastNotEnoughDaysOne, languageCode, label, pointsUsed, days)
+                : StringLocalizer.GetFormatted(AppStringKeys.HistoryForecastNotEnoughDaysMany, languageCode, label, pointsUsed, days, daysNeeded);
+        }
+
         return WithStepNote(stepChangeNote, text);
     }
 
     private static string BuildNoDeclineText(
-        ForecastMetric metric, IReadOnlyList<ForecastPoint> used, double windowDays, string? stepChangeNote)
+        ForecastMetric metric, IReadOnlyList<ForecastPoint> used, double windowDays, string? stepChangeNote, string? languageCode)
     {
-        var label = MetricLabel(metric);
-        var text = string.Create(
-            CultureInfo.InvariantCulture,
-            $"{label} showed no measurable decline over {used.Count} scans ({windowDays:0.#} days): {used[0].Value:0.#}% to {used[^1].Value:0.#}%. No forecast until a decline is measured.");
+        var label = MetricLabel(metric, languageCode);
+        var text = StringLocalizer.GetFormatted(
+            AppStringKeys.HistoryForecastNoDecline,
+            languageCode,
+            label,
+            used.Count,
+            FormatNumber(windowDays),
+            FormatNumber(used[0].Value),
+            FormatNumber(used[^1].Value));
         return WithStepNote(stepChangeNote, text);
     }
 
     private static string BuildAlreadyReachedText(
-        ForecastMetric metric, IReadOnlyList<ForecastPoint> used, double windowDays, double threshold, string? stepChangeNote)
+        ForecastMetric metric, IReadOnlyList<ForecastPoint> used, double windowDays, double threshold, string? stepChangeNote, string? languageCode)
     {
-        var label = MetricLabel(metric);
-        var text = string.Create(
-            CultureInfo.InvariantCulture,
-            $"{label} has already reached the {ThresholdText(metric, threshold)}: {used[^1].Value:0.#}% on the latest scan ({used.Count} scans, {windowDays:0.#} days).");
+        var label = MetricLabel(metric, languageCode);
+        var text = StringLocalizer.GetFormatted(
+            AppStringKeys.HistoryForecastAlreadyReached,
+            languageCode,
+            label,
+            ThresholdText(metric, threshold, languageCode),
+            FormatNumber(used[^1].Value),
+            used.Count,
+            FormatNumber(windowDays));
         return WithStepNote(stepChangeNote, text);
     }
 
@@ -400,23 +444,34 @@ public static class DegradationForecaster
         double threshold,
         int lowMonths,
         int? highMonths,
-        string? stepChangeNote)
+        string? stepChangeNote,
+        string? languageCode)
     {
-        var label = MetricLabel(metric);
+        var label = MetricLabel(metric, languageCode);
         var change = used[^1].Value - used[0].Value;
-        var direction = metric == ForecastMetric.Battery
-            ? change < 0d ? "fell" : "rose"
-            : change > 0d ? "rose" : "fell";
-        var firstSentence = string.Create(
-            CultureInfo.InvariantCulture,
-            $"{label} {direction} {Math.Abs(change):0.#} points over {used.Count} scans ({windowDays:0.#} days).");
+        var directionKey = metric == ForecastMetric.Battery
+            ? change < 0d ? AppStringKeys.HistoryForecastFell : AppStringKeys.HistoryForecastRose
+            : change > 0d ? AppStringKeys.HistoryForecastRose : AppStringKeys.HistoryForecastFell;
+        var direction = StringLocalizer.Get(directionKey, languageCode);
+        var thresholdText = ThresholdText(metric, threshold, languageCode);
+        var firstSentence = StringLocalizer.GetFormatted(
+            AppStringKeys.HistoryForecastReadyFirst,
+            languageCode,
+            label,
+            direction,
+            FormatNumber(Math.Abs(change)),
+            used.Count,
+            FormatNumber(windowDays));
         var secondSentence = highMonths is null
-            ? string.Create(
-                CultureInfo.InvariantCulture,
-                $"At that measured rate, it reaches the {ThresholdText(metric, threshold)} in {lowMonths} month{(lowMonths == 1 ? string.Empty : "s")} at the earliest; at the slowest rate within the measurement error, it might never reach it.")
-            : string.Create(
-                CultureInfo.InvariantCulture,
-                $"At that measured rate, it reaches the {ThresholdText(metric, threshold)} in {lowMonths} to {highMonths.Value} months.");
+            ? lowMonths == 1
+                ? StringLocalizer.GetFormatted(AppStringKeys.HistoryForecastReadyOpenOne, languageCode, thresholdText)
+                : StringLocalizer.GetFormatted(AppStringKeys.HistoryForecastReadyOpenMany, languageCode, thresholdText, lowMonths)
+            : StringLocalizer.GetFormatted(
+                AppStringKeys.HistoryForecastReadyRange,
+                languageCode,
+                thresholdText,
+                lowMonths,
+                highMonths.Value);
         return WithStepNote(stepChangeNote, firstSentence + " " + secondSentence);
     }
 }

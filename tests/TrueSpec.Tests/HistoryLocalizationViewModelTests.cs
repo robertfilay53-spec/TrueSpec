@@ -6,16 +6,19 @@ using TrueSpec.Core.Storage;
 namespace TrueSpec.Tests;
 
 /// <summary>
-/// Localisation, phase 6 (v2.1.12): the History page in German — the
+/// Localisation, phases 6-7 (v2.1.12-13): the History page in German — the
 /// trend cards, the saved-scans table, the two-machine comparison and
 /// the value comparison, plus the CPU temperature log. The chrome
 /// follows the language picked in Settings, in place and with no
-/// restart; the data stays English by design: machine names, the trend
-/// summary and forecast texts, the value verdict sentence and its
-/// no-verdict reason (Core-owned, ValueComparer), and the table's cell
-/// fallbacks ("Not measurable" / "Not reported", which the CSV export
-/// agrees with row for row) — the tests pin that the data does not
-/// change when the chrome does. Transient status lines (remove
+/// restart. Phase 7 localizes the Core-owned wordings too: the trend
+/// summary, the battery alert, the driver-age summary, the forecast
+/// basis texts and the value no-verdict reason are re-derived in the
+/// new language from the same snapshots. The data that stays English
+/// by design: machine names, the value verdict sentence (Core-owned,
+/// ValueComparer, shown verbatim) and the table's cell fallbacks
+/// ("Not measurable" / "Not reported", which the CSV export agrees
+/// with row for row) — the tests pin that the data does not change
+/// when the chrome does. Transient status lines (remove
 /// confirmation, removed-scan counts, comparison and value prompts)
 /// are re-derived from stored state, so a switch re-resolves them
 /// instead of silently resetting them.
@@ -62,6 +65,25 @@ public class HistoryLocalizationViewModelTests
         {
             await Task.Delay(50);
         }
+    }
+
+    /// <summary>
+    /// The load assigns the compare pair and clears IsLoading on the
+    /// same path that sets the status line, so a test that only waited
+    /// for the status can still execute the compare before the pair is
+    /// assigned, and the compare then silently no-ops (the pair is
+    /// null). Wait for the compare to be possible instead: on a loaded
+    /// runner the status line alone is not enough.
+    /// </summary>
+    private static async Task WaitForCompareReadyAsync(HistoryViewModel viewModel)
+    {
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+        while (!viewModel.CanCompareMachines && DateTimeOffset.UtcNow < deadline)
+        {
+            await Task.Delay(50);
+        }
+
+        Assert.True(viewModel.CanCompareMachines, $"Compare never became possible (status: {viewModel.StatusMessage}).");
     }
 
     private static string TempDirectory()
@@ -227,7 +249,7 @@ public class HistoryLocalizationViewModelTests
     }
 
     [Fact]
-    public async Task TwoScans_StatusAndRanges_AreLocalized_MeasuredDataUnchanged()
+    public async Task TwoScans_StatusAndRanges_AreLocalized_CoreWordingsFollowLanguage()
     {
         var directory = TempDirectory();
         try
@@ -255,9 +277,28 @@ public class HistoryLocalizationViewModelTests
             Assert.Equal("Storage wear: 2% to 5% over 2 scans.", english.WearRangeText);
             Assert.Equal("Speicherverschleiß: 2% bis 5% über 2 Scans.", german.WearRangeText);
 
-            // Measured data does not change with the chrome: the same
-            // summary, the same row cells, the same machine names.
-            Assert.Equal(english.SummaryText, german.SummaryText);
+            // Measured values do not change with the chrome: the same row
+            // cells, the same machine names. The Core-owned wordings
+            // (trend summary, forecast texts) follow the language
+            // instead: they are re-derived from the same snapshots.
+            Assert.Equal(
+                "2 scans from 2026-11-10 to 2026-11-10. Score 90 to 85 (down 5 points). Battery health 90 to 85 (down 5 points). Storage wear 2 to 5 (up 3 points).",
+                english.SummaryText);
+            Assert.Equal(
+                "2 Scans von 2026-11-10 bis 2026-11-10. Punktzahl 90 bis 85 (um 5 Punkte gefallen). Akkugesundheit 90 bis 85 (um 5 Punkte gefallen). Speicherverschleiß 2 bis 5 (um 3 Punkte gestiegen).",
+                german.SummaryText);
+            Assert.Equal(
+                "Battery health has 2 scans over 0 days. A forecast needs at least 3 scans over at least 30 days: 1 more scan needed.",
+                english.BatteryForecastText);
+            Assert.Equal(
+                "Akkugesundheit hat 2 Scans über 0 Tage. Eine Prognose braucht mindestens 3 Scans über mindestens 30 Tage: 1 weiterer Scan nötig.",
+                german.BatteryForecastText);
+            Assert.Equal(
+                "SSD wear has 2 scans over 0 days. A forecast needs at least 3 scans over at least 30 days: 1 more scan needed.",
+                english.StorageWearForecastText);
+            Assert.Equal(
+                "SSD-Verschleiß hat 2 Scans über 0 Tage. Eine Prognose braucht mindestens 3 Scans über mindestens 30 Tage: 1 weiterer Scan nötig.",
+                german.StorageWearForecastText);
             Assert.Equal(english.Rows.Select(r => r.ScoreText), german.Rows.Select(r => r.ScoreText));
             Assert.Equal(english.Rows.Select(r => r.BatteryHealthText), german.Rows.Select(r => r.BatteryHealthText));
             Assert.Equal(english.Rows.Select(r => r.BatteryCyclesText), german.Rows.Select(r => r.BatteryCyclesText));
@@ -265,13 +306,12 @@ public class HistoryLocalizationViewModelTests
             Assert.Equal(english.Rows.Select(r => r.StorageHoursText), german.Rows.Select(r => r.StorageHoursText));
             Assert.Equal(english.Rows.Select(r => r.CapturedAt), german.Rows.Select(r => r.CapturedAt));
             Assert.Equal(english.MachineNames, german.MachineNames);
-            Assert.Equal(english.BatteryForecastText, german.BatteryForecastText);
-            Assert.Equal(english.StorageWearForecastText, german.StorageWearForecastText);
 
             // A switch re-renders the loaded page in place, keeping the data.
             german.ApplyLanguage("en");
             Assert.Equal("2 scans in history, oldest first.", german.StatusMessage);
             Assert.Equal("Score: 90 to 85 over 2 scans.", german.ScoreRangeText);
+            Assert.Equal(english.SummaryText, german.SummaryText);
             Assert.Equal(english.Rows.Select(r => r.ScoreText), german.Rows.Select(r => r.ScoreText));
         }
         finally
@@ -464,6 +504,7 @@ public class HistoryLocalizationViewModelTests
             Assert.Equal("OTHER-PC", viewModel.CompareMachineB);
             Assert.Equal("Wählen Sie zwei Geräte und vergleichen Sie sie. Unterschiedliche Geräte werden nebeneinander angezeigt, niemals in einem Verlauf vermischt.", viewModel.ComparisonStatusText);
 
+            await WaitForCompareReadyAsync(viewModel);
             await viewModel.CompareMachinesCommand.ExecuteAsync(null);
 
             Assert.True(viewModel.HasMachineComparison, "Comparison never ran.");
@@ -511,9 +552,9 @@ public class HistoryLocalizationViewModelTests
             Assert.Contains("Machine B", viewModel.ValueVerdictText, StringComparison.Ordinal);
             Assert.Contains("better buy", viewModel.ValueVerdictText, StringComparison.Ordinal);
             Assert.Equal(2, viewModel.ValueRows.Count);
-            // The asking-price row label is ValueComparer's Core-owned
-            // label: it stays English even in German.
-            Assert.Equal(ValueComparer.AskingPriceLabel, viewModel.ValueRows[0].Label);
+            // The asking-price row label follows the page language
+            // through the catalogue key, like the other row labels.
+            Assert.Equal("Angebotspreis (Sie geben ihn ein, nicht gemessen)", viewModel.ValueRows[0].Label);
             Assert.Equal("$500", viewModel.ValueRows[0].MachineAText);
             Assert.Equal("$400", viewModel.ValueRows[0].MachineBText);
             Assert.Equal("Punktzahl pro 1 $ (geschätzt)", viewModel.ValueRows[1].Label);
@@ -529,10 +570,134 @@ public class HistoryLocalizationViewModelTests
 
             // A switch rebuilds the value rows and winners too.
             viewModel.ApplyLanguage("en");
+            Assert.Equal("Asking price (you enter this, not measured)", viewModel.ValueRows[0].Label);
             Assert.Equal("Score per $1 (ESTIMATE)", viewModel.ValueRows[1].Label);
             Assert.Equal("Machine A wins (95% vs 88%)", viewModel.ValueComponentWinners.Single(w => w.ComponentName == "Storage").WinnerText);
             Assert.Equal("Not measurable on one or both machines", viewModel.ValueComponentWinners.Single(w => w.ComponentName == "Battery").WinnerText);
             Assert.Equal("Prices are yours, not measured. The per-dollar figure is arithmetic on the measured score and the price you entered, labelled ESTIMATE. No market-price data is used.", viewModel.ValueStatusText);
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task LanguageSwitch_ReAnalysesTrendSummaryAndForecasts()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 1, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("Test Laptop", 90d, "90.0%", "10", "2%", "100", baseTime),
+                ("Test Laptop", 89d, "89.0%", "11", "4%", "150", baseTime.AddDays(30)),
+                ("Test Laptop", 88d, "88.0%", "12", "6%", "200", baseTime.AddDays(60)),
+                ("Test Laptop", 87d, "87.0%", "13", "8%", "250", baseTime.AddDays(90)));
+
+            var viewModel = new HistoryViewModel(store, TestSnapshots.Healthy(), languageCode: "en");
+            await WaitForLoadAsync(viewModel);
+
+            Assert.Equal(
+                "4 scans from 2026-01-10 to 2026-04-10. Score 90 to 87 (down 3 points). Battery health 90 to 87 (down 3 points). Storage wear 2 to 8 (up 6 points).",
+                viewModel.SummaryText);
+            Assert.Equal(
+                "Battery health fell 3 points over 4 scans (90 days). At that measured rate, it reaches the Replace threshold (battery health below 60%) in 23 to 30 months.",
+                viewModel.BatteryForecastText);
+            Assert.Equal(
+                "SSD wear rose 6 points over 4 scans (90 days). At that measured rate, it reaches the Replace threshold (storage wear above 40%) in 14 to 18 months.",
+                viewModel.StorageWearForecastText);
+
+            // A switch re-analyses the same snapshots in German: the
+            // wordings change, the measured values do not.
+            viewModel.ApplyLanguage("de");
+            Assert.Equal(
+                "4 Scans von 2026-01-10 bis 2026-04-10. Punktzahl 90 bis 87 (um 3 Punkte gefallen). Akkugesundheit 90 bis 87 (um 3 Punkte gefallen). Speicherverschleiß 2 bis 8 (um 6 Punkte gestiegen).",
+                viewModel.SummaryText);
+            Assert.Equal(
+                "Akkugesundheit ist um 3 Punkte über 4 Scans (90 Tage) gefallen. Bei dieser gemessenen Rate wird Austausch-Schwelle (Akkugesundheit unter 60 %) in 23 bis 30 Monaten erreicht.",
+                viewModel.BatteryForecastText);
+            Assert.Equal(
+                "SSD-Verschleiß ist um 6 Punkte über 4 Scans (90 Tage) gestiegen. Bei dieser gemessenen Rate wird Austausch-Schwelle (Speicherverschleiß über 40 %) in 14 bis 18 Monaten erreicht.",
+                viewModel.StorageWearForecastText);
+
+            viewModel.ApplyLanguage("en");
+            Assert.Equal(
+                "4 scans from 2026-01-10 to 2026-04-10. Score 90 to 87 (down 3 points). Battery health 90 to 87 (down 3 points). Storage wear 2 to 8 (up 6 points).",
+                viewModel.SummaryText);
+            Assert.Equal(
+                "Battery health fell 3 points over 4 scans (90 days). At that measured rate, it reaches the Replace threshold (battery health below 60%) in 23 to 30 months.",
+                viewModel.BatteryForecastText);
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task LanguageSwitch_ReRunsValueComparison_NoVerdictReasonFollowsLanguage()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var databasePath = Path.Combine(directory, "snapshots.db");
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+            // Test Laptop: measurable scores. OTHER-PC: no measurable
+            // score, so the value comparison has no verdict and the
+            // reason says which input is missing.
+            await store.SaveAsync(TestSnapshots.HistorySnapshot(90d, "90.0%", "10", "2%", "100", baseTime, machineName: "Test Laptop"));
+            await store.SaveAsync(TestSnapshots.HistorySnapshot(85d, "85.0%", "12", "5%", "120", baseTime.AddHours(1), machineName: "Test Laptop"));
+            await store.SaveAsync(TestSnapshots.HistorySnapshot(70d, "75.0%", "300", "12%", "45000", baseTime, machineName: "OTHER-PC", measurableScore: false));
+            await store.SaveAsync(TestSnapshots.HistorySnapshot(75d, "80.0%", "310", "12%", "45100", baseTime.AddHours(1), machineName: "OTHER-PC", measurableScore: false));
+
+            var viewModel = new HistoryViewModel(store, TestSnapshots.Healthy(), languageCode: "en");
+            await WaitForLoadAsync(viewModel);
+            await WaitForCompareReadyAsync(viewModel);
+            await viewModel.CompareMachinesCommand.ExecuteAsync(null);
+            Assert.True(viewModel.HasMachineComparison, "Comparison never ran.");
+
+            // Both prices are valid, but one machine has no measured
+            // score: no verdict, and the reason says which input is
+            // missing. (A zero price never reaches the comparer:
+            // TryParseAskingPrice rejects it as a bad price first.
+            // The no-price reason is covered at the Core level in
+            // HistoryCoreWordingsTests instead.)
+            viewModel.PriceAText = "500";
+            viewModel.PriceBText = "400";
+            viewModel.CompareValueCommand.Execute(null);
+
+            Assert.True(viewModel.HasValueComparison);
+            Assert.Equal(string.Empty, viewModel.ValueVerdictText);
+            Assert.Equal(
+                "A value verdict needs a measured health score for both machines.",
+                viewModel.ValueStatusText);
+
+            // A switch re-runs the comparison in German; the verdict
+            // (none here) is unchanged, the reason follows the language.
+            viewModel.ApplyLanguage("de");
+            Assert.Equal(string.Empty, viewModel.ValueVerdictText);
+            Assert.Equal(
+                "Für eine Kaufempfehlung braucht es eine gemessene Gesundheitsbewertung für beide Geräte.",
+                viewModel.ValueStatusText);
+            Assert.Equal("Angebotspreis (Sie geben ihn ein, nicht gemessen)", viewModel.ValueRows[0].Label);
+
+            viewModel.ApplyLanguage("en");
+            Assert.Equal(
+                "A value verdict needs a measured health score for both machines.",
+                viewModel.ValueStatusText);
+
+            // A price typed since the last compare is NOT applied by a
+            // language switch: the stored result (and its reason) stay
+            // until Compare runs again.
+            viewModel.PriceBText = "450";
+            viewModel.ApplyLanguage("de");
+            Assert.Equal(
+                "A value verdict needs a measured health score for both machines.",
+                viewModel.ValueStatusText);
         }
         finally
         {

@@ -1,6 +1,7 @@
 namespace TrueSpec.Core.History;
 
 using System.Globalization;
+using TrueSpec.Core.Localization;
 using TrueSpec.Core.Models;
 
 /// <summary>
@@ -103,7 +104,13 @@ public static class ValueComparer
     /// </summary>
     public const double ComponentWinThreshold = 0.05;
 
-    /// <summary>The label the UI shows next to every asking-price field.</summary>
+    /// <summary>
+    /// The label the UI used to show next to every asking-price field.
+    /// Kept for compatibility: the UI now takes the label from the
+    /// catalogue key <see cref="Localization.AppStringKeys.HistoryAskingPriceLabel"/>
+    /// so it follows the page language, and this const is no longer read
+    /// by any production code.
+    /// </summary>
     public const string AskingPriceLabel = "Asking price (you enter this, not measured)";
 
     /// <summary>
@@ -114,6 +121,12 @@ public static class ValueComparer
     /// are the two machines' latest snapshots, used only for the
     /// per-component winners; both may be null, in which case the winner
     /// list is empty and the verdict still stands on score and price.
+    /// <paramref name="languageCode"/> (optional, English when blank or
+    /// unknown) localizes only the no-verdict reason: the verdict sentence
+    /// itself is always English, shown verbatim (see the U9 decision, and
+    /// the comment on <see cref="HistoryViewModel"/>). Callers that never
+    /// pass a language see the exact English wordings this method always
+    /// produced.
     /// </summary>
     public static ValueComparisonResult Compare(
         MachineComparison comparison,
@@ -121,7 +134,8 @@ public static class ValueComparer
         decimal? askingPriceB,
         string currencySymbol = "$",
         SystemSnapshot? latestSnapshotA = null,
-        SystemSnapshot? latestSnapshotB = null)
+        SystemSnapshot? latestSnapshotB = null,
+        string? languageCode = null)
     {
         ArgumentNullException.ThrowIfNull(comparison);
 
@@ -147,7 +161,7 @@ public static class ValueComparer
         var cheaper = CheaperSide(sideA, sideB);
         var betterBuy = BetterBuySide(perCurrencyA, perCurrencyB);
 
-        var (verdict, reason) = Verdict(sideA, sideB, perCurrencyA, perCurrencyB, priceDifference, cheaper, betterBuy);
+        var (verdict, reason) = Verdict(sideA, sideB, perCurrencyA, perCurrencyB, priceDifference, cheaper, betterBuy, languageCode);
 
         return new ValueComparisonResult(
             sideA,
@@ -268,7 +282,9 @@ public static class ValueComparer
     /// higher measured health per unit of currency. A tie is still one
     /// sentence, saying so. No verdict is possible without a measured score
     /// and an asking price for both machines, and the reason says which is
-    /// missing instead of guessing.
+    /// missing instead of guessing. The verdict sentence is ALWAYS English
+    /// (the U9 decision: shown verbatim, never translated); only the
+    /// no-verdict reason follows <paramref name="languageCode"/>.
     /// </summary>
     private static (string? Verdict, string? Reason) Verdict(
         ValueSide sideA,
@@ -277,11 +293,12 @@ public static class ValueComparer
         double? perCurrencyB,
         decimal? priceDifference,
         ValueWinner cheaper,
-        ValueWinner betterBuy)
+        ValueWinner betterBuy,
+        string? languageCode)
     {
         if (sideA.LatestScore is null || sideB.LatestScore is null)
         {
-            return (null, "A value verdict needs a measured health score for both machines.");
+            return (null, StringLocalizer.Get(AppStringKeys.HistoryValueNoVerdictNoScore, languageCode));
         }
 
         // Captured once, so the sentence builders below never re-read a
@@ -291,12 +308,12 @@ public static class ValueComparer
 
         if (!sideA.HasPrice || !sideB.HasPrice)
         {
-            return (null, "Enter an asking price above zero for each machine to compare value.");
+            return (null, StringLocalizer.Get(AppStringKeys.HistoryValueNoVerdictNoPrice, languageCode));
         }
 
         if (betterBuy is ValueWinner.NotDecidable)
         {
-            return (null, "A value verdict needs a measured health score and an asking price for both machines.");
+            return (null, StringLocalizer.Get(AppStringKeys.HistoryValueNoVerdictMissing, languageCode));
         }
 
         var symbol = sideA.CurrencySymbol;

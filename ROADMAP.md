@@ -1030,6 +1030,78 @@ data already existed; only the band rule and wording are new.
   them as untracked). The rule stands: stage named files only, never
   `git add -A` in this repo.
 
+## v2.1.13 — shipped
+
+- **Localisation, phase 7: the History page's remaining Core-owned
+  wordings in German (Beyond v2.0, item 4).** Phase 6 translated the
+  History page's chrome; this version translates the wordings the
+  page's Core layer owns, which phase 6 explicitly left out: the
+  trend summary (scan counts, score / battery / wear deltas), the
+  battery-health alert (band drop and fast fall), the driver-age
+  summary (oldest-driver dates and the older-than-5-years counts),
+  the degradation-forecast basis texts (not-enough-data, no-decline,
+  already-reached and ready ranges, for battery and storage wear,
+  including the step-change note and the threshold text), the value
+  no-verdict reasons, and the asking-price row label (which was the
+  last Core-owned label on the page: it now comes from the catalogue
+  key instead of `ValueComparer.AskingPriceLabel`). The catalogue
+  grows by 52 keys (260 to 312): 9 trend, 5 battery alert, 11 driver
+  age (including the ", and" / ", und" clause join, so a two-clause
+  driver-age sentence does not carry an English conjunction into a
+  German sentence), 24 forecast, 3 value reasons. The German
+  translations keep the formal "Sie" style, put the article inside
+  the part-noun keys ("der Akku" / "das Laufwerk") so the step-change
+  cause reads in the language's own article and gender, and use the
+  passive ("wird ... erreicht") where a pronoun would force a gender
+  choice. Numbers inside German sentences keep the app's existing
+  invariant formatting (one decimal, dot separator), so a measured
+  value reads the same in both languages.
+- **Design (the phase 6 pattern).** An optional `languageCode`
+  (default null, English when blank or unknown) at the END of
+  `HistoryTrendAnalyzer.Analyze` / `LoadAsync`,
+  `BatteryHealthAlert`, `DegradationForecaster.Forecast` /
+  `ForBattery` / `ForStorageWear` and `ValueComparer.Compare`, so
+  every existing caller keeps compiling and the no-language call
+  produces the exact English wording it always did (pinned
+  byte-for-byte by the new tests). `LoadAsync` extracts
+  `LoadSnapshotsAsync`, so the view model can keep the snapshots and
+  re-analyse on a language switch without re-reading the store.
+  `HistoryViewModel` stores those snapshots, extracts an
+  `ApplyTrend` method used by both the load path and
+  `ApplyLanguage` (which re-analyses in the new language; the
+  status line is not touched, so a transient remove status survives
+  a switch), and re-runs the value comparison on a switch — but
+  only while the price fields still hold the prices the stored
+  result was built on, so a price typed since the last compare is
+  never silently applied by a language switch. Deliberately NOT
+  translated in this version, and named on the page's own terms in
+  the docs: the U9 per-dollar verdict sentence stays English in
+  every language (shown verbatim, never translated, pending Jawad's
+  veto decision); the table's cell fallbacks ("Not measurable" /
+  "Not reported") stay English so the CSV export still agrees with
+  the table row for row. Tests: `HistoryCoreWordingsTests` (German
+  trend summary / battery alert / driver-age summary / all five
+  forecast cases / both step-change directions / both no-verdict
+  reasons, the verdict sentence staying English, and the English
+  pins) and `HistoryLocalizationViewModelTests` (the TwoScans test
+  now pins the summary and both forecasts following the language
+  while the row cells stay identical, a switch re-analyses the
+  summary and both forecasts in place and back, the no-verdict
+  reason follows the language, and the price-typed-since guard; the
+  asking-price row label is German in German and English in
+  English). The compare tests wait for the compare to be possible
+  (`CanCompareMachines`) instead of only for the status line: on a
+  loaded runner the status can leave Loading before the load
+  assigns the compare pair, and the compare then silently no-ops.
+- **Dependency audit re-attested for v2.1.12.** `SECURITY.md` said
+  v2.1.11; the audit was re-run with
+  `dotnet list package --vulnerable --include-transitive` on all four
+  projects (no vulnerable packages, including transitive). No package
+  version changed between v2.1.11 and v2.1.12 (only the `<Version>`
+  bump and test-file exclusions — zero `PackageReference` changes in
+  `git diff 8413746 0788596 -- '*csproj'`), so the result carries
+  forward.
+
 ## Rejected
 
 - **PDF via QuestPDF / iText / PdfSharp.** QuestPDF is MIT-licensed
