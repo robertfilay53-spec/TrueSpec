@@ -513,6 +513,66 @@ public class NavigationTests
     }
 
     /// <summary>
+    /// Localisation, phase 1, Spanish (v2.1.27): the Spanish rail carries
+    /// the same 22 items in the same order and with the same keys as the
+    /// English rail, mirroring German phase 1 and French phase 1. Only
+    /// the labels change.
+    /// </summary>
+    [Fact]
+    public void Navigation_SpanishRail_HasSameKeysInSameOrder()
+    {
+        var english = NavItemViewModel.CreateDefault().ToList();
+        var spanish = NavItemViewModel.CreateForLanguage("es").ToList();
+
+        Assert.Equal(english.Count, spanish.Count);
+        Assert.Equal(english.Select(i => i.Key), spanish.Select(i => i.Key));
+        Assert.Equal(22, spanish.Count);
+    }
+
+    /// <summary>
+    /// Localisation, phase 1, Spanish (v2.1.27): every Spanish label,
+    /// pinned. A changed label here is a deliberate translation decision,
+    /// and the test forces it to be made in this file, not silently in a
+    /// pack.
+    /// </summary>
+    [Fact]
+    public void Navigation_SpanishRail_TranslatesEveryLabel()
+    {
+        var expected = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["overview"] = "Vista general",
+            ["system"] = "Sistema",
+            ["cpu"] = "CPU",
+            ["ram"] = "RAM",
+            ["storage"] = "Almacenamiento",
+            ["battery"] = "Batería",
+            ["gpu"] = "GPU",
+            ["display"] = "Pantalla",
+            ["network"] = "Red",
+            ["motherboard"] = "Placa base",
+            ["security"] = "Seguridad",
+            ["drivers"] = "Controladores",
+            ["updates"] = "Actualizaciones",
+            ["startup"] = "Inicio",
+            ["crash"] = "Historial de bloqueos",
+            ["history"] = "Historial",
+            ["software"] = "Software",
+            ["tests"] = "Pruebas",
+            ["report"] = "Informe",
+            ["compare"] = "Comparar",
+            ["fleet"] = "Flota",
+            ["settings"] = "Configuración",
+        };
+
+        var spanish = NavItemViewModel.CreateForLanguage("es").ToList();
+        Assert.Equal(expected.Count, spanish.Count);
+        foreach (var item in spanish)
+        {
+            Assert.Equal(expected[item.Key], item.Label);
+        }
+    }
+
+    /// <summary>
     /// Localisation, phase 1 (v2.1.7): a code with no pack falls back to
     /// the English rail, label for label, so a bad stored language can
     /// never leave the rail blank or half-translated.

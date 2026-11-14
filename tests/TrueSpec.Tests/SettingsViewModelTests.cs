@@ -90,7 +90,7 @@ public class SettingsViewModelTests
         {
             Assert.Equal("en", settings.LanguageCode);
             Assert.Equal("English", settings.LanguageText);
-            Assert.Equal(new[] { "en", "de", "fr" }, settings.LanguageOptions);
+            Assert.Equal(new[] { "en", "de", "fr", "es" }, settings.LanguageOptions);
             Assert.Equal("Language", settings.LanguageTitleText);
         }
         finally
@@ -156,6 +156,41 @@ public class SettingsViewModelTests
             Assert.Equal(22, labels.Count);
             Assert.Contains("Vue d'ensemble", labels);
             Assert.Contains("Paramètres", labels);
+            Assert.DoesNotContain("Overview", labels);
+
+            // The user stays on the page they were on: the rail rebuild
+            // re-selects by key and never navigates away.
+            Assert.Equal("overview", main.SelectedNavItem?.Key);
+            Assert.IsType<OverviewViewModel>(main.CurrentPage);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Language_PickingSpanish_RebuildsRailInSpanishAndKeepsThePage()
+    {
+        var (main, settings, root) = ViewModelWithTempStore();
+
+        try
+        {
+            settings.LanguageCode = "es";
+
+            Assert.Equal("Español", settings.LanguageText);
+            Assert.Equal("Idioma", settings.LanguageTitleText);
+            Assert.Equal(
+                "Elige el idioma de la barra de navegación. El idioma se aplica de inmediato.",
+                settings.LanguageDescriptionText);
+            Assert.Equal(
+                "La barra de navegación y la tarjeta de idioma están traducidas. Las demás páginas seguirán en versiones posteriores.",
+                settings.LanguageNoteText);
+
+            var labels = main.NavItems.Select(i => i.Label).ToList();
+            Assert.Equal(22, labels.Count);
+            Assert.Contains("Vista general", labels);
+            Assert.Contains("Configuración", labels);
             Assert.DoesNotContain("Overview", labels);
 
             // The user stays on the page they were on: the rail rebuild
