@@ -44,6 +44,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen AI 9 HX 370", "RYZEN AI 9 HX 370")]
     [InlineData("intel core i5-12400", "I5-12400")]
     [InlineData("Intel(R) Core(TM) i5-12400F Processor", "I5-12400F")]
+    [InlineData("Intel(R) Core(TM) i5-14400", "I5-14400")]
+    [InlineData("AMD Ryzen 7 3700U with Radeon Graphics", "RYZEN 7 3700U")]
     [InlineData(null, "")]
     [InlineData("", "")]
     [InlineData("   ", "")]
@@ -164,9 +166,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.7.0", database.Version);
+        Assert.Equal("1.8.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
-        Assert.Equal(74, database.CpuCount);
+        Assert.Equal(77, database.CpuCount);
         Assert.Equal(78, database.GpuCount);
     }
 
@@ -637,6 +639,46 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(1.65, rtx2060Super.BoostGhz);
         Assert.Equal(8, rtx2060Super.MemoryGb);
         Assert.Equal(175, rtx2060Super.TdpW);
+    }
+
+    [Fact]
+    public void Default_I514400I514400FAndRyzen73700UCarryVerifiedFigures()
+    {
+        // Dataset v1.8.0: the three CPUs the v1.0.0 deliberately-absent
+        // list named without a blocking reason. The i5-14400 figures
+        // were verified by hand against Intel's own product page (ARK
+        // ID 236788, read 2026-11-14): the page title itself says up
+        // to 4.70 GHz, and the ARK-sourced listings agree on base
+        // 2.5 GHz and E-core boost 3.5 GHz. The i5-14400F carries the
+        // same figures (ARK ID 236777); Intel's ARK page returned 403
+        // to the reader, so its figures rest on the ARK-sourced
+        // listings, which agree exactly with the 14400. The Ryzen 7
+        // 3700U figures were verified by hand against AMD's own
+        // driver/spec page for the chip, read 2026-11-14: Max. Boost
+        // Clock up to 4 GHz, Base Clock 2.3 GHz. The i9-11980HK stays
+        // absent: Intel's own current product page lists up to 4.90
+        // GHz while ARK-era sources list 5.00 GHz Max Turbo, so no
+        // single verifiable figure exists.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i5-14400", out var i514400));
+        Assert.Equal("Intel", i514400.Vendor);
+        Assert.Equal(2.5, i514400.BaseGhz);
+        Assert.Equal(4.7, i514400.BoostGhz);
+        Assert.Equal(3.5, i514400.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/sku/236788/intel-core-i5-processor-14400-20m-cache-up-to-4-70-ghz/specifications.html", i514400.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i5-14400F", out var i514400F));
+        Assert.Equal("Intel", i514400F.Vendor);
+        Assert.Equal(2.5, i514400F.BaseGhz);
+        Assert.Equal(4.7, i514400F.BoostGhz);
+        Assert.Equal(3.5, i514400F.ECoreBoostGhz);
+        Assert.StartsWith("https://ark.intel.com/content/www/us/en/ark/products/236777/", i514400F.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 3700U with Radeon Graphics", out var r73700U));
+        Assert.Equal("AMD", r73700U.Vendor);
+        Assert.Equal(2.3, r73700U.BaseGhz);
+        Assert.Equal(4.0, r73700U.BoostGhz);
+        Assert.Null(r73700U.ECoreBoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/processors/ryzen/ryzen-3000-series/amd-ryzen-7-3700u.html", r73700U.SourceUrl, StringComparison.Ordinal);
     }
 
     [Fact]
