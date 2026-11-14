@@ -81,9 +81,10 @@ public sealed class LanguagePackTests
         // wording is the worker's own translation, not reviewed by a
         // native speaker (the same honest limitation as the German
         // wording). The language card says the rail, the Settings page,
-        // the component detail pages and the Overview page are
+        // the component detail pages, the Overview page, the History
+        // page, the Fleet page and the New Laptop Check page are
         // translated and the other pages follow in later versions
-        // (phase 5, v2.1.24).
+        // (phase 6, v2.1.25).
         var french = LanguagePacks.French.Strings;
         Assert.Equal("Vue d'ensemble", french[AppStringKeys.NavOverview]);
         Assert.Equal("Stockage", french[AppStringKeys.NavStorage]);
@@ -100,7 +101,7 @@ public sealed class LanguagePackTests
         Assert.Equal("Paramètres", french[AppStringKeys.NavSettings]);
         Assert.Equal("Langue", french[AppStringKeys.LanguageTitle]);
         Assert.Equal(
-            "La barre de navigation, la page Paramètres, les pages de détail des composants et la page Vue d'ensemble sont traduites. Les autres pages suivront dans les versions ultérieures.",
+            "La barre de navigation, la page Paramètres, les pages de détail des composants, la page Vue d'ensemble, la page Historique, la page Parc et la page Vérification d'ordinateur portable neuf sont traduites. Les autres pages suivront dans les versions ultérieures.",
             french[AppStringKeys.LanguageNote]);
     }
 
@@ -488,6 +489,142 @@ public sealed class LanguagePackTests
     }
 
     [Fact]
+    public void FrenchPack_HistoryPageTerms()
+    {
+        // Localisation, phase 6, French (v2.1.25): the History page —
+        // the trend cards, the saved-scans table, the two-machine
+        // comparison and the value comparison, plus the CPU temperature
+        // log. Same pinning rule as the German phase 6 terms: changing
+        // one is a deliberate translation decision, not a typo fix. The
+        // data the page shows (machine names, trend summary and
+        // forecast texts, the value verdict sentence and its no-verdict
+        // reason, the table's cell fallbacks) is not in this catalogue;
+        // only the page chrome is. The range labels reuse the table
+        // header keys instead of a second copy of the same words. No
+        // new keys — the French pack already covers the whole 523-key
+        // catalogue.
+var french = LanguagePacks.French.Strings;
+        Assert.Equal("HISTORIQUE", french[AppStringKeys.HistoryEyebrow]);
+        Assert.Equal("Comment cette machine évolue au fil du temps", french[AppStringKeys.HistoryTitle]);
+        Assert.Equal(
+            "Chaque scan est enregistré dans une base de données locale sur cette machine. TrueSpec suit l'évolution du score global, de la santé de la batterie et de l'usure du stockage au fil de ces scans. Une valeur qu'un scan n'a pas signalée est un trou, jamais un zéro.",
+            french[AppStringKeys.HistoryIntro]);
+        Assert.Equal("Machine", french[AppStringKeys.HistoryMachineTitle]);
+        Assert.Equal("Choisir une machine", french[AppStringKeys.HistoryPickMachine]);
+        Assert.Equal(
+            "L'historique est affiché pour une machine à la fois. Choisissez une autre machine pour voir sa propre tendance.",
+            french[AppStringKeys.HistoryMachineNote]);
+        Assert.Equal("ALERTE DE SANTÉ DE LA BATTERIE", french[AppStringKeys.HistoryBatteryAlertEyebrow]);
+        Assert.Equal("Score global", french[AppStringKeys.HistoryScoreTitle]);
+        Assert.Equal("Santé de la batterie", french[AppStringKeys.HistoryBatteryTitle]);
+        Assert.Equal("Usure du stockage", french[AppStringKeys.HistoryWearTitle]);
+        Assert.Equal("PRÉVISION", french[AppStringKeys.HistoryForecastEyebrow]);
+        Assert.Equal("Journal de température du processeur", french[AppStringKeys.HistoryCpuLogTitle]);
+        Assert.Equal("Actualiser le graphique", french[AppStringKeys.HistoryRefreshChart]);
+        Assert.Equal(
+            "L'axe horizontal est le temps, et non le nombre d'échantillons. Les trous dans la ligne sont des échantillons où le capteur de température du processeur n'a pas signalé, ou des périodes où la journalisation ne fonctionnait pas (l'application était fermée ou la machine en veille). La ligne ne relie jamais deux points séparés par un trou. La ligne pointillée est votre seuil d'alerte, lorsqu'un seuil est défini. Le journal est un fichier CSV local sous %LocalAppData%\\TrueSpec ; rien n'est envoyé.",
+            french[AppStringKeys.HistoryChartCaption]);
+        Assert.Equal("ÂGE DES PILOTES", french[AppStringKeys.HistoryDriverAgeEyebrow]);
+        Assert.Equal("Scans enregistrés", french[AppStringKeys.HistorySavedScansTitle]);
+        Assert.Equal("Exporter l'historique en CSV", french[AppStringKeys.HistoryExportCsv]);
+        Assert.Equal(
+            "Du plus ancien au plus récent. Un tiret signifie que ce scan n'a pas signalé la valeur. Supprimer efface ce scan de ce dossier de données — le premier clic demande confirmation, le second supprime.",
+            french[AppStringKeys.HistoryTableNote]);
+        Assert.Equal("Date du scan", french[AppStringKeys.HistoryHeaderScanned]);
+        Assert.Equal("Score", french[AppStringKeys.HistoryHeaderScore]);
+        Assert.Equal("Cycles", french[AppStringKeys.HistoryHeaderCycles]);
+        Assert.Equal("Heures de fonctionnement", french[AppStringKeys.HistoryHeaderPowerOnHours]);
+        Assert.Equal("Supprimer", french[AppStringKeys.HistoryRemoveButton]);
+        Assert.Equal("Confirmer la suppression", french[AppStringKeys.HistoryConfirmRemoveButton]);
+        Assert.Equal("Comparer deux machines", french[AppStringKeys.HistoryCompareTitle]);
+        Assert.Equal("Des machines différentes — affichées côte à côte, jamais mélangées dans une même tendance.", french[AppStringKeys.HistoryCompareNote]);
+        Assert.Equal("Machine A", french[AppStringKeys.HistoryMachineA]);
+        Assert.Equal("Machine B", french[AppStringKeys.HistoryMachineB]);
+        Assert.Equal("Comparer", french[AppStringKeys.HistoryCompareButton]);
+        Assert.Equal("Laquelle est le meilleur achat ?", french[AppStringKeys.HistoryValueTitle]);
+        Assert.Equal(
+            "Saisissez le prix demandé par chaque vendeur. Le prix est le vôtre, il n'est pas mesuré, et il sert uniquement à cette comparaison. Il n'est jamais enregistré avec le scan.",
+            french[AppStringKeys.HistoryValueIntro]);
+        Assert.Equal("Prix demandé (c'est vous qui le saisissez, il n'est pas mesuré)", french[AppStringKeys.HistoryAskingPriceLabel]);
+        Assert.Equal("Par exemple 500", french[AppStringKeys.HistoryPriceExample]);
+        Assert.Equal("Comparer la valeur", french[AppStringKeys.HistoryCompareValueButton]);
+        Assert.Equal("Gagnant par composant (santé mesurée uniquement)", french[AppStringKeys.HistoryWinnersTitle]);
+        Assert.Equal("Comment {0} évolue au fil du temps", french[AppStringKeys.HistorySubtitleTemplate]);
+        Assert.Equal("Chargement de l'historique des instantanés...", french[AppStringKeys.HistoryLoading]);
+        Assert.Equal("L'historique des instantanés n'est pas disponible sur cette machine, il n'y a donc encore rien à suivre.", french[AppStringKeys.HistoryUnavailable]);
+        Assert.Equal("Aucun scan enregistré pour l'instant. Lancez un scan (actualiser) et revenez : chaque scan est enregistré dans l'historique local.", french[AppStringKeys.HistoryNoScans]);
+        Assert.Equal("Un seul scan enregistré pour l'instant. Lancez un autre scan (actualiser) et revenez pour voir la tendance.", french[AppStringKeys.HistoryOneScan]);
+        Assert.Equal("{0} scans dans l'historique, du plus ancien au plus récent.", french[AppStringKeys.HistoryScansCount]);
+        Assert.Equal("L'historique n'a pas pu être lu : {0}", french[AppStringKeys.HistoryReadFailed]);
+        Assert.Equal("La suppression n'est pas disponible : l'historique des instantanés n'est pas disponible sur cette machine.", french[AppStringKeys.HistoryRemoveUnavailable]);
+        Assert.Equal("Supprimer le scan du {0} ? Cela supprime ce scan enregistré de ce dossier de données. Cliquez sur « Confirmer la suppression » pour supprimer — rien n'est supprimé avant cela.", french[AppStringKeys.HistoryRemoveConfirm]);
+        Assert.Equal("Rien à supprimer : ce scan avait déjà disparu.", french[AppStringKeys.HistoryRemoveGone]);
+        Assert.Equal("Scan du {0} supprimé. Il ne reste aucun scan enregistré.", french[AppStringKeys.HistoryRemovedNone]);
+        Assert.Equal("Scan du {0} supprimé. Il reste 1 scan.", french[AppStringKeys.HistoryRemovedOne]);
+        Assert.Equal("Scan du {0} supprimé. Il reste {1} scans.", french[AppStringKeys.HistoryRemovedMany]);
+        Assert.Equal("Échec de la suppression : {0}", french[AppStringKeys.HistoryRemoveFailed]);
+        Assert.Equal("L'historique des instantanés n'est pas disponible sur cette machine, il n'y a donc encore rien à comparer.", french[AppStringKeys.HistoryCompareUnavailable]);
+        Assert.Equal("Une seule machine figure dans l'historique pour l'instant. Lancez un scan sur une deuxième machine et son historique apparaîtra ici pour la comparaison.", french[AppStringKeys.HistoryOnlyOneMachine]);
+        Assert.Equal("Choisissez deux machines différentes.", french[AppStringKeys.HistoryPickDifferent]);
+        Assert.Equal("Choisissez deux machines et comparez. Des machines différentes sont affichées côte à côte, jamais mélangées dans une même tendance.", french[AppStringKeys.HistoryPickTwoCompare]);
+        Assert.Equal("Choisissez deux machines à comparer.", french[AppStringKeys.HistoryPickTwo]);
+        Assert.Equal("Comparaison des machines...", french[AppStringKeys.HistoryComparing]);
+        Assert.Equal("{0} comparé à {1}. Des machines différentes sont affichées côte à côte, jamais mélangées dans une même tendance.", french[AppStringKeys.HistoryCompared]);
+        Assert.Equal("Échec de la comparaison : {0}", french[AppStringKeys.HistoryCompareFailed]);
+        Assert.Equal("Saisissez le prix demandé par chaque vendeur pour comparer la valeur.", french[AppStringKeys.HistoryValuePrompt]);
+        Assert.Equal("Comparez d'abord deux machines, puis saisissez les prix demandés.", french[AppStringKeys.HistoryValueCompareFirst]);
+        Assert.Equal("Saisissez un prix demandé supérieur à zéro pour chaque machine (chiffres uniquement, par exemple 500). Le prix est le vôtre, il n'est pas mesuré.", french[AppStringKeys.HistoryValueBadPrice]);
+        Assert.Equal("Les prix sont les vôtres, ils ne sont pas mesurés. Le chiffre par dollar est un calcul arithmétique sur le score mesuré et le prix que vous avez saisi, étiqueté ESTIMATION. Aucune donnée de prix du marché n'est utilisée.", french[AppStringKeys.HistoryValueHonestyNote]);
+        Assert.Equal("Scans dans l'historique", french[AppStringKeys.HistoryRowScans]);
+        Assert.Equal("Premier scan", french[AppStringKeys.HistoryRowFirstScan]);
+        Assert.Equal("Dernier scan", french[AppStringKeys.HistoryRowLastScan]);
+        Assert.Equal("Dernier score", french[AppStringKeys.HistoryRowLatestScore]);
+        Assert.Equal("Dernière santé de la batterie", french[AppStringKeys.HistoryRowLatestBattery]);
+        Assert.Equal("Dernière usure du stockage", french[AppStringKeys.HistoryRowLatestWear]);
+        Assert.Equal("Dernière date du pilote le plus ancien", french[AppStringKeys.HistoryRowLatestDriver]);
+        Assert.Equal("Dernière installation de mise à jour", french[AppStringKeys.HistoryRowLastUpdate]);
+        Assert.Equal("Score pour 1 $ (ESTIMATION)", french[AppStringKeys.HistoryValueScorePerDollar]);
+        Assert.Equal("Machine A gagne ({0} contre {1})", french[AppStringKeys.HistoryWinnerA]);
+        Assert.Equal("Machine B gagne ({0} contre {1})", french[AppStringKeys.HistoryWinnerB]);
+        Assert.Equal("Égalité ({0} contre {1})", french[AppStringKeys.HistoryWinnerTie]);
+        Assert.Equal("Non mesurable sur une machine ou sur les deux", french[AppStringKeys.HistoryWinnerNotMeasurable]);
+        Assert.Equal("{0} : non signalé dans aucun scan enregistré.", french[AppStringKeys.HistoryRangeNone]);
+        Assert.Equal("{0} : {1} (un seul scan).", french[AppStringKeys.HistoryRangeOne]);
+        Assert.Equal("{0} : {1} à {2} sur {3} scans.", french[AppStringKeys.HistoryRangeMany]);
+        Assert.Equal("Chargement du journal des capteurs...", french[AppStringKeys.HistoryLogLoading]);
+        Assert.Equal("La journalisation des capteurs est désactivée. Activez-la dans les Paramètres et le graphique de température du processeur apparaîtra ici.", french[AppStringKeys.HistoryLogOff]);
+        Assert.Equal("Aucun échantillon de capteur enregistré pour l'instant. Laissez TrueSpec en cours d'exécution et le graphique de température du processeur apparaîtra ici.", french[AppStringKeys.HistoryLogNoSamples]);
+        Assert.Equal("Le journal de cette machine ne contient aucun capteur de température du processeur, il n'y a donc rien à représenter.", french[AppStringKeys.HistoryLogNoCpuSensor]);
+        Assert.Equal("Aucune mesure de température n'a été enregistrée sur {0} échantillons : le matériel de cette machine ne signale pas de capteur de température du processeur. C'est normal sur les machines dont le capteur n'est pas exposé, il n'y a donc pas de graphique de température du processeur à afficher.", french[AppStringKeys.HistoryLogNoReadings]);
+        Assert.Equal("Une seule mesure de température a été enregistrée sur {0} échantillons, il n'y a donc pas assez de données pour tracer un graphique.", french[AppStringKeys.HistoryLogOneReading]);
+        Assert.Equal("Les mesures de température sont trop éloignées dans le temps pour tracer une ligne : chaque mesure est isolée car la journalisation ne fonctionnait pas entre elles.", french[AppStringKeys.HistoryLogTooFarApart]);
+        Assert.Equal("Température du processeur, {0} échantillons du {1} au {2}.", french[AppStringKeys.HistoryLogSummary]);
+        Assert.Equal("Affichage des {0} échantillons les plus récents sur {1}, {2}.", french[AppStringKeys.HistoryLogSummaryNewest]);
+        Assert.Equal("{0} échantillons, {1}.", french[AppStringKeys.HistoryLogSummaryAll]);
+        Assert.Equal("aucun trou", french[AppStringKeys.HistoryLogGapNone]);
+        Assert.Equal("1 trou où le capteur n'a pas signalé", french[AppStringKeys.HistoryLogGapOne]);
+        Assert.Equal("{0} trous où le capteur n'a pas signalé", french[AppStringKeys.HistoryLogGapMany]);
+        Assert.Equal("Le journal des capteurs n'a pas pu être lu : {0}", french[AppStringKeys.HistoryLogReadFailed]);
+
+        // Templates keep the app's number formatting in French too.
+        Assert.Equal(
+            "Comment Test Laptop évolue au fil du temps",
+            StringLocalizer.GetFormatted(AppStringKeys.HistorySubtitleTemplate, "fr", "Test Laptop"));
+        Assert.Equal(
+            "2 scans dans l'historique, du plus ancien au plus récent.",
+            StringLocalizer.GetFormatted(AppStringKeys.HistoryScansCount, "fr", 2));
+        Assert.Equal(
+            "Scan du 2026-11-10 09:00 supprimé. Il reste 2 scans.",
+            StringLocalizer.GetFormatted(AppStringKeys.HistoryRemovedMany, "fr", "2026-11-10 09:00", 2));
+        Assert.Equal(
+            "Score : 90 à 85 sur 2 scans.",
+            StringLocalizer.GetFormatted(AppStringKeys.HistoryRangeMany, "fr", "Score", "90", "85", 2));
+        Assert.Equal(
+            "Aucune mesure de température n'a été enregistrée sur 3 échantillons : le matériel de cette machine ne signale pas de capteur de température du processeur. C'est normal sur les machines dont le capteur n'est pas exposé, il n'y a donc pas de graphique de température du processeur à afficher.",
+            StringLocalizer.GetFormatted(AppStringKeys.HistoryLogNoReadings, "fr", 3));
+    }
+
+    [Fact]
     public void GermanPack_ReportPageTerms()
     {
         // Localisation, phase 8 (v2.1.16): the Report page — the
@@ -686,6 +823,71 @@ public sealed class LanguagePackTests
         Assert.Equal(
             "Quelle 1: BIOS date",
             StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSourceOne, "de", "BIOS date"));
+    }
+
+    [Fact]
+    public void FrenchPack_NewLaptopCheckPageTerms()
+    {
+        // Localisation, phase 6, French (v2.1.25): the New Laptop Check
+        // page — the eyebrow, the banner's fixed words, the
+        // Authenticity heading, the no-prior-use line, the
+        // skipped-checks line, the checklist heading and buttons, the
+        // advertised-RAM card, the "What to ask the seller" label, the
+        // no-checks line, the footer note, the row status words and the
+        // source labels. Same pinning rule as the German phase 8 terms:
+        // changing one is a deliberate translation decision, not a typo
+        // fix. The data the page shows (machine name, buyer summary,
+        // authenticity verdict line, check titles, details and
+        // what-to-ask lines, authenticity evidence lines, source
+        // strings, the finding title inside the banner) is not in this
+        // catalogue; only the page chrome is. The "Export Report"
+        // button reuses the Overview key, so it is pinned with the
+        // Overview terms, not here. The skipped-checks line uses
+        // one/many keys instead of the old inline plural hack. No new
+        // keys — the French pack already covers the whole 523-key
+        // catalogue.
+var french = LanguagePacks.French.Strings;
+        Assert.Equal("VÉRIFICATION D'ORDINATEUR PORTABLE NEUF", french[AppStringKeys.NewLaptopCheckEyebrow]);
+        Assert.Equal("RÉUSSI - cette machine correspond à un ordinateur portable neuf", french[AppStringKeys.NewLaptopCheckBannerPass]);
+        Assert.Equal("ATTENTION - vérifiez les éléments mis en évidence", french[AppStringKeys.NewLaptopCheckBannerWarning]);
+        Assert.Equal("ÉCHEC - cette machine ne ressemble pas à un ordinateur neuf", french[AppStringKeys.NewLaptopCheckBannerFail]);
+        Assert.Equal("Pas assez de données pour un verdict", french[AppStringKeys.NewLaptopCheckBannerNotEnoughData]);
+        Assert.Equal("RÉUSSI", french[AppStringKeys.NewLaptopCheckBannerStatePass]);
+        Assert.Equal("ATTENTION", french[AppStringKeys.NewLaptopCheckBannerStateWarning]);
+        Assert.Equal("ÉCHEC", french[AppStringKeys.NewLaptopCheckBannerStateFail]);
+        Assert.Equal("Pas assez de données", french[AppStringKeys.NewLaptopCheckBannerStateNotEnoughData]);
+        Assert.Equal("Authenticité", french[AppStringKeys.NewLaptopCheckAuthenticityTitle]);
+        Assert.Equal("Aucun signe d'utilisation antérieure n'a été trouvé dans les signaux d'âge qui ont pu être vérifiés.", french[AppStringKeys.NewLaptopCheckNoPriorUse]);
+        Assert.Equal("1 contrôle d'authenticité n'a pas pu être exécuté car un signal n'a pas été signalé : {0}", french[AppStringKeys.NewLaptopCheckSkippedOne]);
+        Assert.Equal("{0} contrôles d'authenticité n'ont pas pu être exécutés car un signal n'a pas été signalé : {1}", french[AppStringKeys.NewLaptopCheckSkippedMany]);
+        Assert.Equal("Liste de contrôle", french[AppStringKeys.NewLaptopCheckChecklistTitle]);
+        Assert.Equal("Imprimer la liste de contrôle", french[AppStringKeys.NewLaptopCheckPrintChecklist]);
+        Assert.Equal("RAM annoncée (facultatif)", french[AppStringKeys.NewLaptopCheckAdvertisedRamTitle]);
+        Assert.Equal("Utilisée uniquement pour le contrôle de la RAM. Elle n'est jamais traitée comme une mesure matérielle.", french[AppStringKeys.NewLaptopCheckAdvertisedRamNote]);
+        Assert.Equal("p. ex. 16 Go", french[AppStringKeys.NewLaptopCheckAdvertisedRamPlaceholder]);
+        Assert.Equal("Quoi demander au vendeur", french[AppStringKeys.NewLaptopCheckWhatToAsk]);
+        Assert.Equal("Aucun contrôle d'acheteur n'a été produit pour ce scan.", french[AppStringKeys.NewLaptopCheckNoChecks]);
+        Assert.Equal("Les contrôles d'acheteur suivent les mêmes règles d'honnêteté que le reste de l'application : uniquement des valeurs mesurées, aucun nombre inventé.", french[AppStringKeys.NewLaptopCheckFooterNote]);
+        Assert.Equal("Source 1 : {0}", french[AppStringKeys.NewLaptopCheckSourceOne]);
+        Assert.Equal("Source 2 : {0}", french[AppStringKeys.NewLaptopCheckSourceTwo]);
+        Assert.Equal("Réussi", french[AppStringKeys.BuyerCheckStatePass]);
+        Assert.Equal("Attention", french[AppStringKeys.BuyerCheckStateWarning]);
+        Assert.Equal("Échec", french[AppStringKeys.BuyerCheckStateFail]);
+        Assert.Equal("Sans objet", french[AppStringKeys.BuyerCheckStateNotApplicable]);
+        Assert.Equal("Fort", french[AppStringKeys.AuthenticitySeverityStrong]);
+        Assert.Equal("À surveiller", french[AppStringKeys.AuthenticitySeverityWatch]);
+        Assert.Equal("Info", french[AppStringKeys.AuthenticitySeverityInfo]);
+
+        // Templates keep the app's number formatting in French too.
+        Assert.Equal(
+            "1 contrôle d'authenticité n'a pas pu être exécuté car un signal n'a pas été signalé : Windows install date",
+            StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSkippedOne, "fr", "Windows install date"));
+        Assert.Equal(
+            "3 contrôles d'authenticité n'ont pas pu être exécutés car un signal n'a pas été signalé : BIOS date; Windows install date",
+            StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSkippedMany, "fr", 3, "BIOS date; Windows install date"));
+        Assert.Equal(
+            "Source 1 : BIOS date",
+            StringLocalizer.GetFormatted(AppStringKeys.NewLaptopCheckSourceOne, "fr", "BIOS date"));
     }
 
     [Fact]
@@ -921,6 +1123,134 @@ public sealed class LanguagePackTests
         Assert.Equal(
             "bad.json: konnte nicht gelesen werden (Zugriff verweigert).",
             "bad.json: " + StringLocalizer.GetFormatted(AppStringKeys.FleetImportCouldNotBeRead, "de", "Zugriff verweigert"));
+    }
+
+    [Fact]
+    public void FrenchPack_FleetPageTerms()
+    {
+        // Localisation, phase 6, French (v2.1.25): the Fleet page — the
+        // eyebrow, title, intro, the Import button and note, the
+        // Machines heading, the two export buttons, the table note,
+        // the column headers, the row Export button and the
+        // Remove/Confirm-remove button, the transient status lines
+        // (loading, no scans, the summary templates, the export-all /
+        // remove / import lines, and the import skip reasons since
+        // v2.1.18). Same pinning rule as the German phase 8 terms:
+        // changing one is a deliberate translation decision, not a
+        // typo fix. The data the page shows (machine names, the row
+        // cell values, file and folder paths, exception messages) is
+        // not in this catalogue; only the page chrome is. The summary
+        // and the export-all / remove / import lines are templates
+        // with one/many keys instead of inline plural hacks, and the
+        // remove-arm line quotes the translated Confirm-remove label.
+        // The row's "Not measurable" score fallback and "Not
+        // reported" worst-component fallback stay English like the
+        // History table's fallbacks; the summary's lowest-score
+        // fallback is its own key because it sits mid-sentence inside
+        // a translated line. No new keys — the French pack already
+        // covers the whole 523-key catalogue.
+var french = LanguagePacks.French.Strings;
+        Assert.Equal("PARC", french[AppStringKeys.FleetEyebrow]);
+        Assert.Equal("Toutes les machines de ce dossier de données", french[AppStringKeys.FleetTitle]);
+        Assert.Equal("Mode technicien : emportez l'application portable sur une clé USB, scannez chaque machine, et chaque scan aboutit dans le même magasin sur la clé. Cette page répertorie le dernier scan de chaque machine, le score le plus bas en premier, avec le pire composant nommé, de sorte que la machine qui a besoin d'attention soit en haut. Les machines scannées avec l'application installée peuvent être importées avec Importer des rapports JSON, qui lit les fichiers JSON que la page Rapport exporte. Exporter toutes les machines écrit un CSV par machine dans le dossier d'exportation, de sorte que tout le parc puisse être archivé d'un coup au lieu d'un clic Exporter par ligne. Pour retirer une machine du parc, utilisez Supprimer sur sa ligne — cela supprime tous les scans enregistrés de cette machine de ce dossier de données, en deux clics pour qu'un faux clic ne puisse rien supprimer.", french[AppStringKeys.FleetIntro]);
+        Assert.Equal("Importer des rapports JSON", french[AppStringKeys.FleetImportButton]);
+        Assert.Equal("Importe les rapports JSON TrueSpec exportés depuis d'autres machines, afin que leurs scans rejoignent ce parc. Un fichier qui n'est pas un rapport TrueSpec est ignoré, et importer deux fois le même fichier n'enregistre qu'un seul scan.", french[AppStringKeys.FleetImportNote]);
+        Assert.Equal("Machines", french[AppStringKeys.FleetMachinesTitle]);
+        Assert.Equal("Exporter toutes les machines", french[AppStringKeys.FleetExportAllButton]);
+        Assert.Equal("Exporter le parc en CSV", french[AppStringKeys.FleetExportFleetCsvButton]);
+        Assert.Equal("Score le plus bas en premier. Un tiret signifie que ce scan n'a pas signalé la valeur.", french[AppStringKeys.FleetTableNote]);
+        Assert.Equal("Machine", french[AppStringKeys.FleetHeaderMachine]);
+        Assert.Equal("Scans", french[AppStringKeys.FleetHeaderScans]);
+        Assert.Equal("Dernier scan", french[AppStringKeys.FleetHeaderLastScan]);
+        Assert.Equal("Score", french[AppStringKeys.FleetHeaderScore]);
+        Assert.Equal("Verdict", french[AppStringKeys.FleetHeaderVerdict]);
+        Assert.Equal("Pire composant", french[AppStringKeys.FleetHeaderWorstComponent]);
+        Assert.Equal("Exporter", french[AppStringKeys.FleetHeaderExport]);
+        Assert.Equal("Supprimer", french[AppStringKeys.FleetHeaderRemove]);
+        Assert.Equal("Exporter en CSV", french[AppStringKeys.FleetRowExportButton]);
+        Assert.Equal("Confirmer la suppression", french[AppStringKeys.FleetRowConfirmRemoveButton]);
+        Assert.Equal("Chargement du parc...", french[AppStringKeys.FleetLoading]);
+        Assert.Equal("L'historique des instantanés n'est pas disponible sur cette machine, il n'y a donc pas encore de parc à afficher.", french[AppStringKeys.FleetUnavailable]);
+        Assert.Equal("Aucun scan enregistré pour l'instant. Scannez une machine, ou lancez l'application portable sur chaque machine du parc, et son dernier scan apparaît ici. Vous pouvez aussi importer des rapports JSON exportés depuis d'autres machines avec le bouton Importer.", french[AppStringKeys.FleetNoScans]);
+        Assert.Equal("1 machine dans ce dossier de données, 1 scan enregistré. Score le plus bas {0} ({1}).", french[AppStringKeys.FleetSummaryOneOne]);
+        Assert.Equal("1 machine dans ce dossier de données, {0} scans enregistrés. Score le plus bas {1} ({2}).", french[AppStringKeys.FleetSummaryOneMany]);
+        Assert.Equal("{0} machines dans ce dossier de données, 1 scan enregistré. Score le plus bas {1} ({2}).", french[AppStringKeys.FleetSummaryManyOne]);
+        Assert.Equal("{0} machines dans ce dossier de données, {1} scans enregistrés. Score le plus bas {2} ({3}).", french[AppStringKeys.FleetSummaryManyMany]);
+        Assert.Equal("non mesurable", french[AppStringKeys.FleetScoreNotMeasurable]);
+        Assert.Equal("Parc chargé.", french[AppStringKeys.FleetLoaded]);
+        Assert.Equal("Le parc n'a pas pu être lu : {0}", french[AppStringKeys.FleetReadFailed]);
+        Assert.Equal("L'exportation de la machine n'est pas disponible.", french[AppStringKeys.FleetMachineExportUnavailable]);
+        Assert.Equal("Échec de l'exportation de la machine : aucun scan enregistré n'a été trouvé pour {0}.", french[AppStringKeys.FleetMachineExportNoScan]);
+        Assert.Equal("Exporter tout n'est pas disponible.", french[AppStringKeys.FleetExportAllUnavailable]);
+        Assert.Equal("Échec de l'exportation de tout : il n'y a pas encore de parc à exporter.", french[AppStringKeys.FleetExportAllNoFleet]);
+        Assert.Equal("Échec de l'exportation de tout : {0}", french[AppStringKeys.FleetExportAllFailed]);
+        Assert.Equal("0 machine exportée. {0}", french[AppStringKeys.FleetExportAllZero]);
+        Assert.Equal("il n'y a pas encore de parc à exporter.", french[AppStringKeys.FleetExportAllZeroNoFleet]);
+        Assert.Equal("Ignoré {0} : {1}", french[AppStringKeys.FleetSkipped]);
+        Assert.Equal("{0} machine sur 1 exportée vers {1}.", french[AppStringKeys.FleetExportAllTotalOne]);
+        Assert.Equal("{0} machines sur {1} exportées vers {2}.", french[AppStringKeys.FleetExportAllTotalMany]);
+        Assert.Equal("La suppression n'est pas disponible : l'historique des instantanés n'est pas disponible sur cette machine.", french[AppStringKeys.FleetRemoveUnavailable]);
+        Assert.Equal("Supprimer {0} ? Cela supprime le seul scan enregistré de cette machine de ce dossier de données. Cliquez sur « {1} » pour supprimer — rien n'est supprimé avant cela.", french[AppStringKeys.FleetRemoveArmOne]);
+        Assert.Equal("Supprimer {0} ? Cela supprime les {1} scans enregistrés de cette machine de ce dossier de données. Cliquez sur « {2} » pour supprimer — rien n'est supprimé avant cela.", french[AppStringKeys.FleetRemoveArmMany]);
+        Assert.Equal("Rien à supprimer : aucun scan enregistré n'a été trouvé pour {0}.", french[AppStringKeys.FleetRemoveNothing]);
+        Assert.Equal("{0} supprimé (1 scan enregistré).", french[AppStringKeys.FleetRemovedOne]);
+        Assert.Equal("{0} supprimé ({1} scans enregistrés).", french[AppStringKeys.FleetRemovedMany]);
+        Assert.Equal("Échec de la suppression : {0}", french[AppStringKeys.FleetRemoveFailed]);
+        Assert.Equal("L'importation n'est pas disponible : l'historique des instantanés n'est pas disponible sur cette machine.", french[AppStringKeys.FleetImportUnavailable]);
+        Assert.Equal("L'importation n'est pas disponible : aucun sélecteur de fichier n'est disponible.", french[AppStringKeys.FleetImportNoPicker]);
+        Assert.Equal("0 rapport importé", french[AppStringKeys.FleetImportedNone]);
+        Assert.Equal("1 rapport importé ({0})", french[AppStringKeys.FleetImportedOne]);
+        Assert.Equal("{0} rapports importés ({1})", french[AppStringKeys.FleetImportedMany]);
+
+        // Localisation polish (v2.1.18): the import skip reasons are
+        // catalogue keys now, so a German user sees German inside the
+        // German import line. The file name and any exception message
+        // stay data and are never in the catalogue.
+        Assert.Equal("Le fichier est trop volumineux pour être un rapport TrueSpec (plus de 10 Mo) et a été ignoré.", french[AppStringKeys.SnapshotImportTooLarge]);
+        Assert.Equal("Le fichier est vide et n'est pas un rapport JSON TrueSpec.", french[AppStringKeys.SnapshotImportEmpty]);
+        Assert.Equal("Le fichier utilise la version « {0} » du schéma de rapport, que cette version de TrueSpec ne peut pas importer. Seuls les rapports de version 1.0 peuvent être importés.", french[AppStringKeys.SnapshotImportWrongSchemaVersion]);
+        Assert.Equal("Le fichier ne contient aucun scan, il n'y a donc rien à importer.", french[AppStringKeys.SnapshotImportNoSnapshot]);
+        Assert.Equal("Le fichier contient un scan sans nom de machine, il ne peut donc pas être répertorié dans le parc.", french[AppStringKeys.SnapshotImportNoMachineName]);
+        Assert.Equal("Il manque une partie du scan dans le fichier (composants, score ou contrôles d'acheteur), il ne peut donc pas être importé.", french[AppStringKeys.SnapshotImportMissingPart]);
+        Assert.Equal("Le fichier contient un score qui n'est pas un nombre, il ne peut donc pas être importé.", french[AppStringKeys.SnapshotImportScoreNotFinite]);
+        Assert.Equal("Le fichier n'est pas un rapport JSON TrueSpec, il a donc été ignoré.", french[AppStringKeys.SnapshotImportNotJsonReport]);
+        Assert.Equal("n'a pas pu être importé.", french[AppStringKeys.FleetImportCouldNotBeImported]);
+        Assert.Equal("n'a pas pu être lu ({0}).", french[AppStringKeys.FleetImportCouldNotBeRead]);
+
+        // Localisation polish (v2.1.19): the export-all skip reasons
+        // are catalogue keys now, the same pattern as the import
+        // reasons. The machine name and any write error stay data and
+        // are never in the catalogue.
+        Assert.Equal("aucun scan enregistré n'a été trouvé", french[AppStringKeys.FleetExportAllSkipNoSavedScan]);
+        Assert.Equal("le dernier scan n'a pas de score à exporter", french[AppStringKeys.FleetExportAllSkipNoScore]);
+        Assert.Equal("n'a pas pu être écrit ({0})", french[AppStringKeys.FleetExportAllSkipWriteFailed]);
+        Assert.Equal(
+            "n'a pas pu être écrit (Accès refusé)",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetExportAllSkipWriteFailed, "fr", "Accès refusé"));
+
+        // Templates keep the app's number formatting in French too.
+        Assert.Equal(
+            "2 machines dans ce dossier de données, 3 scans enregistrés. Score le plus bas 58 (SHOP-PC-BAD).",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetSummaryManyMany, "fr", 2, 3, "58", "SHOP-PC-BAD"));
+        Assert.Equal(
+            "1 machine dans ce dossier de données, 1 scan enregistré. Score le plus bas non mesurable (SHOP-PC-BAD).",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetSummaryOneOne, "fr", "non mesurable", "SHOP-PC-BAD"));
+        Assert.Equal(
+            "2 machines sur 2 exportées vers C:\\Exports.",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetExportAllTotalMany, "fr", 2, 2, "C:\\Exports"));
+        Assert.Equal(
+            "Supprimer SHOP-PC-BAD ? Cela supprime les 2 scans enregistrés de cette machine de ce dossier de données. Cliquez sur « Confirmer la suppression » pour supprimer — rien n'est supprimé avant cela.",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetRemoveArmMany, "fr", "SHOP-PC-BAD", 2, "Confirmer la suppression"));
+        Assert.Equal(
+            "2 rapports importés (SHOP-PC-A, SHOP-PC-B). Ignoré 1 : bad.json: Le fichier n'est pas un rapport JSON TrueSpec, il a donc été ignoré.",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetImportedMany, "fr", 2, "SHOP-PC-A, SHOP-PC-B")
+                + ". " + StringLocalizer.GetFormatted(AppStringKeys.FleetSkipped, "fr", 1, "bad.json: Le fichier n'est pas un rapport JSON TrueSpec, il a donc été ignoré."));
+        Assert.Equal(
+            "Le fichier utilise la version « 2.0 » du schéma de rapport, que cette version de TrueSpec ne peut pas importer. Seuls les rapports de version 1.0 peuvent être importés.",
+            StringLocalizer.GetFormatted(AppStringKeys.SnapshotImportWrongSchemaVersion, "fr", "2.0"));
+        Assert.Equal(
+            "bad.json: n'a pas pu être lu (Accès refusé).",
+            "bad.json: " + StringLocalizer.GetFormatted(AppStringKeys.FleetImportCouldNotBeRead, "fr", "Accès refusé"));
     }
 
     [Fact]

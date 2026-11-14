@@ -18,7 +18,10 @@ namespace TrueSpec.Core.Localization;
 /// surface German phase 3 translated; v2.1.23 adds the shared
 /// component detail view (phase 4), the same fourth surface German
 /// phase 4 translated; v2.1.24 adds the Overview page (phase 5), the
-/// same fifth surface German phase 5 translated. The other pages stay
+/// same fifth surface German phase 5 translated; v2.1.25 adds the
+/// History page (phase 6, the same sixth surface German phase 6
+/// translated) plus the Fleet and New Laptop Check pages (the same
+/// two surfaces German phase 8 translated). The other pages stay
 /// English in French until later versions add them, and the French
 /// language card says so. The
 /// the worker's own translation,
@@ -1138,7 +1141,7 @@ public static class LanguagePacks
             [AppStringKeys.NavSettings] = "Paramètres",
             [AppStringKeys.LanguageTitle] = "Langue",
             [AppStringKeys.LanguageDescription] = "Choisissez la langue de la barre de navigation. La langue s'applique immédiatement.",
-            [AppStringKeys.LanguageNote] = "La barre de navigation, la page Paramètres, les pages de détail des composants et la page Vue d'ensemble sont traduites. Les autres pages suivront dans les versions ultérieures.",
+            [AppStringKeys.LanguageNote] = "La barre de navigation, la page Paramètres, les pages de détail des composants, la page Vue d'ensemble, la page Historique, la page Parc et la page Vérification d'ordinateur portable neuf sont traduites. Les autres pages suivront dans les versions ultérieures.",
             [AppStringKeys.SettingsEyebrow] = "PARAMÈTRES",
             [AppStringKeys.SettingsTitle] = "Paramètres",
             [AppStringKeys.SettingsIntro] = "Des réglages simples et honnêtes. Chaque modification est enregistrée immédiatement et s'applique tout de suite. Rien n'est envoyé sur le réseau.",
