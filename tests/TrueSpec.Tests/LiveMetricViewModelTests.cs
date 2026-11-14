@@ -115,11 +115,44 @@ public class LiveMetricViewModelTests
     }
 
     [Fact]
+    public void KeyConstructor_ResolvesTheDisplayNameInFrench()
+    {
+        // Localisation, phase 5, French (v2.1.24): same rule, French.
+        // Note the abbreviated metric names ("Temp. processeur")
+        // versus the full key-stat labels ("Température du
+        // processeur").
+        var cpu = new LiveMetricViewModel(LiveMetricViewModel.CpuTempKey, "C", "fr");
+        var gpu = new LiveMetricViewModel(LiveMetricViewModel.GpuTempKey, "C", "fr");
+        var usage = new LiveMetricViewModel(LiveMetricViewModel.CpuUsageKey, "%", "fr");
+        var power = new LiveMetricViewModel(LiveMetricViewModel.BatteryPowerKey, "W", "fr");
+
+        Assert.Equal("Temp. processeur", cpu.Name);
+        Assert.Equal("Temp. GPU", gpu.Name);
+        Assert.Equal("Utilisation du processeur", usage.Name);
+        Assert.Equal("Puissance de la batterie", power.Name);
+        Assert.Equal("Non disponible", cpu.CurrentText);
+        Assert.Equal("Aucune mesure de capteur", cpu.NoSensorReadingText);
+    }
+
+    [Fact]
     public void KeyConstructor_ColourFollowsTheKeyNotTheTranslatedName()
     {
         var cpu = new LiveMetricViewModel(LiveMetricViewModel.CpuTempKey, "C", "de");
         var usage = new LiveMetricViewModel(LiveMetricViewModel.CpuUsageKey, "%", "de");
         var power = new LiveMetricViewModel(LiveMetricViewModel.BatteryPowerKey, "W", "de");
+
+        Assert.Equal(Color.Parse("#22C55E"), Assert.IsType<SolidColorBrush>(cpu.Stroke).Color);
+        Assert.Equal(Color.Parse("#60A5FA"), Assert.IsType<SolidColorBrush>(usage.Stroke).Color);
+        Assert.Equal(Color.Parse("#F59E0B"), Assert.IsType<SolidColorBrush>(power.Stroke).Color);
+    }
+
+    [Fact]
+    public void KeyConstructor_ColourFollowsTheKeyNotTheTranslatedNameInFrench()
+    {
+        // Localisation, phase 5, French (v2.1.24): same rule, French.
+        var cpu = new LiveMetricViewModel(LiveMetricViewModel.CpuTempKey, "C", "fr");
+        var usage = new LiveMetricViewModel(LiveMetricViewModel.CpuUsageKey, "%", "fr");
+        var power = new LiveMetricViewModel(LiveMetricViewModel.BatteryPowerKey, "W", "fr");
 
         Assert.Equal(Color.Parse("#22C55E"), Assert.IsType<SolidColorBrush>(cpu.Stroke).Color);
         Assert.Equal(Color.Parse("#60A5FA"), Assert.IsType<SolidColorBrush>(usage.Stroke).Color);
@@ -135,6 +168,22 @@ public class LiveMetricViewModelTests
         Assert.Equal("CPU-Temperatur", metric.Name);
         Assert.Equal("Nicht verfügbar", metric.CurrentText);
         Assert.Equal("Kein Sensormesswert", metric.NoSensorReadingText);
+
+        metric.ApplyLanguage("en");
+        Assert.Equal("CPU temp", metric.Name);
+        Assert.Equal("Not available", metric.CurrentText);
+    }
+
+    [Fact]
+    public void ApplyLanguage_ReResolvesTheNameAndTheEmptyStatesInFrench()
+    {
+        // Localisation, phase 5, French (v2.1.24): same rule, French.
+        var metric = new LiveMetricViewModel(LiveMetricViewModel.CpuTempKey, "C", null);
+
+        metric.ApplyLanguage("fr");
+        Assert.Equal("Temp. processeur", metric.Name);
+        Assert.Equal("Non disponible", metric.CurrentText);
+        Assert.Equal("Aucune mesure de capteur", metric.NoSensorReadingText);
 
         metric.ApplyLanguage("en");
         Assert.Equal("CPU temp", metric.Name);
