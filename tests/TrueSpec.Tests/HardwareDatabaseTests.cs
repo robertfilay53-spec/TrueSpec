@@ -46,6 +46,7 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel(R) Core(TM) i5-12400F Processor", "I5-12400F")]
     [InlineData("Intel(R) Core(TM) i5-14400", "I5-14400")]
     [InlineData("Intel(R) Core(TM) i9-14900HX", "I9-14900HX")]
+    [InlineData("Intel(R) Core(TM) Ultra 9 285HX", "ULTRA 9 285HX")]
     [InlineData("AMD Ryzen 7 3700U with Radeon Graphics", "RYZEN 7 3700U")]
     [InlineData(null, "")]
     [InlineData("", "")]
@@ -167,9 +168,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.14.0", database.Version);
+        Assert.Equal("1.15.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
-        Assert.Equal(82, database.CpuCount);
+        Assert.Equal(86, database.CpuCount);
         Assert.Equal(93, database.GpuCount);
     }
 
@@ -332,8 +333,26 @@ public sealed class HardwareDatabaseTests
         // P-core base frequency for 12th-gen mobile hybrid chips, so the
         // row cannot be completed without inference. i3-8100 has no
         // Turbo Boost, so no boost figure exists at all.
+        // The six 13th-gen HX mobile chips are deliberately absent for
+        // the same reason, found in v2.1.47: Intel's own current
+        // product pages publish Max Turbo and E-core Max Turbo for
+        // them but no Performance-core Base Frequency, so their rows
+        // cannot be completed without inference (verified 2026-11-14).
+        // The two Ultra 5 200HX chips are deliberately absent for a
+        // different reason: their figures could not be verified live
+        // on Intel's own page in this cycle, so they stay out even
+        // though third-party listings agree on them: 245HX at 3.1,
+        // 5.1 and 4.5 GHz, 235HX at 2.9, 5.1 and 4.5 GHz.
         Assert.False(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i7-12700H", out _));
         Assert.False(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i3-8100", out _));
+        Assert.False(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i9-13980HX", out _));
+        Assert.False(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i9-13900HX", out _));
+        Assert.False(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i7-13700HX", out _));
+        Assert.False(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i7-13650HX", out _));
+        Assert.False(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i5-13500HX", out _));
+        Assert.False(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i5-13450HX", out _));
+        Assert.False(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) Ultra 5 245HX", out _));
+        Assert.False(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) Ultra 5 235HX", out _));
     }
 
     [Theory]
@@ -969,7 +988,10 @@ public sealed class HardwareDatabaseTests
         // family against the dataset. The 12th/13th-gen mobile H/P
         // chips stay absent for a reason that does not apply here:
         // Intel publishes no per-SKU P-core base frequency for them,
-        // while its own compare pages publish one for every HX chip.
+        // while its own compare pages publish one for the 14th-gen
+        // HX chips. (The 13th-gen HX chips do not publish one either,
+        // which v2.1.47 found and recorded in the deliberately-absent
+        // assertions.)
         // All figures below were verified by hand against Intel's own
         // product specification comparison pages, read 2026-11-14 from
         // fresh crawls: the i9-14900HX at Performance-core Base
@@ -1011,5 +1033,53 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(2.4, i514450Hx.BaseGhz);
         Assert.Equal(4.8, i514450Hx.BoostGhz);
         Assert.Equal(3.5, i514450Hx.ECoreBoostGhz);
+    }
+
+    [Fact]
+    public void Default_CoreUltra200HxMobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.15.0: the four Intel Core Ultra 200HX mobile CPUs
+        // (Arrow Lake HX) the dataset never listed: Ultra 9 285HX and
+        // 275HX, Ultra 7 265HX and 255HX. The gap went unnoticed the
+        // same way the 14th-gen HX gap did: every cycle re-examined
+        // the deliberately-absent list, but no 200HX chip was on it,
+        // so the family was never listed against the dataset until
+        // this cycle did. All figures below were verified by hand
+        // against Intel's own product specification comparison page,
+        // read 2026-11-14 from a fresh crawl: the Ultra 9 285HX at
+        // Performance-core Base Frequency 2.8 GHz, Performance-core
+        // Max Turbo Frequency 5.5 GHz and Efficient-core Max Turbo
+        // Frequency 4.6 GHz; the Ultra 9 275HX at 2.7, 5.4 and
+        // 4.6 GHz; the Ultra 7 265HX at 2.6, 5.3 and 4.6 GHz; the
+        // Ultra 7 255HX at 2.4, 5.2 and 4.5 GHz. The headline Max
+        // Turbo Frequency equals the P-core Max Turbo for all four,
+        // so the boost figure is the same either way. The Ultra 5
+        // 245HX and 235HX stay absent: their figures could not be
+        // verified live on Intel's own page in this cycle. No code
+        // change was needed: the CPU normalizer already maps
+        // "Intel(R) Core(TM) Ultra 9 285HX" to "ULTRA 9 285HX", and
+        // the Settings card shows the CPU count from the dataset, so
+        // it reads 86 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) Ultra 9 285HX", out var ultra9285Hx));
+        Assert.Equal("Intel", ultra9285Hx.Vendor);
+        Assert.Equal(2.8, ultra9285Hx.BaseGhz);
+        Assert.Equal(5.5, ultra9285Hx.BoostGhz);
+        Assert.Equal(4.6, ultra9285Hx.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=242292,242293,242294,242297", ultra9285Hx.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) Ultra 9 275HX", out var ultra9275Hx));
+        Assert.Equal(2.7, ultra9275Hx.BaseGhz);
+        Assert.Equal(5.4, ultra9275Hx.BoostGhz);
+        Assert.Equal(4.6, ultra9275Hx.ECoreBoostGhz);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) Ultra 7 265HX", out var ultra7265Hx));
+        Assert.Equal(2.6, ultra7265Hx.BaseGhz);
+        Assert.Equal(5.3, ultra7265Hx.BoostGhz);
+        Assert.Equal(4.6, ultra7265Hx.ECoreBoostGhz);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) Ultra 7 255HX", out var ultra7255Hx));
+        Assert.Equal(2.4, ultra7255Hx.BaseGhz);
+        Assert.Equal(5.2, ultra7255Hx.BoostGhz);
+        Assert.Equal(4.5, ultra7255Hx.ECoreBoostGhz);
     }
 }
