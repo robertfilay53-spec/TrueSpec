@@ -118,8 +118,8 @@ public sealed class LanguagePackTests
         // fix. The Spanish wording is the worker's own translation, not
         // reviewed by a native speaker (the same honest limitation as the
         // German and French wording). The language card says the rail and
-        // the card are translated and the other pages follow in later
-        // versions.
+        // the Settings page are translated and the other pages follow in
+        // later versions (phase 2, v2.1.28).
         var spanish = LanguagePacks.Spanish.Strings;
         Assert.Equal("Vista general", spanish[AppStringKeys.NavOverview]);
         Assert.Equal("Almacenamiento", spanish[AppStringKeys.NavStorage]);
@@ -136,8 +136,53 @@ public sealed class LanguagePackTests
         Assert.Equal("Configuración", spanish[AppStringKeys.NavSettings]);
         Assert.Equal("Idioma", spanish[AppStringKeys.LanguageTitle]);
         Assert.Equal(
-            "La barra de navegación y la tarjeta de idioma están traducidas. Las demás páginas seguirán en versiones posteriores.",
+            "La barra de navegación y la página Configuración están traducidas. Las demás páginas seguirán en versiones posteriores.",
             spanish[AppStringKeys.LanguageNote]);
+    }
+
+    [Fact]
+    public void SpanishPack_SettingsPageTerms()
+    {
+        // Localisation, phase 2, Spanish (v2.1.28): the whole Settings
+        // page, the same second surface German phase 2 (v2.1.8) and
+        // French phase 2 (v2.1.21) translated. Same pinning rule as the
+        // rail terms above: changing one is a deliberate translation
+        // decision, not a typo fix. One wording correction from the
+        // phase-1 catalogue: the alert threshold label is "Umbral de
+        // alerta (°C)", the term Windows itself uses, not "Avisar por
+        // encima de".
+        var spanish = LanguagePacks.Spanish.Strings;
+        Assert.Equal("CONFIGURACIÓN", spanish[AppStringKeys.SettingsEyebrow]);
+        Assert.Equal("Configuración", spanish[AppStringKeys.SettingsTitle]);
+        Assert.Equal("Apariencia", spanish[AppStringKeys.AppearanceTitle]);
+        Assert.Equal("Oscuro (predeterminado)", spanish[AppStringKeys.ThemeDarkDefault]);
+        Assert.Equal("Claro", spanish[AppStringKeys.ThemeLight]);
+        Assert.Equal("Frecuencia de actualización de los sensores en vivo", spanish[AppStringKeys.RefreshTitle]);
+        Assert.Equal("1 segundo", spanish[AppStringKeys.SecondsOne]);
+        Assert.Equal("{0} segundos", spanish[AppStringKeys.SecondsMany]);
+        Assert.Equal("Registro de sensores y alertas", spanish[AppStringKeys.LoggingTitle]);
+        Assert.Equal("Activado", spanish[AppStringKeys.ToggleOn]);
+        Assert.Equal("Desactivado", spanish[AppStringKeys.ToggleOff]);
+        Assert.Equal("Alerta de temperatura de la CPU", spanish[AppStringKeys.AlertTitle]);
+        Assert.Equal("Umbral de alerta (°C)", spanish[AppStringKeys.AlertAboveLabel]);
+        // Hardware database card (v2.1.14): the Settings page stays
+        // fully translated, so the new card's strings are keys too.
+        Assert.Equal("Base de datos de hardware", spanish[AppStringKeys.HardwareDatabaseTitle]);
+        Assert.Equal(
+            "Muestra la frecuencia de boost nominal de una pequeña base de datos integrada de especificaciones de CPU y GPU cuando tu procesador o tarjeta gráfica aparece en la lista. La base de datos es opcional y nunca sustituye un valor medido. Se aplica después de reiniciar.",
+            spanish[AppStringKeys.HardwareDatabaseNote]);
+        Assert.Equal("Conjunto de datos v{0}: {1} CPU, {2} GPU, actualizado el {3}.", spanish[AppStringKeys.HardwareDatabaseVersion]);
+        Assert.Equal("No hay ninguna alerta de temperatura establecida.", spanish[AppStringKeys.AlertSummaryOff]);
+        Assert.Equal("Carpeta de exportación de informes", spanish[AppStringKeys.ExportTitle]);
+        Assert.Equal("(predeterminada)", spanish[AppStringKeys.ExportDefaultSuffix]);
+        Assert.Equal("Ubicación de los datos (modo portátil)", spanish[AppStringKeys.DataLocationTitle]);
+        Assert.Equal("El modo portátil está desactivado. Los datos se guardan en la carpeta predeterminada.", spanish[AppStringKeys.PortableSummaryOff]);
+        Assert.Equal("Activar el modo portátil", spanish[AppStringKeys.PortableActionOn]);
+        Assert.Equal("Complementos", spanish[AppStringKeys.PluginsTitle]);
+        Assert.Equal("No se encontraron complementos.", spanish[AppStringKeys.PluginsSummaryNone]);
+        Assert.Equal("Se encontró 1 complemento.", spanish[AppStringKeys.PluginsSummaryOne]);
+        Assert.Equal("Se encontraron {0} complementos.", spanish[AppStringKeys.PluginsSummaryMany]);
+        Assert.Equal("Privacidad", spanish[AppStringKeys.PrivacyTitle]);
     }
 
     [Fact]

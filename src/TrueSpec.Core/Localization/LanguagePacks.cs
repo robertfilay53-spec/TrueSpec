@@ -34,12 +34,14 @@ namespace TrueSpec.Core.Localization;
 /// for Display, Démarrage for Startup, Paramètres for Settings).
 /// Spanish is the third additional language (v2.1.27, phase 1): the
 /// navigation rail and the Settings language card, the same first
-/// surface German phase 1 and French phase 1 translated. The Spanish
-/// pack covers the whole 523-key catalogue (the coverage test pins
-/// it: a pack that misses a key fails), so later phases only
-/// translate surfaces, never add keys. Detail pages stay English in
-/// Spanish in this version; the Spanish language card says so. The
-/// Spanish wording is the worker's own translation, not reviewed by
+/// surface German phase 1 and French phase 1 translated; v2.1.28
+/// adds the whole Settings page (phase 2), the same second surface
+/// German phase 2 and French phase 2 translated. The Spanish pack
+/// covers the whole 523-key catalogue (the coverage test pins it: a
+/// pack that misses a key fails), so later phases only translate
+/// surfaces, never add keys. The other pages stay English in Spanish
+/// until later versions add them, and the Spanish language card says
+/// so. The Spanish wording is the worker's own translation, not reviewed by
 /// a native speaker (the same honest limitation as the German and
 /// French wording). The translations use the standard terms Windows
 /// itself uses in Spanish (Almacenamiento for Storage, Pantalla for
@@ -1687,7 +1689,7 @@ public static class LanguagePacks
             [AppStringKeys.NavSettings] = "Configuración",
             [AppStringKeys.LanguageTitle] = "Idioma",
             [AppStringKeys.LanguageDescription] = "Elige el idioma de la barra de navegación. El idioma se aplica de inmediato.",
-            [AppStringKeys.LanguageNote] = "La barra de navegación y la tarjeta de idioma están traducidas. Las demás páginas seguirán en versiones posteriores.",
+            [AppStringKeys.LanguageNote] = "La barra de navegación y la página Configuración están traducidas. Las demás páginas seguirán en versiones posteriores.",
             [AppStringKeys.SettingsEyebrow] = "CONFIGURACIÓN",
             [AppStringKeys.SettingsTitle] = "Configuración",
             [AppStringKeys.SettingsIntro] = "Controles pequeños y honestos. Cada cambio se guarda de inmediato y se aplica al momento. Nada de esto llama a casa.",
@@ -1713,7 +1715,7 @@ public static class LanguagePacks
             [AppStringKeys.HardwareDatabaseTitle] = "Base de datos de hardware",
             [AppStringKeys.HardwareDatabaseNote] = "Muestra la frecuencia de boost nominal de una pequeña base de datos integrada de especificaciones de CPU y GPU cuando tu procesador o tarjeta gráfica aparece en la lista. La base de datos es opcional y nunca sustituye un valor medido. Se aplica después de reiniciar.",
             [AppStringKeys.HardwareDatabaseVersion] = "Conjunto de datos v{0}: {1} CPU, {2} GPU, actualizado el {3}.",
-            [AppStringKeys.AlertAboveLabel] = "Avisar por encima de (°C)",
+            [AppStringKeys.AlertAboveLabel] = "Umbral de alerta (°C)",
             [AppStringKeys.AlertDurationLabel] = "Debe mantenerse por encima durante",
             [AppStringKeys.ThresholdMessage] = "Introduce una temperatura entre 30 y 120 °C.",
             [AppStringKeys.ExportTitle] = "Carpeta de exportación de informes",
