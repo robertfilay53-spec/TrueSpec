@@ -149,7 +149,7 @@ public class SettingsViewModelTests
                 "Choisissez la langue de la barre de navigation. La langue s'applique immédiatement.",
                 settings.LanguageDescriptionText);
             Assert.Equal(
-                "La barre de navigation, la page Paramètres, les pages de détail des composants, la page Vue d'ensemble, la page Historique, la page Parc et la page Vérification d'ordinateur portable neuf sont traduites. Les autres pages suivront dans les versions ultérieures.",
+                "La barre de navigation, la page Paramètres, les pages de détail des composants, la page Vue d'ensemble, la page Historique, la page Rapport, la page Tests, la page Vérification d'ordinateur portable neuf, la page Historique des incidents, la page Comparer et la page Parc sont traduites. Toutes les pages sont désormais traduites.",
                 settings.LanguageNoteText);
 
             var labels = main.NavItems.Select(i => i.Label).ToList();

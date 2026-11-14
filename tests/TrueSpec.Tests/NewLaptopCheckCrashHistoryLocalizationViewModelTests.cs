@@ -27,6 +27,8 @@ namespace TrueSpec.Tests;
 /// leg in the csproj. French phase 6 (v2.1.25) mirrors the German
 /// New Laptop Check tests in French; the Crash History page is not
 /// French yet, so only the New Laptop Check half is mirrored here.
+/// French phase 7 (v2.1.26) mirrors the German Crash History tests
+/// in French too, so both halves are mirrored here now.
 /// </summary>
 public class NewLaptopCheckCrashHistoryLocalizationViewModelTests
 {
@@ -567,6 +569,126 @@ public class NewLaptopCheckCrashHistoryLocalizationViewModelTests
         Assert.Equal(english.CrashTitleText, german.CrashTitleText);
         Assert.Equal(english.Headline, german.Headline);
         Assert.Equal(english.Rows.Select(r => r.Meaning), german.Rows.Select(r => r.Meaning));
+    }
+
+    [Fact]
+    public void CrashHistory_FrenchSeeded_RendersWholePageInFrench()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var viewModel = CrashHistory(SnapshotWith(CrashComponent(now, includeGap: true)), "fr");
+
+        Assert.Equal("Historique des incidents", viewModel.CrashTitleText);
+        Assert.Equal("2 blue screens in the last 90 days", viewModel.Headline);
+        Assert.Equal(
+            $"Mesure enregistrée le {now:yyyy-MM-dd HH:mm:ss}",
+            viewModel.CapturedText);
+        Assert.Equal("Incident récent", viewModel.RecentCrashTitleText);
+        Assert.True(viewModel.HasRecentAlert);
+        Assert.Equal("Un écran bleu et une erreur matérielle fatale se sont produits au cours des 30 derniers jours.", viewModel.AlertText);
+        Assert.Equal("Échecs par classe", viewModel.FailuresByClassText);
+        Assert.Equal("Classe", viewModel.HeaderClassText);
+        Assert.Equal("Nombre (90 jours)", viewModel.HeaderCountText);
+        Assert.Equal("Premier", viewModel.HeaderFirstText);
+        Assert.Equal("Dernier", viewModel.HeaderLastText);
+        Assert.Equal("Signification", viewModel.HeaderMeaningText);
+        Assert.Equal(
+            $"Le journal des événements ne contient aucune entrée avant le {now.AddDays(-20):yyyy-MM-dd}, cet historique peut donc être incomplet. Un journal effacé se lit comme un trou, jamais comme un dossier vierge.",
+            viewModel.LogClearedText);
+        Assert.Equal("Les nombres couvrent les 90 derniers jours ; le premier et le dernier couvrent toute la période enregistrée. Les significations sont des libellés fixes, pas des diagnostics.", viewModel.FooterNoteText);
+
+        Assert.Equal(2, viewModel.Rows.Count);
+        Assert.Equal("Blue screens", viewModel.Rows[0].ClassName);
+        Assert.Equal(2, viewModel.Rows[0].Count90d);
+        Assert.Equal("Fatal hardware errors", viewModel.Rows[1].ClassName);
+        Assert.Equal(1, viewModel.Rows[1].Count90d);
+    }
+
+    [Fact]
+    public void CrashHistory_ApplyLanguage_SwitchesToFrenchAndBack()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var viewModel = CrashHistory(SnapshotWith(CrashComponent(now, includeGap: true)));
+
+        viewModel.ApplyLanguage("fr");
+        Assert.Equal("Historique des incidents", viewModel.CrashTitleText);
+        Assert.Equal("Un écran bleu et une erreur matérielle fatale se sont produits au cours des 30 derniers jours.", viewModel.AlertText);
+        Assert.Equal("Échecs par classe", viewModel.FailuresByClassText);
+        Assert.Equal("Nombre (90 jours)", viewModel.HeaderCountText);
+        Assert.Equal(
+            $"Le journal des événements ne contient aucune entrée avant le {now.AddDays(-20):yyyy-MM-dd}, cet historique peut donc être incomplet. Un journal effacé se lit comme un trou, jamais comme un dossier vierge.",
+            viewModel.LogClearedText);
+
+        viewModel.ApplyLanguage("en");
+        Assert.Equal("Crash history", viewModel.CrashTitleText);
+        Assert.Equal("A blue screen and a fatal hardware error occurred in the last 30 days.", viewModel.AlertText);
+        Assert.Equal("Failures by class", viewModel.FailuresByClassText);
+        Assert.Equal("Count (90 days)", viewModel.HeaderCountText);
+        Assert.Equal(
+            $"The event log has no entries before {now.AddDays(-20):yyyy-MM-dd}, so this history may be incomplete. A cleared log reads as a gap, never as a clean record.",
+            viewModel.LogClearedText);
+
+        viewModel.ApplyLanguage("fr");
+        Assert.Equal("Historique des incidents", viewModel.CrashTitleText);
+    }
+
+    [Fact]
+    public void CrashHistory_DataStaysEnglish_WhenChromeIsFrench()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var english = CrashHistory(SnapshotWith(CrashComponent(now, includeGap: true)));
+        var french = CrashHistory(SnapshotWith(CrashComponent(now, includeGap: true)), "fr");
+
+        Assert.Equal(english.Headline, french.Headline);
+        Assert.Equal(english.Rows.Select(r => r.ClassName), french.Rows.Select(r => r.ClassName));
+        Assert.Equal(english.Rows.Select(r => r.Count90d), french.Rows.Select(r => r.Count90d));
+        Assert.Equal(english.Rows.Select(r => r.FirstText), french.Rows.Select(r => r.FirstText));
+        Assert.Equal(english.Rows.Select(r => r.LastText), french.Rows.Select(r => r.LastText));
+        Assert.Equal(english.Rows.Select(r => r.Meaning), french.Rows.Select(r => r.Meaning));
+
+        // The date inside the captured line and the cleared-log
+        // warning is the same in both languages; only the words
+        // around it translate.
+        Assert.Contains($"{now:yyyy-MM-dd HH:mm:ss}", french.CapturedText, StringComparison.Ordinal);
+        Assert.Contains($"{now.AddDays(-20):yyyy-MM-dd}", french.LogClearedText, StringComparison.Ordinal);
+
+        // A switch re-renders the chrome in place, keeping the data.
+        french.ApplyLanguage("en");
+        Assert.Equal(english.CrashTitleText, french.CrashTitleText);
+        Assert.Equal(english.Headline, french.Headline);
+        Assert.Equal(english.Rows.Select(r => r.Meaning), french.Rows.Select(r => r.Meaning));
+    }
+
+    [Fact]
+    public void CrashHistory_EmptyStates_StayHonestInFrench()
+    {
+        var noComponent = CrashHistory(SnapshotWith(TestSnapshots.Ram("16 GB")), "fr");
+        Assert.False(noComponent.HasHistory);
+        Assert.Equal("L'historique des incidents n'a pas encore été collecté.", noComponent.EmptyMessage);
+        Assert.Equal("Historique des incidents", noComponent.Headline);
+        Assert.Equal(string.Empty, noComponent.CapturedText);
+
+        // The component's own "What this means" is data: it shows
+        // verbatim even when the chrome is French.
+        var now = DateTimeOffset.UtcNow;
+        var whatThisMeans = new ComponentSnapshot(
+            "crash",
+            "Crash history",
+            "Diagnostics",
+            "crash",
+            "Crash history",
+            null,
+            Array.Empty<SpecValue>(),
+            "The crash collector could not read the event log.",
+            now);
+        var fallback = CrashHistory(SnapshotWith(whatThisMeans), "fr");
+        Assert.False(fallback.HasHistory);
+        Assert.Equal("The crash collector could not read the event log.", fallback.EmptyMessage);
+
+        // A collected but empty log shows the fixed no-crashes line.
+        var emptyLog = CrashHistory(SnapshotWith(TestSnapshots.Crash(now)), "fr");
+        Assert.True(emptyLog.HasHistory);
+        Assert.False(emptyLog.HasRows);
+        Assert.Equal("Aucun écran bleu, aucune erreur matérielle, aucun arrêt inattendu ni aucune erreur de disque n'ont été enregistrés au cours des 90 derniers jours.", emptyLog.EmptyMessage);
     }
 
     [Fact]

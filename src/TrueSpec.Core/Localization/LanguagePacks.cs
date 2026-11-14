@@ -21,12 +21,15 @@ namespace TrueSpec.Core.Localization;
 /// same fifth surface German phase 5 translated; v2.1.25 adds the
 /// History page (phase 6, the same sixth surface German phase 6
 /// translated) plus the Fleet and New Laptop Check pages (the same
-/// two surfaces German phase 8 translated). The other pages stay
-/// English in French until later versions add them, and the French
-/// language card says so. The
-/// the worker's own translation,
-/// not reviewed by a native speaker (the same honest limitation as
-/// the German wording). The translations use the standard terms
+/// two surfaces German phase 8 translated); v2.1.26 adds the
+/// Comparison, Crash History, Report and Tests pages (phase 7, the
+/// same four surfaces German phase 8 translated). With phase 7 every
+/// page is translated in French, and the French language card says
+/// so. Measured data stays English by design (names, headlines, spec
+/// labels and values, score explanations and verdict text), a later
+/// slice. The French wording is the worker's own translation, not
+/// reviewed by a native speaker (the same honest limitation as the
+/// German wording). The translations use the standard terms
 /// Windows itself uses in French (Stockage for Storage, Affichage
 /// for Display, Démarrage for Startup, Paramètres for Settings).
 /// The translations use the standard terms Windows itself uses in
@@ -1141,7 +1144,7 @@ public static class LanguagePacks
             [AppStringKeys.NavSettings] = "Paramètres",
             [AppStringKeys.LanguageTitle] = "Langue",
             [AppStringKeys.LanguageDescription] = "Choisissez la langue de la barre de navigation. La langue s'applique immédiatement.",
-            [AppStringKeys.LanguageNote] = "La barre de navigation, la page Paramètres, les pages de détail des composants, la page Vue d'ensemble, la page Historique, la page Parc et la page Vérification d'ordinateur portable neuf sont traduites. Les autres pages suivront dans les versions ultérieures.",
+            [AppStringKeys.LanguageNote] = "La barre de navigation, la page Paramètres, les pages de détail des composants, la page Vue d'ensemble, la page Historique, la page Rapport, la page Tests, la page Vérification d'ordinateur portable neuf, la page Historique des incidents, la page Comparer et la page Parc sont traduites. Toutes les pages sont désormais traduites.",
             [AppStringKeys.SettingsEyebrow] = "PARAMÈTRES",
             [AppStringKeys.SettingsTitle] = "Paramètres",
             [AppStringKeys.SettingsIntro] = "Des réglages simples et honnêtes. Chaque modification est enregistrée immédiatement et s'applique tout de suite. Rien n'est envoyé sur le réseau.",
