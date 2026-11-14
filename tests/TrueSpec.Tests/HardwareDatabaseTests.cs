@@ -182,10 +182,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.22.0", database.Version);
+        Assert.Equal("1.23.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
         Assert.Equal(103, database.CpuCount);
-        Assert.Equal(93, database.GpuCount);
+        Assert.Equal(95, database.GpuCount);
     }
 
     [Fact]
@@ -380,9 +380,11 @@ public sealed class HardwareDatabaseTests
     [InlineData("NVIDIA GeForce GTX 1650 SUPER", "GTX 1650 SUPER")]
     [InlineData("NVIDIA GeForce GTX 1630", "GTX 1630")]
     [InlineData("NVIDIA GeForce RTX 2080 Ti", "RTX 2080 TI")]
+    [InlineData("NVIDIA GeForce RTX 4070 SUPER", "RTX 4070 SUPER")]
     [InlineData("NVIDIA GeForce RTX 2060 SUPER", "RTX 2060 SUPER")]
     [InlineData("NVIDIA GeForce RTX 3050 6GB Laptop GPU", "RTX 3050 6GB LAPTOP")]
     [InlineData("AMD Radeon RX 7800 XT", "RX 7800 XT")]
+    [InlineData("AMD Radeon RX 7600 XT", "RX 7600 XT")]
     [InlineData("AMD Radeon(TM) RX 6600", "RX 6600")]
     [InlineData("AMD Radeon RX 5700 XT", "RX 5700 XT")]
     [InlineData("AMD Radeon RX 5500 XT", "RX 5500 XT")]
@@ -629,6 +631,39 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4, gtx1630.MemoryGb);
         Assert.Equal(75, gtx1630.TdpW);
         Assert.StartsWith("https://www.nvidia.com/en-us/geforce/graphics-cards/compare/?section=compare-20", gtx1630.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Rtx4070SuperAndRx7600XtCarryCompleteFigures()
+    {
+        // Dataset v1.23.0: the two desktop GPUs the dataset never listed
+        // even though both families were otherwise complete. The RTX 4070
+        // SUPER is the missing card of the RTX 40-series desktop family:
+        // the dataset had the 4070, the 4070 Ti and the 4070 Ti SUPER but
+        // not the SUPER between the 4070 and the 4070 Ti. The RX 7600 XT
+        // is the missing card of the RX 7000 desktop family: the dataset
+        // had the 7600 but not the XT. Both figures were verified by hand
+        // against the vendor's own pages, read 2026-11-15. RTX 4070 SUPER:
+        // Boost Clock 2.48 GHz, 12 GB GDDR6X and Total Graphics Power
+        // 220 W on NVIDIA's 4070 family page, which carries the spec
+        // table for the whole family. RX 7600 XT: Boost Frequency up to
+        // 2755 MHz, 16 GB and Typical Board Power 190 W on AMD's own
+        // driver page for the card, with the 190 W confirmed by AMD's
+        // launch press release. Both are single variants with one figure
+        // each, so both entries are complete.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 4070 SUPER", out var rtx4070Super));
+        Assert.Equal("NVIDIA", rtx4070Super.Vendor);
+        Assert.Equal(2.48, rtx4070Super.BoostGhz);
+        Assert.Equal(12, rtx4070Super.MemoryGb);
+        Assert.Equal(220, rtx4070Super.TdpW);
+        Assert.StartsWith("https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4070-family/", rtx4070Super.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 7600 XT", out var rx7600Xt));
+        Assert.Equal("AMD", rx7600Xt.Vendor);
+        Assert.Equal(2.755, rx7600Xt.BoostGhz);
+        Assert.Equal(16, rx7600Xt.MemoryGb);
+        Assert.Equal(190, rx7600Xt.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-7000-series/amd-radeon-rx-7600-xt.html", rx7600Xt.SourceUrl, StringComparison.Ordinal);
     }
 
     [Fact]
