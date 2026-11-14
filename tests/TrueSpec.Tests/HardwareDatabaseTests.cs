@@ -166,10 +166,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.12.0", database.Version);
+        Assert.Equal("1.13.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
         Assert.Equal(77, database.CpuCount);
-        Assert.Equal(92, database.GpuCount);
+        Assert.Equal(93, database.GpuCount);
     }
 
     [Fact]
@@ -342,6 +342,7 @@ public sealed class HardwareDatabaseTests
     [InlineData("NVIDIA GeForce RTX 4060 Ti", "RTX 4060 TI")]
     [InlineData("NVIDIA GeForce RTX 3080", "RTX 3080")]
     [InlineData("NVIDIA GeForce GTX 1060 6GB", "GTX 1060 6GB")]
+    [InlineData("NVIDIA GeForce GTX 1050 Ti", "GTX 1050 TI")]
     [InlineData("NVIDIA GeForce GTX 1650 SUPER", "GTX 1650 SUPER")]
     [InlineData("NVIDIA GeForce GTX 1630", "GTX 1630")]
     [InlineData("NVIDIA GeForce RTX 2080 Ti", "RTX 2080 TI")]
@@ -882,6 +883,42 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_Gtx1050TiDesktopGpuCarriesVerifiedFigures()
+    {
+        // Dataset v1.13.0: the NVIDIA GeForce GTX 1050 Ti desktop
+        // GPU, the last GTX 10-series desktop card the dataset never
+        // listed that a live NVIDIA page still verifies, and the
+        // deliberately-absent list never mentioned: every cycle checked
+        // the absent list, but no GTX 1050 Ti was on it, so the gap
+        // went unnoticed until this cycle listed the whole NVIDIA
+        // family against the dataset. Both figures below were verified
+        // by hand against NVIDIA's own specs table on the GeForce GTX
+        // 1050 launch page (nvidia.com/content/apac/event/ph/
+        // overwatch-campaign/geforce-gtx-1050.html), read 2026-11-14
+        // from a fresh crawl: Boost Clock 1392 MHz and Frame Buffer
+        // 4 GB GDDR5. The entry carries no board-power figure: that
+        // live NVIDIA table lists boost clock and memory but no
+        // board-power value, the same null treatment as the RX 590.
+        // The 75 W figure the card is widely listed at was not taken
+        // from any third-party table, and NVIDIA's 10-series family
+        // page that lists it could not be confirmed live: its text
+        // copy is a 2024 crawl, and a 2026-11-14 check recorded the
+        // old 10-series product page as redirecting, so the power
+        // stays null rather than resting on a stale copy. The plain
+        // GTX 1050 stays absent: its device name covers the 2 GB card
+        // (1455 MHz, verified live on the same NVIDIA table) and a
+        // later 3 GB variant (1518 MHz, 3 GB), so no single boost or
+        // memory figure exists under the bare name, and the live table
+        // lists no board-power figure for it either.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1050 Ti", out var gtx1050Ti));
+        Assert.Equal("NVIDIA", gtx1050Ti.Vendor);
+        Assert.Equal(1.392, gtx1050Ti.BoostGhz);
+        Assert.Equal(4, gtx1050Ti.MemoryGb);
+        Assert.Null(gtx1050Ti.TdpW);
+        Assert.StartsWith("https://www.nvidia.com/content/apac/event/ph/overwatch-campaign/geforce-gtx-1050.html", gtx1050Ti.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Default_UnverifiableGpuModelsMatchNothing()
     {
         // RTX 3050 desktop: boost, memory and power all differ between
@@ -895,6 +932,11 @@ public sealed class HardwareDatabaseTests
         // Series page, so no boost or power figure exists on nvidia.com
         // (verified 2026-11-14); the retailer tables that list its
         // figures do not satisfy the manufacturer-page source policy.
+        // GTX 1050 desktop: the device name covers the 2 GB card
+        // (1455 MHz, verified live on NVIDIA's own GTX 1050 launch
+        // specs table) and a later 3 GB variant (1518 MHz, 3 GB), so
+        // no single boost or memory figure exists under the bare name,
+        // and the live table lists no board-power figure for it either.
         // AMD laptop GPUs: AMD publishes Game Frequency, not Boost
         // Frequency, for them. RX 570 desktop: AMD's page lists two
         // boost figures (Up to 1206 MHz for the OEM card, Up to 1244
@@ -903,6 +945,7 @@ public sealed class HardwareDatabaseTests
         // power as a range (60-80 W), so no single figure exists.
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3050", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2060", out _));
+        Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1050", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 570", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 560", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6600M", out _));
