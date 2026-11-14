@@ -114,7 +114,7 @@ public class SettingsViewModelTests
                 "Wählen Sie die Sprache für die Navigationsleiste. Die Sprache wird sofort angewendet.",
                 settings.LanguageDescriptionText);
             Assert.Equal(
-                "Navigation, Einstellungen, Komponentendetailseiten und die Übersichtsseite sind übersetzt. Andere Seiten sind noch auf Englisch und folgen in späteren Versionen.",
+                "Navigation, Einstellungen, Komponentendetailseiten, die Übersichtsseite und die Verlaufsseite sind übersetzt. Andere Seiten sind noch auf Englisch und folgen in späteren Versionen.",
                 settings.LanguageNoteText);
 
             var labels = main.NavItems.Select(i => i.Label).ToList();

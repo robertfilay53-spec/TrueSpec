@@ -11,13 +11,13 @@
     <ScrollViewer>
         <StackPanel Margin="24" Spacing="18">
             <StackPanel Spacing="6">
-                <TextBlock Text="HISTORY" Classes="eyebrow" />
-                <TextBlock Text="How this machine changes over time" Classes="h1" />
+                <TextBlock Text="{Binding HistoryEyebrowText}" Classes="eyebrow" />
+                <TextBlock Text="{Binding HistoryTitleText}" Classes="h1" />
                 <TextBlock Text="{Binding MachineSubtitleText}"
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
-                <TextBlock Text="Every scan is saved to a local database on this machine. TrueSpec trends the overall score, battery health and storage wear across those scans. A value a scan did not report is a gap, never a zero."
+                <TextBlock Text="{Binding HistoryIntroText}"
                            Classes="muted"
                            TextWrapping="Wrap"
                            MaxWidth="720" />
@@ -25,13 +25,13 @@
 
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="Machine" Classes="h3" />
+                    <TextBlock Text="{Binding HistoryMachineTitleText}" Classes="h3" />
                     <ComboBox ItemsSource="{Binding MachineNames}"
                               SelectedItem="{Binding SelectedMachine}"
                               IsEnabled="{Binding IsMachinePickerEnabled}"
                               HorizontalAlignment="Stretch"
-                              PlaceholderText="Pick a machine" />
-                    <TextBlock Text="History is shown for one machine at a time. Pick another machine to see its own trend."
+                              PlaceholderText="{Binding HistoryPickMachineText}" />
+                    <TextBlock Text="{Binding HistoryMachineNoteText}"
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap" />
@@ -47,7 +47,7 @@
 
             <Border Classes="card" Padding="18" IsVisible="{Binding HasBatteryAlert}">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="BATTERY HEALTH ALERT" Classes="eyebrow" />
+                    <TextBlock Text="{Binding HistoryBatteryAlertEyebrowText}" Classes="eyebrow" />
                     <TextBlock Text="{Binding BatteryAlertText}" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
@@ -55,7 +55,7 @@
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12" IsVisible="{Binding HasHistory}">
                 <Border Classes="card" Padding="16">
                     <StackPanel Spacing="8">
-                        <TextBlock Text="Overall score" Classes="h3" />
+                        <TextBlock Text="{Binding HistoryScoreTitleText}" Classes="h3" />
                         <controls:Sparkline Height="52"
                                             Values="{Binding ScoreValues}"
                                             StrokeThickness="2" />
@@ -64,23 +64,23 @@
                 </Border>
                 <Border Grid.Column="1" Classes="card" Padding="16">
                     <StackPanel Spacing="8">
-                        <TextBlock Text="Battery health" Classes="h3" />
+                        <TextBlock Text="{Binding HistoryBatteryTitleText}" Classes="h3" />
                         <controls:Sparkline Height="52"
                                             Values="{Binding BatteryHealthValues}"
                                             StrokeThickness="2" />
                         <TextBlock Text="{Binding BatteryRangeText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
-                        <TextBlock Text="FORECAST" Classes="eyebrow" IsVisible="{Binding HasBatteryForecast}" />
+                        <TextBlock Text="{Binding HistoryForecastEyebrowText}" Classes="eyebrow" IsVisible="{Binding HasBatteryForecast}" />
                         <TextBlock Text="{Binding BatteryForecastText}" Classes="muted" FontSize="11" TextWrapping="Wrap" IsVisible="{Binding HasBatteryForecast}" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="2" Classes="card" Padding="16">
                     <StackPanel Spacing="8">
-                        <TextBlock Text="Storage wear" Classes="h3" />
+                        <TextBlock Text="{Binding HistoryWearTitleText}" Classes="h3" />
                         <controls:Sparkline Height="52"
                                             Values="{Binding StorageWearValues}"
                                             StrokeThickness="2" />
                         <TextBlock Text="{Binding WearRangeText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
-                        <TextBlock Text="FORECAST" Classes="eyebrow" IsVisible="{Binding HasStorageWearForecast}" />
+                        <TextBlock Text="{Binding HistoryForecastEyebrowText}" Classes="eyebrow" IsVisible="{Binding HasStorageWearForecast}" />
                         <TextBlock Text="{Binding StorageWearForecastText}" Classes="muted" FontSize="11" TextWrapping="Wrap" IsVisible="{Binding HasStorageWearForecast}" />
                     </StackPanel>
                 </Border>
@@ -89,10 +89,10 @@
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                        <TextBlock Text="CPU temperature log" Classes="h3" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding HistoryCpuLogTitleText}" Classes="h3" VerticalAlignment="Center" />
                         <Button Grid.Column="1"
                                 Classes="secondary"
-                                Content="Refresh chart"
+                                Content="{Binding HistoryRefreshChartText}"
                                 Command="{Binding RefreshSensorLogCommand}" />
                     </Grid>
                     <TextBlock Text="{Binding SensorLogStatusText}" Classes="muted" TextWrapping="Wrap" />
@@ -106,7 +106,7 @@
                                FontSize="11"
                                TextWrapping="Wrap"
                                IsVisible="{Binding HasSensorLog}" />
-                    <TextBlock Text="The horizontal axis is time, not sample count. Gaps in the line are samples where the CPU temperature sensor did not report, or stretches where logging was not running (the app was closed or the machine slept). The line never connects across a gap. The dashed line is your alert threshold, when one is set. The log is a local CSV under %LocalAppData%\TrueSpec; nothing is uploaded."
+                    <TextBlock Text="{Binding HistoryChartCaptionText}"
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap"
@@ -116,7 +116,7 @@
 
             <Border Classes="card" Padding="18" IsVisible="{Binding HasDriverAgeSummary}">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="DRIVER AGE" Classes="eyebrow" />
+                    <TextBlock Text="{Binding HistoryDriverAgeEyebrowText}" Classes="eyebrow" />
                     <TextBlock Text="{Binding DriverAgeSummaryText}" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
@@ -124,14 +124,14 @@
             <Border Classes="card" Padding="18" IsVisible="{Binding HasHistory}">
                 <StackPanel Spacing="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                        <TextBlock Text="Saved scans" Classes="h3" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding HistorySavedScansTitleText}" Classes="h3" VerticalAlignment="Center" />
                         <Button Grid.Column="1"
                                 Classes="secondary"
-                                Content="Export history as CSV"
+                                Content="{Binding HistoryExportCsvText}"
                                 Command="{Binding ExportHistoryCsvCommand}"
                                 IsEnabled="{Binding HasHistory}" />
                     </Grid>
-                    <TextBlock Text="Oldest first. A dash means that scan did not report the value. Remove deletes that one scan from this data folder — the first click asks, the second deletes."
+                    <TextBlock Text="{Binding HistoryTableNoteText}"
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap" />
@@ -174,43 +174,43 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <Grid ColumnDefinitions="150,70,110,80,110,*,Auto" ColumnSpacing="10">
-                        <TextBlock Text="Scanned" Classes="muted" FontSize="11" />
-                        <TextBlock Grid.Column="1" Text="Score" Classes="muted" FontSize="11" />
-                        <TextBlock Grid.Column="2" Text="Battery health" Classes="muted" FontSize="11" />
-                        <TextBlock Grid.Column="3" Text="Cycles" Classes="muted" FontSize="11" />
-                        <TextBlock Grid.Column="4" Text="Storage wear" Classes="muted" FontSize="11" />
-                        <TextBlock Grid.Column="5" Text="Power-on hours" Classes="muted" FontSize="11" />
+                        <TextBlock Text="{Binding HistoryHeaderScannedText}" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="1" Text="{Binding HistoryHeaderScoreText}" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="2" Text="{Binding HistoryHeaderBatteryText}" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="3" Text="{Binding HistoryHeaderCyclesText}" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="4" Text="{Binding HistoryHeaderWearText}" Classes="muted" FontSize="11" />
+                        <TextBlock Grid.Column="5" Text="{Binding HistoryHeaderPowerOnHoursText}" Classes="muted" FontSize="11" />
                     </Grid>
                 </StackPanel>
             </Border>
 
             <Border Classes="card" Padding="18">
                 <StackPanel Spacing="14">
-                    <TextBlock Text="Compare two machines" Classes="h3" />
-                    <TextBlock Text="Different machines — shown side by side, never mixed in one trend."
+                    <TextBlock Text="{Binding HistoryCompareTitleText}" Classes="h3" />
+                    <TextBlock Text="{Binding HistoryCompareNoteText}"
                                Classes="muted"
                                FontSize="11"
                                TextWrapping="Wrap" />
                     <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="14">
                         <StackPanel Spacing="6">
-                            <TextBlock Text="Machine A" Classes="h3" />
+                            <TextBlock Text="{Binding HistoryMachineAText}" Classes="h3" />
                             <ComboBox ItemsSource="{Binding MachineNames}"
                                       SelectedItem="{Binding CompareMachineA}"
                                       IsEnabled="{Binding IsMachinePickerEnabled}"
                                       HorizontalAlignment="Stretch"
-                                      PlaceholderText="Pick a machine" />
+                                      PlaceholderText="{Binding HistoryPickMachineText}" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="6">
-                            <TextBlock Text="Machine B" Classes="h3" />
+                            <TextBlock Text="{Binding HistoryMachineBText}" Classes="h3" />
                             <ComboBox ItemsSource="{Binding MachineNames}"
                                       SelectedItem="{Binding CompareMachineB}"
                                       IsEnabled="{Binding IsMachinePickerEnabled}"
                                       HorizontalAlignment="Stretch"
-                                      PlaceholderText="Pick a machine" />
+                                      PlaceholderText="{Binding HistoryPickMachineText}" />
                         </StackPanel>
                         <Button Grid.Column="2"
                                 Classes="primary"
-                                Content="Compare"
+                                Content="{Binding HistoryCompareButtonText}"
                                 Command="{Binding CompareMachinesCommand}"
                                 IsEnabled="{Binding CanCompareMachines}"
                                 VerticalAlignment="Bottom" />
@@ -255,29 +255,29 @@
 
                     </StackPanel>
                     <StackPanel Spacing="10">
-                        <TextBlock Text="Which one is the better buy?" Classes="h3" />
-                        <TextBlock Text="Type in each seller's asking price. The price is yours, not measured, and it is only used for this comparison. It is never saved with the scan."
+                        <TextBlock Text="{Binding HistoryValueTitleText}" Classes="h3" />
+                        <TextBlock Text="{Binding HistoryValueIntroText}"
                                    Classes="muted"
                                    FontSize="11"
                                    TextWrapping="Wrap" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
                             <StackPanel Spacing="6">
                                 <TextBlock Text="{Binding MachineAName}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                <TextBlock Text="Asking price (you enter this, not measured)" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding HistoryAskingPriceLabelText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
                                 <TextBox Text="{Binding PriceAText}"
-                                         PlaceholderText="For example 500"
+                                         PlaceholderText="{Binding HistoryPriceExampleText}"
                                          HorizontalAlignment="Stretch" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Spacing="6">
                                 <TextBlock Text="{Binding MachineBName}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                <TextBlock Text="Asking price (you enter this, not measured)" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding HistoryAskingPriceLabelText}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
                                 <TextBox Text="{Binding PriceBText}"
-                                         PlaceholderText="For example 500"
+                                         PlaceholderText="{Binding HistoryPriceExampleText}"
                                          HorizontalAlignment="Stretch" />
                             </StackPanel>
                         </Grid>
                         <Button Classes="primary"
-                                Content="Compare value"
+                                Content="{Binding HistoryCompareValueButtonText}"
                                 Command="{Binding CompareValueCommand}"
                                 IsEnabled="{Binding CanCompareValue}"
                                 HorizontalAlignment="Left" />
@@ -310,7 +310,7 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="Per-component winner (measured health only)" Classes="h3" />
+                            <TextBlock Text="{Binding HistoryWinnersTitleText}" Classes="h3" />
                             <ItemsControl ItemsSource="{Binding ValueComponentWinners}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:ValueWinnerRowViewModel">

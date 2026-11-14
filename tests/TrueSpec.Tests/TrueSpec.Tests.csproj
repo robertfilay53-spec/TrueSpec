@@ -40,7 +40,8 @@
 
   <!-- ScoreAgreementTests, NavigationTests, HistoryForecastViewModelTests,
        HistoryValueComparisonViewModelTests,
-       HistorySensorLogViewModelTests, LoadTestViewModelTests,
+       HistorySensorLogViewModelTests, HistoryLocalizationViewModelTests,
+       LoadTestViewModelTests,
        SensorAlertViewModelTests, AdminNoticeViewModelTests and
        ExportConfirmationTests
        drive the App's ViewModels, so they only compile on the Windows leg.
@@ -60,6 +61,7 @@
     <Compile Remove="HistoryForecastViewModelTests.cs" />
     <Compile Remove="HistoryValueComparisonViewModelTests.cs" />
     <Compile Remove="HistorySensorLogViewModelTests.cs" />
+    <Compile Remove="HistoryLocalizationViewModelTests.cs" />
     <Compile Remove="HistoryRemoveScanViewModelTests.cs" />
     <Compile Remove="LoadTestViewModelTests.cs" />
     <Compile Remove="SensorAlertViewModelTests.cs" />

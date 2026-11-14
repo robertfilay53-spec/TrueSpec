@@ -248,6 +248,122 @@ public static class AppStringKeys
     public const string OverviewMetricBatteryPower = "OverviewMetricBatteryPower";
     public const string OverviewMetricNotAvailable = "OverviewMetricNotAvailable";
 
+    // History page (v2.1.12): the chrome of the History page — the
+    // trend cards, the saved-scans table, the two-machine comparison
+    // and the value comparison, plus the CPU temperature log. The page
+    // is long-lived and cached by the shell, so the strings resolve
+    // from the stored language code and re-render through
+    // ApplyLanguage, the same in-place pattern the Overview page
+    // uses. The data the page shows stays English in this version:
+    // machine names, the trend summary and the battery / storage /
+    // driver-age forecast texts are measured or Core-owned wordings
+    // produced by the trend analyzer with no language parameter yet;
+    // the value verdict sentence and its no-verdict reason are
+    // Core-owned wordings produced by ValueComparer; and the table's
+    // cell fallbacks ("Not measurable" / "Not reported") are
+    // measured-data fallbacks that the CSV export agrees with row for
+    // row, so the CSV contract stays English — translating them is a
+    // later slice. Templates carry the dynamic values ({0} = a machine
+    // name, a count, a date, a file path or an exception message),
+    // formatted with the invariant culture by
+    // StringLocalizer.GetFormatted, so a number or date inside a German
+    // sentence keeps the app's existing formatting. The removed-scan
+    // message uses two keys (RemovedOne / RemovedMany) instead of the
+    // old inline plural hack. The range labels reuse the table
+    // header keys (Score, Battery health, Storage wear) instead of a
+    // second copy of the same words.
+    public const string HistoryEyebrow = "HistoryEyebrow";
+    public const string HistoryTitle = "HistoryTitle";
+    public const string HistoryIntro = "HistoryIntro";
+    public const string HistoryMachineTitle = "HistoryMachineTitle";
+    public const string HistoryPickMachine = "HistoryPickMachine";
+    public const string HistoryMachineNote = "HistoryMachineNote";
+    public const string HistoryBatteryAlertEyebrow = "HistoryBatteryAlertEyebrow";
+    public const string HistoryScoreTitle = "HistoryScoreTitle";
+    public const string HistoryBatteryTitle = "HistoryBatteryTitle";
+    public const string HistoryWearTitle = "HistoryWearTitle";
+    public const string HistoryForecastEyebrow = "HistoryForecastEyebrow";
+    public const string HistoryCpuLogTitle = "HistoryCpuLogTitle";
+    public const string HistoryRefreshChart = "HistoryRefreshChart";
+    public const string HistoryChartCaption = "HistoryChartCaption";
+    public const string HistoryDriverAgeEyebrow = "HistoryDriverAgeEyebrow";
+    public const string HistorySavedScansTitle = "HistorySavedScansTitle";
+    public const string HistoryExportCsv = "HistoryExportCsv";
+    public const string HistoryTableNote = "HistoryTableNote";
+    public const string HistoryHeaderScanned = "HistoryHeaderScanned";
+    public const string HistoryHeaderScore = "HistoryHeaderScore";
+    public const string HistoryHeaderCycles = "HistoryHeaderCycles";
+    public const string HistoryHeaderPowerOnHours = "HistoryHeaderPowerOnHours";
+    public const string HistoryRemoveButton = "HistoryRemoveButton";
+    public const string HistoryConfirmRemoveButton = "HistoryConfirmRemoveButton";
+    public const string HistoryCompareTitle = "HistoryCompareTitle";
+    public const string HistoryCompareNote = "HistoryCompareNote";
+    public const string HistoryMachineA = "HistoryMachineA";
+    public const string HistoryMachineB = "HistoryMachineB";
+    public const string HistoryCompareButton = "HistoryCompareButton";
+    public const string HistoryValueTitle = "HistoryValueTitle";
+    public const string HistoryValueIntro = "HistoryValueIntro";
+    public const string HistoryAskingPriceLabel = "HistoryAskingPriceLabel";
+    public const string HistoryPriceExample = "HistoryPriceExample";
+    public const string HistoryCompareValueButton = "HistoryCompareValueButton";
+    public const string HistoryWinnersTitle = "HistoryWinnersTitle";
+    public const string HistorySubtitleTemplate = "HistorySubtitleTemplate";
+    public const string HistoryLoading = "HistoryLoading";
+    public const string HistoryUnavailable = "HistoryUnavailable";
+    public const string HistoryNoScans = "HistoryNoScans";
+    public const string HistoryOneScan = "HistoryOneScan";
+    public const string HistoryScansCount = "HistoryScansCount";
+    public const string HistoryReadFailed = "HistoryReadFailed";
+    public const string HistoryRemoveUnavailable = "HistoryRemoveUnavailable";
+    public const string HistoryRemoveConfirm = "HistoryRemoveConfirm";
+    public const string HistoryRemoveGone = "HistoryRemoveGone";
+    public const string HistoryRemovedNone = "HistoryRemovedNone";
+    public const string HistoryRemovedOne = "HistoryRemovedOne";
+    public const string HistoryRemovedMany = "HistoryRemovedMany";
+    public const string HistoryRemoveFailed = "HistoryRemoveFailed";
+    public const string HistoryCompareUnavailable = "HistoryCompareUnavailable";
+    public const string HistoryOnlyOneMachine = "HistoryOnlyOneMachine";
+    public const string HistoryPickDifferent = "HistoryPickDifferent";
+    public const string HistoryPickTwoCompare = "HistoryPickTwoCompare";
+    public const string HistoryPickTwo = "HistoryPickTwo";
+    public const string HistoryComparing = "HistoryComparing";
+    public const string HistoryCompared = "HistoryCompared";
+    public const string HistoryCompareFailed = "HistoryCompareFailed";
+    public const string HistoryValuePrompt = "HistoryValuePrompt";
+    public const string HistoryValueCompareFirst = "HistoryValueCompareFirst";
+    public const string HistoryValueBadPrice = "HistoryValueBadPrice";
+    public const string HistoryValueHonestyNote = "HistoryValueHonestyNote";
+    public const string HistoryRowScans = "HistoryRowScans";
+    public const string HistoryRowFirstScan = "HistoryRowFirstScan";
+    public const string HistoryRowLastScan = "HistoryRowLastScan";
+    public const string HistoryRowLatestScore = "HistoryRowLatestScore";
+    public const string HistoryRowLatestBattery = "HistoryRowLatestBattery";
+    public const string HistoryRowLatestWear = "HistoryRowLatestWear";
+    public const string HistoryRowLatestDriver = "HistoryRowLatestDriver";
+    public const string HistoryRowLastUpdate = "HistoryRowLastUpdate";
+    public const string HistoryValueScorePerDollar = "HistoryValueScorePerDollar";
+    public const string HistoryWinnerA = "HistoryWinnerA";
+    public const string HistoryWinnerB = "HistoryWinnerB";
+    public const string HistoryWinnerTie = "HistoryWinnerTie";
+    public const string HistoryWinnerNotMeasurable = "HistoryWinnerNotMeasurable";
+    public const string HistoryRangeNone = "HistoryRangeNone";
+    public const string HistoryRangeOne = "HistoryRangeOne";
+    public const string HistoryRangeMany = "HistoryRangeMany";
+    public const string HistoryLogLoading = "HistoryLogLoading";
+    public const string HistoryLogOff = "HistoryLogOff";
+    public const string HistoryLogNoSamples = "HistoryLogNoSamples";
+    public const string HistoryLogNoCpuSensor = "HistoryLogNoCpuSensor";
+    public const string HistoryLogNoReadings = "HistoryLogNoReadings";
+    public const string HistoryLogOneReading = "HistoryLogOneReading";
+    public const string HistoryLogTooFarApart = "HistoryLogTooFarApart";
+    public const string HistoryLogSummary = "HistoryLogSummary";
+    public const string HistoryLogSummaryNewest = "HistoryLogSummaryNewest";
+    public const string HistoryLogSummaryAll = "HistoryLogSummaryAll";
+    public const string HistoryLogGapNone = "HistoryLogGapNone";
+    public const string HistoryLogGapOne = "HistoryLogGapOne";
+    public const string HistoryLogGapMany = "HistoryLogGapMany";
+    public const string HistoryLogReadFailed = "HistoryLogReadFailed";
+
     /// <summary>Every key in the catalogue, in the order above.</summary>
     public static IReadOnlyList<string> All { get; } = new[]
     {
@@ -420,5 +536,96 @@ public static class AppStringKeys
         OverviewMetricCpuUsage,
         OverviewMetricBatteryPower,
         OverviewMetricNotAvailable,
+        HistoryEyebrow,
+        HistoryTitle,
+        HistoryIntro,
+        HistoryMachineTitle,
+        HistoryPickMachine,
+        HistoryMachineNote,
+        HistoryBatteryAlertEyebrow,
+        HistoryScoreTitle,
+        HistoryBatteryTitle,
+        HistoryWearTitle,
+        HistoryForecastEyebrow,
+        HistoryCpuLogTitle,
+        HistoryRefreshChart,
+        HistoryChartCaption,
+        HistoryDriverAgeEyebrow,
+        HistorySavedScansTitle,
+        HistoryExportCsv,
+        HistoryTableNote,
+        HistoryHeaderScanned,
+        HistoryHeaderScore,
+        HistoryHeaderCycles,
+        HistoryHeaderPowerOnHours,
+        HistoryRemoveButton,
+        HistoryConfirmRemoveButton,
+        HistoryCompareTitle,
+        HistoryCompareNote,
+        HistoryMachineA,
+        HistoryMachineB,
+        HistoryCompareButton,
+        HistoryValueTitle,
+        HistoryValueIntro,
+        HistoryAskingPriceLabel,
+        HistoryPriceExample,
+        HistoryCompareValueButton,
+        HistoryWinnersTitle,
+        HistorySubtitleTemplate,
+        HistoryLoading,
+        HistoryUnavailable,
+        HistoryNoScans,
+        HistoryOneScan,
+        HistoryScansCount,
+        HistoryReadFailed,
+        HistoryRemoveUnavailable,
+        HistoryRemoveConfirm,
+        HistoryRemoveGone,
+        HistoryRemovedNone,
+        HistoryRemovedOne,
+        HistoryRemovedMany,
+        HistoryRemoveFailed,
+        HistoryCompareUnavailable,
+        HistoryOnlyOneMachine,
+        HistoryPickDifferent,
+        HistoryPickTwoCompare,
+        HistoryPickTwo,
+        HistoryComparing,
+        HistoryCompared,
+        HistoryCompareFailed,
+        HistoryValuePrompt,
+        HistoryValueCompareFirst,
+        HistoryValueBadPrice,
+        HistoryValueHonestyNote,
+        HistoryRowScans,
+        HistoryRowFirstScan,
+        HistoryRowLastScan,
+        HistoryRowLatestScore,
+        HistoryRowLatestBattery,
+        HistoryRowLatestWear,
+        HistoryRowLatestDriver,
+        HistoryRowLastUpdate,
+        HistoryValueScorePerDollar,
+        HistoryWinnerA,
+        HistoryWinnerB,
+        HistoryWinnerTie,
+        HistoryWinnerNotMeasurable,
+        HistoryRangeNone,
+        HistoryRangeOne,
+        HistoryRangeMany,
+        HistoryLogLoading,
+        HistoryLogOff,
+        HistoryLogNoSamples,
+        HistoryLogNoCpuSensor,
+        HistoryLogNoReadings,
+        HistoryLogOneReading,
+        HistoryLogTooFarApart,
+        HistoryLogSummary,
+        HistoryLogSummaryNewest,
+        HistoryLogSummaryAll,
+        HistoryLogGapNone,
+        HistoryLogGapOne,
+        HistoryLogGapMany,
+        HistoryLogReadFailed,
     };
 }

@@ -43,3 +43,14 @@ TrueSpec-report-*.json
 
 # Logs
 *.log
+
+# Local-only files that must NEVER be committed (v2.1.12): planning
+# notes and release scratch kept beside the repo for the operator's
+# own use. A `git add -A` during the v2.1.11 bump swept all of these
+# into a commit; the push was killed in time. Stage named files only.
+WORLD-CLASS-PLAN.md
+LAPTOP-TEST-RESULTS-2026-11-12.md
+REVIEW-NEXT-STEPS-2026-11-12.md
+V1.4.1-FIX-BRIEF.md
+logo-options/
+release-artifacts/
