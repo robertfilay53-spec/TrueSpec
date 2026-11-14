@@ -193,28 +193,33 @@ public sealed record BuyerCheckResult(IReadOnlyList<BuyerCheck> Checks)
         (c.Id == AuthenticityCheckId || c.Id == RecentCrashesCheckId || c.Id == LoadTestCheckId));
 
     /// <summary>
-    /// The title of the strongest Fail findings entry, or null when no
-    /// finding failed. Authenticity outranks crashes, which outrank the
-    /// load test: a Strong authenticity check is the finding the banner
-    /// names when several fired.
+    /// The strongest Fail findings entry, or null when no finding
+    /// failed. Authenticity outranks crashes, which outrank the load
+    /// test: a Strong authenticity check is the finding the banner
+    /// names when several fired. The New Laptop Check page shares
+    /// this ranking instead of mirroring it, so the two can never
+    /// drift apart; the ranking itself is unchanged.
     /// </summary>
-    private string? StrongestFinding()
+    public BuyerCheck? StrongestFailingFinding()
     {
         var authenticity = Checks.FirstOrDefault(c =>
             c.Id == AuthenticityCheckId && c.State == BuyerCheckState.Fail);
         if (authenticity is not null)
         {
-            return authenticity.Title;
+            return authenticity;
         }
 
         var crashes = Checks.FirstOrDefault(c =>
             c.Id == RecentCrashesCheckId && c.State == BuyerCheckState.Fail);
         if (crashes is not null)
         {
-            return crashes.Title;
+            return crashes;
         }
 
         return Checks.FirstOrDefault(c =>
-            c.Id == LoadTestCheckId && c.State == BuyerCheckState.Fail)?.Title;
+            c.Id == LoadTestCheckId && c.State == BuyerCheckState.Fail);
     }
+
+    /// <summary>The title of the strongest Fail findings entry, or null when no finding failed.</summary>
+    private string? StrongestFinding() => StrongestFailingFinding()?.Title;
 }

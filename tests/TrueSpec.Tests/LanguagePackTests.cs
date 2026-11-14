@@ -403,7 +403,9 @@ public sealed class LanguagePackTests
         // labels, and the load-test card (heading, intro, battery note,
         // duration label, Start/Cancel, fan-health heading and note,
         // temperature caption, the two warning templates, the fixed
-        // status words and the fixed live-line states). Same pinning
+        // status words and the fixed live-line states. Localisation
+        // polish (v2.1.18): the measured live-line labels and the
+        // elapsed line translate too, via templates. Same pinning
         // rule as the Report terms above: changing one is a deliberate
         // translation decision, not a typo fix. The data the page shows
         // (per-test names and workload descriptions, measured result
@@ -456,6 +458,13 @@ public sealed class LanguagePackTests
         Assert.Equal("Takt: Test beendet", german[AppStringKeys.LoadTestClockFinished]);
         Assert.Equal("Takt: von der Hardware nicht gemeldet", german[AppStringKeys.LoadTestClockNotReported]);
 
+        // Localisation polish (v2.1.18): the measured live lines and
+        // the elapsed line translate their labels too, via templates;
+        // only the measured value stays data.
+        Assert.Equal("Temperatur: {0}", german[AppStringKeys.LoadTestTempMeasured]);
+        Assert.Equal("Takt: {0}", german[AppStringKeys.LoadTestClockMeasured]);
+        Assert.Equal("Abgeschlossen in {0} s.", german[AppStringKeys.LoadTestElapsedFinished]);
+
         // Templates keep the app's number formatting in German too.
         Assert.Equal(
             "Dadurch wird Ihre CPU 60 Sekunden lang belastet. Der Test stoppt automatisch, wenn die Temperatur 95 °C übersteigt.",
@@ -466,6 +475,15 @@ public sealed class LanguagePackTests
         Assert.Equal(
             "Es wird kein Ergebnis angezeigt, weil der Test nicht abgeschlossen wurde: disk vanished",
             StringLocalizer.GetFormatted(AppStringKeys.TestsItemNoResult, "de", "disk vanished"));
+        Assert.Equal(
+            "Temperatur: 72.3 C",
+            StringLocalizer.GetFormatted(AppStringKeys.LoadTestTempMeasured, "de", "72.3 C"));
+        Assert.Equal(
+            "Takt: 4200 MHz",
+            StringLocalizer.GetFormatted(AppStringKeys.LoadTestClockMeasured, "de", "4200 MHz"));
+        Assert.Equal(
+            "Abgeschlossen in 60 s.",
+            StringLocalizer.GetFormatted(AppStringKeys.LoadTestElapsedFinished, "de", "60"));
     }
 
     [Fact]
@@ -648,7 +666,8 @@ public sealed class LanguagePackTests
         // the column headers, the row Export button and the
         // Remove/Confirm-remove button, the transient status lines
         // (loading, no scans, the summary templates, the export-all /
-        // remove / import lines). Same pinning rule as the Comparison
+        // remove / import lines, and the import skip reasons since
+        // v2.1.18). Same pinning rule as the Comparison
         // terms above: changing one is a deliberate translation
         // decision, not a typo fix. The data the page shows (machine
         // names, the row cell values, file and folder paths, exception
@@ -714,6 +733,21 @@ public sealed class LanguagePackTests
         Assert.Equal("1 Bericht importiert ({0})", german[AppStringKeys.FleetImportedOne]);
         Assert.Equal("{0} Berichte importiert ({1})", german[AppStringKeys.FleetImportedMany]);
 
+        // Localisation polish (v2.1.18): the import skip reasons are
+        // catalogue keys now, so a German user sees German inside the
+        // German import line. The file name and any exception message
+        // stay data and are never in the catalogue.
+        Assert.Equal("Die Datei ist zu groß für einen TrueSpec-Bericht (über 10 MB) und wurde übersprungen.", german[AppStringKeys.SnapshotImportTooLarge]);
+        Assert.Equal("Die Datei ist leer und kein TrueSpec-JSON-Bericht.", german[AppStringKeys.SnapshotImportEmpty]);
+        Assert.Equal("Die Datei verwendet die Berichtsschema-Version „{0}“, die diese TrueSpec-Version nicht importieren kann. Nur Berichte der Version 1.0 können importiert werden.", german[AppStringKeys.SnapshotImportWrongSchemaVersion]);
+        Assert.Equal("Die Datei enthält keinen Scan, es gibt also nichts zu importieren.", german[AppStringKeys.SnapshotImportNoSnapshot]);
+        Assert.Equal("Die Datei enthält einen Scan ohne Gerätenamen, er kann daher nicht im Gerätepark aufgeführt werden.", german[AppStringKeys.SnapshotImportNoMachineName]);
+        Assert.Equal("Der Datei fehlt ein Teil des Scans (Komponenten, Bewertung oder Käuferprüfungen), sie kann daher nicht importiert werden.", german[AppStringKeys.SnapshotImportMissingPart]);
+        Assert.Equal("Die Datei enthält eine Bewertung, die keine Zahl ist, sie kann daher nicht importiert werden.", german[AppStringKeys.SnapshotImportScoreNotFinite]);
+        Assert.Equal("Die Datei ist kein TrueSpec-JSON-Bericht und wurde übersprungen.", german[AppStringKeys.SnapshotImportNotJsonReport]);
+        Assert.Equal("konnte nicht importiert werden.", german[AppStringKeys.FleetImportCouldNotBeImported]);
+        Assert.Equal("konnte nicht gelesen werden ({0}).", german[AppStringKeys.FleetImportCouldNotBeRead]);
+
         // Templates keep the app's number formatting in German too.
         Assert.Equal(
             "2 Geräte in diesem Datenordner, 3 gespeicherte Scans. Niedrigste Punktzahl 58 (SHOP-PC-BAD).",
@@ -728,9 +762,15 @@ public sealed class LanguagePackTests
             "SHOP-PC-BAD entfernen? Dadurch werden alle 2 gespeicherten Scans für dieses Gerät aus diesem Datenordner gelöscht. Klicken Sie auf „Entfernen bestätigen\", um zu löschen – bis dahin wird nichts gelöscht.",
             StringLocalizer.GetFormatted(AppStringKeys.FleetRemoveArmMany, "de", "SHOP-PC-BAD", 2, "Entfernen bestätigen"));
         Assert.Equal(
-            "2 Berichte importiert (SHOP-PC-A, SHOP-PC-B). Übersprungen 1: bad.json: could not be imported.",
+            "2 Berichte importiert (SHOP-PC-A, SHOP-PC-B). Übersprungen 1: bad.json: Die Datei ist kein TrueSpec-JSON-Bericht und wurde übersprungen.",
             StringLocalizer.GetFormatted(AppStringKeys.FleetImportedMany, "de", 2, "SHOP-PC-A, SHOP-PC-B")
-                + ". " + StringLocalizer.GetFormatted(AppStringKeys.FleetSkipped, "de", 1, "bad.json: could not be imported."));
+                + ". " + StringLocalizer.GetFormatted(AppStringKeys.FleetSkipped, "de", 1, "bad.json: Die Datei ist kein TrueSpec-JSON-Bericht und wurde übersprungen."));
+        Assert.Equal(
+            "Die Datei verwendet die Berichtsschema-Version „2.0“, die diese TrueSpec-Version nicht importieren kann. Nur Berichte der Version 1.0 können importiert werden.",
+            StringLocalizer.GetFormatted(AppStringKeys.SnapshotImportWrongSchemaVersion, "de", "2.0"));
+        Assert.Equal(
+            "bad.json: konnte nicht gelesen werden (Zugriff verweigert).",
+            "bad.json: " + StringLocalizer.GetFormatted(AppStringKeys.FleetImportCouldNotBeRead, "de", "Zugriff verweigert"));
     }
 
     [Fact]

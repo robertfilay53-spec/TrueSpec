@@ -2,6 +2,7 @@ namespace TrueSpec.Core.Reports;
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using TrueSpec.Core.Localization;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Scoring;
 
@@ -9,16 +10,66 @@ using TrueSpec.Core.Scoring;
 /// The result of importing one JSON report file: the scan it carried, or
 /// a plain-English reason it could not be used. A bad file is a failed
 /// import, never an exception out of the import path and never a partial
-/// scan in the store.
+/// scan in the store. The reason is also carried as a structured
+/// <see cref="SnapshotImportFailureKind"/> so a caller can render it in
+/// the user's language; <see cref="Error"/> stays the English sentence
+/// for the existing callers and tests.
 /// </summary>
 public sealed record SnapshotImportResult(
     bool Success,
     SystemSnapshot? Snapshot,
-    string? Error)
+    string? Error,
+    SnapshotImportFailureKind? FailureKind = null,
+    string? SchemaVersion = null)
 {
     public static SnapshotImportResult Ok(SystemSnapshot snapshot) => new(true, snapshot, null);
 
-    public static SnapshotImportResult Fail(string error) => new(false, null, error);
+    public static SnapshotImportResult Fail(SnapshotImportFailureKind kind, string? schemaVersion = null) =>
+        new(false, null, SnapshotImportFailureReason.Text(kind, schemaVersion, LanguagePacks.EnglishCode), kind, schemaVersion);
+}
+
+/// <summary>
+/// Why a JSON report file could not be imported, as a structured kind
+/// instead of a sentence. The Fleet page renders the reason in the page
+/// language from the kind, so a German user sees German; the English
+/// sentence in <see cref="SnapshotImportFailureReason"/> stays the
+/// importer's public <see cref="SnapshotImportResult.Error"/> text.
+/// </summary>
+public enum SnapshotImportFailureKind
+{
+    TooLarge,
+    Empty,
+    WrongSchemaVersion,
+    NoSnapshot,
+    NoMachineName,
+    MissingPart,
+    ScoreNotFinite,
+    NotJsonReport,
+}
+
+/// <summary>
+/// Renders a <see cref="SnapshotImportFailureKind"/> as the reason
+/// sentence in the requested language, from the catalogue keys. The
+/// schema version is data (a value from the file), never translated.
+/// </summary>
+public static class SnapshotImportFailureReason
+{
+    public static string Text(SnapshotImportFailureKind kind, string? schemaVersion, string? languageCode) =>
+        kind switch
+        {
+            SnapshotImportFailureKind.TooLarge => StringLocalizer.Get(AppStringKeys.SnapshotImportTooLarge, languageCode),
+            SnapshotImportFailureKind.Empty => StringLocalizer.Get(AppStringKeys.SnapshotImportEmpty, languageCode),
+            SnapshotImportFailureKind.WrongSchemaVersion => StringLocalizer.GetFormatted(
+                AppStringKeys.SnapshotImportWrongSchemaVersion,
+                languageCode,
+                schemaVersion ?? string.Empty),
+            SnapshotImportFailureKind.NoSnapshot => StringLocalizer.Get(AppStringKeys.SnapshotImportNoSnapshot, languageCode),
+            SnapshotImportFailureKind.NoMachineName => StringLocalizer.Get(AppStringKeys.SnapshotImportNoMachineName, languageCode),
+            SnapshotImportFailureKind.MissingPart => StringLocalizer.Get(AppStringKeys.SnapshotImportMissingPart, languageCode),
+            SnapshotImportFailureKind.ScoreNotFinite => StringLocalizer.Get(AppStringKeys.SnapshotImportScoreNotFinite, languageCode),
+            SnapshotImportFailureKind.NotJsonReport => StringLocalizer.Get(AppStringKeys.SnapshotImportNotJsonReport, languageCode),
+            _ => StringLocalizer.Get(AppStringKeys.SnapshotImportNotJsonReport, languageCode),
+        };
 }
 
 /// <summary>
@@ -59,41 +110,39 @@ public sealed class SnapshotReportImporter
             var bytes = await ReadCappedAsync(source, cancellationToken);
             if (bytes is null)
             {
-                return SnapshotImportResult.Fail(
-                    "The file is too large to be a TrueSpec report (over 10 MB) and was skipped.");
+                return SnapshotImportResult.Fail(SnapshotImportFailureKind.TooLarge);
             }
 
             var report = JsonSerializer.Deserialize<ReportModel>(bytes, Options);
             if (report is null)
             {
-                return SnapshotImportResult.Fail("The file is empty and is not a TrueSpec JSON report.");
+                return SnapshotImportResult.Fail(SnapshotImportFailureKind.Empty);
             }
 
             if (!string.Equals(report.SchemaVersion, "1.0", StringComparison.Ordinal))
             {
-                return SnapshotImportResult.Fail(
-                    $"The file uses report schema version '{report.SchemaVersion}', which this version of TrueSpec cannot import. Only version 1.0 reports can be imported.");
+                return SnapshotImportResult.Fail(SnapshotImportFailureKind.WrongSchemaVersion, report.SchemaVersion);
             }
 
             if (report.Snapshot is null)
             {
-                return SnapshotImportResult.Fail("The file holds no scan, so there is nothing to import.");
+                return SnapshotImportResult.Fail(SnapshotImportFailureKind.NoSnapshot);
             }
 
             var snapshot = report.Snapshot;
             if (string.IsNullOrWhiteSpace(snapshot.MachineName))
             {
-                return SnapshotImportResult.Fail("The file holds a scan with no machine name, so it cannot be listed in the fleet.");
+                return SnapshotImportResult.Fail(SnapshotImportFailureKind.NoMachineName);
             }
 
             if (snapshot.Components is null || snapshot.Score is null || snapshot.BuyerChecks is null)
             {
-                return SnapshotImportResult.Fail("The file is missing part of the scan (components, score or buyer checks), so it cannot be imported.");
+                return SnapshotImportResult.Fail(SnapshotImportFailureKind.MissingPart);
             }
 
             if (!double.IsFinite(snapshot.Score.OverallScore))
             {
-                return SnapshotImportResult.Fail("The file holds a score that is not a number, so it cannot be imported.");
+                return SnapshotImportResult.Fail(SnapshotImportFailureKind.ScoreNotFinite);
             }
 
             if (snapshot.Score.OverallScore < 0d || snapshot.Score.OverallScore > 100d)
@@ -110,11 +159,11 @@ public sealed class SnapshotReportImporter
         }
         catch (JsonException)
         {
-            return SnapshotImportResult.Fail("The file is not a TrueSpec JSON report, so it was skipped.");
+            return SnapshotImportResult.Fail(SnapshotImportFailureKind.NotJsonReport);
         }
         catch (NotSupportedException)
         {
-            return SnapshotImportResult.Fail("The file is not a TrueSpec JSON report, so it was skipped.");
+            return SnapshotImportResult.Fail(SnapshotImportFailureKind.NotJsonReport);
         }
     }
 

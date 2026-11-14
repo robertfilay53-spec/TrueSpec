@@ -244,6 +244,53 @@ public class NewLaptopCheckCrashHistoryLocalizationViewModelTests
     }
 
     [Fact]
+    public void NewLaptopCheck_BannerFinding_MatchesCoreRanking()
+    {
+        // Localisation polish (v2.1.18): the page shares Core's
+        // ranking instead of mirroring it, so the banner can never
+        // name a different finding than Core's own banner.
+        var allFailing = new BuyerCheckResult(new[]
+        {
+            new BuyerCheck(BuyerCheckResult.LoadTestCheckId, "Load test finding", "Detail.", BuyerCheckState.Fail, "Ask."),
+            new BuyerCheck(BuyerCheckResult.RecentCrashesCheckId, "Recent crashes finding", "Detail.", BuyerCheckState.Fail, "Ask."),
+            new BuyerCheck(BuyerCheckResult.AuthenticityCheckId, "Authenticity finding", "Detail.", BuyerCheckState.Fail, "Ask."),
+        });
+        Assert.Equal(BuyerCheckResult.AuthenticityCheckId, allFailing.StrongestFailingFinding()?.Id);
+
+        var crashesOnly = new BuyerCheckResult(new[]
+        {
+            new BuyerCheck(BuyerCheckResult.LoadTestCheckId, "Load test finding", "Detail.", BuyerCheckState.Fail, "Ask."),
+            new BuyerCheck(BuyerCheckResult.RecentCrashesCheckId, "Recent crashes finding", "Detail.", BuyerCheckState.Fail, "Ask."),
+        });
+        Assert.Equal(BuyerCheckResult.RecentCrashesCheckId, crashesOnly.StrongestFailingFinding()?.Id);
+
+        var loadOnly = new BuyerCheckResult(new[]
+        {
+            new BuyerCheck(BuyerCheckResult.LoadTestCheckId, "Load test finding", "Detail.", BuyerCheckState.Fail, "Ask."),
+        });
+        Assert.Equal(BuyerCheckResult.LoadTestCheckId, loadOnly.StrongestFailingFinding()?.Id);
+
+        var noneFailing = new BuyerCheckResult(new[]
+        {
+            new BuyerCheck(BuyerCheckResult.AuthenticityCheckId, "Authenticity finding", "Detail.", BuyerCheckState.Pass, "Ask."),
+        });
+        Assert.Null(noneFailing.StrongestFailingFinding());
+
+        // The page banner names the same finding Core's banner names.
+        var snapshot = new SystemSnapshot(
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow,
+            "Test Laptop",
+            "Windows 11 Pro",
+            Array.Empty<ComponentSnapshot>(),
+            ScoreResult.Empty,
+            allFailing);
+        var viewModel = NewLaptopCheck(snapshot);
+        Assert.Equal(allFailing.BannerText, viewModel.BannerText);
+        Assert.Contains("Authenticity finding", viewModel.BannerText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void NewLaptopCheck_DataStaysEnglish_WhenChromeIsGerman()
     {
         var english = NewLaptopCheck(TestSnapshots.Healthy());

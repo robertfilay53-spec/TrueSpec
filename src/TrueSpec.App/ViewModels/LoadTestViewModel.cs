@@ -206,25 +206,31 @@ public sealed partial class LoadTestViewModel : ViewModelBase
         _ => StringLocalizer.Get(AppStringKeys.TestsItemNotRunYet, _languageCode),
     };
 
-    /// <summary>The live temperature line, resolved in the card language. A measured value keeps the English label and the invariant-formatted value: it is a live value, not chrome.</summary>
+    /// <summary>The live temperature line, resolved in the card language. A measured value keeps the invariant-formatted value; the label translates like its fixed-state siblings.</summary>
     private string ResolveLiveTempText() => _liveTempKind switch
     {
         LiveLineKind.NotRunning => StringLocalizer.Get(AppStringKeys.LoadTestTempNotRunning, _languageCode),
         LiveLineKind.Measuring => StringLocalizer.Get(AppStringKeys.LoadTestTempMeasuring, _languageCode),
         LiveLineKind.Finished => StringLocalizer.Get(AppStringKeys.LoadTestTempFinished, _languageCode),
         LiveLineKind.NotReported => StringLocalizer.Get(AppStringKeys.LoadTestTempNotReported, _languageCode),
-        LiveLineKind.Measured => $"Temperature: {_liveTempMeasured}",
+        LiveLineKind.Measured => StringLocalizer.GetFormatted(
+            AppStringKeys.LoadTestTempMeasured,
+            _languageCode,
+            _liveTempMeasured),
         _ => StringLocalizer.Get(AppStringKeys.LoadTestTempNotRunning, _languageCode),
     };
 
-    /// <summary>The live clock line, resolved in the card language. A measured value keeps the English label and the invariant-formatted value: it is a live value, not chrome.</summary>
+    /// <summary>The live clock line, resolved in the card language. A measured value keeps the invariant-formatted value; the label translates like its fixed-state siblings.</summary>
     private string ResolveLiveClockText() => _liveClockKind switch
     {
         LiveLineKind.NotRunning => StringLocalizer.Get(AppStringKeys.LoadTestClockNotRunning, _languageCode),
         LiveLineKind.Measuring => StringLocalizer.Get(AppStringKeys.LoadTestClockMeasuring, _languageCode),
         LiveLineKind.Finished => StringLocalizer.Get(AppStringKeys.LoadTestClockFinished, _languageCode),
         LiveLineKind.NotReported => StringLocalizer.Get(AppStringKeys.LoadTestClockNotReported, _languageCode),
-        LiveLineKind.Measured => $"Clock: {_liveClockMeasured}",
+        LiveLineKind.Measured => StringLocalizer.GetFormatted(
+            AppStringKeys.LoadTestClockMeasured,
+            _languageCode,
+            _liveClockMeasured),
         _ => StringLocalizer.Get(AppStringKeys.LoadTestClockNotRunning, _languageCode),
     };
 
@@ -402,9 +408,10 @@ public sealed partial class LoadTestViewModel : ViewModelBase
                 .Where(s => s.CpuTempC.HasValue)
                 .Select(s => s.CpuTempC!.Value)
                 .ToList();
-            ElapsedText = string.Create(
-                CultureInfo.InvariantCulture,
-                $"Finished in {(result.CompletedAt - result.StartedAt).TotalSeconds:0} s.");
+            ElapsedText = StringLocalizer.GetFormatted(
+                AppStringKeys.LoadTestElapsedFinished,
+                _languageCode,
+                $"{(result.CompletedAt - result.StartedAt).TotalSeconds:0}");
             _liveTempKind = LiveLineKind.Finished;
             LiveTemperatureText = ResolveLiveTempText();
             _liveClockKind = LiveLineKind.Finished;

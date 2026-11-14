@@ -409,6 +409,9 @@ public static class LanguagePacks
             [AppStringKeys.LoadTestClockMeasuring] = "Clock: measuring...",
             [AppStringKeys.LoadTestClockFinished] = "Clock: test finished",
             [AppStringKeys.LoadTestClockNotReported] = "Clock: not reported by hardware",
+            [AppStringKeys.LoadTestTempMeasured] = "Temperature: {0}",
+            [AppStringKeys.LoadTestClockMeasured] = "Clock: {0}",
+            [AppStringKeys.LoadTestElapsedFinished] = "Finished in {0} s.",
             // Localisation, phase 8 (v2.1.16): New Laptop Check and Crash History pages
             [AppStringKeys.NewLaptopCheckEyebrow] = "NEW LAPTOP CHECK",
             [AppStringKeys.NewLaptopCheckBannerPass] = "PASS - this machine matches a new laptop",
@@ -542,6 +545,16 @@ public static class LanguagePacks
             [AppStringKeys.FleetImportedNone] = "Imported 0 reports",
             [AppStringKeys.FleetImportedOne] = "Imported 1 report ({0})",
             [AppStringKeys.FleetImportedMany] = "Imported {0} reports ({1})",
+            [AppStringKeys.SnapshotImportTooLarge] = "The file is too large to be a TrueSpec report (over 10 MB) and was skipped.",
+            [AppStringKeys.SnapshotImportEmpty] = "The file is empty and is not a TrueSpec JSON report.",
+            [AppStringKeys.SnapshotImportWrongSchemaVersion] = "The file uses report schema version '{0}', which this version of TrueSpec cannot import. Only version 1.0 reports can be imported.",
+            [AppStringKeys.SnapshotImportNoSnapshot] = "The file holds no scan, so there is nothing to import.",
+            [AppStringKeys.SnapshotImportNoMachineName] = "The file holds a scan with no machine name, so it cannot be listed in the fleet.",
+            [AppStringKeys.SnapshotImportMissingPart] = "The file is missing part of the scan (components, score or buyer checks), so it cannot be imported.",
+            [AppStringKeys.SnapshotImportScoreNotFinite] = "The file holds a score that is not a number, so it cannot be imported.",
+            [AppStringKeys.SnapshotImportNotJsonReport] = "The file is not a TrueSpec JSON report, so it was skipped.",
+            [AppStringKeys.FleetImportCouldNotBeImported] = "could not be imported.",
+            [AppStringKeys.FleetImportCouldNotBeRead] = "could not be read ({0}).",
         });
 
     public static LanguagePack German { get; } = new(
@@ -926,6 +939,9 @@ public static class LanguagePacks
             [AppStringKeys.LoadTestClockMeasuring] = "Takt: wird gemessen …",
             [AppStringKeys.LoadTestClockFinished] = "Takt: Test beendet",
             [AppStringKeys.LoadTestClockNotReported] = "Takt: von der Hardware nicht gemeldet",
+            [AppStringKeys.LoadTestTempMeasured] = "Temperatur: {0}",
+            [AppStringKeys.LoadTestClockMeasured] = "Takt: {0}",
+            [AppStringKeys.LoadTestElapsedFinished] = "Abgeschlossen in {0} s.",
             // Localisation, phase 8 (v2.1.16): New Laptop Check and Crash History pages
             [AppStringKeys.NewLaptopCheckEyebrow] = "NEUER LAPTOP CHECK",
             [AppStringKeys.NewLaptopCheckBannerPass] = "BESTANDEN - Dieses Gerät entspricht einem neuen Laptop",
@@ -1059,6 +1075,16 @@ public static class LanguagePacks
             [AppStringKeys.FleetImportedNone] = "0 Berichte importiert",
             [AppStringKeys.FleetImportedOne] = "1 Bericht importiert ({0})",
             [AppStringKeys.FleetImportedMany] = "{0} Berichte importiert ({1})",
+            [AppStringKeys.SnapshotImportTooLarge] = "Die Datei ist zu groß für einen TrueSpec-Bericht (über 10 MB) und wurde übersprungen.",
+            [AppStringKeys.SnapshotImportEmpty] = "Die Datei ist leer und kein TrueSpec-JSON-Bericht.",
+            [AppStringKeys.SnapshotImportWrongSchemaVersion] = "Die Datei verwendet die Berichtsschema-Version „{0}“, die diese TrueSpec-Version nicht importieren kann. Nur Berichte der Version 1.0 können importiert werden.",
+            [AppStringKeys.SnapshotImportNoSnapshot] = "Die Datei enthält keinen Scan, es gibt also nichts zu importieren.",
+            [AppStringKeys.SnapshotImportNoMachineName] = "Die Datei enthält einen Scan ohne Gerätenamen, er kann daher nicht im Gerätepark aufgeführt werden.",
+            [AppStringKeys.SnapshotImportMissingPart] = "Der Datei fehlt ein Teil des Scans (Komponenten, Bewertung oder Käuferprüfungen), sie kann daher nicht importiert werden.",
+            [AppStringKeys.SnapshotImportScoreNotFinite] = "Die Datei enthält eine Bewertung, die keine Zahl ist, sie kann daher nicht importiert werden.",
+            [AppStringKeys.SnapshotImportNotJsonReport] = "Die Datei ist kein TrueSpec-JSON-Bericht und wurde übersprungen.",
+            [AppStringKeys.FleetImportCouldNotBeImported] = "konnte nicht importiert werden.",
+            [AppStringKeys.FleetImportCouldNotBeRead] = "konnte nicht gelesen werden ({0}).",
         });
 
     /// <summary>Every built-in pack, English first.</summary>
