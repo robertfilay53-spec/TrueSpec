@@ -52,6 +52,13 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen AI Max 390", "RYZEN AI MAX 390")]
     [InlineData("AMD Ryzen AI Max+ 388", "RYZEN AI MAX+ 388")]
     [InlineData("AMD Ryzen AI Max 385", "RYZEN AI MAX 385")]
+    [InlineData("AMD Ryzen AI 9 HX 475", "RYZEN AI 9 HX 475")]
+    [InlineData("AMD Ryzen AI 9 HX 470", "RYZEN AI 9 HX 470")]
+    [InlineData("AMD Ryzen AI 9 465", "RYZEN AI 9 465")]
+    [InlineData("AMD Ryzen AI 7 450", "RYZEN AI 7 450")]
+    [InlineData("AMD Ryzen AI 7 445", "RYZEN AI 7 445")]
+    [InlineData("AMD Ryzen AI 5 435", "RYZEN AI 5 435")]
+    [InlineData("AMD Ryzen AI 5 430", "RYZEN AI 5 430")]
     [InlineData("intel core i5-12400", "I5-12400")]
     [InlineData("Intel(R) Core(TM) i5-12400F Processor", "I5-12400F")]
     [InlineData("Intel(R) Core(TM) i5-14400", "I5-14400")]
@@ -192,9 +199,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.25.0", database.Version);
+        Assert.Equal("1.26.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(113, database.CpuCount);
+        Assert.Equal(120, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1532,5 +1539,88 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(3.6, ryzenAiMax385.BaseGhz);
         Assert.Equal(5.0, ryzenAiMax385.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-300-series/amd-ryzen-ai-max-385.html", ryzenAiMax385.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_RyzenAi400MobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.26.0: the seven AMD Ryzen AI 400 mobile CPUs (Zen 5,
+        // Gorgon Point), the whole consumer AI 400 family, which the dataset
+        // never listed. All seven launched at CES 2026 on January 5, 2026:
+        // the Ryzen AI 9 HX 475 and HX 470 are the 12-core Strix Point
+        // refresh flagships, the Ryzen AI 9 465 is the 10-core part, the
+        // Ryzen AI 7 450 and 445 and the Ryzen AI 5 435 and 430 round out
+        // the stack down to 4 cores. All figures were verified by hand
+        // against AMD's own product pages, read 2026-11-15 from fresh
+        // fetches: the Ryzen AI 9 HX 475 at Base Clock 2.0 GHz and Max
+        // Boost Clock up to 5.2 GHz; the Ryzen AI 9 HX 470 at 2.0 and up
+        // to 5.2 GHz; the Ryzen AI 9 465 at 2.0 and up to 5.0 GHz; the
+        // Ryzen AI 7 450 at 2.0 and up to 5.1 GHz; the Ryzen AI 7 445 at
+        // 2.0 and up to 4.6 GHz; the Ryzen AI 5 435 at 2.0 and up to 4.5
+        // GHz; the Ryzen AI 5 430 at 2.0 and up to 4.5 GHz. The dataset's
+        // boost_ghz is AMD's Max Boost Clock, per its own definition, and
+        // the AI 300 and AI Max chips already in the dataset follow the
+        // same rule, so these seven are consistent with them. AMD also
+        // lists a separate Max Zen5c Clock for the compact cores (3.3 GHz
+        // on the HX 475, HX 470 and 465, 3.6 GHz on the 450, 3.4 GHz on
+        // the 445, 435 and 430); that is a per-core-type figure, not the
+        // headline Max Boost Clock, so it is not the dataset's boost.
+        // Pre-launch leaks had put the HX 470 at 5.25 GHz and the 450 at
+        // 5.15 GHz; AMD's final published figures are 5.2 and 5.1 GHz,
+        // and those are the figures used here. The Ryzen AI 7 HX 455
+        // stays out: AMD has not officially confirmed it, and no clock
+        // figures exist for it. The Ryzen 5 439 stays out: it is a
+        // non-AI part of the wider Ryzen 400 mobile range. The PRO
+        // variants and the AM5 desktop G and GE parts stay out: the
+        // dataset covers consumer mobile parts in this slice. No code
+        // change was needed: the CPU normalizer already maps "AMD Ryzen
+        // AI 9 HX 475" to "RYZEN AI 9 HX 475", "AMD Ryzen AI 9 HX 470"
+        // to "RYZEN AI 9 HX 470", "AMD Ryzen AI 9 465" to "RYZEN AI 9
+        // 465", "AMD Ryzen AI 7 450" to "RYZEN AI 7 450", "AMD Ryzen AI
+        // 7 445" to "RYZEN AI 7 445", "AMD Ryzen AI 5 435" to "RYZEN AI
+        // 5 435" and "AMD Ryzen AI 5 430" to "RYZEN AI 5 430", and the
+        // Settings card shows the CPU count from the dataset, so it reads
+        // 120 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 9 HX 475", out var ryzenAi9Hx475));
+        Assert.Equal("AMD", ryzenAi9Hx475.Vendor);
+        Assert.Equal(2.0, ryzenAi9Hx475.BaseGhz);
+        Assert.Equal(5.2, ryzenAi9Hx475.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-400-series/amd-ryzen-ai-9-hx-475.html", ryzenAi9Hx475.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 9 HX 470", out var ryzenAi9Hx470));
+        Assert.Equal("AMD", ryzenAi9Hx470.Vendor);
+        Assert.Equal(2.0, ryzenAi9Hx470.BaseGhz);
+        Assert.Equal(5.2, ryzenAi9Hx470.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-400-series/amd-ryzen-ai-9-hx-470.html", ryzenAi9Hx470.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 9 465", out var ryzenAi9465));
+        Assert.Equal("AMD", ryzenAi9465.Vendor);
+        Assert.Equal(2.0, ryzenAi9465.BaseGhz);
+        Assert.Equal(5.0, ryzenAi9465.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-400-series/amd-ryzen-ai-9-465.html", ryzenAi9465.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 7 450", out var ryzenAi7450));
+        Assert.Equal("AMD", ryzenAi7450.Vendor);
+        Assert.Equal(2.0, ryzenAi7450.BaseGhz);
+        Assert.Equal(5.1, ryzenAi7450.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-400-series/amd-ryzen-ai-7-450.html", ryzenAi7450.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 7 445", out var ryzenAi7445));
+        Assert.Equal("AMD", ryzenAi7445.Vendor);
+        Assert.Equal(2.0, ryzenAi7445.BaseGhz);
+        Assert.Equal(4.6, ryzenAi7445.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-400-series/amd-ryzen-ai-7-445.html", ryzenAi7445.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 5 435", out var ryzenAi5435));
+        Assert.Equal("AMD", ryzenAi5435.Vendor);
+        Assert.Equal(2.0, ryzenAi5435.BaseGhz);
+        Assert.Equal(4.5, ryzenAi5435.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-400-series/amd-ryzen-ai-5-435.html", ryzenAi5435.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 5 430", out var ryzenAi5430));
+        Assert.Equal("AMD", ryzenAi5430.Vendor);
+        Assert.Equal(2.0, ryzenAi5430.BaseGhz);
+        Assert.Equal(4.5, ryzenAi5430.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/ai-400-series/amd-ryzen-ai-5-430.html", ryzenAi5430.SourceUrl, StringComparison.Ordinal);
     }
 }
