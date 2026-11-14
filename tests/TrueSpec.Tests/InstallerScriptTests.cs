@@ -111,13 +111,13 @@ public class InstallerScriptTests
         // application manifest. A bump that misses one ships a build whose
         // installer, exe and manifest disagree about what version it is.
         var iss = File.ReadAllText(FindInstallerScript());
-        Assert.Contains("#define AppVersion \"2.1.27\"", iss, StringComparison.Ordinal);
+        Assert.Contains("#define AppVersion \"2.1.28\"", iss, StringComparison.Ordinal);
 
         var csproj = File.ReadAllText(FindRepoFile("src", "TrueSpec.App", "TrueSpec.App.csproj"));
-        Assert.Contains("<Version>2.1.27</Version>", csproj, StringComparison.Ordinal);
+        Assert.Contains("<Version>2.1.28</Version>", csproj, StringComparison.Ordinal);
 
         var manifest = File.ReadAllText(FindRepoFile("src", "TrueSpec.App", "app.manifest"));
-        Assert.Contains("version=\"2.1.27.0\"", manifest, StringComparison.Ordinal);
+        Assert.Contains("version=\"2.1.28.0\"", manifest, StringComparison.Ordinal);
     }
 
     [Fact]
