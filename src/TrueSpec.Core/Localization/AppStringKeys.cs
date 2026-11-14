@@ -638,6 +638,11 @@ public static class AppStringKeys
     public const string FleetSkipped = "FleetSkipped";
     public const string FleetExportAllTotalOne = "FleetExportAllTotalOne";
     public const string FleetExportAllTotalMany = "FleetExportAllTotalMany";
+
+    /// <summary>The reason a machine was skipped by "Export all machines", as structured kinds instead of sentences (v2.1.19).</summary>
+    public const string FleetExportAllSkipNoSavedScan = "FleetExportAllSkipNoSavedScan";
+    public const string FleetExportAllSkipNoScore = "FleetExportAllSkipNoScore";
+    public const string FleetExportAllSkipWriteFailed = "FleetExportAllSkipWriteFailed";
     public const string FleetRemoveUnavailable = "FleetRemoveUnavailable";
     public const string FleetRemoveArmOne = "FleetRemoveArmOne";
     public const string FleetRemoveArmMany = "FleetRemoveArmMany";
@@ -1238,6 +1243,9 @@ public static class AppStringKeys
         FleetSkipped,
         FleetExportAllTotalOne,
         FleetExportAllTotalMany,
+        FleetExportAllSkipNoSavedScan,
+        FleetExportAllSkipNoScore,
+        FleetExportAllSkipWriteFailed,
         FleetRemoveUnavailable,
         FleetRemoveArmOne,
         FleetRemoveArmMany,

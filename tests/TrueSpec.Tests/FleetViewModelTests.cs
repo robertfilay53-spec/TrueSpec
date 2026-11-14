@@ -556,7 +556,7 @@ public class FleetViewModelTests
                         Path.Combine(folder, "TrueSpec-machine-SHOP-PC-BAD.csv"),
                         Path.Combine(folder, "TrueSpec-machine-SHOP-PC-GOOD.csv"),
                     },
-                    Array.Empty<(string, string)>()));
+                    Array.Empty<ExportAllSkippedMachine>()));
             }
 
             var viewModel = new FleetViewModel(store, exportAllMachinesCsv: Delegate);
@@ -653,7 +653,7 @@ public class FleetViewModelTests
                 return Task.FromResult(new ExportAllMachinesResult(
                     Path.Combine(directory, "exports"),
                     Array.Empty<string>(),
-                    Array.Empty<(string, string)>()));
+                    Array.Empty<ExportAllSkippedMachine>()));
             }
 
             var viewModel = new FleetViewModel(store, exportAllMachinesCsv: Delegate);
@@ -703,7 +703,7 @@ public class FleetViewModelTests
                 Task.FromResult(new ExportAllMachinesResult(
                     folder,
                     new[] { Path.Combine(folder, "TrueSpec-machine-SHOP-PC-GOOD.csv") },
-                    new[] { ("SHOP-PC-BAD", "the latest scan has no score to export") }));
+                    new[] { new ExportAllSkippedMachine("SHOP-PC-BAD", ExportAllSkipReasonKind.NoScore) }));
 
             var viewModel = new FleetViewModel(store, exportAllMachinesCsv: Delegate);
 
@@ -720,6 +720,81 @@ public class FleetViewModelTests
             Assert.Contains("Exported 1 of 2 machines to", viewModel.StatusMessage, StringComparison.Ordinal);
             Assert.Contains("SHOP-PC-BAD", viewModel.StatusMessage, StringComparison.Ordinal);
             Assert.Contains("no score", viewModel.StatusMessage, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Export all machines (v2.1.19): the skip reasons are structured
+    /// kinds rendered in the page language, so the German line holds no
+    /// English fragment. The machine names stay data, and the write
+    /// error stays data too — an English exception message passes
+    /// through the German line unchanged.
+    /// </summary>
+    [Fact]
+    public async Task ExportAllMachinesCommand_German_ReportsTheSkipReasonsInGerman()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("SHOP-PC-GOOD", 92d, "8%", baseTime),
+                ("SHOP-PC-BAD", 55d, "45%", baseTime.AddHours(1)),
+                ("SHOP-PC-GONE", 40d, "60%", baseTime.AddHours(2)));
+
+            var folder = Path.Combine(directory, "exports");
+            Task<ExportAllMachinesResult> Delegate(
+                IReadOnlyList<FleetMachineRow> rows,
+                IReadOnlyDictionary<string, SystemSnapshot> map) =>
+                Task.FromResult(new ExportAllMachinesResult(
+                    folder,
+                    new[] { Path.Combine(folder, "TrueSpec-machine-SHOP-PC-GOOD.csv") },
+                    new[]
+                    {
+                        new ExportAllSkippedMachine("SHOP-PC-BAD", ExportAllSkipReasonKind.NoScore),
+                        new ExportAllSkippedMachine("SHOP-PC-GONE", ExportAllSkipReasonKind.WriteFailed, "Access denied"),
+                    }));
+
+            var viewModel = new FleetViewModel(store, languageCode: "de", exportAllMachinesCsv: Delegate);
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (!viewModel.HasFleet && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.True(viewModel.HasFleet, "Fleet never loaded from the store.");
+
+            await viewModel.ExportAllMachinesCommand.ExecuteAsync(null);
+
+            Assert.Contains("1 von 3 Geräten nach", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("Übersprungen 2", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("SHOP-PC-BAD: der neueste Scan hat keine Bewertung zum Exportieren", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("SHOP-PC-GONE: konnte nicht geschrieben werden (Access denied)", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.DoesNotContain("no score", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.DoesNotContain("could not be written", viewModel.StatusMessage, StringComparison.Ordinal);
+
+            // The stored result re-renders on a language switch, so
+            // the same status line comes back in English and then in
+            // German again.
+            viewModel.ApplyLanguage("en");
+            Assert.Contains("Exported 1 of 3 machines to", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("Skipped 2", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("SHOP-PC-BAD: the latest scan has no score to export", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("SHOP-PC-GONE: could not be written (Access denied)", viewModel.StatusMessage, StringComparison.Ordinal);
+
+            viewModel.ApplyLanguage("de");
+            Assert.Contains("SHOP-PC-BAD: der neueste Scan hat keine Bewertung zum Exportieren", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("SHOP-PC-GONE: konnte nicht geschrieben werden (Access denied)", viewModel.StatusMessage, StringComparison.Ordinal);
         }
         finally
         {
@@ -773,7 +848,7 @@ public class FleetViewModelTests
             completion.SetResult(new ExportAllMachinesResult(
                 folder,
                 new[] { Path.Combine(folder, "TrueSpec-machine-SHOP-PC-GOOD.csv") },
-                Array.Empty<(string, string)>()));
+                Array.Empty<ExportAllSkippedMachine>()));
             await first;
 
             Assert.Equal(1, calls);

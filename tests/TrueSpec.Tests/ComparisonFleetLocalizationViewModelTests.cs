@@ -621,7 +621,7 @@ public class ComparisonFleetLocalizationViewModelTests
                 Task.FromResult(new ExportAllMachinesResult(
                     folder,
                     new[] { Path.Combine(folder, "SHOP-PC-BAD.csv"), Path.Combine(folder, "SHOP-PC-GOOD.csv") },
-                    Array.Empty<(string, string)>()));
+                    Array.Empty<ExportAllSkippedMachine>()));
 
             var german = await LoadedFleetAsync(Path.Combine(directory, "de"), "de", ExportAll);
             await german.ExportAllMachinesCommand.ExecuteAsync(null);
@@ -639,19 +639,32 @@ public class ComparisonFleetLocalizationViewModelTests
                 $"2 von 2 Geräten nach {folder} exportiert.",
                 german.StatusMessage);
 
-            // Nothing exported: the zero line names what was skipped.
+            // Nothing exported: the zero line names what was skipped,
+            // and the skip reasons render in the page language now
+            // (v2.1.19), instead of the old English fragments inside
+            // the German line.
             Task<ExportAllMachinesResult> ExportNone(
                 IReadOnlyList<FleetMachineRow> rows,
                 IReadOnlyDictionary<string, SystemSnapshot> snapshots) =>
                 Task.FromResult(new ExportAllMachinesResult(
                     folder,
                     Array.Empty<string>(),
-                    new[] { ("SHOP-PC-BAD", "no score"), ("SHOP-PC-GOOD", "no score") }));
+                    new[]
+                    {
+                        new ExportAllSkippedMachine("SHOP-PC-BAD", ExportAllSkipReasonKind.NoScore),
+                        new ExportAllSkippedMachine("SHOP-PC-GOOD", ExportAllSkipReasonKind.NoScore),
+                    }));
 
             var noneGerman = await LoadedFleetAsync(Path.Combine(directory, "none"), "de", ExportNone);
             await noneGerman.ExportAllMachinesCommand.ExecuteAsync(null);
             Assert.Equal(
-                "0 Geräte exportiert. Übersprungen 2: SHOP-PC-BAD: no score; SHOP-PC-GOOD: no score.",
+                "0 Geräte exportiert. Übersprungen 2: SHOP-PC-BAD: der neueste Scan hat keine Bewertung zum Exportieren; SHOP-PC-GOOD: der neueste Scan hat keine Bewertung zum Exportieren.",
+                noneGerman.StatusMessage);
+
+            // A switch re-resolves the stored result instead of resetting it.
+            noneGerman.ApplyLanguage("en");
+            Assert.Equal(
+                "Exported 0 machines. Skipped 2: SHOP-PC-BAD: the latest scan has no score to export; SHOP-PC-GOOD: the latest scan has no score to export.",
                 noneGerman.StatusMessage);
         }
         finally

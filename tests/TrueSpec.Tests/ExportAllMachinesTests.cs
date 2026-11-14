@@ -133,7 +133,9 @@ public class ExportAllMachinesTests
             Assert.Contains("SHOP-PC-GOOD", File.ReadAllText(result.ExportedPaths[0]), StringComparison.Ordinal);
             var skipped = Assert.Single(result.Skipped);
             Assert.Equal("SHOP-PC-NOSCORE", skipped.MachineName);
-            Assert.Contains("no score", skipped.Reason, StringComparison.Ordinal);
+            Assert.Equal(ExportAllSkipReasonKind.NoScore, skipped.Kind);
+            Assert.Null(skipped.WriteError);
+            Assert.Contains("no score", ExportAllSkipReason.Text(skipped.Kind, skipped.WriteError, "en"), StringComparison.Ordinal);
         }
         finally
         {
@@ -167,7 +169,9 @@ public class ExportAllMachinesTests
             Assert.Single(result.ExportedPaths);
             var skipped = Assert.Single(result.Skipped);
             Assert.Equal("SHOP-PC-GONE", skipped.MachineName);
-            Assert.Contains("no saved scan", skipped.Reason, StringComparison.Ordinal);
+            Assert.Equal(ExportAllSkipReasonKind.NoSavedScan, skipped.Kind);
+            Assert.Null(skipped.WriteError);
+            Assert.Contains("no saved scan", ExportAllSkipReason.Text(skipped.Kind, skipped.WriteError, "en"), StringComparison.Ordinal);
         }
         finally
         {
