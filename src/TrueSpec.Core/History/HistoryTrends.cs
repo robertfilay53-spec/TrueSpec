@@ -2,6 +2,7 @@ namespace TrueSpec.Core.History;
 
 using System.Globalization;
 using TrueSpec.Core.Health;
+using TrueSpec.Core.Localization;
 using TrueSpec.Core.Models;
 using TrueSpec.Core.Storage;
 
@@ -57,6 +58,18 @@ public sealed record HistoryTrend(
         null,
         null,
         Array.Empty<Guid>());
+
+    /// <summary>
+    /// The empty trend with its summary in the given language (English when
+    /// the code is blank or unknown). <see cref="Empty"/> is the English
+    /// default, kept so callers that never pass a language see no change.
+    /// </summary>
+    public static HistoryTrend EmptyFor(string? languageCode) => languageCode is null
+        ? Empty
+        : Empty with
+        {
+            Summary = StringLocalizer.Get(AppStringKeys.HistoryTrendEmptySummary, languageCode),
+        };
 }
 
 /// <summary>
@@ -66,13 +79,20 @@ public sealed record HistoryTrend(
 /// </summary>
 public static class HistoryTrendAnalyzer
 {
-    public static HistoryTrend Analyze(IReadOnlyList<SystemSnapshot> snapshots)
+    /// <summary>
+    /// Analyses saved snapshots into a trend. <paramref name="languageCode"/>
+    /// (optional, English when blank or unknown) localizes the summary, the
+    /// battery alert and the driver-age summary; measurements, dates and
+    /// counts keep the app's existing formatting. Callers that never pass a
+    /// language see the exact English wordings this method always produced.
+    /// </summary>
+    public static HistoryTrend Analyze(IReadOnlyList<SystemSnapshot> snapshots, string? languageCode = null)
     {
         ArgumentNullException.ThrowIfNull(snapshots);
 
         if (snapshots.Count == 0)
         {
-            return HistoryTrend.Empty;
+            return HistoryTrend.EmptyFor(languageCode);
         }
 
         var machineName = snapshots[0].MachineName;
@@ -122,11 +142,11 @@ public static class HistoryTrendAnalyzer
             scoreDelta,
             batteryDelta,
             wearDelta,
-            BuildSummary(ordered, scorePoints, batteryHealthPoints, storageWearPoints, scoreDelta, batteryDelta, wearDelta),
-            BatteryHealthAlert(batteryHealthPoints),
+            BuildSummary(ordered, scorePoints, batteryHealthPoints, storageWearPoints, scoreDelta, batteryDelta, wearDelta, languageCode),
+            BatteryHealthAlert(batteryHealthPoints, languageCode),
             driverAgePoints,
             driverAgeDelta,
-            BuildDriverAgeSummary(driverAges, driverAgeDelta),
+            BuildDriverAgeSummary(driverAges, driverAgeDelta, languageCode),
             ordered.Select(s => s.Id).ToList());
     }
 
@@ -154,7 +174,7 @@ public static class HistoryTrendAnalyzer
     /// page already names that band. Gaps (scans that did not report health)
     /// are skipped, never treated as zero.
     /// </summary>
-    public static string? BatteryHealthAlert(IReadOnlyList<TrendPoint> batteryHealthPoints)
+    public static string? BatteryHealthAlert(IReadOnlyList<TrendPoint> batteryHealthPoints, string? languageCode = null)
     {
         ArgumentNullException.ThrowIfNull(batteryHealthPoints);
 
@@ -176,21 +196,42 @@ public static class HistoryTrendAnalyzer
         var latestBand = HardwareMath.BatteryBand(latest);
         if (BandRank(latestBand) > BandRank(firstBand))
         {
-            parts.Add(string.Create(
-                CultureInfo.InvariantCulture,
-                $"Battery health dropped from {HardwareMath.BatteryBandName(first)} ({first:0.#}%) to {HardwareMath.BatteryBandName(latest)} ({latest:0.#}%) since the first saved scan."));
+            parts.Add(StringLocalizer.GetFormatted(
+                AppStringKeys.HistoryBatteryAlertBandDrop,
+                languageCode,
+                BandNameFor(firstBand, languageCode),
+                FormatValue(first),
+                BandNameFor(latestBand, languageCode),
+                FormatValue(latest)));
         }
 
         var fall = previous - latest;
         if (fall > 5d)
         {
-            parts.Add(string.Create(
-                CultureInfo.InvariantCulture,
-                $"Battery health fell {fall:0.#} points between the last two scans that reported it ({previous:0.#}% to {latest:0.#}%)."));
+            parts.Add(StringLocalizer.GetFormatted(
+                AppStringKeys.HistoryBatteryAlertFastFall,
+                languageCode,
+                FormatValue(fall),
+                FormatValue(previous),
+                FormatValue(latest)));
         }
 
         return parts.Count == 0 ? null : string.Join(" ", parts);
     }
+
+    /// <summary>
+    /// The battery band name in the given language. The band names are used
+    /// only inside the History alert sentence, so they live here rather than
+    /// in <see cref="HardwareMath"/>: the Battery page keeps showing the
+    /// English band text, which is a separate, untranslated surface.
+    /// </summary>
+    private static string BandNameFor(BatteryHealthBand band, string? languageCode) => band switch
+    {
+        BatteryHealthBand.Normal => StringLocalizer.Get(AppStringKeys.HistoryBatteryBandNormal, languageCode),
+        BatteryHealthBand.Worn => StringLocalizer.Get(AppStringKeys.HistoryBatteryBandWorn, languageCode),
+        BatteryHealthBand.Replace => StringLocalizer.Get(AppStringKeys.HistoryBatteryBandReplace, languageCode),
+        _ => HardwareMath.BatteryBandName(null),
+    };
 
     private static int BandRank(BatteryHealthBand band) => band switch
     {
@@ -204,8 +245,29 @@ public static class HistoryTrendAnalyzer
     /// Loads saved snapshots for one machine from the history store and
     /// trends them. Snapshots that cannot be read, or that belong to a
     /// different machine, are skipped instead of breaking the trend.
+    /// <paramref name="languageCode"/> localizes the trend wordings (see
+    /// <see cref="Analyze"/>).
     /// </summary>
     public static async Task<HistoryTrend> LoadAsync(
+        ISnapshotStore store,
+        string machineName,
+        int limit = 50,
+        CancellationToken cancellationToken = default,
+        string? languageCode = null)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+        ArgumentException.ThrowIfNullOrWhiteSpace(machineName);
+
+        var snapshots = await LoadSnapshotsAsync(store, machineName, limit, cancellationToken);
+        return Analyze(snapshots, languageCode);
+    }
+
+    /// <summary>
+    /// Loads the saved snapshots for one machine (same skip rules as
+    /// <see cref="LoadAsync"/>), so a caller that re-analyses on a language
+    /// switch can keep the snapshots instead of re-reading the store.
+    /// </summary>
+    public static async Task<IReadOnlyList<SystemSnapshot>> LoadSnapshotsAsync(
         ISnapshotStore store,
         string machineName,
         int limit = 50,
@@ -232,7 +294,7 @@ public static class HistoryTrendAnalyzer
             snapshots.Add(snapshot);
         }
 
-        return Analyze(snapshots);
+        return snapshots;
     }
 
     private static double? Delta(IReadOnlyList<TrendPoint> points)
@@ -253,15 +315,20 @@ public static class HistoryTrendAnalyzer
         IReadOnlyList<TrendPoint> wearPoints,
         double? scoreDelta,
         double? batteryDelta,
-        double? wearDelta)
+        double? wearDelta,
+        string? languageCode)
     {
+        var firstDate = ordered[0].CapturedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var lastDate = ordered[^1].CapturedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var parts = new List<string>
         {
-            $"{ordered.Count} scan{(ordered.Count == 1 ? string.Empty : "s")} from {ordered[0].CapturedAt:yyyy-MM-dd} to {ordered[^1].CapturedAt:yyyy-MM-dd}.",
+            ordered.Count == 1
+                ? StringLocalizer.GetFormatted(AppStringKeys.HistoryTrendScansOne, languageCode, firstDate, lastDate)
+                : StringLocalizer.GetFormatted(AppStringKeys.HistoryTrendScansMany, languageCode, ordered.Count, firstDate, lastDate),
         };
-        parts.Add(DescribeDelta("Score", scorePoints, scoreDelta, "points"));
-        parts.Add(DescribeDelta("Battery health", batteryPoints, batteryDelta, "points"));
-        parts.Add(DescribeDelta("Storage wear", wearPoints, wearDelta, "points"));
+        parts.Add(DescribeDelta(StringLocalizer.Get(AppStringKeys.HistoryHeaderScore, languageCode), scorePoints, scoreDelta, languageCode));
+        parts.Add(DescribeDelta(StringLocalizer.Get(AppStringKeys.HistoryBatteryTitle, languageCode), batteryPoints, batteryDelta, languageCode));
+        parts.Add(DescribeDelta(StringLocalizer.Get(AppStringKeys.HistoryWearTitle, languageCode), wearPoints, wearDelta, languageCode));
         return string.Join(" ", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
     }
 
@@ -269,28 +336,33 @@ public static class HistoryTrendAnalyzer
         string label,
         IReadOnlyList<TrendPoint> points,
         double? delta,
-        string unit)
+        string? languageCode)
     {
         var measured = points.Where(p => p.Value is not null).ToList();
         if (measured.Count == 0)
         {
-            return $"{label} was not reported in any saved scan.";
+            return StringLocalizer.GetFormatted(AppStringKeys.HistoryTrendDeltaNotReported, languageCode, label);
         }
 
         if (measured.Count == 1 || delta is null)
         {
-            return $"{label} reported once ({FormatValue(measured[0].Value!.Value)}): one more scan is needed for a trend.";
+            return StringLocalizer.GetFormatted(
+                AppStringKeys.HistoryTrendDeltaReportedOnce,
+                languageCode,
+                label,
+                FormatValue(measured[0].Value!.Value));
         }
 
-        var direction = delta.Value switch
+        var unit = StringLocalizer.Get(AppStringKeys.HistoryTrendPointsUnit, languageCode);
+        var first = FormatValue(measured[0].Value!.Value);
+        var last = FormatValue(measured[^1].Value!.Value);
+        var magnitude = FormatValue(Math.Abs(delta.Value));
+        return delta.Value switch
         {
-            > 0.05 => "up",
-            < -0.05 => "down",
-            _ => "unchanged",
+            > 0.05 => StringLocalizer.GetFormatted(AppStringKeys.HistoryTrendDeltaUp, languageCode, label, first, last, magnitude, unit),
+            < -0.05 => StringLocalizer.GetFormatted(AppStringKeys.HistoryTrendDeltaDown, languageCode, label, first, last, magnitude, unit),
+            _ => StringLocalizer.GetFormatted(AppStringKeys.HistoryTrendDeltaUnchanged, languageCode, label, first, last, magnitude, unit),
         };
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"{label} {FormatValue(measured[0].Value!.Value)} to {FormatValue(measured[^1].Value!.Value)} ({direction} {Math.Abs(delta.Value):0.#} {unit}).");
     }
 
     private static string FormatValue(double value) =>
@@ -381,7 +453,8 @@ public static class HistoryTrendAnalyzer
     /// </summary>
     private static string? BuildDriverAgeSummary(
         IReadOnlyList<DriverAgeReading> readings,
-        double? driverAgeDelta)
+        double? driverAgeDelta,
+        string? languageCode)
     {
         var measured = readings.Where(r => r.AgeDays is not null).ToList();
         if (measured.Count == 0)
@@ -391,13 +464,17 @@ public static class HistoryTrendAnalyzer
 
         var first = measured[0];
         var last = measured[^1];
+        var firstDate = first.Date!.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var firstAge = FormatValue(first.AgeDays!.Value);
         var firstSentence = measured.Count == 1
-            ? string.Create(
-                CultureInfo.InvariantCulture,
-                $"Oldest driver dated {first.Date!.Value:yyyy-MM-dd} ({first.AgeDays!.Value:0.#} days old) on the only saved scan that reported it: one more scan is needed for a trend.")
-            : string.Create(
-                CultureInfo.InvariantCulture,
-                $"Oldest driver dated {first.Date!.Value:yyyy-MM-dd} ({first.AgeDays!.Value:0.#} days old) on the first saved scan and {last.Date!.Value:yyyy-MM-dd} ({last.AgeDays!.Value:0.#} days old) on the latest scan.");
+            ? StringLocalizer.GetFormatted(AppStringKeys.HistoryDriverAgeOnlyOne, languageCode, firstDate, firstAge)
+            : StringLocalizer.GetFormatted(
+                AppStringKeys.HistoryDriverAgeFirstLatest,
+                languageCode,
+                firstDate,
+                firstAge,
+                last.Date!.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                FormatValue(last.AgeDays!.Value));
 
         if (measured.Count == 1)
         {
@@ -406,9 +483,10 @@ public static class HistoryTrendAnalyzer
                 return firstSentence;
             }
 
-            return firstSentence + string.Create(
-                CultureInfo.InvariantCulture,
-                $" Drivers older than 5 years: {first.OlderThan5Years.Value} on that scan.");
+            return firstSentence + " " + StringLocalizer.GetFormatted(
+                AppStringKeys.HistoryDriverAgeCountOnThatScan,
+                languageCode,
+                first.OlderThan5Years.Value);
         }
 
         var clauses = new List<string>();
@@ -416,13 +494,13 @@ public static class HistoryTrendAnalyzer
         {
             clauses.Add(driverAgeDelta.Value switch
             {
-                < -0.05 => string.Create(CultureInfo.InvariantCulture, $"the oldest driver got {Math.Abs(driverAgeDelta.Value):0.#} days newer"),
-                > 0.05 => string.Create(CultureInfo.InvariantCulture, $"the oldest driver got {Math.Abs(driverAgeDelta.Value):0.#} days older"),
-                _ => "the oldest driver is unchanged since the first saved scan",
+                < -0.05 => StringLocalizer.GetFormatted(AppStringKeys.HistoryDriverAgeNewer, languageCode, FormatValue(Math.Abs(driverAgeDelta.Value))),
+                > 0.05 => StringLocalizer.GetFormatted(AppStringKeys.HistoryDriverAgeOlder, languageCode, FormatValue(Math.Abs(driverAgeDelta.Value))),
+                _ => StringLocalizer.Get(AppStringKeys.HistoryDriverAgeUnchanged, languageCode),
             });
         }
 
-        var countClause = CountClause(first, last);
+        var countClause = CountClause(first, last, languageCode);
         if (countClause is not null)
         {
             clauses.Add(countClause);
@@ -433,28 +511,28 @@ public static class HistoryTrendAnalyzer
             return firstSentence;
         }
 
-        var second = string.Join(", and ", clauses);
+        var second = string.Join(StringLocalizer.Get(AppStringKeys.HistoryDriverAgeAndJoin, languageCode), clauses);
         second = char.ToUpperInvariant(second[0]) + second[1..] + ".";
         return firstSentence + " " + second;
     }
 
-    private static string? CountClause(DriverAgeReading first, DriverAgeReading last)
+    private static string? CountClause(DriverAgeReading first, DriverAgeReading last, string? languageCode)
     {
         if (first.OlderThan5Years is not null && last.OlderThan5Years is not null)
         {
             return first.OlderThan5Years.Value == last.OlderThan5Years.Value
-                ? string.Create(CultureInfo.InvariantCulture, $"drivers older than 5 years stayed at {first.OlderThan5Years.Value}")
-                : string.Create(CultureInfo.InvariantCulture, $"drivers older than 5 years went from {first.OlderThan5Years.Value} to {last.OlderThan5Years.Value}");
+                ? StringLocalizer.GetFormatted(AppStringKeys.HistoryDriverAgeCountStayed, languageCode, first.OlderThan5Years.Value)
+                : StringLocalizer.GetFormatted(AppStringKeys.HistoryDriverAgeCountWent, languageCode, first.OlderThan5Years.Value, last.OlderThan5Years.Value);
         }
 
         if (first.OlderThan5Years is not null)
         {
-            return string.Create(CultureInfo.InvariantCulture, $"drivers older than 5 years were {first.OlderThan5Years.Value} on the first saved scan");
+            return StringLocalizer.GetFormatted(AppStringKeys.HistoryDriverAgeCountFirst, languageCode, first.OlderThan5Years.Value);
         }
 
         if (last.OlderThan5Years is not null)
         {
-            return string.Create(CultureInfo.InvariantCulture, $"drivers older than 5 years were {last.OlderThan5Years.Value} on the latest scan");
+            return StringLocalizer.GetFormatted(AppStringKeys.HistoryDriverAgeCountLatest, languageCode, last.OlderThan5Years.Value);
         }
 
         return null;
