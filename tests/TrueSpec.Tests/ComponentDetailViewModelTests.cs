@@ -95,7 +95,7 @@ public sealed class ComponentDetailViewModelTests
     [Fact]
     public void UnknownLanguage_FallsBackToEnglish()
     {
-        var viewModel = new ComponentDetailViewModel(TestSnapshots.Healthy(), "cpu", "fr");
+        var viewModel = new ComponentDetailViewModel(TestSnapshots.Healthy(), "cpu", "xx");
 
         Assert.Equal("Specifications", viewModel.SpecificationsTitleText);
         Assert.Equal("What this means", viewModel.WhatThisMeansTitleText);

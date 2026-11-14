@@ -27,6 +27,7 @@ public sealed class LanguagePackTests
     [Theory]
     [InlineData("en")]
     [InlineData("de")]
+    [InlineData("fr")]
     public void BuiltInPack_IsValidAgainstCatalogue(string code)
     {
         var pack = LanguagePacks.Get(code);
@@ -67,6 +68,38 @@ public sealed class LanguagePackTests
         Assert.Equal("Gerätepark", german[AppStringKeys.NavFleet]);
         Assert.Equal("Einstellungen", german[AppStringKeys.NavSettings]);
         Assert.Equal("Sprache", german[AppStringKeys.LanguageTitle]);
+    }
+
+    [Fact]
+    public void FrenchPack_UsesStandardFrenchUiTerms()
+    {
+        // Localisation, phase 1 (v2.1.20): the French rail, the same
+        // first surface German phase 1 translated. Pinned deliberately:
+        // these are the terms Windows itself uses in French, so a
+        // French-speaking buyer meets familiar words. Changing one is a
+        // deliberate translation decision, not a typo fix. The French
+        // wording is the worker's own translation, not reviewed by a
+        // native speaker (the same honest limitation as the German
+        // wording). The language card says the rail and the card are
+        // translated and the other pages follow in later versions.
+        var french = LanguagePacks.French.Strings;
+        Assert.Equal("Vue d'ensemble", french[AppStringKeys.NavOverview]);
+        Assert.Equal("Stockage", french[AppStringKeys.NavStorage]);
+        Assert.Equal("Batterie", french[AppStringKeys.NavBattery]);
+        Assert.Equal("Affichage", french[AppStringKeys.NavDisplay]);
+        Assert.Equal("Carte mère", french[AppStringKeys.NavMotherboard]);
+        Assert.Equal("Pilotes", french[AppStringKeys.NavDrivers]);
+        Assert.Equal("Démarrage", french[AppStringKeys.NavStartup]);
+        Assert.Equal("Historique des incidents", french[AppStringKeys.NavCrash]);
+        Assert.Equal("Historique", french[AppStringKeys.NavHistory]);
+        Assert.Equal("Rapport", french[AppStringKeys.NavReport]);
+        Assert.Equal("Comparer", french[AppStringKeys.NavCompare]);
+        Assert.Equal("Parc", french[AppStringKeys.NavFleet]);
+        Assert.Equal("Paramètres", french[AppStringKeys.NavSettings]);
+        Assert.Equal("Langue", french[AppStringKeys.LanguageTitle]);
+        Assert.Equal(
+            "La barre de navigation et la carte de langue sont traduites. Les autres pages suivront dans les versions ultérieures.",
+            french[AppStringKeys.LanguageNote]);
     }
 
     [Fact]

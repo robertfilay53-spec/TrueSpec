@@ -146,7 +146,7 @@ public class LiveMetricViewModelTests
     {
         var metric = new LiveMetricViewModel(LiveMetricViewModel.CpuTempKey, "C", "de");
 
-        metric.ApplyLanguage("fr");
+        metric.ApplyLanguage("xx");
 
         Assert.Equal("CPU temp", metric.Name);
         Assert.Equal("Not available", metric.CurrentText);
