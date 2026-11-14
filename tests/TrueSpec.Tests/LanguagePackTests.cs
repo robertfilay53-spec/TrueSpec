@@ -80,9 +80,10 @@ public sealed class LanguagePackTests
         // deliberate translation decision, not a typo fix. The French
         // wording is the worker's own translation, not reviewed by a
         // native speaker (the same honest limitation as the German
-        // wording). The language card says the rail, the Settings page
-        // and the component detail pages are translated and the other
-        // pages follow in later versions (phase 4, v2.1.23).
+        // wording). The language card says the rail, the Settings page,
+        // the component detail pages and the Overview page are
+        // translated and the other pages follow in later versions
+        // (phase 5, v2.1.24).
         var french = LanguagePacks.French.Strings;
         Assert.Equal("Vue d'ensemble", french[AppStringKeys.NavOverview]);
         Assert.Equal("Stockage", french[AppStringKeys.NavStorage]);
@@ -99,7 +100,7 @@ public sealed class LanguagePackTests
         Assert.Equal("Paramètres", french[AppStringKeys.NavSettings]);
         Assert.Equal("Langue", french[AppStringKeys.LanguageTitle]);
         Assert.Equal(
-            "La barre de navigation, la page Paramètres et les pages de détail des composants sont traduites. Les autres pages suivront dans les versions ultérieures.",
+            "La barre de navigation, la page Paramètres, les pages de détail des composants et la page Vue d'ensemble sont traduites. Les autres pages suivront dans les versions ultérieures.",
             french[AppStringKeys.LanguageNote]);
     }
 
@@ -282,6 +283,73 @@ public sealed class LanguagePackTests
             StringLocalizer.GetFormatted(AppStringKeys.OverviewSensorLogOn, "de", @"C:\TrueSpec\sensor-log.csv"));
         Assert.Equal("Gewicht 2.5", StringLocalizer.GetFormatted(AppStringKeys.OverviewWeight, "de", "2.5"));
         Assert.Equal("+5 Pkt.", StringLocalizer.GetFormatted(AppStringKeys.OverviewContribution, "de", "5"));
+    }
+
+    [Fact]
+    public void FrenchPack_OverviewPageTerms()
+    {
+        // Localisation, phase 5, French (v2.1.24): the Overview page —
+        // the landing page, the first screen a user sees. Same pinning
+        // rule as the German phase 5 terms: changing one is a
+        // deliberate translation decision, not a typo fix. The data
+        // the page shows (component names, headlines, health and status
+        // texts, spec labels, values and sources, the score explanation
+        // and the verdict text) is not in this catalogue; only the page
+        // chrome is. No new keys — the French pack already covers the
+        // whole 523-key catalogue.
+        var french = LanguagePacks.French.Strings;
+        Assert.Equal("EXÉCUTER EN TANT QU'ADMINISTRATEUR POUR DES RÉSULTATS COMPLETS", french[AppStringKeys.OverviewAdminEyebrow]);
+        Assert.Equal("sur 100", french[AppStringKeys.OverviewOutOf100]);
+        Assert.Equal("Santé globale", french[AppStringKeys.OverviewOverallHealth]);
+        Assert.Equal(
+            "Score = moyenne pondérée des composants mesurables. Un composant sans véritable nombre de santé ne compte pas.",
+            french[AppStringKeys.OverviewScoreNote]);
+        Assert.Equal("Vérification d'ordinateur portable neuf", french[AppStringKeys.OverviewNewLaptopCheck]);
+        Assert.Equal("Exporter le rapport", french[AppStringKeys.OverviewExportReport]);
+        Assert.Equal("Santé des composants", french[AppStringKeys.OverviewComponentHealth]);
+        Assert.Equal("Santé", french[AppStringKeys.OverviewHealthLabel]);
+        Assert.Equal("Détails", french[AppStringKeys.OverviewDetails]);
+        Assert.Equal(
+            "Aucun composant n'a été collecté dans ce scan. Actualisez le scan depuis la barre d'état ; si la section reste vide, les collecteurs n'ont pas pu lire cette machine.",
+            french[AppStringKeys.OverviewNoComponents]);
+        Assert.Equal("Capteurs en direct", french[AppStringKeys.OverviewLiveSensors]);
+        Assert.Equal("Aucune mesure de capteur", french[AppStringKeys.OverviewNoSensorReading]);
+        Assert.Equal("ALERTE DE TEMPÉRATURE", french[AppStringKeys.OverviewAlertEyebrow]);
+        Assert.Equal(
+            "Les alertes ne se déclenchent que lorsque la température reste au-dessus de votre seuil pendant toute la durée définie. Modifiez le seuil dans les Paramètres.",
+            french[AppStringKeys.OverviewAlertNote]);
+        Assert.Equal("Chaque mesure conserve sa source. Aucune télémétrie, aucun appel réseau.", french[AppStringKeys.OverviewFooter]);
+        Assert.Equal("Analyse en cours…", french[AppStringKeys.OverviewScanning]);
+        Assert.Equal("L'analyse matérielle est toujours en cours. Le score apparaît lorsque l'analyse se termine.", french[AppStringKeys.OverviewScanningNote]);
+        Assert.Equal("La journalisation des capteurs n'est pas disponible sur cette machine.", french[AppStringKeys.OverviewSensorLogUnavailable]);
+        Assert.Equal("Les mesures des capteurs sont enregistrées dans {0}. Le graphique est sur la page Historique.", french[AppStringKeys.OverviewSensorLogOn]);
+        Assert.Equal("La journalisation des capteurs est désactivée. Activez-la dans les Paramètres pour enregistrer les mesures.", french[AppStringKeys.OverviewSensorLogOff]);
+        Assert.Equal("Alerte lorsque la température du processeur atteint {0} °C pendant {1} secondes. Définissez-la dans les Paramètres.", french[AppStringKeys.OverviewAlertSet]);
+        Assert.Equal("Aucune alerte de température définie. TrueSpec est livré sans seuil ; définissez-en un dans les Paramètres si vous voulez une alerte.", french[AppStringKeys.OverviewAlertNotSet]);
+        Assert.Equal("Les capteurs en direct s'actualisent toutes les {0}. Les valeurs n'apparaissent que lorsque LibreHardwareMonitor les signale.", french[AppStringKeys.OverviewRefreshText]);
+        Assert.Equal("Capteurs en direct mis à jour {0}", french[AppStringKeys.OverviewLiveUpdated]);
+        Assert.Equal("Échec de la lecture des capteurs en direct : {0}", french[AppStringKeys.OverviewLiveReadFailed]);
+        Assert.Equal("Poids {0}", french[AppStringKeys.OverviewWeight]);
+        Assert.Equal("+{0} pts", french[AppStringKeys.OverviewContribution]);
+        Assert.Equal("Température du processeur", french[AppStringKeys.OverviewKeyCpuTemp]);
+        Assert.Equal("Mémoire", french[AppStringKeys.OverviewKeyMemory]);
+        Assert.Equal("Santé du disque", french[AppStringKeys.OverviewKeyDiskHealth]);
+        Assert.Equal("Santé de la batterie", french[AppStringKeys.OverviewKeyBatteryHealth]);
+        Assert.Equal("Temp. processeur", french[AppStringKeys.OverviewMetricCpuTemp]);
+        Assert.Equal("Temp. GPU", french[AppStringKeys.OverviewMetricGpuTemp]);
+        Assert.Equal("Utilisation du processeur", french[AppStringKeys.OverviewMetricCpuUsage]);
+        Assert.Equal("Puissance de la batterie", french[AppStringKeys.OverviewMetricBatteryPower]);
+        Assert.Equal("Non disponible", french[AppStringKeys.OverviewMetricNotAvailable]);
+
+        // Templates keep the app's number formatting in French too.
+        Assert.Equal(
+            "Alerte lorsque la température du processeur atteint 90 °C pendant 30 secondes. Définissez-la dans les Paramètres.",
+            StringLocalizer.GetFormatted(AppStringKeys.OverviewAlertSet, "fr", "90", 30));
+        Assert.Equal(
+            "Les mesures des capteurs sont enregistrées dans C:\\TrueSpec\\sensor-log.csv. Le graphique est sur la page Historique.",
+            StringLocalizer.GetFormatted(AppStringKeys.OverviewSensorLogOn, "fr", @"C:\TrueSpec\sensor-log.csv"));
+        Assert.Equal("Poids 2.5", StringLocalizer.GetFormatted(AppStringKeys.OverviewWeight, "fr", "2.5"));
+        Assert.Equal("+5 pts", StringLocalizer.GetFormatted(AppStringKeys.OverviewContribution, "fr", "5"));
     }
 
     [Fact]
