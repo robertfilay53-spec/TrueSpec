@@ -272,7 +272,7 @@ public class HistoryCoreWordingsTests
 
         Assert.Equal(ForecastStatus.Ready, forecast.Status);
         Assert.Equal(
-            "Akkugesundheit sprang von 68 % auf 96 % zwischen den Scans, also der Akku sieht ausgetauscht aus; die Prognose startet hier neu.",
+            "Akkugesundheit sprang zwischen den Scans von 68 % auf 96 %, also der Akku sieht ausgetauscht aus; die Prognose startet hier neu.",
             forecast.StepChangeNote);
         Assert.StartsWith(forecast.StepChangeNote + " ", forecast.BasisText, StringComparison.Ordinal);
     }
@@ -285,7 +285,7 @@ public class HistoryCoreWordingsTests
 
         Assert.Equal(ForecastStatus.Ready, forecast.Status);
         Assert.Equal(
-            "SSD-Verschleiß sank von 32 % auf 2 % zwischen den Scans, also das Laufwerk sieht ausgetauscht aus; die Prognose startet hier neu.",
+            "SSD-Verschleiß sank zwischen den Scans von 32 % auf 2 %, also das Laufwerk sieht ausgetauscht aus; die Prognose startet hier neu.",
             forecast.StepChangeNote);
     }
 
