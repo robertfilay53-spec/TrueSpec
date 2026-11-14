@@ -107,7 +107,7 @@ public sealed class LanguagePackTests
         Assert.Equal("{0} Plug-ins gefunden.", german[AppStringKeys.PluginsSummaryMany]);
         Assert.Equal("Datenschutz", german[AppStringKeys.PrivacyTitle]);
         Assert.Equal(
-            "Navigation, Einstellungen, Komponentendetailseiten, die Übersichtsseite und die Verlaufsseite sind übersetzt. Andere Seiten sind noch auf Englisch und folgen in späteren Versionen.",
+            "Navigation, Einstellungen, Komponentendetailseiten, die Übersichtsseite, die Verlaufsseite, die Berichtsseite, die Testseite, die Seite „Neuer Laptop Check\", die Absturzverlaufsseite, die Vergleichsseite und die Geräteparkseite sind übersetzt. Alle Seiten sind jetzt übersetzt.",
             german[AppStringKeys.LanguageNote]);
     }
 
@@ -568,6 +568,169 @@ public sealed class LanguagePackTests
         Assert.Equal(
             "Das Ereignisprotokoll hat keine Einträge vor dem 2026-10-25, daher ist dieser Verlauf möglicherweise unvollständig. Ein gelöschtes Protokoll gilt als Lücke, niemals als sauberer Verlauf.",
             StringLocalizer.GetFormatted(AppStringKeys.CrashLogCleared, "de", "2026-10-25"));
+    }
+
+    [Fact]
+    public void GermanPack_ComparisonPageTerms()
+    {
+        // Localisation, phase 8 (v2.1.16): the Comparison page — the
+        // eyebrow, title, intro, Before/After labels and picker
+        // placeholders, the Compare button, the Result heading, the
+        // DNA note, the no-changes line, the Added/Removed headings,
+        // the footer note, the transient status lines and the DNA
+        // state/hash lines. Same pinning rule as the Crash History
+        // terms above: changing one is a deliberate translation
+        // decision, not a typo fix. The data the page shows (the
+        // comparison summary sentence, the row cell values, the DNA
+        // changed/unidentified part lines, file paths and exception
+        // messages) is not in this catalogue; only the page chrome
+        // is. The DNA heading and the unidentified-parts heading
+        // reuse the Report page's keys, so they are pinned with the
+        // Report terms, not here.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("VERGLEICH", german[AppStringKeys.ComparisonEyebrow]);
+        Assert.Equal("Zwei Scans im Vergleich", german[AppStringKeys.ComparisonTitle]);
+        Assert.Equal("Wählen Sie zwei beliebige gespeicherte Scans. TrueSpec zeigt die Punktzahländerung, jede Komponente, die sich verändert hat, und jede geänderte Spezifikation. Nichts wird erfunden: Eine Komponente, die in keinem der Scans messbar war, sagt dies auch.", german[AppStringKeys.ComparisonIntro]);
+        Assert.Equal("Vorher", german[AppStringKeys.ComparisonBefore]);
+        Assert.Equal("Nachher", german[AppStringKeys.ComparisonAfter]);
+        Assert.Equal("Wählen Sie einen früheren Scan", german[AppStringKeys.ComparisonPickEarlier]);
+        Assert.Equal("Wählen Sie einen späteren Scan", german[AppStringKeys.ComparisonPickLater]);
+        Assert.Equal("Vergleichen", german[AppStringKeys.ComparisonCompareButton]);
+        Assert.Equal("Ergebnis", german[AppStringKeys.ComparisonResultTitle]);
+        Assert.Equal("Die DNA ist Identität, nicht Gesundheit: Sie ändert niemals die Punktzahl oben. Sie sagt nur, ob die beiden Scans dasselbe Gerät mit denselben Teilen sind.", german[AppStringKeys.ComparisonDnaNote]);
+        Assert.Equal("Zwischen diesen beiden Scans hat sich weder die Gesundheit einer Komponente noch eine Spezifikation geändert.", german[AppStringKeys.ComparisonNoChanges]);
+        Assert.Equal("Hinzugefügte Komponenten", german[AppStringKeys.ComparisonAddedTitle]);
+        Assert.Equal("Entfernte Komponenten", german[AppStringKeys.ComparisonRemovedTitle]);
+        Assert.Equal("Scans werden nach jedem Scan lokal gespeichert. Der Verlauf verlässt diesen Rechner nie.", german[AppStringKeys.ComparisonFooterNote]);
+        Assert.Equal("Scanverlauf wird geladen …", german[AppStringKeys.ComparisonLoading]);
+        Assert.Equal("Der Scanverlauf ist auf diesem Rechner nicht verfügbar, daher gibt es noch nichts zu vergleichen.", german[AppStringKeys.ComparisonHistoryUnavailable]);
+        Assert.Equal("Es sind noch keine Scans gespeichert. Scans werden nach jedem Scan gespeichert, also aktualisieren Sie den Scan und kommen Sie zum Vergleichen zurück.", german[AppStringKeys.ComparisonNoSnapshots]);
+        Assert.Equal("Bisher ist nur ein Scan gespeichert. Führen Sie einen weiteren Scan aus (Aktualisieren) und kommen Sie zum Vergleichen zurück.", german[AppStringKeys.ComparisonOnlyOneSnapshot]);
+        Assert.Equal("{0} Scans im Verlauf. Wählen Sie zwei aus und vergleichen Sie sie.", german[AppStringKeys.ComparisonSnapshotsCount]);
+        Assert.Equal("Der Verlauf konnte nicht gelesen werden: {0}", german[AppStringKeys.ComparisonHistoryReadFailed]);
+        Assert.Equal("Wählen Sie zwei verschiedene Scans zum Vergleichen.", german[AppStringKeys.ComparisonPickDifferent]);
+        Assert.Equal("Scans werden verglichen …", german[AppStringKeys.ComparisonComparing]);
+        Assert.Equal("Einer der Scans konnte nicht aus dem Verlauf gelesen werden.", german[AppStringKeys.ComparisonSnapshotUnreadable]);
+        Assert.Equal("Die DNA konnte nicht verglichen werden: Die Scans konnten nicht gelesen werden.", german[AppStringKeys.ComparisonDnaUnreadable]);
+        Assert.Equal("{0} mit {1} verglichen.", german[AppStringKeys.ComparisonCompared]);
+        Assert.Equal("Der Vergleich ist fehlgeschlagen: {0}", german[AppStringKeys.ComparisonFailed]);
+        Assert.Equal("Noch kein DNA-Vergleich. Wählen Sie zwei Scans aus und vergleichen Sie sie.", german[AppStringKeys.ComparisonDnaNoComparison]);
+        Assert.Equal("Dasselbe Gerät, dieselben Teile.", german[AppStringKeys.ComparisonDnaIdentical]);
+        Assert.Equal("Dasselbe Gerät – Fingerabdruck stimmt überein.", german[AppStringKeys.ComparisonDnaFingerprintMatches]);
+        Assert.Equal("Zwischen diesen beiden Scans haben sich Teile geändert.", german[AppStringKeys.ComparisonDnaChanged]);
+        Assert.Equal("Die DNA konnte für diese Scans nicht geprüft werden.", german[AppStringKeys.ComparisonDnaUnverifiable]);
+        Assert.Equal("Für einen oder beide Scans wurde keine DNA aufgezeichnet.", german[AppStringKeys.ComparisonDnaNotRecordedState]);
+        Assert.Equal("Vorher: {0}", german[AppStringKeys.ComparisonDnaHashBefore]);
+        Assert.Equal("Nachher: {0}", german[AppStringKeys.ComparisonDnaHashAfter]);
+        Assert.Equal("DNA nicht aufgezeichnet", german[AppStringKeys.ComparisonDnaNotRecorded]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "2 Scans im Verlauf. Wählen Sie zwei aus und vergleichen Sie sie.",
+            StringLocalizer.GetFormatted(AppStringKeys.ComparisonSnapshotsCount, "de", 2));
+        Assert.Equal(
+            "2026-11-10 09:00 mit 2026-12-10 09:00 verglichen.",
+            StringLocalizer.GetFormatted(AppStringKeys.ComparisonCompared, "de", "2026-11-10 09:00", "2026-12-10 09:00"));
+        Assert.Equal(
+            "Vorher: abcdef12…34567890",
+            StringLocalizer.GetFormatted(AppStringKeys.ComparisonDnaHashBefore, "de", "abcdef12…34567890"));
+        Assert.Equal(
+            "Der Verlauf konnte nicht gelesen werden: disk vanished",
+            StringLocalizer.GetFormatted(AppStringKeys.ComparisonHistoryReadFailed, "de", "disk vanished"));
+    }
+
+    [Fact]
+    public void GermanPack_FleetPageTerms()
+    {
+        // Localisation, phase 8 (v2.1.16): the Fleet page — the
+        // eyebrow, title, intro, the Import button and note, the
+        // Machines heading, the two export buttons, the table note,
+        // the column headers, the row Export button and the
+        // Remove/Confirm-remove button, the transient status lines
+        // (loading, no scans, the summary templates, the export-all /
+        // remove / import lines). Same pinning rule as the Comparison
+        // terms above: changing one is a deliberate translation
+        // decision, not a typo fix. The data the page shows (machine
+        // names, the row cell values, file and folder paths, exception
+        // messages) is not in this catalogue; only the page chrome
+        // is. The summary and the export-all / remove / import lines
+        // are templates with one/many keys instead of inline plural
+        // hacks, and the remove-arm line quotes the translated
+        // Confirm-remove label. The row's "Not measurable" score
+        // fallback and "Not reported" worst-component fallback stay
+        // English like the History table's fallbacks; the summary's
+        // lowest-score fallback is its own key because it sits
+        // mid-sentence inside a translated line.
+        var german = LanguagePacks.German.Strings;
+        Assert.Equal("GERÄTEPARK", german[AppStringKeys.FleetEyebrow]);
+        Assert.Equal("Jedes Gerät in diesem Datenordner", german[AppStringKeys.FleetTitle]);
+        Assert.Equal("Technikermodus: Nehmen Sie die portable App auf einem USB-Stick mit, scannen Sie jedes Gerät, und jeder Scan landet im selben Speicher auf dem Stick. Diese Seite listet den neuesten Scan jedes Geräts, niedrigste Punktzahl zuerst, mit der schlechtesten Komponente benannt, sodass das Gerät, das Aufmerksamkeit braucht, ganz oben steht. Geräte, die mit der installierten App gescannt wurden, können mit „JSON-Berichte importieren\" hereingeholt werden, was die JSON-Dateien liest, die die Berichtsseite exportiert. „Alle Geräte exportieren\" schreibt eine CSV-Datei pro Gerät in den Exportordner, sodass der ganze Gerätepark auf einmal abgelegt werden kann, statt einem Export-Klick pro Zeile. Um ein Gerät aus dem Gerätepark zu nehmen, verwenden Sie „Entfernen\" in seiner Zeile – es löscht alle gespeicherten Scans dieses Geräts aus diesem Datenordner, in zwei Klicks, damit ein Fehlklick nichts löschen kann.", german[AppStringKeys.FleetIntro]);
+        Assert.Equal("JSON-Berichte importieren", german[AppStringKeys.FleetImportButton]);
+        Assert.Equal("Importiert TrueSpec-JSON-Berichte, die von anderen Geräten exportiert wurden, sodass ihre Scans zu diesem Gerätepark kommen. Eine Datei, die kein TrueSpec-Bericht ist, wird übersprungen, und wenn dieselbe Datei zweimal importiert wird, wird nur ein Scan gespeichert.", german[AppStringKeys.FleetImportNote]);
+        Assert.Equal("Geräte", german[AppStringKeys.FleetMachinesTitle]);
+        Assert.Equal("Alle Geräte exportieren", german[AppStringKeys.FleetExportAllButton]);
+        Assert.Equal("Gerätepark als CSV exportieren", german[AppStringKeys.FleetExportFleetCsvButton]);
+        Assert.Equal("Niedrigste Punktzahl zuerst. Ein Strich bedeutet, dass dieser Scan den Wert nicht gemeldet hat.", german[AppStringKeys.FleetTableNote]);
+        Assert.Equal("Gerät", german[AppStringKeys.FleetHeaderMachine]);
+        Assert.Equal("Scans", german[AppStringKeys.FleetHeaderScans]);
+        Assert.Equal("Letzter Scan", german[AppStringKeys.FleetHeaderLastScan]);
+        Assert.Equal("Punktzahl", german[AppStringKeys.FleetHeaderScore]);
+        Assert.Equal("Urteil", german[AppStringKeys.FleetHeaderVerdict]);
+        Assert.Equal("Schlechteste Komponente", german[AppStringKeys.FleetHeaderWorstComponent]);
+        Assert.Equal("Export", german[AppStringKeys.FleetHeaderExport]);
+        Assert.Equal("Entfernen", german[AppStringKeys.FleetHeaderRemove]);
+        Assert.Equal("CSV exportieren", german[AppStringKeys.FleetRowExportButton]);
+        Assert.Equal("Entfernen bestätigen", german[AppStringKeys.FleetRowConfirmRemoveButton]);
+        Assert.Equal("Gerätepark wird geladen …", german[AppStringKeys.FleetLoading]);
+        Assert.Equal("Der Scanverlauf ist auf diesem Rechner nicht verfügbar, daher gibt es noch keinen Gerätepark.", german[AppStringKeys.FleetUnavailable]);
+        Assert.Equal("Noch keine gespeicherten Scans. Scannen Sie ein Gerät, oder führen Sie die portable App auf jedem Gerät im Gerätepark aus, und sein neuester Scan erscheint hier. Sie können auch JSON-Berichte von anderen Geräten mit der Schaltfläche „JSON-Berichte importieren\" importieren.", german[AppStringKeys.FleetNoScans]);
+        Assert.Equal("1 Gerät in diesem Datenordner, 1 gespeicherter Scan. Niedrigste Punktzahl {0} ({1}).", german[AppStringKeys.FleetSummaryOneOne]);
+        Assert.Equal("1 Gerät in diesem Datenordner, {0} gespeicherte Scans. Niedrigste Punktzahl {1} ({2}).", german[AppStringKeys.FleetSummaryOneMany]);
+        Assert.Equal("{0} Geräte in diesem Datenordner, 1 gespeicherter Scan. Niedrigste Punktzahl {1} ({2}).", german[AppStringKeys.FleetSummaryManyOne]);
+        Assert.Equal("{0} Geräte in diesem Datenordner, {1} gespeicherte Scans. Niedrigste Punktzahl {2} ({3}).", german[AppStringKeys.FleetSummaryManyMany]);
+        Assert.Equal("nicht messbar", german[AppStringKeys.FleetScoreNotMeasurable]);
+        Assert.Equal("Gerätepark geladen.", german[AppStringKeys.FleetLoaded]);
+        Assert.Equal("Der Gerätepark konnte nicht gelesen werden: {0}", german[AppStringKeys.FleetReadFailed]);
+        Assert.Equal("Der Geräte-Export ist nicht verfügbar.", german[AppStringKeys.FleetMachineExportUnavailable]);
+        Assert.Equal("Der Geräte-Export ist fehlgeschlagen: Für {0} wurde kein gespeicherter Scan gefunden.", german[AppStringKeys.FleetMachineExportNoScan]);
+        Assert.Equal("Alle Geräte exportieren ist nicht verfügbar.", german[AppStringKeys.FleetExportAllUnavailable]);
+        Assert.Equal("Alle Geräte exportieren ist fehlgeschlagen: Es gibt noch keinen Gerätepark zum Exportieren.", german[AppStringKeys.FleetExportAllNoFleet]);
+        Assert.Equal("Alle Geräte exportieren ist fehlgeschlagen: {0}", german[AppStringKeys.FleetExportAllFailed]);
+        Assert.Equal("0 Geräte exportiert. {0}", german[AppStringKeys.FleetExportAllZero]);
+        Assert.Equal("Es gibt noch keinen Gerätepark zum Exportieren.", german[AppStringKeys.FleetExportAllZeroNoFleet]);
+        Assert.Equal("Übersprungen {0}: {1}", german[AppStringKeys.FleetSkipped]);
+        Assert.Equal("{0} von 1 Gerät nach {1} exportiert.", german[AppStringKeys.FleetExportAllTotalOne]);
+        Assert.Equal("{0} von {1} Geräten nach {2} exportiert.", german[AppStringKeys.FleetExportAllTotalMany]);
+        Assert.Equal("Entfernen ist nicht verfügbar: Der Scanverlauf ist auf diesem Rechner nicht verfügbar.", german[AppStringKeys.FleetRemoveUnavailable]);
+        Assert.Equal("{0} entfernen? Dadurch wird 1 gespeicherter Scan für dieses Gerät aus diesem Datenordner gelöscht. Klicken Sie auf „{1}\", um zu löschen – bis dahin wird nichts gelöscht.", german[AppStringKeys.FleetRemoveArmOne]);
+        Assert.Equal("{0} entfernen? Dadurch werden alle {1} gespeicherten Scans für dieses Gerät aus diesem Datenordner gelöscht. Klicken Sie auf „{2}\", um zu löschen – bis dahin wird nichts gelöscht.", german[AppStringKeys.FleetRemoveArmMany]);
+        Assert.Equal("Nichts zu entfernen: Für {0} wurden keine gespeicherten Scans gefunden.", german[AppStringKeys.FleetRemoveNothing]);
+        Assert.Equal("{0} entfernt (1 gespeicherter Scan).", german[AppStringKeys.FleetRemovedOne]);
+        Assert.Equal("{0} entfernt ({1} gespeicherte Scans).", german[AppStringKeys.FleetRemovedMany]);
+        Assert.Equal("Entfernen ist fehlgeschlagen: {0}", german[AppStringKeys.FleetRemoveFailed]);
+        Assert.Equal("Import ist nicht verfügbar: Der Scanverlauf ist auf diesem Rechner nicht verfügbar.", german[AppStringKeys.FleetImportUnavailable]);
+        Assert.Equal("Import ist nicht verfügbar: Es ist keine Dateiauswahl verfügbar.", german[AppStringKeys.FleetImportNoPicker]);
+        Assert.Equal("0 Berichte importiert", german[AppStringKeys.FleetImportedNone]);
+        Assert.Equal("1 Bericht importiert ({0})", german[AppStringKeys.FleetImportedOne]);
+        Assert.Equal("{0} Berichte importiert ({1})", german[AppStringKeys.FleetImportedMany]);
+
+        // Templates keep the app's number formatting in German too.
+        Assert.Equal(
+            "2 Geräte in diesem Datenordner, 3 gespeicherte Scans. Niedrigste Punktzahl 58 (SHOP-PC-BAD).",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetSummaryManyMany, "de", 2, 3, "58", "SHOP-PC-BAD"));
+        Assert.Equal(
+            "1 Gerät in diesem Datenordner, 1 gespeicherter Scan. Niedrigste Punktzahl nicht messbar (SHOP-PC-BAD).",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetSummaryOneOne, "de", "nicht messbar", "SHOP-PC-BAD"));
+        Assert.Equal(
+            "2 von 2 Geräten nach C:\\Exports exportiert.",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetExportAllTotalMany, "de", 2, 2, "C:\\Exports"));
+        Assert.Equal(
+            "SHOP-PC-BAD entfernen? Dadurch werden alle 2 gespeicherten Scans für dieses Gerät aus diesem Datenordner gelöscht. Klicken Sie auf „Entfernen bestätigen\", um zu löschen – bis dahin wird nichts gelöscht.",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetRemoveArmMany, "de", "SHOP-PC-BAD", 2, "Entfernen bestätigen"));
+        Assert.Equal(
+            "2 Berichte importiert (SHOP-PC-A, SHOP-PC-B). Übersprungen 1: bad.json: could not be imported.",
+            StringLocalizer.GetFormatted(AppStringKeys.FleetImportedMany, "de", 2, "SHOP-PC-A, SHOP-PC-B")
+                + ". " + StringLocalizer.GetFormatted(AppStringKeys.FleetSkipped, "de", 1, "bad.json: could not be imported."));
     }
 
     [Fact]

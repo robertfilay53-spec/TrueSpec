@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TrueSpec.Core.History;
+using TrueSpec.Core.Localization;
 
 /// <summary>
 /// One row of the Fleet table, pre-formatted for the view. The text
@@ -12,16 +13,29 @@ using TrueSpec.Core.History;
 /// The row also carries its source row and the per-machine commands, so
 /// the Export button on the row can write that one machine's scan as its
 /// own CSV and the Remove button can take the machine out of the fleet.
+///
+/// Localisation, phase 8 (v2.1.16): the two button labels render in
+/// the current language — "Remove" / "Confirm remove" and "Export
+/// CSV" — through <see cref="ApplyLanguage"/>, the same in-place
+/// pattern the other pages use. The cell values stay English: the
+/// machine name, the scan count, the last-scan date, the score (with
+/// its "Not measurable" fallback, like the History table's), the
+/// verdict text and the worst component (with its "Not reported"
+/// fallback) are measured data, not page chrome.
 /// </summary>
 public sealed partial class FleetRowViewModel : ViewModelBase
 {
+    private string _languageCode;
+
     public FleetRowViewModel(
         FleetMachineRow row,
         ICommand? exportMachineCsvCommand = null,
-        ICommand? removeMachineCommand = null)
+        ICommand? removeMachineCommand = null,
+        string? languageCode = null)
     {
         ArgumentNullException.ThrowIfNull(row);
 
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
         Row = row;
         ExportMachineCsvCommand = exportMachineCsvCommand;
         RemoveMachineCommand = removeMachineCommand;
@@ -59,6 +73,10 @@ public sealed partial class FleetRowViewModel : ViewModelBase
 
     public string WorstComponentText { get; }
 
+    /// <summary>"Export CSV" in the page language.</summary>
+    public string ExportButtonText =>
+        StringLocalizer.Get(AppStringKeys.FleetRowExportButton, _languageCode);
+
     /// <summary>
     /// True after the first click on Remove: the button reads "Confirm
     /// remove" until the second click deletes the machine. The app has
@@ -70,8 +88,29 @@ public sealed partial class FleetRowViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool IsRemoveArmed { get; set; }
 
-    /// <summary>"Remove" normally, "Confirm remove" once armed.</summary>
-    public string RemoveButtonText => IsRemoveArmed ? "Confirm remove" : "Remove";
+    /// <summary>
+    /// "Remove" normally, "Confirm remove" once armed, in the page
+    /// language. The unarmed label reuses the table's "Remove" column
+    /// header key instead of a second copy of the same word.
+    /// </summary>
+    public string RemoveButtonText => IsRemoveArmed
+        ? StringLocalizer.Get(AppStringKeys.FleetRowConfirmRemoveButton, _languageCode)
+        : StringLocalizer.Get(AppStringKeys.FleetHeaderRemove, _languageCode);
 
     partial void OnIsRemoveArmedChanged(bool value) => OnPropertyChanged(nameof(RemoveButtonText));
+
+    /// <summary>
+    /// Re-renders the row's button labels in the given language, in
+    /// place. Called by the Fleet page when the user picks a language
+    /// in Settings; a row created after the switch is already built
+    /// in the new language by the constructor. An unknown code falls
+    /// back to English through the localizer, never to a blank. The
+    /// cell values are untouched.
+    /// </summary>
+    public void ApplyLanguage(string? languageCode)
+    {
+        _languageCode = languageCode ?? LanguagePacks.EnglishCode;
+        OnPropertyChanged(nameof(ExportButtonText));
+        OnPropertyChanged(nameof(RemoveButtonText));
+    }
 }

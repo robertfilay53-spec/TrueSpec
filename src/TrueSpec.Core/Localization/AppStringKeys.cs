@@ -485,6 +485,38 @@ public static class AppStringKeys
     // and the class names, plain meanings and dates are data.
     // CapturedText reuses the detail page's DetailCaptured template
     // ("Reading captured {0}") instead of a second copy.
+    //
+    // The final part of phase 8 is the Comparison and Fleet pages,
+    // same chrome-only rule. The Comparison page's chrome is the
+    // eyebrow, title, intro, Before/After labels and picker
+    // placeholders, the Compare button, the Result heading, the DNA
+    // note, the no-changes line, the Added/Removed headings and the
+    // footer note, plus the transient status lines (loading, no
+    // snapshots, one snapshot, the count line, the compared line,
+    // the failure lines) and the DNA state/hash lines. The DNA
+    // heading and the unidentified-parts heading reuse the Report
+    // page's keys instead of second copies of the same words. The
+    // Fleet page's chrome is the eyebrow, title, intro, the Import
+    // button and note, the Machines heading, the two export buttons,
+    // the table note, the eight column headers, the row Export
+    // button and the Remove/Confirm-remove button, plus the
+    // transient status lines (loading, no scans, the summary
+    // templates, the export-all / remove / import lines). The data
+    // stays English: machine names, the comparison summary sentence,
+    // the row cell values (component names, health numbers, delta
+    // words, changed-spec lines, verdicts, worst components, scores,
+    // dates, counts), the DNA changed/unidentified part lines, the
+    // value-comparison verdict sentence and its no-verdict reason,
+    // prices, file/folder paths and exception messages. The Fleet
+    // summary and the export-all / remove / import lines are
+    // templates ({0} = a count, a machine name, a folder or a file
+    // list), with one/many keys instead of inline plural hacks, and
+    // the remove-arm line quotes the translated Confirm-remove
+    // label. The row's "Not measurable" score fallback and "Not
+    // reported" worst-component fallback stay English like the
+    // History table's fallbacks; the summary's lowest-score fallback
+    // is its own key ("not measurable" / "nicht messbar") because it
+    // sits mid-sentence inside a translated line.
     public const string NewLaptopCheckEyebrow = "NewLaptopCheckEyebrow";
     public const string NewLaptopCheckBannerPass = "NewLaptopCheckBannerPass";
     public const string NewLaptopCheckBannerWarning = "NewLaptopCheckBannerWarning";
@@ -530,6 +562,92 @@ public static class AppStringKeys
     public const string CrashEmptyNoCrashes = "CrashEmptyNoCrashes";
     public const string CrashLogCleared = "CrashLogCleared";
     public const string CrashFooterNote = "CrashFooterNote";
+    public const string ComparisonEyebrow = "ComparisonEyebrow";
+    public const string ComparisonTitle = "ComparisonTitle";
+    public const string ComparisonIntro = "ComparisonIntro";
+    public const string ComparisonBefore = "ComparisonBefore";
+    public const string ComparisonAfter = "ComparisonAfter";
+    public const string ComparisonPickEarlier = "ComparisonPickEarlier";
+    public const string ComparisonPickLater = "ComparisonPickLater";
+    public const string ComparisonCompareButton = "ComparisonCompareButton";
+    public const string ComparisonResultTitle = "ComparisonResultTitle";
+    public const string ComparisonDnaNote = "ComparisonDnaNote";
+    public const string ComparisonNoChanges = "ComparisonNoChanges";
+    public const string ComparisonAddedTitle = "ComparisonAddedTitle";
+    public const string ComparisonRemovedTitle = "ComparisonRemovedTitle";
+    public const string ComparisonFooterNote = "ComparisonFooterNote";
+    public const string ComparisonLoading = "ComparisonLoading";
+    public const string ComparisonHistoryUnavailable = "ComparisonHistoryUnavailable";
+    public const string ComparisonNoSnapshots = "ComparisonNoSnapshots";
+    public const string ComparisonOnlyOneSnapshot = "ComparisonOnlyOneSnapshot";
+    public const string ComparisonSnapshotsCount = "ComparisonSnapshotsCount";
+    public const string ComparisonHistoryReadFailed = "ComparisonHistoryReadFailed";
+    public const string ComparisonPickDifferent = "ComparisonPickDifferent";
+    public const string ComparisonComparing = "ComparisonComparing";
+    public const string ComparisonSnapshotUnreadable = "ComparisonSnapshotUnreadable";
+    public const string ComparisonDnaUnreadable = "ComparisonDnaUnreadable";
+    public const string ComparisonCompared = "ComparisonCompared";
+    public const string ComparisonFailed = "ComparisonFailed";
+    public const string ComparisonDnaNoComparison = "ComparisonDnaNoComparison";
+    public const string ComparisonDnaIdentical = "ComparisonDnaIdentical";
+    public const string ComparisonDnaFingerprintMatches = "ComparisonDnaFingerprintMatches";
+    public const string ComparisonDnaChanged = "ComparisonDnaChanged";
+    public const string ComparisonDnaUnverifiable = "ComparisonDnaUnverifiable";
+    public const string ComparisonDnaNotRecordedState = "ComparisonDnaNotRecordedState";
+    public const string ComparisonDnaHashBefore = "ComparisonDnaHashBefore";
+    public const string ComparisonDnaHashAfter = "ComparisonDnaHashAfter";
+    public const string ComparisonDnaNotRecorded = "ComparisonDnaNotRecorded";
+    public const string FleetEyebrow = "FleetEyebrow";
+    public const string FleetTitle = "FleetTitle";
+    public const string FleetIntro = "FleetIntro";
+    public const string FleetImportButton = "FleetImportButton";
+    public const string FleetImportNote = "FleetImportNote";
+    public const string FleetMachinesTitle = "FleetMachinesTitle";
+    public const string FleetExportAllButton = "FleetExportAllButton";
+    public const string FleetExportFleetCsvButton = "FleetExportFleetCsvButton";
+    public const string FleetTableNote = "FleetTableNote";
+    public const string FleetHeaderMachine = "FleetHeaderMachine";
+    public const string FleetHeaderScans = "FleetHeaderScans";
+    public const string FleetHeaderLastScan = "FleetHeaderLastScan";
+    public const string FleetHeaderScore = "FleetHeaderScore";
+    public const string FleetHeaderVerdict = "FleetHeaderVerdict";
+    public const string FleetHeaderWorstComponent = "FleetHeaderWorstComponent";
+    public const string FleetHeaderExport = "FleetHeaderExport";
+    public const string FleetHeaderRemove = "FleetHeaderRemove";
+    public const string FleetRowExportButton = "FleetRowExportButton";
+    public const string FleetRowConfirmRemoveButton = "FleetRowConfirmRemoveButton";
+    public const string FleetLoading = "FleetLoading";
+    public const string FleetUnavailable = "FleetUnavailable";
+    public const string FleetNoScans = "FleetNoScans";
+    public const string FleetSummaryOneOne = "FleetSummaryOneOne";
+    public const string FleetSummaryOneMany = "FleetSummaryOneMany";
+    public const string FleetSummaryManyOne = "FleetSummaryManyOne";
+    public const string FleetSummaryManyMany = "FleetSummaryManyMany";
+    public const string FleetScoreNotMeasurable = "FleetScoreNotMeasurable";
+    public const string FleetLoaded = "FleetLoaded";
+    public const string FleetReadFailed = "FleetReadFailed";
+    public const string FleetMachineExportUnavailable = "FleetMachineExportUnavailable";
+    public const string FleetMachineExportNoScan = "FleetMachineExportNoScan";
+    public const string FleetExportAllUnavailable = "FleetExportAllUnavailable";
+    public const string FleetExportAllNoFleet = "FleetExportAllNoFleet";
+    public const string FleetExportAllFailed = "FleetExportAllFailed";
+    public const string FleetExportAllZero = "FleetExportAllZero";
+    public const string FleetExportAllZeroNoFleet = "FleetExportAllZeroNoFleet";
+    public const string FleetSkipped = "FleetSkipped";
+    public const string FleetExportAllTotalOne = "FleetExportAllTotalOne";
+    public const string FleetExportAllTotalMany = "FleetExportAllTotalMany";
+    public const string FleetRemoveUnavailable = "FleetRemoveUnavailable";
+    public const string FleetRemoveArmOne = "FleetRemoveArmOne";
+    public const string FleetRemoveArmMany = "FleetRemoveArmMany";
+    public const string FleetRemoveNothing = "FleetRemoveNothing";
+    public const string FleetRemovedOne = "FleetRemovedOne";
+    public const string FleetRemovedMany = "FleetRemovedMany";
+    public const string FleetRemoveFailed = "FleetRemoveFailed";
+    public const string FleetImportUnavailable = "FleetImportUnavailable";
+    public const string FleetImportNoPicker = "FleetImportNoPicker";
+    public const string FleetImportedNone = "FleetImportedNone";
+    public const string FleetImportedOne = "FleetImportedOne";
+    public const string FleetImportedMany = "FleetImportedMany";
     public const string ReportEyebrow = "ReportEyebrow";
     public const string ReportTitle = "ReportTitle";
     public const string ReportIntro = "ReportIntro";
@@ -1016,5 +1134,91 @@ public static class AppStringKeys
         CrashEmptyNoCrashes,
         CrashLogCleared,
         CrashFooterNote,
+        ComparisonEyebrow,
+        ComparisonTitle,
+        ComparisonIntro,
+        ComparisonBefore,
+        ComparisonAfter,
+        ComparisonPickEarlier,
+        ComparisonPickLater,
+        ComparisonCompareButton,
+        ComparisonResultTitle,
+        ComparisonDnaNote,
+        ComparisonNoChanges,
+        ComparisonAddedTitle,
+        ComparisonRemovedTitle,
+        ComparisonFooterNote,
+        ComparisonLoading,
+        ComparisonHistoryUnavailable,
+        ComparisonNoSnapshots,
+        ComparisonOnlyOneSnapshot,
+        ComparisonSnapshotsCount,
+        ComparisonHistoryReadFailed,
+        ComparisonPickDifferent,
+        ComparisonComparing,
+        ComparisonSnapshotUnreadable,
+        ComparisonDnaUnreadable,
+        ComparisonCompared,
+        ComparisonFailed,
+        ComparisonDnaNoComparison,
+        ComparisonDnaIdentical,
+        ComparisonDnaFingerprintMatches,
+        ComparisonDnaChanged,
+        ComparisonDnaUnverifiable,
+        ComparisonDnaNotRecordedState,
+        ComparisonDnaHashBefore,
+        ComparisonDnaHashAfter,
+        ComparisonDnaNotRecorded,
+        FleetEyebrow,
+        FleetTitle,
+        FleetIntro,
+        FleetImportButton,
+        FleetImportNote,
+        FleetMachinesTitle,
+        FleetExportAllButton,
+        FleetExportFleetCsvButton,
+        FleetTableNote,
+        FleetHeaderMachine,
+        FleetHeaderScans,
+        FleetHeaderLastScan,
+        FleetHeaderScore,
+        FleetHeaderVerdict,
+        FleetHeaderWorstComponent,
+        FleetHeaderExport,
+        FleetHeaderRemove,
+        FleetRowExportButton,
+        FleetRowConfirmRemoveButton,
+        FleetLoading,
+        FleetUnavailable,
+        FleetNoScans,
+        FleetSummaryOneOne,
+        FleetSummaryOneMany,
+        FleetSummaryManyOne,
+        FleetSummaryManyMany,
+        FleetScoreNotMeasurable,
+        FleetLoaded,
+        FleetReadFailed,
+        FleetMachineExportUnavailable,
+        FleetMachineExportNoScan,
+        FleetExportAllUnavailable,
+        FleetExportAllNoFleet,
+        FleetExportAllFailed,
+        FleetExportAllZero,
+        FleetExportAllZeroNoFleet,
+        FleetSkipped,
+        FleetExportAllTotalOne,
+        FleetExportAllTotalMany,
+        FleetRemoveUnavailable,
+        FleetRemoveArmOne,
+        FleetRemoveArmMany,
+        FleetRemoveNothing,
+        FleetRemovedOne,
+        FleetRemovedMany,
+        FleetRemoveFailed,
+        FleetImportUnavailable,
+        FleetImportNoPicker,
+        FleetImportedNone,
+        FleetImportedOne,
+        FleetImportedMany,
     };
 }

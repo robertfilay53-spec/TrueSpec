@@ -54,7 +54,9 @@
        ReportTestsLocalizationViewModelTests drives the Report and Tests
        pages' localisation, and
        NewLaptopCheckCrashHistoryLocalizationViewModelTests drives the
-       New Laptop Check and Crash History pages' localisation; DriverAgeRuleTests drives the
+       New Laptop Check and Crash History pages' localisation, and
+       ComparisonFleetLocalizationViewModelTests drives the Comparison
+       and Fleet pages' localisation; DriverAgeRuleTests drives the
        Windows collectors; FleetViewModelTests drives the Fleet page;
        ExportAllMachinesTests drives the App's export orchestrator.
        Excluding the files (rather
@@ -100,6 +102,7 @@
     <Compile Remove="ReportViewModelTests.cs" />
     <Compile Remove="ReportTestsLocalizationViewModelTests.cs" />
     <Compile Remove="NewLaptopCheckCrashHistoryLocalizationViewModelTests.cs" />
+    <Compile Remove="ComparisonFleetLocalizationViewModelTests.cs" />
     <Compile Remove="DriverAgeRuleTests.cs" />
     <Compile Remove="FleetViewModelTests.cs" />
     <Compile Remove="ExportAllMachinesTests.cs" />

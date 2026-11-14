@@ -563,6 +563,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             crash.ApplyLanguage(_settings.LanguageCode);
         }
 
+        // Cached Comparison and Fleet pages re-render in the new
+        // language in place, the same pattern as the pages above. A
+        // page created after the switch is already built in the new
+        // language by its constructor.
+        if (_pageCache.TryGetValue("compare", out var comparePage) && comparePage is ComparisonViewModel comparison)
+        {
+            comparison.ApplyLanguage(_settings.LanguageCode);
+        }
+
+        if (_pageCache.TryGetValue("fleet", out var fleetPage) && fleetPage is FleetViewModel fleet)
+        {
+            fleet.ApplyLanguage(_settings.LanguageCode);
+        }
+
         // Cached component detail pages re-render in the new language in
         // place (their chrome resolves at construction time, so a page
         // built before the switch needs the same re-language call the
@@ -991,8 +1005,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 OnLoadTestCompleted,
                 _settings.LanguageCode)),
             "report" => GetOrCreate("report", () => new ReportViewModel(_snapshot, ExportJsonCommand, ExportHtmlCommand, ExportCsvCommand, EffectiveExportFolder(), isScanning: IsScanRunning, exportPdfCommand: ExportPdfCommand, exportCertificateCommand: ExportCertificateCommand, verifyMachineCommand: VerifyMachineCommand, dnaVerification: _lastDnaVerification, isVerifyingMachine: IsVerifyingMachine, languageCode: _settings.LanguageCode)),
-            "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot, _dnaVerifier)),
-            "fleet" => GetOrCreate("fleet", () => new FleetViewModel(_snapshotStore, ExportFleetCsvCommand, ExportMachineCsvAsync, ExportAllMachinesCsvAsync)),
+            "compare" => GetOrCreate("compare", () => new ComparisonViewModel(_snapshotStore, _snapshot, _dnaVerifier, _settings.LanguageCode)),
+            "fleet" => GetOrCreate("fleet", () => new FleetViewModel(_snapshotStore, ExportFleetCsvCommand, ExportMachineCsvAsync, ExportAllMachinesCsvAsync, _settings.LanguageCode)),
             "history" => GetOrCreate("history", () => new HistoryViewModel(_snapshotStore, _snapshot, ExportHistoryCsvCommand, SensorLogWriter.DefaultFilePath(), _settings.SensorLoggingEnabled, _settings.CpuTemperatureThresholdC, languageCode: _settings.LanguageCode)),
             "settings" => GetOrCreate("settings", () => new SettingsViewModel(this)),
             _ => GetOrCreate($"component:{key}", () => new ComponentDetailViewModel(_snapshot, key, _settings.LanguageCode)),
