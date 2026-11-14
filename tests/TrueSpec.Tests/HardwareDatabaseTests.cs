@@ -50,6 +50,9 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 7 9800X3D", "RYZEN 7 9800X3D")]
     [InlineData("AMD Ryzen 9 7950X3D", "RYZEN 9 7950X3D")]
     [InlineData("AMD Ryzen 7 5800X3D", "RYZEN 7 5800X3D")]
+    [InlineData("AMD Ryzen 9 7900", "RYZEN 9 7900")]
+    [InlineData("AMD Ryzen 7 7700", "RYZEN 7 7700")]
+    [InlineData("AMD Ryzen 5 7600X", "RYZEN 5 7600X")]
     [InlineData("AMD Ryzen 7 3700U with Radeon Graphics", "RYZEN 7 3700U")]
     [InlineData(null, "")]
     [InlineData("", "")]
@@ -171,9 +174,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.18.0", database.Version);
+        Assert.Equal("1.19.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
-        Assert.Equal(92, database.CpuCount);
+        Assert.Equal(95, database.CpuCount);
         Assert.Equal(93, database.GpuCount);
     }
 
@@ -1189,5 +1192,48 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(3.4, ryzen75800X3d.BaseGhz);
         Assert.Equal(4.5, ryzen75800X3d.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/5000-series/amd-ryzen-7-5800x3d.html", ryzen75800X3d.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Ryzen7000NonXDesktopCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.19.0: the three AMD Ryzen 7000 non-X desktop CPUs
+        // (Raphael, Zen 4), the half of the family the dataset never
+        // listed. The X chips shipped long ago (7950X, 7900X, 7700X,
+        // 7600) and the X3D chips in v2.1.48 and v2.1.49, but the
+        // non-X siblings that sit between them on every retail shelf,
+        // the 65 W 7900 and 7700 and the 105 W 7600X, were missing.
+        // The gap went unnoticed the same way the X3D gaps did: every
+        // cycle re-examined the deliberately-absent list, but no 7000
+        // non-X chip was on it, so the family was never listed
+        // against the dataset until this cycle did. All three figures
+        // were verified by hand against AMD's own product pages, read
+        // 2026-11-14 from fresh crawls: the Ryzen 9 7900 at Base
+        // Clock 3.7 GHz and Max Boost Clock up to 5.4 GHz; the Ryzen
+        // 7 7700 at 3.8 and up to 5.3 GHz; the Ryzen 5 7600X at 4.7
+        // and up to 5.3 GHz. The dataset's boost_ghz is AMD's Max
+        // Boost Clock, per its own definition, and the 7800X3D
+        // already in the dataset follows the same rule, so these
+        // three are consistent with it. No code change was needed:
+        // the CPU normalizer already maps "AMD Ryzen 9 7900" to
+        // "RYZEN 9 7900", and the Settings card shows the CPU count
+        // from the dataset, so it reads 95 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 9 7900", out var ryzen97900));
+        Assert.Equal("AMD", ryzen97900.Vendor);
+        Assert.Equal(3.7, ryzen97900.BaseGhz);
+        Assert.Equal(5.4, ryzen97900.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/7000-series/amd-ryzen-9-7900.html", ryzen97900.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 7700", out var ryzen77700));
+        Assert.Equal("AMD", ryzen77700.Vendor);
+        Assert.Equal(3.8, ryzen77700.BaseGhz);
+        Assert.Equal(5.3, ryzen77700.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/7000-series/amd-ryzen-7-7700.html", ryzen77700.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 7600X", out var ryzen57600X));
+        Assert.Equal("AMD", ryzen57600X.Vendor);
+        Assert.Equal(4.7, ryzen57600X.BaseGhz);
+        Assert.Equal(5.3, ryzen57600X.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/7000-series/amd-ryzen-5-7600x.html", ryzen57600X.SourceUrl, StringComparison.Ordinal);
     }
 }
