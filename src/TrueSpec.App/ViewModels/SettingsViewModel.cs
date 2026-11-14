@@ -347,7 +347,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         }
     }
 
-    /// <summary>The current language's own display name ("English", "Deutsch").</summary>
+    /// <summary>The current language's own display name ("English", "Deutsch", "Français").</summary>
     public string LanguageText => LanguagePacks.Get(LanguageCode).DisplayName;
 
     /// <summary>The language card's own strings, in the current language.</summary>

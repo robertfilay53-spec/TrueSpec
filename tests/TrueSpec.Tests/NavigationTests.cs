@@ -455,6 +455,64 @@ public class NavigationTests
     }
 
     /// <summary>
+    /// Localisation, phase 1 (v2.1.20): the French rail carries the same
+    /// 22 items in the same order and with the same keys as the English
+    /// rail, mirroring German phase 1. Only the labels change.
+    /// </summary>
+    [Fact]
+    public void Navigation_FrenchRail_HasSameKeysInSameOrder()
+    {
+        var english = NavItemViewModel.CreateDefault().ToList();
+        var french = NavItemViewModel.CreateForLanguage("fr").ToList();
+
+        Assert.Equal(english.Count, french.Count);
+        Assert.Equal(english.Select(i => i.Key), french.Select(i => i.Key));
+        Assert.Equal(22, french.Count);
+    }
+
+    /// <summary>
+    /// Localisation, phase 1 (v2.1.20): every French label, pinned. A
+    /// changed label here is a deliberate translation decision, and the
+    /// test forces it to be made in this file, not silently in a pack.
+    /// </summary>
+    [Fact]
+    public void Navigation_FrenchRail_TranslatesEveryLabel()
+    {
+        var expected = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["overview"] = "Vue d'ensemble",
+            ["system"] = "Système",
+            ["cpu"] = "CPU",
+            ["ram"] = "RAM",
+            ["storage"] = "Stockage",
+            ["battery"] = "Batterie",
+            ["gpu"] = "GPU",
+            ["display"] = "Affichage",
+            ["network"] = "Réseau",
+            ["motherboard"] = "Carte mère",
+            ["security"] = "Sécurité",
+            ["drivers"] = "Pilotes",
+            ["updates"] = "Mises à jour",
+            ["startup"] = "Démarrage",
+            ["crash"] = "Historique des incidents",
+            ["history"] = "Historique",
+            ["software"] = "Logiciels",
+            ["tests"] = "Tests",
+            ["report"] = "Rapport",
+            ["compare"] = "Comparer",
+            ["fleet"] = "Parc",
+            ["settings"] = "Paramètres",
+        };
+
+        var french = NavItemViewModel.CreateForLanguage("fr").ToList();
+        Assert.Equal(expected.Count, french.Count);
+        foreach (var item in french)
+        {
+            Assert.Equal(expected[item.Key], item.Label);
+        }
+    }
+
+    /// <summary>
     /// Localisation, phase 1 (v2.1.7): a code with no pack falls back to
     /// the English rail, label for label, so a bad stored language can
     /// never leave the rail blank or half-translated.

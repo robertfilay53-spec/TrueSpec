@@ -52,6 +52,10 @@ public class SettingsTests
     [InlineData("DE", "de")]
     [InlineData(" de ", "de")]
     [InlineData("de-DE", "de")]
+    [InlineData("fr", "fr")]
+    [InlineData("FR", "fr")]
+    [InlineData(" fr ", "fr")]
+    [InlineData("fr-FR", "fr")]
     public void Sanitized_NormalizesSupportedLanguageCode(string input, string expected)
     {
         var settings = new AppSettings { LanguageCode = input }.Sanitized();
