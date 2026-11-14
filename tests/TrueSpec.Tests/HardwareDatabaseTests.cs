@@ -164,10 +164,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.3.0", database.Version);
+        Assert.Equal("1.4.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
         Assert.Equal(74, database.CpuCount);
-        Assert.Equal(64, database.GpuCount);
+        Assert.Equal(68, database.GpuCount);
     }
 
     [Fact]
@@ -267,6 +267,53 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_ArcASeriesDesktopGpusCarryVerifiedFigures()
+    {
+        // Dataset v1.4.0: the four Intel Arc A-series desktop GPUs, the
+        // last Arc family the dataset was missing. The dataset used to
+        // say no manufacturer spec page could be located for the
+        // A580/A750/A770; that is no longer true: Intel's ARK pages
+        // carry the A770 (16 GB) and the A750, Intel's own launch
+        // announcement carries the A580, and Intel's own A-series spec
+        // reveal carries the A380, with the figures corroborated by the
+        // launch reviews. Intel publishes a single Graphics Clock for
+        // Arc cards, recorded as the boost figure. The A770 carries no
+        // memory figure: Intel lists 16 GB and 8 GB configurations
+        // under one device name, so the entry guesses neither; the
+        // clock (2.10 GHz) and board power (225 W) are the same for
+        // both. The A580 board power is Intel's published 185 W from
+        // its launch spec table; a few secondary databases list 175 W
+        // with no Intel document behind them.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("Intel(R) Arc(TM) A770 Graphics", out var a770));
+        Assert.Equal("Intel", a770.Vendor);
+        Assert.Equal(2.1, a770.BoostGhz);
+        Assert.Null(a770.MemoryGb);
+        Assert.Equal(225, a770.TdpW);
+        Assert.StartsWith("https://ark.intel.com/content/www/us/en/ark/products/229151/intel-arc-a770-graphics-16gb.html", a770.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("Intel(R) Arc(TM) A750 Graphics", out var a750));
+        Assert.Equal("Intel", a750.Vendor);
+        Assert.Equal(2.05, a750.BoostGhz);
+        Assert.Equal(8, a750.MemoryGb);
+        Assert.Equal(225, a750.TdpW);
+        Assert.StartsWith("https://ark.intel.com/content/www/us/en/ark/products/227954/intel-arc-a750-graphics.html", a750.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("Intel(R) Arc(TM) A580 Graphics", out var a580));
+        Assert.Equal("Intel", a580.Vendor);
+        Assert.Equal(1.7, a580.BoostGhz);
+        Assert.Equal(8, a580.MemoryGb);
+        Assert.Equal(185, a580.TdpW);
+        Assert.StartsWith("https://game.intel.com/stories/intel-arc-graphics-a580-release-announcement/", a580.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("Intel(R) Arc(TM) A380 Graphics", out var a380));
+        Assert.Equal("Intel", a380.Vendor);
+        Assert.Equal(2.0, a380.BoostGhz);
+        Assert.Equal(6, a380.MemoryGb);
+        Assert.Equal(75, a380.TdpW);
+        Assert.StartsWith("https://game.intel.com/stories/intel-arc-graphics-qa-hardware-specs/", a380.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Default_KnownEntryCarriesTheVerifiedBoost()
     {
         Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i7-13700K", out var spec));
@@ -295,6 +342,9 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Radeon RX 7800 XT", "RX 7800 XT")]
     [InlineData("AMD Radeon(TM) RX 6600", "RX 6600")]
     [InlineData("Intel(R) Arc(TM) A750 Graphics", "ARC A750")]
+    [InlineData("Intel(R) Arc(TM) A770 Graphics", "ARC A770")]
+    [InlineData("Intel(R) Arc(TM) A580 Graphics", "ARC A580")]
+    [InlineData("Intel(R) Arc(TM) A380 Graphics", "ARC A380")]
     [InlineData("Intel(R) Arc(TM) B580 Graphics", "ARC B580")]
     [InlineData("nvidia geforce rtx 4060 laptop gpu", "RTX 4060 LAPTOP")]
     [InlineData(null, "")]
@@ -465,13 +515,11 @@ public sealed class HardwareDatabaseTests
         // variants with no mapping on the NVIDIA page. RTX 3050 desktop:
         // boost, memory and power all differ between its 8 GB and 6 GB
         // variants under one device name. AMD laptop GPUs: AMD publishes
-        // Game Frequency, not Boost Frequency, for them. Intel Arc: no
-        // manufacturer spec page could be located.
+        // Game Frequency, not Boost Frequency, for them.
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 4060 Ti", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3080", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3050", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6600M", out _));
-        Assert.False(HardwareDatabase.Default.TryGetGpu("Intel(R) Arc(TM) A750 Graphics", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2060 Laptop GPU", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1070", out _));
     }
