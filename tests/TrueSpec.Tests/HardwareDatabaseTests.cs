@@ -56,6 +56,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 5 9600", "RYZEN 5 9600")]
     [InlineData("AMD Ryzen 7 9700F", "RYZEN 7 9700F")]
     [InlineData("AMD Ryzen 5 9500F", "RYZEN 5 9500F")]
+    [InlineData("AMD Ryzen 7 9850X3D", "RYZEN 7 9850X3D")]
+    [InlineData("AMD Ryzen 9 9950X3D2 Dual Edition", "RYZEN 9 9950X3D2 DUAL EDITION")]
     [InlineData("AMD Ryzen 7 3700U with Radeon Graphics", "RYZEN 7 3700U")]
     [InlineData(null, "")]
     [InlineData("", "")]
@@ -177,9 +179,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.20.0", database.Version);
-        Assert.Equal("2026-11-14", database.Updated);
-        Assert.Equal(98, database.CpuCount);
+        Assert.Equal("1.21.0", database.Version);
+        Assert.Equal("2026-11-15", database.Updated);
+        Assert.Equal(100, database.CpuCount);
         Assert.Equal(93, database.GpuCount);
     }
 
@@ -1288,5 +1290,39 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(3.8, ryzen59500F.BaseGhz);
         Assert.Equal(5.0, ryzen59500F.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/9000-series/amd-ryzen-5-9500f.html", ryzen59500F.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Ryzen9000X3dNewDesktopCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.21.0: the two newer AMD Ryzen 9000 X3D desktop CPUs
+        // (Granite Ridge, Zen 5 with 3D V-Cache) that launched after the
+        // v2.1.48 X3D slice: the Ryzen 7 9850X3D, the successor to the
+        // 9800X3D with a 400 MHz higher boost, and the Ryzen 9 9950X3D2
+        // Dual Edition, the first desktop processor with dual 3D
+        // V-Cache stacks. Both figures were verified by hand against
+        // AMD's own product pages, read 2026-11-15 from fresh crawls:
+        // the Ryzen 7 9850X3D at Base Clock 4.7 GHz and Max Boost Clock
+        // up to 5.6 GHz, launch date 1/29/2026; the Ryzen 9 9950X3D2
+        // Dual Edition at 4.3 and up to 5.6 GHz, launch date 4/22/26.
+        // The dataset's boost_ghz is AMD's Max Boost Clock, per its
+        // own definition, and the 9800X3D already in the dataset
+        // follows the same rule, so these two are consistent with it.
+        // No code change was needed: the CPU normalizer already maps
+        // "AMD Ryzen 7 9850X3D" to "RYZEN 7 9850X3D" and "AMD Ryzen 9
+        // 9950X3D2 Dual Edition" to "RYZEN 9 9950X3D2 DUAL EDITION",
+        // and the Settings card shows the CPU count from the dataset,
+        // so it reads 100 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 9850X3D", out var ryzen79850X3d));
+        Assert.Equal("AMD", ryzen79850X3d.Vendor);
+        Assert.Equal(4.7, ryzen79850X3d.BaseGhz);
+        Assert.Equal(5.6, ryzen79850X3d.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/9000-series/amd-ryzen-7-9850x3d.html", ryzen79850X3d.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 9 9950X3D2 Dual Edition", out var ryzen99950X3d2));
+        Assert.Equal("AMD", ryzen99950X3d2.Vendor);
+        Assert.Equal(4.3, ryzen99950X3d2.BaseGhz);
+        Assert.Equal(5.6, ryzen99950X3d2.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/9000-series/amd-ryzen-9-9950x3d2-dual-edition.html", ryzen99950X3d2.SourceUrl, StringComparison.Ordinal);
     }
 }
