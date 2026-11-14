@@ -166,10 +166,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.10.0", database.Version);
+        Assert.Equal("1.11.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
         Assert.Equal(77, database.CpuCount);
-        Assert.Equal(86, database.GpuCount);
+        Assert.Equal(89, database.GpuCount);
     }
 
     [Fact]
@@ -353,6 +353,9 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Radeon RX 5500 XT", "RX 5500 XT")]
     [InlineData("AMD Radeon RX Vega 64", "RX VEGA 64")]
     [InlineData("AMD Radeon VII", "VII")]
+    [InlineData("AMD Radeon RX 590", "RX 590")]
+    [InlineData("AMD Radeon RX 580", "RX 580")]
+    [InlineData("AMD Radeon RX 550", "RX 550")]
     [InlineData("Intel(R) Arc(TM) A750 Graphics", "ARC A750")]
     [InlineData("Intel(R) Arc(TM) A770 Graphics", "ARC A770")]
     [InlineData("Intel(R) Arc(TM) A580 Graphics", "ARC A580")]
@@ -781,6 +784,58 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_Rx500SeriesDesktopGpusCarryVerifiedFigures()
+    {
+        // Dataset v1.11.0: the AMD Radeon RX 500-series desktop
+        // cards that carry single verifiable figures, the part of
+        // the family the dataset never listed and the
+        // deliberately-absent list never mentioned: every cycle checked
+        // the absent list, but no RX 500-series desktop card was on
+        // it, so the gap went unnoticed until this cycle listed the
+        // whole AMD family against the dataset. The previous cycle
+        // passed the family over on a mistaken reason: it claimed the
+        // RX 580 4 GB variant carries a different boost (1266 vs
+        // 1340 MHz), but AMD's own page lists a single Boost
+        // Frequency up to 1340 MHz and a single Typical Board Power
+        // 185 W for the RX 580; 1266 MHz is the RX 480's boost, not
+        // the RX 580 4 GB card's. The real splits are elsewhere, and
+        // they stay absent: the RX 570 page lists two boost figures
+        // (Up to 1206 MHz for the OEM card, Up to 1244 MHz for
+        // retail) under one device name, and the RX 560 page lists
+        // board power as a range (60-80 W), so neither has a single
+        // verifiable figure. All figures below were verified by hand
+        // against AMD's own driver/spec pages (the same pages the
+        // shipped RX 5000/6000/7000/9000 and Vega entries cite),
+        // read 2026-11-14: the RX 590 at Boost Frequency up to 1545
+        // MHz and 8 GB; the RX 580 at 1340 MHz and 185 W; the RX 550
+        // at 1183 MHz and 50 W. The RX 590 carries no board-power
+        // figure: AMD publishes no Typical Board Power value for it
+        // on its page, the same null treatment as the RX 9060 XT.
+        // The RX 580 and RX 550 carry no memory figure: AMD lists
+        // 8 GB and 4 GB (RX 580) and 4 GB and 2 GB (RX 550)
+        // configurations under one device name, so the entries guess
+        // neither, the same precedent as the RX 5500 XT.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 590", out var rx590));
+        Assert.Equal("AMD", rx590.Vendor);
+        Assert.Equal(1.545, rx590.BoostGhz);
+        Assert.Equal(8, rx590.MemoryGb);
+        Assert.Null(rx590.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-600-500-400/radeon-rx-500-series/radeon-rx-590.html", rx590.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 580", out var rx580));
+        Assert.Equal(1.34, rx580.BoostGhz);
+        Assert.Null(rx580.MemoryGb);
+        Assert.Equal(185, rx580.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-600-500-400/radeon-rx-500-series/radeon-rx-580.html", rx580.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 550", out var rx550));
+        Assert.Equal(1.183, rx550.BoostGhz);
+        Assert.Null(rx550.MemoryGb);
+        Assert.Equal(50, rx550.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-600-500-400/radeon-rx-500-series/radeon-rx-550.html", rx550.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Default_UnverifiableGpuModelsMatchNothing()
     {
         // RTX 3050 desktop: boost, memory and power all differ between
@@ -795,9 +850,15 @@ public sealed class HardwareDatabaseTests
         // (verified 2026-11-14); the retailer tables that list its
         // figures do not satisfy the manufacturer-page source policy.
         // AMD laptop GPUs: AMD publishes Game Frequency, not Boost
-        // Frequency, for them.
+        // Frequency, for them. RX 570 desktop: AMD's page lists two
+        // boost figures (Up to 1206 MHz for the OEM card, Up to 1244
+        // MHz for retail) under one device name, so no single
+        // verifiable figure exists. RX 560 desktop: AMD lists board
+        // power as a range (60-80 W), so no single figure exists.
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3050", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2060", out _));
+        Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 570", out _));
+        Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 560", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6600M", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2060 Laptop GPU", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1070", out _));
