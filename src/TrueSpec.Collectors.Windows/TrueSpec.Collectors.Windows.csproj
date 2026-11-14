@@ -9,8 +9,8 @@
 
   <ItemGroup>
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
-    <PackageReference Include="System.Diagnostics.EventLog" Version="10.0.14" />
-    <PackageReference Include="System.Management" Version="10.0.14" />
+    <PackageReference Include="System.Diagnostics.EventLog" Version="11.0.0" />
+    <PackageReference Include="System.Management" Version="11.0.0" />
   </ItemGroup>
 
   <!-- Tests cover the internal SMART reader's drive-number guard, so the
