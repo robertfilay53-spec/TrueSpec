@@ -45,6 +45,7 @@ public sealed class HardwareDatabaseTests
     [InlineData("intel core i5-12400", "I5-12400")]
     [InlineData("Intel(R) Core(TM) i5-12400F Processor", "I5-12400F")]
     [InlineData("Intel(R) Core(TM) i5-14400", "I5-14400")]
+    [InlineData("Intel(R) Core(TM) i9-14900HX", "I9-14900HX")]
     [InlineData("AMD Ryzen 7 3700U with Radeon Graphics", "RYZEN 7 3700U")]
     [InlineData(null, "")]
     [InlineData("", "")]
@@ -166,9 +167,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.13.0", database.Version);
+        Assert.Equal("1.14.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
-        Assert.Equal(77, database.CpuCount);
+        Assert.Equal(82, database.CpuCount);
         Assert.Equal(93, database.GpuCount);
     }
 
@@ -932,6 +933,10 @@ public sealed class HardwareDatabaseTests
         // Series page, so no boost or power figure exists on nvidia.com
         // (verified 2026-11-14); the retailer tables that list its
         // figures do not satisfy the manufacturer-page source policy.
+        // A 2026-11-14 check of the live compare page found no GTX 10
+        // per-card table on it either: the page's per-card tables end
+        // at the GTX 16 series, so the GTX 10 Series column in the
+        // header table carries no boost or power figure.
         // GTX 1050 desktop: the device name covers the 2 GB card
         // (1455 MHz, verified live on NVIDIA's own GTX 1050 launch
         // specs table) and a later 3 GB variant (1518 MHz, 3 GB), so
@@ -951,5 +956,60 @@ public sealed class HardwareDatabaseTests
         Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6600M", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2060 Laptop GPU", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1070", out _));
+    }
+
+    [Fact]
+    public void Default_14thGenHxMobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.14.0: the five Intel Core 14th-gen HX mobile CPUs,
+        // the whole family the dataset never listed and the
+        // deliberately-absent list never mentioned: every cycle checked
+        // the absent list, but no 14th-gen HX chip was on it, so the gap
+        // went unnoticed until this cycle listed the whole Intel mobile
+        // family against the dataset. The 12th/13th-gen mobile H/P
+        // chips stay absent for a reason that does not apply here:
+        // Intel publishes no per-SKU P-core base frequency for them,
+        // while its own compare pages publish one for every HX chip.
+        // All figures below were verified by hand against Intel's own
+        // product specification comparison pages, read 2026-11-14 from
+        // fresh crawls: the i9-14900HX at Performance-core Base
+        // Frequency 2.2 GHz, Performance-core Max Turbo Frequency
+        // 5.8 GHz and Efficient-core Max Turbo Frequency 4.1 GHz; the
+        // i7-14700HX at 2.1, 5.5 and 3.9 GHz; the i7-14650HX at 2.2,
+        // 5.2 and 3.7 GHz; the i5-14500HX at 2.6, 4.9 and 3.5 GHz; the
+        // i5-14450HX at 2.4, 4.8 and 3.5 GHz. The headline Max Turbo
+        // Frequency equals the P-core Max Turbo for all five, so the
+        // boost figure is the same either way. No code change was
+        // needed: the CPU normalizer already maps "Intel(R) Core(TM)
+        // i9-14900HX" to "I9-14900HX", and the Settings card shows the
+        // CPU count from the dataset, so it reads 82 with no code
+        // change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i9-14900HX", out var i914900Hx));
+        Assert.Equal("Intel", i914900Hx.Vendor);
+        Assert.Equal(2.2, i914900Hx.BaseGhz);
+        Assert.Equal(5.8, i914900Hx.BoostGhz);
+        Assert.Equal(4.1, i914900Hx.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=235995", i914900Hx.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i7-14700HX", out var i714700Hx));
+        Assert.Equal(2.1, i714700Hx.BaseGhz);
+        Assert.Equal(5.5, i714700Hx.BoostGhz);
+        Assert.Equal(3.9, i714700Hx.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=235996,235997,235998,235999", i714700Hx.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i7-14650HX", out var i714650Hx));
+        Assert.Equal(2.2, i714650Hx.BaseGhz);
+        Assert.Equal(5.2, i714650Hx.BoostGhz);
+        Assert.Equal(3.7, i714650Hx.ECoreBoostGhz);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i5-14500HX", out var i514500Hx));
+        Assert.Equal(2.6, i514500Hx.BaseGhz);
+        Assert.Equal(4.9, i514500Hx.BoostGhz);
+        Assert.Equal(3.5, i514500Hx.ECoreBoostGhz);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i5-14450HX", out var i514450Hx));
+        Assert.Equal(2.4, i514450Hx.BaseGhz);
+        Assert.Equal(4.8, i514450Hx.BoostGhz);
+        Assert.Equal(3.5, i514450Hx.ECoreBoostGhz);
     }
 }
