@@ -49,6 +49,7 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel(R) Core(TM) Ultra 9 285HX", "ULTRA 9 285HX")]
     [InlineData("AMD Ryzen 7 9800X3D", "RYZEN 7 9800X3D")]
     [InlineData("AMD Ryzen 9 7950X3D", "RYZEN 9 7950X3D")]
+    [InlineData("AMD Ryzen 7 5800X3D", "RYZEN 7 5800X3D")]
     [InlineData("AMD Ryzen 7 3700U with Radeon Graphics", "RYZEN 7 3700U")]
     [InlineData(null, "")]
     [InlineData("", "")]
@@ -170,9 +171,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.17.0", database.Version);
+        Assert.Equal("1.18.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
-        Assert.Equal(91, database.CpuCount);
+        Assert.Equal(92, database.CpuCount);
         Assert.Equal(93, database.GpuCount);
     }
 
@@ -1152,5 +1153,41 @@ public sealed class HardwareDatabaseTests
         Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 9 7950X3D", out var ryzen97950X3d));
         Assert.Equal(4.2, ryzen97950X3d.BaseGhz);
         Assert.Equal(5.7, ryzen97950X3d.BoostGhz);
+    }
+
+    [Fact]
+    public void Default_Ryzen5000X3dDesktopCpuCarriesVerifiedFigures()
+    {
+        // Dataset v1.18.0: the AMD Ryzen 7 5800X3D desktop CPU
+        // (Vermeer, Zen 3 with 3D V-Cache), the chip the dataset never
+        // listed. The 9000 X3D family shipped in v2.1.48 and the 7000
+        // X3D family in v2.1.49, but the original X3D chip, the one
+        // that started the family and is still the most asked about
+        // AM4 gaming CPU, was missing. The gap went unnoticed the
+        // same way the 9000 and 7000 X3D gaps did: every cycle
+        // re-examined the deliberately-absent list, but no 5000 X3D
+        // chip was on it, so the family was never listed against the
+        // dataset until this cycle did. The figure below was verified
+        // by hand against AMD's own product page, read 2026-11-14
+        // from a fresh crawl: Base Clock 3.4 GHz and Max Boost Clock
+        // up to 4.5 GHz. The dataset's boost_ghz is AMD's Max Boost
+        // Clock, per its own definition, and the 7800X3D already in
+        // the dataset follows the same rule, so this one is consistent
+        // with it. The Ryzen 7 5700X3D was examined in the same cycle
+        // and stays out: AMD's own product page could not be read
+        // live (the product URL returns 404 and the legacy product-ID
+        // URL redirects to a generic specifications hub), so its
+        // figures stay out even though third-party listings agree on
+        // Base Clock 3.0 GHz and Max Boost Clock up to 4.1 GHz, and
+        // the dataset records that reason in its coverage text. No
+        // code change was needed: the CPU normalizer already maps
+        // "AMD Ryzen 7 5800X3D" to "RYZEN 7 5800X3D", and the
+        // Settings card shows the CPU count from the dataset, so it
+        // reads 92 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 5800X3D", out var ryzen75800X3d));
+        Assert.Equal("AMD", ryzen75800X3d.Vendor);
+        Assert.Equal(3.4, ryzen75800X3d.BaseGhz);
+        Assert.Equal(4.5, ryzen75800X3d.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/5000-series/amd-ryzen-7-5800x3d.html", ryzen75800X3d.SourceUrl, StringComparison.Ordinal);
     }
 }
