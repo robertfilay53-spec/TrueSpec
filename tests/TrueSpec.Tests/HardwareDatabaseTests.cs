@@ -166,10 +166,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.11.0", database.Version);
+        Assert.Equal("1.12.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
         Assert.Equal(77, database.CpuCount);
-        Assert.Equal(89, database.GpuCount);
+        Assert.Equal(92, database.GpuCount);
     }
 
     [Fact]
@@ -356,6 +356,9 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Radeon RX 590", "RX 590")]
     [InlineData("AMD Radeon RX 580", "RX 580")]
     [InlineData("AMD Radeon RX 550", "RX 550")]
+    [InlineData("AMD Radeon RX 480", "RX 480")]
+    [InlineData("AMD Radeon RX 470", "RX 470")]
+    [InlineData("AMD Radeon RX 460", "RX 460")]
     [InlineData("Intel(R) Arc(TM) A750 Graphics", "ARC A750")]
     [InlineData("Intel(R) Arc(TM) A770 Graphics", "ARC A770")]
     [InlineData("Intel(R) Arc(TM) A580 Graphics", "ARC A580")]
@@ -833,6 +836,49 @@ public sealed class HardwareDatabaseTests
         Assert.Null(rx550.MemoryGb);
         Assert.Equal(50, rx550.TdpW);
         Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-600-500-400/radeon-rx-500-series/radeon-rx-550.html", rx550.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Rx400SeriesDesktopGpusCarryVerifiedFigures()
+    {
+        // Dataset v1.12.0: the AMD Radeon RX 400-series desktop
+        // family, the whole family the dataset never listed and the
+        // deliberately-absent list never mentioned: every cycle checked
+        // the absent list, but no RX 400-series desktop card was on
+        // it, so the gap went unnoticed until this cycle listed the
+        // whole AMD family against the dataset. All figures below
+        // were verified by hand against AMD's own driver/spec pages
+        // (the same pages the shipped RX 5000/6000/7000/9000, Vega
+        // and RX 500 entries cite), read 2026-11-14: the RX 480 at
+        // Boost Frequency up to 1266 MHz and Typical Board Power
+        // 150 W; the RX 470 at 1206 MHz, 4 GB and 120 W; the RX 460
+        // at 1200 MHz and 70 W. The 1266 MHz figure also settles the
+        // v2.1.42 confusion for good: it is the RX 480's boost, read
+        // from AMD's own RX 480 page, not the RX 580 4 GB card's.
+        // The RX 480 and RX 460 carry no memory figure: AMD lists
+        // 8 GB and 4 GB (RX 480) and 4 GB and 2 GB (RX 460)
+        // configurations under one device name, so the entries guess
+        // neither, the same precedent as the RX 580 and RX 550.
+        // The RX 470 carries 4 GB: AMD's reference card is 4 GB and
+        // the page lists a single 4 GB figure.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 480", out var rx480));
+        Assert.Equal("AMD", rx480.Vendor);
+        Assert.Equal(1.266, rx480.BoostGhz);
+        Assert.Null(rx480.MemoryGb);
+        Assert.Equal(150, rx480.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-600-500-400/radeon-rx-400-series/radeon-rx-480.html", rx480.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 470", out var rx470));
+        Assert.Equal(1.206, rx470.BoostGhz);
+        Assert.Equal(4, rx470.MemoryGb);
+        Assert.Equal(120, rx470.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-600-500-400/radeon-rx-400-series/radeon-rx-470.html", rx470.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 460", out var rx460));
+        Assert.Equal(1.2, rx460.BoostGhz);
+        Assert.Null(rx460.MemoryGb);
+        Assert.Equal(70, rx460.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-600-500-400/radeon-rx-400-series/radeon-rx-460.html", rx460.SourceUrl, StringComparison.Ordinal);
     }
 
     [Fact]
