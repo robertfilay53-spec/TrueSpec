@@ -48,6 +48,7 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel(R) Core(TM) i9-14900HX", "I9-14900HX")]
     [InlineData("Intel(R) Core(TM) Ultra 9 285HX", "ULTRA 9 285HX")]
     [InlineData("AMD Ryzen 7 9800X3D", "RYZEN 7 9800X3D")]
+    [InlineData("AMD Ryzen 9 7950X3D", "RYZEN 9 7950X3D")]
     [InlineData("AMD Ryzen 7 3700U with Radeon Graphics", "RYZEN 7 3700U")]
     [InlineData(null, "")]
     [InlineData("", "")]
@@ -169,9 +170,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.16.0", database.Version);
+        Assert.Equal("1.17.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
-        Assert.Equal(89, database.CpuCount);
+        Assert.Equal(91, database.CpuCount);
         Assert.Equal(93, database.GpuCount);
     }
 
@@ -1118,5 +1119,38 @@ public sealed class HardwareDatabaseTests
         Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 9 9950X3D", out var ryzen99950X3d));
         Assert.Equal(4.3, ryzen99950X3d.BaseGhz);
         Assert.Equal(5.7, ryzen99950X3d.BoostGhz);
+    }
+
+    [Fact]
+    public void Default_Ryzen7000X3dDesktopCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.17.0: the two AMD Ryzen 7000 X3D desktop CPUs
+        // (Raphael, Zen 4 with 3D V-Cache), the family the dataset
+        // never listed: Ryzen 9 7900X3D and Ryzen 9 7950X3D. Only the
+        // Ryzen 7 7800X3D was in the dataset, so the two Ryzen 9 X3D
+        // chips were the missing half of the family. The gap went
+        // unnoticed the same way the 9000 X3D gap did: every cycle
+        // re-examined the deliberately-absent list, but no 7000 X3D
+        // chip was on it, so the family was never listed against the
+        // dataset until this cycle did. All figures below were verified
+        // by hand against AMD's own product pages, read 2026-11-14
+        // from fresh crawls: the Ryzen 9 7900X3D at Base Clock 4.4 GHz
+        // and Max Boost Clock up to 5.6 GHz; the Ryzen 9 7950X3D at
+        // 4.2 and up to 5.7 GHz. The dataset's boost_ghz is AMD's Max
+        // Boost Clock, per its own definition, and the 7800X3D already
+        // in the dataset follows the same rule, so these two are
+        // consistent with it. No code change was needed: the CPU
+        // normalizer already maps "AMD Ryzen 9 7950X3D" to
+        // "RYZEN 9 7950X3D", and the Settings card shows the CPU count
+        // from the dataset, so it reads 91 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 9 7900X3D", out var ryzen97900X3d));
+        Assert.Equal("AMD", ryzen97900X3d.Vendor);
+        Assert.Equal(4.4, ryzen97900X3d.BaseGhz);
+        Assert.Equal(5.6, ryzen97900X3d.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/7000-series/amd-ryzen-9-7900x3d.html", ryzen97900X3d.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 9 7950X3D", out var ryzen97950X3d));
+        Assert.Equal(4.2, ryzen97950X3d.BaseGhz);
+        Assert.Equal(5.7, ryzen97950X3d.BoostGhz);
     }
 }
