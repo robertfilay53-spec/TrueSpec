@@ -53,6 +53,9 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 9 7900", "RYZEN 9 7900")]
     [InlineData("AMD Ryzen 7 7700", "RYZEN 7 7700")]
     [InlineData("AMD Ryzen 5 7600X", "RYZEN 5 7600X")]
+    [InlineData("AMD Ryzen 5 9600", "RYZEN 5 9600")]
+    [InlineData("AMD Ryzen 7 9700F", "RYZEN 7 9700F")]
+    [InlineData("AMD Ryzen 5 9500F", "RYZEN 5 9500F")]
     [InlineData("AMD Ryzen 7 3700U with Radeon Graphics", "RYZEN 7 3700U")]
     [InlineData(null, "")]
     [InlineData("", "")]
@@ -174,9 +177,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.19.0", database.Version);
+        Assert.Equal("1.20.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
-        Assert.Equal(95, database.CpuCount);
+        Assert.Equal(98, database.CpuCount);
         Assert.Equal(93, database.GpuCount);
     }
 
@@ -1235,5 +1238,55 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.7, ryzen57600X.BaseGhz);
         Assert.Equal(5.3, ryzen57600X.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/7000-series/amd-ryzen-5-7600x.html", ryzen57600X.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Ryzen9000NonXDesktopCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.20.0: the three AMD Ryzen 9000 non-X desktop CPUs
+        // (Granite Ridge, Zen 5), the half of the family the dataset
+        // never listed. The X chips shipped long ago (9950X, 9900X,
+        // 9700X, 9600X) and the X3D chips in v2.1.48, but the non-X
+        // siblings sat missing: the 65 W 9600, and the two F chips
+        // (no integrated graphics) 9700F and 9500F, launched in 2025
+        // after the X launch. The gap went unnoticed the same way the
+        // 7000 non-X gap did: every cycle re-examined the
+        // deliberately-absent list, but no 9000 non-X chip was on it,
+        // so the family was never listed against the dataset until
+        // this cycle did. All three figures were verified by hand
+        // against AMD's own product pages, read 2026-11-14 from fresh
+        // crawls: the Ryzen 5 9600 at Base Clock 3.8 GHz and Max Boost
+        // Clock up to 5.2 GHz; the Ryzen 7 9700F at 3.8 and up to
+        // 5.5 GHz; the Ryzen 5 9500F at 3.8 and up to 5.0 GHz. AMD
+        // lists the 9700F with Regional Availability NA; it is a
+        // desktop part with a full AMD spec page, so it is included
+        // and the coverage note records the availability. No plain
+        // Ryzen 9 9900 or Ryzen 7 9700 AMD product page could be
+        // found after targeted searches (only 9900X, 9900X3D, 9700X
+        // and 9700F surfaced), so neither is added. The dataset's
+        // boost_ghz is AMD's Max Boost Clock, per its own
+        // definition, and the 9800X3D already in the dataset follows
+        // the same rule, so these three are consistent with it. No
+        // code change was needed: the CPU normalizer already maps
+        // "AMD Ryzen 5 9600" to "RYZEN 5 9600", and the Settings
+        // card shows the CPU count from the dataset, so it reads 98
+        // with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 9600", out var ryzen59600));
+        Assert.Equal("AMD", ryzen59600.Vendor);
+        Assert.Equal(3.8, ryzen59600.BaseGhz);
+        Assert.Equal(5.2, ryzen59600.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/9000-series/amd-ryzen-5-9600.html", ryzen59600.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 9700F", out var ryzen79700F));
+        Assert.Equal("AMD", ryzen79700F.Vendor);
+        Assert.Equal(3.8, ryzen79700F.BaseGhz);
+        Assert.Equal(5.5, ryzen79700F.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/9000-series/amd-ryzen-7-9700f.html", ryzen79700F.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 9500F", out var ryzen59500F));
+        Assert.Equal("AMD", ryzen59500F.Vendor);
+        Assert.Equal(3.8, ryzen59500F.BaseGhz);
+        Assert.Equal(5.0, ryzen59500F.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/9000-series/amd-ryzen-5-9500f.html", ryzen59500F.SourceUrl, StringComparison.Ordinal);
     }
 }
