@@ -12,9 +12,11 @@ namespace TrueSpec.Core.Localization;
 /// New Laptop Check and Crash History pages (phase 8).
 /// French is the second additional language (v2.1.20, phase 1): the
 /// navigation rail and the Settings language card, the same first
-/// surface German phase 1 translated; the other pages stay English
-/// in French until later versions add them, and the French language
-/// card says so. The French wording is the worker's own translation,
+/// surface German phase 1 translated; v2.1.21 adds the whole Settings
+/// page (phase 2), the same second surface German phase 2 translated.
+/// The other pages stay English in French until later versions add
+/// them, and the French language card says so. The French wording is
+/// the worker's own translation,
 /// not reviewed by a native speaker (the same honest limitation as
 /// the German wording). The translations use the standard terms
 /// Windows itself uses in French (Stockage for Storage, Affichage
@@ -1131,7 +1133,7 @@ public static class LanguagePacks
             [AppStringKeys.NavSettings] = "Paramètres",
             [AppStringKeys.LanguageTitle] = "Langue",
             [AppStringKeys.LanguageDescription] = "Choisissez la langue de la barre de navigation. La langue s'applique immédiatement.",
-            [AppStringKeys.LanguageNote] = "La barre de navigation et la carte de langue sont traduites. Les autres pages suivront dans les versions ultérieures.",
+            [AppStringKeys.LanguageNote] = "La barre de navigation et la page Paramètres sont traduites. Les autres pages suivront dans les versions ultérieures.",
             [AppStringKeys.SettingsEyebrow] = "PARAMÈTRES",
             [AppStringKeys.SettingsTitle] = "Paramètres",
             [AppStringKeys.SettingsIntro] = "Des réglages simples et honnêtes. Chaque modification est enregistrée immédiatement et s'applique tout de suite. Rien n'est envoyé sur le réseau.",
@@ -1157,7 +1159,7 @@ public static class LanguagePacks
             [AppStringKeys.HardwareDatabaseTitle] = "Base de données matérielle",
             [AppStringKeys.HardwareDatabaseNote] = "Affiche la fréquence boost nominale à partir d'une petite base de données intégrée des caractéristiques des processeurs et des cartes graphiques, lorsque votre processeur ou votre carte graphique y figure. La base de données est facultative et ne remplace jamais une valeur mesurée. Prend effet après redémarrage.",
             [AppStringKeys.HardwareDatabaseVersion] = "Jeu de données v{0} : {1} processeurs, {2} cartes graphiques, mis à jour le {3}.",
-            [AppStringKeys.AlertAboveLabel] = "Alerte au-dessus de (°C)",
+            [AppStringKeys.AlertAboveLabel] = "Seuil d'alerte (°C)",
             [AppStringKeys.AlertDurationLabel] = "Doit rester au-dessus pendant",
             [AppStringKeys.ThresholdMessage] = "Saisissez une température entre 30 et 120 °C.",
             [AppStringKeys.ExportTitle] = "Dossier d'exportation des rapports",
