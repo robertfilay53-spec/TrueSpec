@@ -28,6 +28,7 @@ public sealed class LanguagePackTests
     [InlineData("en")]
     [InlineData("de")]
     [InlineData("fr")]
+    [InlineData("es")]
     public void BuiltInPack_IsValidAgainstCatalogue(string code)
     {
         var pack = LanguagePacks.Get(code);
@@ -104,6 +105,58 @@ public sealed class LanguagePackTests
         Assert.Equal(
             "La barre de navigation, la page Paramètres, les pages de détail des composants, la page Vue d'ensemble, la page Historique, la page Rapport, la page Tests, la page Vérification d'ordinateur portable neuf, la page Historique des incidents, la page Comparer et la page Parc sont traduites. Toutes les pages sont désormais traduites.",
             french[AppStringKeys.LanguageNote]);
+    }
+
+    [Fact]
+    public void SpanishPack_UsesStandardSpanishUiTerms()
+    {
+        // Localisation, phase 1, Spanish (v2.1.27): the Spanish rail, the
+        // same first surface German phase 1 and French phase 1 translated.
+        // Pinned deliberately: these are the terms Windows itself uses in
+        // Spanish, so a Spanish-speaking buyer meets familiar words.
+        // Changing one is a deliberate translation decision, not a typo
+        // fix. The Spanish wording is the worker's own translation, not
+        // reviewed by a native speaker (the same honest limitation as the
+        // German and French wording). The language card says the rail and
+        // the card are translated and the other pages follow in later
+        // versions.
+        var spanish = LanguagePacks.Spanish.Strings;
+        Assert.Equal("Vista general", spanish[AppStringKeys.NavOverview]);
+        Assert.Equal("Almacenamiento", spanish[AppStringKeys.NavStorage]);
+        Assert.Equal("Batería", spanish[AppStringKeys.NavBattery]);
+        Assert.Equal("Pantalla", spanish[AppStringKeys.NavDisplay]);
+        Assert.Equal("Placa base", spanish[AppStringKeys.NavMotherboard]);
+        Assert.Equal("Controladores", spanish[AppStringKeys.NavDrivers]);
+        Assert.Equal("Inicio", spanish[AppStringKeys.NavStartup]);
+        Assert.Equal("Historial de bloqueos", spanish[AppStringKeys.NavCrash]);
+        Assert.Equal("Historial", spanish[AppStringKeys.NavHistory]);
+        Assert.Equal("Informe", spanish[AppStringKeys.NavReport]);
+        Assert.Equal("Comparar", spanish[AppStringKeys.NavCompare]);
+        Assert.Equal("Flota", spanish[AppStringKeys.NavFleet]);
+        Assert.Equal("Configuración", spanish[AppStringKeys.NavSettings]);
+        Assert.Equal("Idioma", spanish[AppStringKeys.LanguageTitle]);
+        Assert.Equal(
+            "La barra de navegación y la tarjeta de idioma están traducidas. Las demás páginas seguirán en versiones posteriores.",
+            spanish[AppStringKeys.LanguageNote]);
+    }
+
+    [Fact]
+    public void SpanishPack_TemplateFormattingKeepsInvariantNumbers()
+    {
+        // Localisation, phase 1, Spanish (v2.1.27): templates keep their
+        // placeholders and format numbers with the invariant culture, so
+        // a Spanish user sees the same numbers as an English one.
+        var spanish = LanguagePacks.Spanish.Strings;
+        Assert.Equal("{0} segundos", spanish[AppStringKeys.SecondsMany]);
+        Assert.Equal(
+            "Avisar cuando la temperatura de la CPU llegue a {0} °C durante {1} segundos.",
+            spanish[AppStringKeys.AlertSummaryOn]);
+        Assert.Equal(
+            "Conjunto de datos v{0}: {1} CPU, {2} GPU, actualizado el {3}.",
+            spanish[AppStringKeys.HardwareDatabaseVersion]);
+        Assert.Equal("Lectura registrada el {0}", spanish[AppStringKeys.DetailCaptured]);
+        Assert.Equal("+{0} pts", spanish[AppStringKeys.OverviewContribution]);
+        Assert.Equal("Temperatura: {0}", spanish[AppStringKeys.LoadTestTempMeasured]);
     }
 
     [Fact]
