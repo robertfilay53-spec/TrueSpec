@@ -42,7 +42,9 @@ namespace TrueSpec.Core.Localization;
 /// component detail view (phase 4), the same fourth surface German
 /// phase 4 and French phase 4 translated; v2.1.31 adds the Overview
 /// page (phase 5), the same fifth surface German phase 5 and French
-/// phase 5 translated. The Spanish pack
+/// phase 5 translated; v2.1.32 adds the History, Fleet, and Buyer
+/// Check pages (phase 6), the same sixth surface German phase 6 and
+/// French phase 6 translated. The Spanish pack
 /// covers the whole 523-key catalogue (the coverage test pins it: a
 /// pack that misses a key fails), so later phases only translate
 /// surfaces, never add keys. The other pages stay English in Spanish
@@ -1695,7 +1697,7 @@ public static class LanguagePacks
             [AppStringKeys.NavSettings] = "Configuración",
             [AppStringKeys.LanguageTitle] = "Idioma",
             [AppStringKeys.LanguageDescription] = "Elige el idioma de la barra de navegación. El idioma se aplica de inmediato.",
-            [AppStringKeys.LanguageNote] = "La barra de navegación, la página Configuración, las páginas de detalle de componentes y la página Vista general están traducidas. Las demás páginas seguirán en versiones posteriores.",
+            [AppStringKeys.LanguageNote] = "La barra de navegación, la página Configuración, las páginas de detalle de componentes, la página Vista general y las páginas Historial, Flota y Comprobación de comprador están traducidas. Las demás páginas seguirán en versiones posteriores.",
             [AppStringKeys.SettingsEyebrow] = "CONFIGURACIÓN",
             [AppStringKeys.SettingsTitle] = "Configuración",
             [AppStringKeys.SettingsIntro] = "Controles pequeños y honestos. Cada cambio se guarda de inmediato y se aplica al momento. Nada de esto llama a casa.",

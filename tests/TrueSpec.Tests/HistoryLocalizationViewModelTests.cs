@@ -9,7 +9,8 @@ namespace TrueSpec.Tests;
 /// Localisation, phases 6-7 (v2.1.12-13): the History page in German — the
 /// trend cards, the saved-scans table, the two-machine comparison and
 /// the value comparison, plus the CPU temperature log. French phase 6
-/// (v2.1.25) mirrors the German tests in French; the Core-owned
+/// (v2.1.25) mirrors the German tests in French; Spanish phase 6
+/// (v2.1.32) mirrors the French tests in Spanish; the Core-owned
 /// wordings (trend summary, forecast texts, no-verdict reason) render
 /// French from the same catalogue keys, verified against the real
 /// Core code, while the value verdict sentence itself stays English
@@ -68,7 +69,8 @@ public class HistoryLocalizationViewModelTests
         var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
         while ((viewModel.StatusMessage == "Loading snapshot history..."
                 || viewModel.StatusMessage == "Scanverlauf wird geladen …"
-                || viewModel.StatusMessage == "Chargement de l'historique des instantanés...")
+                || viewModel.StatusMessage == "Chargement de l'historique des instantanés..."
+                || viewModel.StatusMessage == "Cargando historial de instantáneas...")
             && DateTimeOffset.UtcNow < deadline)
         {
             await Task.Delay(50);
@@ -1379,6 +1381,617 @@ public class HistoryLocalizationViewModelTests
             Assert.True(partial.HasSensorLog);
             Assert.Equal("Température du processeur, 4 échantillons du 13:45 au 13:46.", partial.SensorLogStatusText);
             Assert.Equal("4 échantillons, 1 trou où le capteur n'a pas signalé.", partial.SensorLogSummaryText);
+
+            partial.ApplyLanguage("en");
+            Assert.Equal("CPU temperature, 4 samples from 13:45 to 13:46.", partial.SensorLogStatusText);
+            Assert.Equal("4 samples, 1 gap where the sensor did not report.", partial.SensorLogSummaryText);
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public void SpanishSeeded_RendersWholePageInSpanish()
+    {
+        var viewModel = new HistoryViewModel(null, TestSnapshots.Healthy(), languageCode: "es");
+
+        Assert.Equal("HISTORIAL", viewModel.HistoryEyebrowText);
+        Assert.Equal("Cómo cambia este equipo con el tiempo", viewModel.HistoryTitleText);
+        Assert.Equal(
+            "Cada análisis se guarda en una base de datos local en este equipo. TrueSpec sigue la tendencia de la puntuación general, la salud de la batería y el desgaste del almacenamiento en esos análisis. Un valor que un análisis no informó es un hueco, nunca un cero.",
+            viewModel.HistoryIntroText);
+        Assert.Equal("Equipo", viewModel.HistoryMachineTitleText);
+        Assert.Equal("Elige un equipo", viewModel.HistoryPickMachineText);
+        Assert.Equal(
+            "El historial se muestra para un equipo a la vez. Elige otro equipo para ver su propia tendencia.",
+            viewModel.HistoryMachineNoteText);
+        Assert.Equal("ALERTA DE SALUD DE LA BATERÍA", viewModel.HistoryBatteryAlertEyebrowText);
+        Assert.Equal("Puntuación general", viewModel.HistoryScoreTitleText);
+        Assert.Equal("Salud de la batería", viewModel.HistoryBatteryTitleText);
+        Assert.Equal("Desgaste del almacenamiento", viewModel.HistoryWearTitleText);
+        Assert.Equal("PRONÓSTICO", viewModel.HistoryForecastEyebrowText);
+        Assert.Equal("Registro de temperatura de la CPU", viewModel.HistoryCpuLogTitleText);
+        Assert.Equal("Actualizar gráfico", viewModel.HistoryRefreshChartText);
+        Assert.Equal(
+            "El eje horizontal es el tiempo, no el número de muestras. Los huecos en la línea son muestras en las que el sensor de temperatura de la CPU no informó, o periodos en los que el registro no estaba en ejecución (la aplicación estaba cerrada o el equipo estaba en suspensión). La línea nunca conecta a través de un hueco. La línea discontinua es tu umbral de alerta, cuando hay uno establecido. El registro es un archivo CSV local en %LocalAppData%\\TrueSpec; nada se sube.",
+            viewModel.HistoryChartCaptionText);
+        Assert.Equal("ANTIGÜEDAD DE LOS CONTROLADORES", viewModel.HistoryDriverAgeEyebrowText);
+        Assert.Equal("Análisis guardados", viewModel.HistorySavedScansTitleText);
+        Assert.Equal("Exportar historial como CSV", viewModel.HistoryExportCsvText);
+        Assert.Equal(
+            "El más antiguo primero. Un guion significa que ese análisis no informó del valor. Eliminar borra ese análisis de esta carpeta de datos: el primer clic pregunta, el segundo elimina.",
+            viewModel.HistoryTableNoteText);
+        Assert.Equal("Analizado", viewModel.HistoryHeaderScannedText);
+        Assert.Equal("Puntuación", viewModel.HistoryHeaderScoreText);
+        Assert.Equal("Ciclos", viewModel.HistoryHeaderCyclesText);
+        Assert.Equal("Salud de la batería", viewModel.HistoryHeaderBatteryText);
+        Assert.Equal("Desgaste del almacenamiento", viewModel.HistoryHeaderWearText);
+        Assert.Equal("Horas de encendido", viewModel.HistoryHeaderPowerOnHoursText);
+        Assert.Equal("Comparar dos equipos", viewModel.HistoryCompareTitleText);
+        Assert.Equal("Equipos distintos: se muestran uno al lado del otro, nunca mezclados en una misma tendencia.", viewModel.HistoryCompareNoteText);
+        Assert.Equal("Equipo A", viewModel.HistoryMachineAText);
+        Assert.Equal("Equipo B", viewModel.HistoryMachineBText);
+        Assert.Equal("Comparar", viewModel.HistoryCompareButtonText);
+        Assert.Equal("¿Cuál es la mejor compra?", viewModel.HistoryValueTitleText);
+        Assert.Equal(
+            "Escribe el precio que pide cada vendedor. El precio es tuyo, no medido, y solo se usa para esta comparación. Nunca se guarda con el análisis.",
+            viewModel.HistoryValueIntroText);
+        Assert.Equal("Precio solicitado (lo introduces tú, no medido)", viewModel.HistoryAskingPriceLabelText);
+        Assert.Equal("Por ejemplo, 500", viewModel.HistoryPriceExampleText);
+        Assert.Equal("Comparar valor", viewModel.HistoryCompareValueButtonText);
+        Assert.Equal("Ganador por componente (solo salud medida)", viewModel.HistoryWinnersTitleText);
+        Assert.Equal("Cómo cambia Test Laptop con el tiempo", viewModel.MachineSubtitleText);
+        Assert.Equal("El historial de instantáneas no está disponible en este equipo, así que aún no hay nada que mostrar en tendencia.", viewModel.StatusMessage);
+        Assert.Equal("El historial de instantáneas no está disponible en este equipo, así que aún no hay nada que comparar.", viewModel.ComparisonStatusText);
+        Assert.Equal("Introduce el precio solicitado por cada vendedor para comparar el valor.", viewModel.ValueStatusText);
+    }
+
+    [Fact]
+    public void ApplyLanguage_SwitchesToSpanishAndBack()
+    {
+        var viewModel = new HistoryViewModel(null, TestSnapshots.Healthy());
+
+        viewModel.ApplyLanguage("es");
+        Assert.Equal("HISTORIAL", viewModel.HistoryEyebrowText);
+        Assert.Equal("Puntuación general", viewModel.HistoryScoreTitleText);
+        Assert.Equal("Cómo cambia Test Laptop con el tiempo", viewModel.MachineSubtitleText);
+        Assert.Equal("El historial de instantáneas no está disponible en este equipo, así que aún no hay nada que mostrar en tendencia.", viewModel.StatusMessage);
+        Assert.Equal("Introduce el precio solicitado por cada vendedor para comparar el valor.", viewModel.ValueStatusText);
+
+        viewModel.ApplyLanguage("en");
+        Assert.Equal("HISTORY", viewModel.HistoryEyebrowText);
+        Assert.Equal("Overall score", viewModel.HistoryScoreTitleText);
+        Assert.Equal("How Test Laptop changes over time", viewModel.MachineSubtitleText);
+        Assert.Equal("Snapshot history is unavailable on this machine, so there is nothing to trend yet.", viewModel.StatusMessage);
+        Assert.Equal("Enter each seller's asking price to compare value.", viewModel.ValueStatusText);
+
+        viewModel.ApplyLanguage("es");
+        Assert.Equal("HISTORIAL", viewModel.HistoryEyebrowText);
+        Assert.Equal("El historial de instantáneas no está disponible en este equipo, así que aún no hay nada que mostrar en tendencia.", viewModel.StatusMessage);
+    }
+
+    [Fact]
+    public async Task TwoScans_StatusAndRanges_AreLocalized_CoreWordingsFollowLanguage_Spanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("Test Laptop", 90d, "90.0%", "10", "2%", "100", baseTime),
+                ("Test Laptop", 85d, "85.0%", "12", "5%", "120", baseTime.AddHours(1)));
+
+            var english = new HistoryViewModel(store, TestSnapshots.Healthy());
+            await WaitForLoadAsync(english);
+            var spanish = new HistoryViewModel(store, TestSnapshots.Healthy(), languageCode: "es");
+            await WaitForLoadAsync(spanish);
+
+            Assert.True(english.HasHistory, "English history never loaded.");
+            Assert.True(spanish.HasHistory, "Spanish history never loaded.");
+
+            Assert.Equal("2 scans in history, oldest first.", english.StatusMessage);
+            Assert.Equal("2 análisis en el historial, el más antiguo primero.", spanish.StatusMessage);
+            Assert.Equal("Score: 90 to 85 over 2 scans.", english.ScoreRangeText);
+            Assert.Equal("Puntuación: de 90 a 85 en 2 análisis.", spanish.ScoreRangeText);
+            Assert.Equal("Battery health: 90% to 85% over 2 scans.", english.BatteryRangeText);
+            Assert.Equal("Salud de la batería: de 90% a 85% en 2 análisis.", spanish.BatteryRangeText);
+            Assert.Equal("Storage wear: 2% to 5% over 2 scans.", english.WearRangeText);
+            Assert.Equal("Desgaste del almacenamiento: de 2% a 5% en 2 análisis.", spanish.WearRangeText);
+
+            // Measured values do not change with the chrome: the same row
+            // cells, the same machine names. The Core-owned wordings
+            // (trend summary, forecast texts) follow the language
+            // instead: they are re-derived from the same snapshots.
+            // The Spanish wordings below were verified against the real
+            // Core code (HistoryTrendAnalyzer + DegradationForecaster
+            // run with "es" on these exact fixtures).
+            Assert.Equal(
+                "2 scans from 2026-11-10 to 2026-11-10. Score 90 to 85 (down 5 points). Battery health 90 to 85 (down 5 points). Storage wear 2 to 5 (up 3 points).",
+                english.SummaryText);
+            Assert.Equal(
+                "2 análisis de 2026-11-10 a 2026-11-10. Puntuación de 90 a 85 (baja 5 puntos). Salud de la batería de 90 a 85 (baja 5 puntos). Desgaste del almacenamiento de 2 a 5 (sube 3 puntos).",
+                spanish.SummaryText);
+            Assert.Equal(
+                "Battery health has 2 scans over 0 days. A forecast needs at least 3 scans over at least 30 days: 1 more scan needed.",
+                english.BatteryForecastText);
+            Assert.Equal(
+                "Salud de la batería tiene 2 análisis en 0 días. Un pronóstico necesita al menos 3 análisis en al menos 30 días: falta 1 análisis más.",
+                spanish.BatteryForecastText);
+            Assert.Equal(
+                "SSD wear has 2 scans over 0 days. A forecast needs at least 3 scans over at least 30 days: 1 more scan needed.",
+                english.StorageWearForecastText);
+            Assert.Equal(
+                "Desgaste de SSD tiene 2 análisis en 0 días. Un pronóstico necesita al menos 3 análisis en al menos 30 días: falta 1 análisis más.",
+                spanish.StorageWearForecastText);
+            Assert.Equal(english.Rows.Select(r => r.ScoreText), spanish.Rows.Select(r => r.ScoreText));
+            Assert.Equal(english.Rows.Select(r => r.BatteryHealthText), spanish.Rows.Select(r => r.BatteryHealthText));
+            Assert.Equal(english.Rows.Select(r => r.BatteryCyclesText), spanish.Rows.Select(r => r.BatteryCyclesText));
+            Assert.Equal(english.Rows.Select(r => r.StorageWearText), spanish.Rows.Select(r => r.StorageWearText));
+            Assert.Equal(english.Rows.Select(r => r.StorageHoursText), spanish.Rows.Select(r => r.StorageHoursText));
+            Assert.Equal(english.Rows.Select(r => r.CapturedAt), spanish.Rows.Select(r => r.CapturedAt));
+            Assert.Equal(english.MachineNames, spanish.MachineNames);
+
+            // A switch re-renders the loaded page in place, keeping the data.
+            spanish.ApplyLanguage("en");
+            Assert.Equal("2 scans in history, oldest first.", spanish.StatusMessage);
+            Assert.Equal("Score: 90 to 85 over 2 scans.", spanish.ScoreRangeText);
+            Assert.Equal(english.SummaryText, spanish.SummaryText);
+            Assert.Equal(english.Rows.Select(r => r.ScoreText), spanish.Rows.Select(r => r.ScoreText));
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task OneScan_AndNoScans_StatusLines_AreLocalized_Spanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("Test Laptop", 90d, "90.0%", "10", "2%", "100", baseTime));
+
+            var spanish = new HistoryViewModel(store, TestSnapshots.Healthy(), languageCode: "es");
+            await WaitForLoadAsync(spanish);
+
+            Assert.Equal("Solo hay 1 análisis guardado hasta ahora. Ejecuta otro análisis (actualizar) y vuelve para ver la tendencia.", spanish.StatusMessage);
+            Assert.Equal("Puntuación: 90 (solo un análisis).", spanish.ScoreRangeText);
+
+            spanish.ApplyLanguage("en");
+            Assert.Equal("One scan saved so far. Run another scan (refresh) and come back for the trend.", spanish.StatusMessage);
+            Assert.Equal("Score: 90 (one scan only).", spanish.ScoreRangeText);
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+
+        directory = TempDirectory();
+        try
+        {
+            // Only the other machine has scans: the current machine's
+            // trend is empty, and the compare card offers the pair.
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("OTHER-PC", 70d, "75.0%", "300", "12%", "45000", baseTime));
+
+            var spanish = new HistoryViewModel(store, TestSnapshots.Healthy(), languageCode: "es");
+            await WaitForLoadAsync(spanish);
+
+            Assert.False(spanish.HasHistory);
+            Assert.Equal("Aún no hay análisis guardados. Ejecuta un análisis (actualizar) y vuelve: cada análisis se guarda en el historial local.", spanish.StatusMessage);
+            Assert.Equal("Elige dos equipos y compáralos. Los equipos distintos se muestran uno al lado del otro, nunca mezclados en una misma tendencia.", spanish.ComparisonStatusText);
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task RemoveButtonText_InSpanish_AndArmedConfirmSurvivesSwitch()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("Test Laptop", 90d, "90.0%", "10", "2%", "100", baseTime),
+                ("Test Laptop", 85d, "85.0%", "12", "5%", "120", baseTime.AddHours(1)));
+
+            // A row built by hand follows its own language code.
+            var row = new HistoryRowViewModel(
+                Guid.NewGuid(),
+                baseTime,
+                90d,
+                90d,
+                10d,
+                2d,
+                100d,
+                languageCode: "es");
+            Assert.Equal("Eliminar", row.RemoveButtonText);
+            row.IsRemoveArmed = true;
+            Assert.Equal("Confirmar eliminación", row.RemoveButtonText);
+            row.ApplyLanguage("en");
+            Assert.Equal("Confirm remove", row.RemoveButtonText);
+
+            var viewModel = new HistoryViewModel(store, TestSnapshots.Healthy(), languageCode: "es");
+            await WaitForLoadAsync(viewModel);
+
+            Assert.Equal(2, viewModel.Rows.Count);
+            Assert.All(viewModel.Rows, r => Assert.Equal("Eliminar", r.RemoveButtonText));
+
+            // First click arms: the status names the scan date in Spanish.
+            var firstRow = viewModel.Rows[0];
+            await viewModel.RemoveScanCommand.ExecuteAsync(firstRow);
+
+            Assert.True(firstRow.IsRemoveArmed);
+            Assert.Equal("Confirmar eliminación", firstRow.RemoveButtonText);
+            Assert.Contains("¿Eliminar el análisis de 2026-11-10 09:00?", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("no se elimina nada hasta entonces", viewModel.StatusMessage, StringComparison.Ordinal);
+
+            // A switch re-resolves the armed confirmation instead of
+            // resetting it; the rebuilt rows carry the new language.
+            viewModel.ApplyLanguage("en");
+            Assert.Contains("Remove the scan from 2026-11-10 09:00?", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.Contains("nothing is deleted until then", viewModel.StatusMessage, StringComparison.Ordinal);
+            Assert.All(viewModel.Rows, r => Assert.Equal("Remove", r.RemoveButtonText));
+
+            viewModel.ApplyLanguage("es");
+            Assert.Contains("¿Eliminar el análisis de 2026-11-10 09:00?", viewModel.StatusMessage, StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task RemoveScan_RemovedMessages_AreLocalizedInSpanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("Test Laptop", 90d, "90.0%", "10", "2%", "100", baseTime),
+                ("Test Laptop", 85d, "85.0%", "12", "5%", "120", baseTime.AddHours(1)));
+
+            var viewModel = new HistoryViewModel(store, TestSnapshots.Healthy(), languageCode: "es");
+            await WaitForLoadAsync(viewModel);
+
+            var firstRow = viewModel.Rows[0];
+            await viewModel.RemoveScanCommand.ExecuteAsync(firstRow);
+            await viewModel.RemoveScanCommand.ExecuteAsync(viewModel.Rows[0]);
+
+            Assert.Single(viewModel.Rows);
+            Assert.Equal("Se eliminó el análisis de 2026-11-10 09:00. Queda 1 análisis.", viewModel.StatusMessage);
+
+            viewModel.ApplyLanguage("en");
+            Assert.Equal("Removed the scan from 2026-11-10 09:00. 1 scan remains.", viewModel.StatusMessage);
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+
+        directory = TempDirectory();
+        try
+        {
+            // Removing the only scan leaves the none-remain wording.
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("Test Laptop", 90d, "90.0%", "10", "2%", "100", baseTime));
+
+            var viewModel = new HistoryViewModel(store, TestSnapshots.Healthy(), languageCode: "es");
+            await WaitForLoadAsync(viewModel);
+
+            var row = viewModel.Rows[0];
+            await viewModel.RemoveScanCommand.ExecuteAsync(row);
+            await viewModel.RemoveScanCommand.ExecuteAsync(viewModel.Rows[0]);
+
+            Assert.Empty(viewModel.Rows);
+            Assert.Equal("Se eliminó el análisis de 2026-11-10 09:00. No quedan análisis guardados.", viewModel.StatusMessage);
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task ComparisonRows_ValueRows_AndWinners_AreSpanish_VerdictStaysEnglish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("Test Laptop", 90d, "90.0%", "10", "2%", "100", baseTime),
+                ("Test Laptop", 85d, "85.0%", "12", "5%", "120", baseTime.AddHours(1)),
+                ("OTHER-PC", 70d, "75.0%", "300", "12%", "45000", baseTime),
+                ("OTHER-PC", 75d, "80.0%", "310", "12%", "45100", baseTime.AddHours(1)));
+
+            var viewModel = new HistoryViewModel(store, TestSnapshots.Healthy(), languageCode: "es");
+            await WaitForLoadAsync(viewModel);
+
+            Assert.Equal("Test Laptop", viewModel.CompareMachineA);
+            Assert.Equal("OTHER-PC", viewModel.CompareMachineB);
+            Assert.Equal("Elige dos equipos y compáralos. Los equipos distintos se muestran uno al lado del otro, nunca mezclados en una misma tendencia.", viewModel.ComparisonStatusText);
+
+            await WaitForCompareReadyAsync(viewModel);
+            await viewModel.CompareMachinesCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.HasMachineComparison, "Comparison never ran.");
+            Assert.Equal("Test Laptop", viewModel.MachineAName);
+            Assert.Equal("OTHER-PC", viewModel.MachineBName);
+            Assert.Equal("Se comparó Test Laptop con OTHER-PC. Los equipos distintos se muestran uno al lado del otro, nunca mezclados en una misma tendencia.", viewModel.ComparisonStatusText);
+            Assert.Equal(
+                new[] { "Análisis en el historial", "Primer análisis", "Último análisis", "Última puntuación", "Última salud de la batería", "Último desgaste del almacenamiento", "Fecha del controlador más antiguo", "Última instalación de actualización" },
+                viewModel.ComparisonRows.Select(r => r.Label));
+            Assert.Equal(new[] { "2", "2" }, new[] { viewModel.ComparisonRows.Single(r => r.Label == "Análisis en el historial").MachineAText, viewModel.ComparisonRows.Single(r => r.Label == "Análisis en el historial").MachineBText });
+            var scoreRow = viewModel.ComparisonRows.Single(r => r.Label == "Última puntuación");
+            Assert.Equal("85", scoreRow.MachineAText);
+            Assert.Equal("75", scoreRow.MachineBText);
+            var batteryRow = viewModel.ComparisonRows.Single(r => r.Label == "Última salud de la batería");
+            Assert.Equal("85%", batteryRow.MachineAText);
+            Assert.Equal("80%", batteryRow.MachineBText);
+            var wearRow = viewModel.ComparisonRows.Single(r => r.Label == "Último desgaste del almacenamiento");
+            Assert.Equal("5%", wearRow.MachineAText);
+            Assert.Equal("12%", wearRow.MachineBText);
+
+            // A switch rebuilds the comparison rows in the new language.
+            viewModel.ApplyLanguage("en");
+            Assert.Equal("Compared Test Laptop with OTHER-PC. Different machines are shown side by side, never mixed in one trend.", viewModel.ComparisonStatusText);
+            Assert.Equal(
+                new[] { "Scans in history", "First scan", "Last scan", "Latest score", "Latest battery health", "Latest storage wear", "Latest oldest driver date", "Last update install" },
+                viewModel.ComparisonRows.Select(r => r.Label));
+            viewModel.ApplyLanguage("es");
+
+            // A bad price is a Spanish prompt, not a verdict.
+            viewModel.PriceAText = string.Empty;
+            viewModel.PriceBText = "400";
+            viewModel.CompareValueCommand.Execute(null);
+            Assert.False(viewModel.HasValueComparison);
+            Assert.Equal("Introduce un precio solicitado superior a cero para cada equipo (solo números, por ejemplo, 500). El precio es tuyo, no medido.", viewModel.ValueStatusText);
+
+            // Valid prices: the honesty note and the per-dollar label
+            // are chrome (Spanish); the verdict sentence itself is
+            // Core-owned and stays English by design.
+            viewModel.PriceAText = "500";
+            viewModel.PriceBText = "400";
+            viewModel.CompareValueCommand.Execute(null);
+
+            Assert.True(viewModel.HasValueComparison);
+            Assert.Equal("Los precios son tuyos, no medidos. La cifra por dólar es un cálculo aritmético sobre la puntuación medida y el precio que introdujiste, etiquetada como ESTIMACIÓN. No se usan datos de precios de mercado.", viewModel.ValueStatusText);
+            Assert.Contains("Machine B", viewModel.ValueVerdictText, StringComparison.Ordinal);
+            Assert.Contains("better buy", viewModel.ValueVerdictText, StringComparison.Ordinal);
+            Assert.Equal(2, viewModel.ValueRows.Count);
+            // The asking-price row label follows the page language
+            // through the catalogue key, like the other row labels.
+            Assert.Equal("Precio solicitado (lo introduces tú, no medido)", viewModel.ValueRows[0].Label);
+            Assert.Equal("$500", viewModel.ValueRows[0].MachineAText);
+            Assert.Equal("$400", viewModel.ValueRows[0].MachineBText);
+            Assert.Equal("Puntuación por 1 $ (ESTIMACIÓN)", viewModel.ValueRows[1].Label);
+            Assert.Equal("0.17", viewModel.ValueRows[1].MachineAText);
+
+            // Winners: storage is measurable on both sides (95% vs
+            // 88%), battery is measurable on neither (both null health).
+            Assert.Equal(2, viewModel.ValueComponentWinners.Count);
+            var storageWinner = viewModel.ValueComponentWinners.Single(w => w.ComponentName == "Storage");
+            Assert.Equal("El equipo A gana (95% frente a 88%)", storageWinner.WinnerText);
+            var batteryWinner = viewModel.ValueComponentWinners.Single(w => w.ComponentName == "Battery");
+            Assert.Equal("No medible en uno o ambos equipos", batteryWinner.WinnerText);
+
+            // A switch rebuilds the value rows and winners too.
+            viewModel.ApplyLanguage("en");
+            Assert.Equal("Asking price (you enter this, not measured)", viewModel.ValueRows[0].Label);
+            Assert.Equal("Score per $1 (ESTIMATE)", viewModel.ValueRows[1].Label);
+            Assert.Equal("Machine A wins (95% vs 88%)", viewModel.ValueComponentWinners.Single(w => w.ComponentName == "Storage").WinnerText);
+            Assert.Equal("Not measurable on one or both machines", viewModel.ValueComponentWinners.Single(w => w.ComponentName == "Battery").WinnerText);
+            Assert.Equal("Prices are yours, not measured. The per-dollar figure is arithmetic on the measured score and the price you entered, labelled ESTIMATE. No market-price data is used.", viewModel.ValueStatusText);
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task LanguageSwitch_ReAnalysesTrendSummaryAndForecasts_Spanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 1, 10, 9, 0, 0, TimeSpan.Zero);
+            var store = await StoreWithAsync(
+                directory,
+                ("Test Laptop", 90d, "90.0%", "10", "2%", "100", baseTime),
+                ("Test Laptop", 89d, "89.0%", "11", "4%", "150", baseTime.AddDays(30)),
+                ("Test Laptop", 88d, "88.0%", "12", "6%", "200", baseTime.AddDays(60)),
+                ("Test Laptop", 87d, "87.0%", "13", "8%", "250", baseTime.AddDays(90)));
+
+            var viewModel = new HistoryViewModel(store, TestSnapshots.Healthy(), languageCode: "en");
+            await WaitForLoadAsync(viewModel);
+
+            Assert.Equal(
+                "4 scans from 2026-01-10 to 2026-04-10. Score 90 to 87 (down 3 points). Battery health 90 to 87 (down 3 points). Storage wear 2 to 8 (up 6 points).",
+                viewModel.SummaryText);
+            Assert.Equal(
+                "Battery health fell 3 points over 4 scans (90 days). At that measured rate, it reaches the Replace threshold (battery health below 60%) in 23 to 30 months.",
+                viewModel.BatteryForecastText);
+            Assert.Equal(
+                "SSD wear rose 6 points over 4 scans (90 days). At that measured rate, it reaches the Replace threshold (storage wear above 40%) in 14 to 18 months.",
+                viewModel.StorageWearForecastText);
+
+            // A switch re-analyses the same snapshots in Spanish: the
+            // wordings change, the measured values do not. The Spanish
+            // wordings below were verified against the real Core code
+            // (HistoryTrendAnalyzer + DegradationForecaster run with
+            // "es" on these exact fixtures).
+            viewModel.ApplyLanguage("es");
+            Assert.Equal(
+                "4 análisis de 2026-01-10 a 2026-04-10. Puntuación de 90 a 87 (baja 3 puntos). Salud de la batería de 90 a 87 (baja 3 puntos). Desgaste del almacenamiento de 2 a 8 (sube 6 puntos).",
+                viewModel.SummaryText);
+            Assert.Equal(
+                "Salud de la batería bajó 3 puntos en 4 análisis (90 días). A ese ritmo medido, alcanza el Umbral de sustitución (salud de la batería por debajo del 60 %) en 23 a 30 meses.",
+                viewModel.BatteryForecastText);
+            Assert.Equal(
+                "Desgaste de SSD subió 6 puntos en 4 análisis (90 días). A ese ritmo medido, alcanza el Umbral de sustitución (desgaste del almacenamiento por encima del 40 %) en 14 a 18 meses.",
+                viewModel.StorageWearForecastText);
+
+            viewModel.ApplyLanguage("en");
+            Assert.Equal(
+                "4 scans from 2026-01-10 to 2026-04-10. Score 90 to 87 (down 3 points). Battery health 90 to 87 (down 3 points). Storage wear 2 to 8 (up 6 points).",
+                viewModel.SummaryText);
+            Assert.Equal(
+                "Battery health fell 3 points over 4 scans (90 days). At that measured rate, it reaches the Replace threshold (battery health below 60%) in 23 to 30 months.",
+                viewModel.BatteryForecastText);
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task LanguageSwitch_ReRunsValueComparison_NoVerdictReasonFollowsLanguage_Spanish()
+    {
+        var directory = TempDirectory();
+        try
+        {
+            var baseTime = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+            var databasePath = Path.Combine(directory, "snapshots.db");
+            var store = new SqliteSnapshotStore(databasePath);
+            await store.InitializeAsync();
+            // Test Laptop: measurable scores. OTHER-PC: no measurable
+            // score, so the value comparison has no verdict and the
+            // reason says which input is missing.
+            await store.SaveAsync(TestSnapshots.HistorySnapshot(90d, "90.0%", "10", "2%", "100", baseTime, machineName: "Test Laptop"));
+            await store.SaveAsync(TestSnapshots.HistorySnapshot(85d, "85.0%", "12", "5%", "120", baseTime.AddHours(1), machineName: "Test Laptop"));
+            await store.SaveAsync(TestSnapshots.HistorySnapshot(70d, "75.0%", "300", "12%", "45000", baseTime, machineName: "OTHER-PC", measurableScore: false));
+            await store.SaveAsync(TestSnapshots.HistorySnapshot(75d, "80.0%", "310", "12%", "45100", baseTime.AddHours(1), machineName: "OTHER-PC", measurableScore: false));
+
+            var viewModel = new HistoryViewModel(store, TestSnapshots.Healthy(), languageCode: "en");
+            await WaitForLoadAsync(viewModel);
+            await WaitForCompareReadyAsync(viewModel);
+            await viewModel.CompareMachinesCommand.ExecuteAsync(null);
+            Assert.True(viewModel.HasMachineComparison, "Comparison never ran.");
+
+            // Both prices are valid, but one machine has no measured
+            // score: no verdict, and the reason says which input is
+            // missing. (A zero price never reaches the comparer:
+            // TryParseAskingPrice rejects it as a bad price first.
+            // The no-price reason is covered at the Core level in
+            // HistoryCoreWordingsTests instead.)
+            viewModel.PriceAText = "500";
+            viewModel.PriceBText = "400";
+            viewModel.CompareValueCommand.Execute(null);
+
+            Assert.True(viewModel.HasValueComparison);
+            Assert.Equal(string.Empty, viewModel.ValueVerdictText);
+            Assert.Equal(
+                "A value verdict needs a measured health score for both machines.",
+                viewModel.ValueStatusText);
+
+            // A switch re-runs the comparison in Spanish; the verdict
+            // (none here) is unchanged, the reason follows the language.
+            // The Spanish reason below was verified against the real
+            // Core code (ValueComparer run with "es" on this fixture).
+            viewModel.ApplyLanguage("es");
+            Assert.Equal(string.Empty, viewModel.ValueVerdictText);
+            Assert.Equal(
+                "Un veredicto de valor necesita una puntuación de salud medida para ambos equipos.",
+                viewModel.ValueStatusText);
+            Assert.Equal("Precio solicitado (lo introduces tú, no medido)", viewModel.ValueRows[0].Label);
+
+            viewModel.ApplyLanguage("en");
+            Assert.Equal(
+                "A value verdict needs a measured health score for both machines.",
+                viewModel.ValueStatusText);
+
+            // A price typed since the last compare is NOT applied by a
+            // language switch: the stored result (and its reason) stay
+            // until Compare runs again.
+            viewModel.PriceBText = "450";
+            viewModel.ApplyLanguage("es");
+            Assert.Equal(
+                "A value verdict needs a measured health score for both machines.",
+                viewModel.ValueStatusText);
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public void ValueCompareFirst_IsLocalized_Spanish()
+    {
+        var viewModel = new HistoryViewModel(null, TestSnapshots.Healthy(), languageCode: "es");
+
+        Assert.False(viewModel.HasMachineComparison);
+        viewModel.CompareValueCommand.Execute(null);
+
+        Assert.Equal("Compara primero dos equipos y luego introduce los precios solicitados.", viewModel.ValueStatusText);
+        Assert.False(viewModel.HasValueComparison);
+    }
+
+    [Fact]
+    public void SensorLogStatuses_AreLocalized_AndSwitchReReadsTheLog_Spanish()
+    {
+        // Fixed UTC+5 zone, standing in for PKT in the laptop test.
+        var zone = TimeZoneInfo.CreateCustomTimeZone("PKT-test", TimeSpan.FromHours(5), "PKT-test", "PKT-test");
+        var directory = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "sensor-log.csv");
+        try
+        {
+            // Logging off: the Spanish off sentence, in both languages.
+            var off = new HistoryViewModel(null, TestSnapshots.Healthy(), sensorLogPath: path, sensorLoggingEnabled: false, displayTimeZone: zone, languageCode: "es");
+            off.LoadSensorLog();
+            Assert.Equal("El registro de sensores está desactivado. Actívalo en Configuración y el gráfico de temperatura de la CPU aparecerá aquí.", off.SensorLogStatusText);
+            off.ApplyLanguage("en");
+            Assert.Equal("Sensor logging is off. Turn it on in Settings and the CPU temperature chart will appear here.", off.SensorLogStatusText);
+
+            // No log file yet: the no-samples sentence.
+            var empty = new HistoryViewModel(null, TestSnapshots.Healthy(), sensorLogPath: path, displayTimeZone: zone, languageCode: "es");
+            empty.LoadSensorLog();
+            Assert.Equal("Aún no se han registrado muestras de sensores. Deja TrueSpec en ejecución y el gráfico de temperatura de la CPU aparecerá aquí.", empty.SensorLogStatusText);
+
+            // All gaps: the no-readings sentence with the sample count.
+            WriteLog(path, new DateTimeOffset(2026, 11, 12, 8, 45, 0, TimeSpan.Zero), null, null, null);
+            var gaps = new HistoryViewModel(null, TestSnapshots.Healthy(), sensorLogPath: path, displayTimeZone: zone, languageCode: "es");
+            gaps.LoadSensorLog();
+            Assert.False(gaps.HasSensorLog);
+            Assert.Equal(
+                "No se registraron lecturas de temperatura en 3 muestras: el hardware de este equipo no informa de un sensor de temperatura de la CPU. Esto es normal en equipos cuyo sensor no está expuesto, así que no hay ningún gráfico de temperatura de la CPU que mostrar.",
+                gaps.SensorLogStatusText);
+
+            // One gap among measured values: the chart stays, and the
+            // Spanish summary names the gap; a switch re-reads the log
+            // and re-resolves both sentences. A fresh file: the writer
+            // appends, so the all-gaps rows above must go first.
+            File.Delete(path);
+            WriteLog(path, new DateTimeOffset(2026, 11, 12, 8, 45, 0, TimeSpan.Zero), 70, null, 72);
+            File.AppendAllText(path, "2026-11-12T08:46:00.0000000Z,73\n");
+            var partial = new HistoryViewModel(null, TestSnapshots.Healthy(), sensorLogPath: path, displayTimeZone: zone, languageCode: "es");
+            partial.LoadSensorLog();
+            Assert.True(partial.HasSensorLog);
+            Assert.Equal("Temperatura de la CPU, 4 muestras de 13:45 a 13:46.", partial.SensorLogStatusText);
+            Assert.Equal("4 muestras, 1 hueco en el que el sensor no informó.", partial.SensorLogSummaryText);
 
             partial.ApplyLanguage("en");
             Assert.Equal("CPU temperature, 4 samples from 13:45 to 13:46.", partial.SensorLogStatusText);
