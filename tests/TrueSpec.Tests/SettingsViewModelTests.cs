@@ -149,7 +149,7 @@ public class SettingsViewModelTests
                 "Choisissez la langue de la barre de navigation. La langue s'applique immédiatement.",
                 settings.LanguageDescriptionText);
             Assert.Equal(
-                "La barre de navigation et la carte de langue sont traduites. Les autres pages suivront dans les versions ultérieures.",
+                "La barre de navigation et la page Paramètres sont traduites. Les autres pages suivront dans les versions ultérieures.",
                 settings.LanguageNoteText);
 
             var labels = main.NavItems.Select(i => i.Label).ToList();
@@ -716,6 +716,253 @@ public class SettingsViewModelTests
             settings.LanguageCode = "de";
 
             Assert.Equal("Der tragbare Modus ist aus. Starten Sie TrueSpec neu: Von da an werden Daten im Standardordner gespeichert. Bereits neben der App gespeicherte Scans bleiben dort.", settings.PortableModeMessage);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    // Localisation, phase 2, French (v2.1.21): the whole Settings page
+    // in French — the same second surface German phase 2 (v2.1.8)
+    // translated. A shell seeded with French renders every card the
+    // page owns; the per-item plug-in status/reason and the
+    // portable-toggle message are Core diagnostic strings that take a
+    // language code, so they render French too (the same mechanism
+    // German phase 3, v2.1.9, added). One wording correction from the
+    // phase-1 catalogue: the alert threshold label is "Seuil d'alerte
+    // (°C)", the term Windows itself uses, not "Alerte au-dessus de".
+    [Fact]
+    public void Settings_FrenchSeed_RendersWholePageInFrench()
+    {
+        var (_, settings, root) = ViewModelWithTempStore(seedLanguage: "fr");
+
+        try
+        {
+            Assert.Equal("PARAMÈTRES", settings.SettingsEyebrowText);
+            Assert.Equal("Paramètres", settings.SettingsTitleText);
+            Assert.Equal(
+                "Des réglages simples et honnêtes. Chaque modification est enregistrée immédiatement et s'applique tout de suite. Rien n'est envoyé sur le réseau.",
+                settings.SettingsIntroText);
+
+            Assert.Equal("Apparence", settings.AppearanceTitleText);
+            Assert.Equal("Le thème sombre est le thème par défaut. Le thème clair est disponible pour les pièces lumineuses.", settings.AppearanceNoteText);
+            Assert.Equal("Sombre (par défaut)", settings.ThemeText);
+            Assert.Equal("Sombre", settings.ThemeDarkText);
+            Assert.Equal("Clair", settings.ThemeLightText);
+
+            Assert.Equal("Fréquence d'actualisation des capteurs", settings.RefreshTitleText);
+            Assert.Equal("La fréquence à laquelle la bande des capteurs est relue. Plus c'est rapide, plus c'est vivant ; plus c'est lent, plus le processeur est ménagé.", settings.RefreshNoteText);
+            Assert.Equal(new[] { "1 seconde", "2 secondes", "5 secondes", "10 secondes", "30 secondes" },
+                settings.RefreshRateOptions.Select(o => o.Text).ToList());
+            Assert.Equal(new[] { 1, 2, 5, 10, 30 },
+                settings.RefreshRateOptions.Select(o => o.Value).ToList());
+
+            Assert.Equal("Journalisation des capteurs et alertes", settings.LoggingTitleText);
+            Assert.Equal("Enregistrer les mesures des capteurs", settings.RecordTitleText);
+            Assert.Equal("Activé", settings.ToggleOnText);
+            Assert.Equal("Désactivé", settings.ToggleOffText);
+            Assert.Equal("Alerte de température du processeur", settings.AlertTitleText);
+            Assert.Equal("Aucune alerte de température définie.", settings.AlertSummaryText);
+            Assert.Equal("Seuil d'alerte (°C)", settings.AlertAboveLabelText);
+            Assert.Equal("Doit rester au-dessus pendant", settings.AlertDurationLabelText);
+            Assert.Equal(new[] { "15 secondes", "30 secondes", "60 secondes", "120 secondes" },
+                settings.ThresholdDurationOptions.Select(o => o.Text).ToList());
+
+            Assert.Equal("Base de données matérielle", settings.HardwareDatabaseTitleText);
+            Assert.Equal(
+                "Affiche la fréquence boost nominale à partir d'une petite base de données intégrée des caractéristiques des processeurs et des cartes graphiques, lorsque votre processeur ou votre carte graphique y figure. La base de données est facultative et ne remplace jamais une valeur mesurée. Prend effet après redémarrage.",
+                settings.HardwareDatabaseNoteText);
+            Assert.StartsWith("Jeu de données v1.1.0: ", settings.HardwareDatabaseVersionText, StringComparison.Ordinal);
+
+            Assert.Equal("Dossier d'exportation des rapports", settings.ExportTitleText);
+            Assert.EndsWith(" (par défaut)", settings.ExportFolderText, StringComparison.Ordinal);
+            Assert.Equal("Choisir un dossier...", settings.ExportChooseText);
+            Assert.Equal("Réinitialiser", settings.ExportResetText);
+
+            Assert.Equal("Emplacement des données (mode portable)", settings.DataLocationTitleText);
+            Assert.Equal("Le mode portable est désactivé. Les données sont conservées dans le dossier par défaut.", settings.PortableModeSummaryText);
+            Assert.Equal("Activer le mode portable", settings.PortableModeActionText);
+
+            Assert.Equal("Plug-ins", settings.PluginsTitleText);
+            Assert.Equal("Aucun plug-in trouvé.", settings.PluginsSummaryText);
+            Assert.Equal("Actualiser les plug-ins", settings.PluginsRefreshText);
+
+            Assert.Equal("Confidentialité", settings.PrivacyTitleText);
+            Assert.Contains("aucune télémétrie", settings.PrivacyText, StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Settings_PickingFrench_RerendersWholePageAndBack()
+    {
+        var (_, settings, root) = ViewModelWithTempStore();
+
+        try
+        {
+            Assert.Equal("Settings", settings.SettingsTitleText);
+            Assert.Equal("Dark (default)", settings.ThemeText);
+            Assert.Contains("5 seconds", settings.RefreshRateOptions.Select(o => o.Text));
+
+            settings.LanguageCode = "fr";
+
+            Assert.Equal("Paramètres", settings.SettingsTitleText);
+            Assert.Equal("Sombre (par défaut)", settings.ThemeText);
+            Assert.Contains("5 secondes", settings.RefreshRateOptions.Select(o => o.Text));
+            Assert.Equal("Aucune alerte de température définie.", settings.AlertSummaryText);
+            Assert.Equal("Aucun plug-in trouvé.", settings.PluginsSummaryText);
+
+            settings.LanguageCode = "en";
+
+            Assert.Equal("Settings", settings.SettingsTitleText);
+            Assert.Equal("Dark (default)", settings.ThemeText);
+            Assert.Contains("5 seconds", settings.RefreshRateOptions.Select(o => o.Text));
+            Assert.Equal("No temperature alert set.", settings.AlertSummaryText);
+            Assert.Equal("No plug-ins found.", settings.PluginsSummaryText);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Settings_French_AlertSummaryShowsNumbers()
+    {
+        var (_, settings, root) = ViewModelWithTempStore(seedLanguage: "fr");
+
+        try
+        {
+            settings.CpuTemperatureThresholdText = "90";
+            settings.CpuTemperatureThresholdSeconds = 30;
+            settings.CpuTemperatureAlertEnabled = true;
+
+            // Numbers keep the app's formatting inside the French
+            // sentence: 90 stays "90", never "90,0".
+            Assert.Equal(
+                "Alerte lorsque la température du processeur atteint 90 °C pendant 30 secondes.",
+                settings.AlertSummaryText);
+
+            settings.CpuTemperatureThresholdText = "abc";
+            Assert.Equal(
+                "Saisissez une température entre 30 et 120 °C.",
+                settings.ThresholdMessage);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Settings_French_PluginsAreFrench()
+    {
+        // Mirror of Settings_German_PluginsAreGerman: the store is
+        // seeded French, and the marker file makes the temp dir the
+        // data folder, so the plug-ins folder under it is hermetic.
+        var root = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, AppDataRoot.PortableMarkerFileName), string.Empty);
+        AddPlugin(root, "gpuz", ValidManifestJson);
+
+        try
+        {
+            var store = new AppSettingsStore(Path.Combine(root, "settings.json"));
+            Assert.True(store.Save(new AppSettings { LanguageCode = "fr" }));
+            var main = new MainViewModel(
+                Array.Empty<ICollector>(),
+                new UnavailableSensorMonitor(),
+                new BuyerCheckEvaluator(),
+                store,
+                new ShellExportFileOpener());
+            var settings = new SettingsViewModel(main, exeDirectory: root);
+
+            Assert.Equal("1 plug-in trouvé.", settings.PluginsSummaryText);
+            var plugin = Assert.Single(settings.DiscoveredPlugins);
+            Assert.Equal("Prêt — pas encore chargé", plugin.StatusText);
+            Assert.Equal("Manifeste valide. Pas encore chargé : seuls les plug-ins signés sont chargés, et la signature des plug-ins n'est pas encore en place.", plugin.Reason);
+
+            AddPlugin(root, "gpuz2", ValidManifestJson.Replace("com.example.gpuz", "com.example.gpuz2"));
+            settings.RefreshPluginsCommand.Execute(null);
+            Assert.Equal("2 plug-ins trouvés.", settings.PluginsSummaryText);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Settings_LanguageSwitch_ReDiscoversPluginsInFrench()
+    {
+        // Mirror of Settings_LanguageSwitch_ReDiscoversPluginsInGerman:
+        // picking French after the page loaded re-runs discovery in
+        // French; the list must not stay in the language it was first
+        // discovered in.
+        var root = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, AppDataRoot.PortableMarkerFileName), string.Empty);
+        AddPlugin(root, "nodll", ValidManifestJson, withAssembly: false);
+
+        try
+        {
+            var store = new AppSettingsStore(Path.Combine(root, "settings.json"));
+            Assert.True(store.Save(new AppSettings { LanguageCode = "en" }));
+            var main = new MainViewModel(
+                Array.Empty<ICollector>(),
+                new UnavailableSensorMonitor(),
+                new BuyerCheckEvaluator(),
+                store,
+                new ShellExportFileOpener());
+            var settings = new SettingsViewModel(main, exeDirectory: root);
+            Assert.Equal("Assembly missing", Assert.Single(settings.DiscoveredPlugins).StatusText);
+
+            settings.LanguageCode = "fr";
+
+            var plugin = Assert.Single(settings.DiscoveredPlugins);
+            Assert.Equal("Assembly manquant", plugin.StatusText);
+            Assert.Equal("Le fichier de plug-in « GpuZBridge.dll » est absent de ce dossier.", plugin.Reason);
+            Assert.Equal("1 plug-in trouvé.", settings.PluginsSummaryText);
+        }
+        finally
+        {
+            DeleteTree(root);
+        }
+    }
+
+    [Fact]
+    public void Settings_LanguageSwitch_ReResolvesPortableToggleMessageInFrench()
+    {
+        // Mirror of Settings_LanguageSwitch_ReResolvesPortableToggleMessage:
+        // the toggle message is a Core string carried as a key, so a
+        // language switch after the toggle re-resolves it without
+        // toggling again. Manual setup: English store, marker present
+        // so the toggle turns portable mode off.
+        var root = Path.Combine(Path.GetTempPath(), "truespec-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, AppDataRoot.PortableMarkerFileName), string.Empty);
+
+        try
+        {
+            var store = new AppSettingsStore(Path.Combine(root, "settings.json"));
+            Assert.True(store.Save(new AppSettings { LanguageCode = "en" }));
+            var main = new MainViewModel(
+                Array.Empty<ICollector>(),
+                new UnavailableSensorMonitor(),
+                new BuyerCheckEvaluator(),
+                store,
+                new ShellExportFileOpener());
+            var settings = new SettingsViewModel(main, exeDirectory: root);
+            settings.TogglePortableModeCommand.Execute(null);
+            Assert.Contains("Portable mode is off.", settings.PortableModeMessage, StringComparison.Ordinal);
+
+            settings.LanguageCode = "fr";
+
+            Assert.Equal("Le mode portable est désactivé. Redémarrez TrueSpec : à partir de là, les données sont conservées dans le dossier par défaut. Les scans déjà enregistrés à côté de l'application restent là.", settings.PortableModeMessage);
         }
         finally
         {

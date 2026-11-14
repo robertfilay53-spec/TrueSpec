@@ -80,8 +80,9 @@ public sealed class LanguagePackTests
         // deliberate translation decision, not a typo fix. The French
         // wording is the worker's own translation, not reviewed by a
         // native speaker (the same honest limitation as the German
-        // wording). The language card says the rail and the card are
-        // translated and the other pages follow in later versions.
+        // wording). The language card says the rail and the Settings
+        // page are translated and the other pages follow in later
+        // versions (phase 2, v2.1.21).
         var french = LanguagePacks.French.Strings;
         Assert.Equal("Vue d'ensemble", french[AppStringKeys.NavOverview]);
         Assert.Equal("Stockage", french[AppStringKeys.NavStorage]);
@@ -98,7 +99,7 @@ public sealed class LanguagePackTests
         Assert.Equal("Paramètres", french[AppStringKeys.NavSettings]);
         Assert.Equal("Langue", french[AppStringKeys.LanguageTitle]);
         Assert.Equal(
-            "La barre de navigation et la carte de langue sont traduites. Les autres pages suivront dans les versions ultérieures.",
+            "La barre de navigation et la page Paramètres sont traduites. Les autres pages suivront dans les versions ultérieures.",
             french[AppStringKeys.LanguageNote]);
     }
 
