@@ -91,7 +91,11 @@ public sealed record CpuSpec(
 /// model (for example the RTX 4060 Ti 8 GB and 16 GB both report as
 /// "NVIDIA GeForce RTX 4060 Ti"): the boost clock and board power are
 /// the same for both variants, so they are shown, but no memory figure
-/// is guessed.
+/// is guessed. The board power is null when the Windows device name
+/// cannot distinguish power variants either (the RX 9060 XT 8 GB / 150 W
+/// and 16 GB / 160 W): the boost clock is the same for both variants,
+/// so it is shown, but no memory or board-power figure is guessed, and
+/// the split is recorded in <see cref="TdpNote"/>.
 /// </summary>
 public sealed record GpuSpec(
     string Model,
@@ -99,7 +103,7 @@ public sealed record GpuSpec(
     string DisplayName,
     double? BoostGhz,
     int? MemoryGb,
-    int TdpW,
+    int? TdpW,
     string? TdpNote,
     string SourceUrl,
     string Retrieved);
@@ -320,10 +324,22 @@ public sealed class HardwareDatabase : IHardwareDatabase
             return null;
         }
 
-        if (!TryGetInt(element, "tdp_w", out var tdpW)
-            || tdpW <= 0)
+        // The board power is optional: a model whose Windows device
+        // name cannot distinguish power variants (RX 9060 XT 8 GB /
+        // 150 W vs 16 GB / 160 W) carries no board-power figure rather
+        // than a guessed one. When present it must be a positive whole
+        // number of watts.
+        int? tdpW = null;
+        if (element.TryGetProperty("tdp_w", out var tdpElement)
+            && tdpElement.ValueKind != JsonValueKind.Null)
         {
-            return null;
+            if (!TryGetInt(element, "tdp_w", out var tdp)
+                || tdp <= 0)
+            {
+                return null;
+            }
+
+            tdpW = tdp;
         }
 
         // The boost clock is optional: a model whose Windows device name

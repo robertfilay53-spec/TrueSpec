@@ -164,10 +164,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.2.0", database.Version);
+        Assert.Equal("1.3.0", database.Version);
         Assert.Equal("2026-11-14", database.Updated);
         Assert.Equal(74, database.CpuCount);
-        Assert.Equal(59, database.GpuCount);
+        Assert.Equal(64, database.GpuCount);
     }
 
     [Fact]
@@ -216,6 +216,57 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_NewDesktopGpusCarryVerifiedFigures()
+    {
+        // Dataset v1.3.0: five desktop GPUs launched after v1.1.0, each
+        // figure verified by hand against a manufacturer page, read
+        // 2026-11-14. The GeForce RTX 5050 against NVIDIA's 50-series
+        // page; the RX 9060 and RX 9060 XT against AMD's driver/spec
+        // pages; the Arc B580 and B570 against Intel's own published
+        // B-Series Quick Reference Guide (intel.com returned 403 to the
+        // reader, so the guide PDF is the cited source). Intel publishes
+        // a single Graphics Clock for Arc cards, recorded as the boost
+        // figure. The RX 9060 XT carries no memory or board-power
+        // figure: AMD lists 8 GB / 150 W and 16 GB / 160 W under one
+        // device name, so the entry guesses neither; only its boost
+        // clock (3.13 GHz, the same for both) is recorded.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 5050", out var rtx5050));
+        Assert.Equal("NVIDIA", rtx5050.Vendor);
+        Assert.Equal(2.57, rtx5050.BoostGhz);
+        Assert.Equal(8, rtx5050.MemoryGb);
+        Assert.Equal(130, rtx5050.TdpW);
+        Assert.StartsWith("https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5050/", rtx5050.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 9060", out var rx9060));
+        Assert.Equal("AMD", rx9060.Vendor);
+        Assert.Equal(2.99, rx9060.BoostGhz);
+        Assert.Equal(8, rx9060.MemoryGb);
+        Assert.Equal(132, rx9060.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-9000-series/amd-radeon-rx-9060.html", rx9060.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 9060 XT", out var rx9060Xt));
+        Assert.Equal("AMD", rx9060Xt.Vendor);
+        Assert.Equal(3.13, rx9060Xt.BoostGhz);
+        Assert.Null(rx9060Xt.MemoryGb);
+        Assert.Null(rx9060Xt.TdpW);
+        Assert.Equal("TBP 150 W (8 GB) / 160 W (16 GB); no single figure for the shared device name", rx9060Xt.TdpNote);
+        Assert.StartsWith("https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-9000-series/amd-radeon-rx-9060-xt.html", rx9060Xt.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("Intel(R) Arc(TM) B580 Graphics", out var b580));
+        Assert.Equal("Intel", b580.Vendor);
+        Assert.Equal(2.67, b580.BoostGhz);
+        Assert.Equal(12, b580.MemoryGb);
+        Assert.Equal(190, b580.TdpW);
+        Assert.StartsWith("https://cdrdv2-public.intel.com/839907/", b580.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("Intel(R) Arc(TM) B570 Graphics", out var b570));
+        Assert.Equal("Intel", b570.Vendor);
+        Assert.Equal(2.5, b570.BoostGhz);
+        Assert.Equal(10, b570.MemoryGb);
+        Assert.Equal(150, b570.TdpW);
+    }
+
+    [Fact]
     public void Default_KnownEntryCarriesTheVerifiedBoost()
     {
         Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i7-13700K", out var spec));
@@ -244,6 +295,7 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Radeon RX 7800 XT", "RX 7800 XT")]
     [InlineData("AMD Radeon(TM) RX 6600", "RX 6600")]
     [InlineData("Intel(R) Arc(TM) A750 Graphics", "ARC A750")]
+    [InlineData("Intel(R) Arc(TM) B580 Graphics", "ARC B580")]
     [InlineData("nvidia geforce rtx 4060 laptop gpu", "RTX 4060 LAPTOP")]
     [InlineData(null, "")]
     [InlineData("", "")]
@@ -317,20 +369,24 @@ public sealed class HardwareDatabaseTests
                 {"model": "RTX 4090", "vendor": "NVIDIA", "display_name": "GeForce RTX 4090", "boost_ghz": 2.52, "memory_gb": 0, "tdp_w": 450, "tdp_note": null, "source_url": "https://example.invalid/d", "retrieved": "2026-11-14"},
                 {"model": "rtx 3060", "vendor": "NVIDIA", "display_name": "GeForce RTX 3060", "boost_ghz": 1.78, "memory_gb": 12, "tdp_w": 170, "tdp_note": null, "source_url": "https://example.invalid/e", "retrieved": "2026-11-14"},
                 {"model": "RTX 3070", "vendor": "NVIDIA", "display_name": "GeForce RTX 3070", "boost_ghz": 1.73, "memory_gb": 8, "tdp_w": 220, "tdp_note": null, "source_url": "", "retrieved": "2026-11-14"},
-                {"model": "GTX 1650", "vendor": "NVIDIA", "display_name": "GeForce GTX 1650", "boost_ghz": null, "memory_gb": 4, "tdp_w": 75, "tdp_note": null, "source_url": "https://example.invalid/f", "retrieved": "2026-11-14"}
+                {"model": "GTX 1650", "vendor": "NVIDIA", "display_name": "GeForce GTX 1650", "boost_ghz": null, "memory_gb": 4, "tdp_w": 75, "tdp_note": null, "source_url": "https://example.invalid/f", "retrieved": "2026-11-14"},
+                {"model": "RX 9060 XT", "vendor": "AMD", "display_name": "AMD Radeon RX 9060 XT", "boost_ghz": 3.13, "memory_gb": null, "tdp_w": null, "tdp_note": "TBP 150 W (8 GB) / 160 W (16 GB); no single figure for the shared device name", "source_url": "https://example.invalid/g", "retrieved": "2026-11-14"}
               ]
             }
             """;
 
         var database = HardwareDatabase.LoadFromJson(json);
 
-        // Only the first entry and the last survive: a zero boost, a
-        // zero board power, a zero memory, an unnormalized key, and a
-        // missing source URL are all data bugs, skipped quietly. A null
-        // boost is not a bug: the GTX 1650's device name covers two
-        // variants with different boost clocks, so it carries no boost
-        // figure and still loads.
-        Assert.Equal(2, database.GpuCount);
+        // Only the first entry, the GTX 1650 and the RX 9060 XT survive:
+        // a zero boost, a zero board power, a zero memory, an
+        // unnormalized key, and a missing source URL are all data bugs,
+        // skipped quietly. A null boost is not a bug: the GTX 1650's
+        // device name covers two variants with different boost clocks,
+        // so it carries no boost figure and still loads. A null memory
+        // and board power are not bugs either: the RX 9060 XT's device
+        // name covers two variants with different memory and power, so
+        // it carries neither figure and still loads.
+        Assert.Equal(3, database.GpuCount);
         Assert.True(database.TryGetGpu("RTX 4060", out _));
         Assert.False(database.TryGetGpu("RTX 4070", out _));
         Assert.False(database.TryGetGpu("RTX 4080", out _));
@@ -341,6 +397,10 @@ public sealed class HardwareDatabaseTests
         Assert.Null(gtx.BoostGhz);
         Assert.Equal(4, gtx.MemoryGb);
         Assert.Equal(75, gtx.TdpW);
+        Assert.True(database.TryGetGpu("RX 9060 XT", out var rx9060Xt));
+        Assert.Equal(3.13, rx9060Xt.BoostGhz);
+        Assert.Null(rx9060Xt.MemoryGb);
+        Assert.Null(rx9060Xt.TdpW);
     }
 
     [Fact]
