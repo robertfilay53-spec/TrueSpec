@@ -73,6 +73,10 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 7 217", "RYZEN 7 217")]
     [InlineData("AMD Ryzen 5 216", "RYZEN 5 216")]
     [InlineData("AMD Ryzen 3 205", "RYZEN 3 205")]
+    [InlineData("AMD Ryzen 9 180", "RYZEN 9 180")]
+    [InlineData("AMD Ryzen 7 165", "RYZEN 7 165")]
+    [InlineData("AMD Ryzen 7 155", "RYZEN 7 155")]
+    [InlineData("AMD Ryzen 5 125", "RYZEN 5 125")]
     [InlineData("intel core i5-12400", "I5-12400")]
     [InlineData("Intel(R) Core(TM) i5-12400F Processor", "I5-12400F")]
     [InlineData("Intel(R) Core(TM) i5-14400", "I5-14400")]
@@ -213,9 +217,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.27.0", database.Version);
+        Assert.Equal("1.28.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(134, database.CpuCount);
+        Assert.Equal(138, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1773,5 +1777,74 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(2.8, ryzen3205.BaseGhz);
         Assert.Equal(4.6, ryzen3205.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/200-series/amd-ryzen-3-205.html", ryzen3205.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Ryzen100HawkPointMobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.28.0: the four new AMD Ryzen 100 mobile CPUs (Zen 4,
+        // Hawk Point, 4 nm, RDNA 3 graphics), the Hawk Point half of the
+        // consumer Ryzen 100 family, which the dataset never listed. All
+        // four launched on June 2, 2026: the Ryzen 9 180 is the 8-core
+        // flagship, the Ryzen 7 165 and 155 are the 6-core parts, and the
+        // Ryzen 5 125 is the 4-core entry part. All figures were verified
+        // by hand against AMD's own product pages, read 2026-11-15 from
+        // fresh fetches: the Ryzen 9 180 at Base Clock 3.6 GHz and Max
+        // Boost Clock up to 4.9 GHz; the Ryzen 7 165 at 3.3 and up to 4.7
+        // GHz; the Ryzen 7 155 at 3.0 and up to 4.7 GHz; the Ryzen 5 125
+        // at 2.8 and up to 4.5 GHz. The dataset's base_ghz is AMD's
+        // headline Base Clock and boost_ghz is AMD's Max Boost Clock, per
+        // its own definition. The labelling question is settled by the
+        // live pages: when these four chips appeared in July 2026,
+        // reporting (ubergizmo, and the WhyCry July 11, 2026 note) said
+        // AMD's portal listed them as Zen 3+ while their clock speeds
+        // and 4 nm process matched Zen 4 silicon. The pages as read
+        // 2026-11-15 now say "Processor Architecture, Zen 4" with
+        // "Former Codename, Hawk Point", "TSMC 4nm FinFET" and RDNA 3
+        // graphics on all four, so the dataset records them as the Zen 4
+        // Hawk Point parts AMD's pages now describe. Two AMD quirks are
+        // real, not errors: the Ryzen 5 125's own product-page URL slug
+        // reads "amd-ryzen-7-125" while the page title and specs are the
+        // Ryzen 5 125's, and the Ryzen 5 125 is a 4-core Ryzen 5 (its
+        // 4-core, 8-thread layout matches the Ryzen 3 8440U class, not
+        // the usual 6-core Ryzen 5). The Ryzen 9 180 and Ryzen 7 165
+        // carry an XDNA NPU rated up to 16 TOPS; the 155 and 125 do not
+        // list one, so no NPU figure is recorded for them. The older
+        // Rembrandt Zen 3+ Ryzen 100 chips (Ryzen 7 170 and 160, Ryzen 5
+        // 150 and 130, Ryzen 3 110, launched October 1, 2025) stay out:
+        // they are a different sub-family (6 nm, RDNA 2) for a future
+        // cycle. The hybrid Ryzen 5 126 (one Zen 4 plus three Zen 4c
+        // cores, FP8 socket) also stays out: it is a later addition
+        // outside the four named chips. No PRO variant of these chips
+        // exists in the consumer range, and no PRO chip has been listed
+        // in any cycle. No code change was needed: the CPU normalizer
+        // already maps "AMD Ryzen 9 180" to "RYZEN 9 180", "AMD Ryzen 7
+        // 165" to "RYZEN 7 165", "AMD Ryzen 7 155" to "RYZEN 7 155" and
+        // "AMD Ryzen 5 125" to "RYZEN 5 125", and the Settings card shows
+        // the CPU count from the dataset, so it reads 138 with no code
+        // change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 9 180", out var ryzen9180));
+        Assert.Equal("AMD", ryzen9180.Vendor);
+        Assert.Equal(3.6, ryzen9180.BaseGhz);
+        Assert.Equal(4.9, ryzen9180.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/100-series/amd-ryzen-9-180.html", ryzen9180.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 165", out var ryzen7165));
+        Assert.Equal("AMD", ryzen7165.Vendor);
+        Assert.Equal(3.3, ryzen7165.BaseGhz);
+        Assert.Equal(4.7, ryzen7165.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/100-series/amd-ryzen-7-165.html", ryzen7165.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 155", out var ryzen7155));
+        Assert.Equal("AMD", ryzen7155.Vendor);
+        Assert.Equal(3.0, ryzen7155.BaseGhz);
+        Assert.Equal(4.7, ryzen7155.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/100-series/amd-ryzen-7-155.html", ryzen7155.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 125", out var ryzen5125));
+        Assert.Equal("AMD", ryzen5125.Vendor);
+        Assert.Equal(2.8, ryzen5125.BaseGhz);
+        Assert.Equal(4.5, ryzen5125.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/100-series/amd-ryzen-7-125.html", ryzen5125.SourceUrl, StringComparison.Ordinal);
     }
 }
