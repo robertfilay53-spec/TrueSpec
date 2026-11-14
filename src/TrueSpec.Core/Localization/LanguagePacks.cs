@@ -44,12 +44,16 @@ namespace TrueSpec.Core.Localization;
 /// page (phase 5), the same fifth surface German phase 5 and French
 /// phase 5 translated; v2.1.32 adds the History, Fleet, and Buyer
 /// Check pages (phase 6), the same sixth surface German phase 6 and
-/// French phase 6 translated. The Spanish pack
+/// French phase 6 translated; v2.1.33 adds the Comparison, Crash
+/// History, Report and Tests pages (phase 7), the same four surfaces
+/// German phase 8 and French phase 7 translated. With phase 7 every
+/// page is translated in Spanish, and the Spanish language card says
+/// so. Measured data stays English by design (names, headlines, spec
+/// labels and values, score explanations and verdict text), a later
+/// slice. The Spanish pack
 /// covers the whole 523-key catalogue (the coverage test pins it: a
 /// pack that misses a key fails), so later phases only translate
-/// surfaces, never add keys. The other pages stay English in Spanish
-/// until later versions add them, and the Spanish language card says
-/// so. The Spanish wording is the worker's own translation, not reviewed by
+/// surfaces, never add keys. The Spanish wording is the worker's own translation, not reviewed by
 /// a native speaker (the same honest limitation as the German and
 /// French wording). The translations use the standard terms Windows
 /// itself uses in Spanish (Almacenamiento for Storage, Pantalla for
@@ -1697,7 +1701,7 @@ public static class LanguagePacks
             [AppStringKeys.NavSettings] = "Configuración",
             [AppStringKeys.LanguageTitle] = "Idioma",
             [AppStringKeys.LanguageDescription] = "Elige el idioma de la barra de navegación. El idioma se aplica de inmediato.",
-            [AppStringKeys.LanguageNote] = "La barra de navegación, la página Configuración, las páginas de detalle de componentes, la página Vista general y las páginas Historial, Flota y Comprobación de comprador están traducidas. Las demás páginas seguirán en versiones posteriores.",
+            [AppStringKeys.LanguageNote] = "La barra de navegación, la página Configuración, las páginas de detalle de componentes, la página Vista general, la página Historial, la página Informe, la página Pruebas, la página Comprobación de comprador, la página Historial de bloqueos, la página Comparar y la página Flota están traducidas. Todas las páginas están traducidas.",
             [AppStringKeys.SettingsEyebrow] = "CONFIGURACIÓN",
             [AppStringKeys.SettingsTitle] = "Configuración",
             [AppStringKeys.SettingsIntro] = "Controles pequeños y honestos. Cada cambio se guarda de inmediato y se aplica al momento. Nada de esto llama a casa.",

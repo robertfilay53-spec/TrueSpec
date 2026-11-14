@@ -184,7 +184,7 @@ public class SettingsViewModelTests
                 "Elige el idioma de la barra de navegación. El idioma se aplica de inmediato.",
                 settings.LanguageDescriptionText);
             Assert.Equal(
-                "La barra de navegación, la página Configuración, las páginas de detalle de componentes, la página Vista general y las páginas Historial, Flota y Comprobación de comprador están traducidas. Las demás páginas seguirán en versiones posteriores.",
+                "La barra de navegación, la página Configuración, las páginas de detalle de componentes, la página Vista general, la página Historial, la página Informe, la página Pruebas, la página Comprobación de comprador, la página Historial de bloqueos, la página Comparar y la página Flota están traducidas. Todas las páginas están traducidas.",
                 settings.LanguageNoteText);
 
             var labels = main.NavItems.Select(i => i.Label).ToList();
