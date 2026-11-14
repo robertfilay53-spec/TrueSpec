@@ -555,7 +555,7 @@ public class SettingsViewModelTests
             Assert.Equal(
                 "Zeigt den Nenn-Boost-Takt aus einer kleinen mitgelieferten Datenbank mit CPU- und GPU-Daten, wenn Ihr Prozessor oder Ihre Grafikkarte enthalten ist. Die Datenbank ist optional und ersetzt keinen gemessenen Wert. Wird nach einem Neustart wirksam.",
                 settings.HardwareDatabaseNoteText);
-            Assert.StartsWith("Datensatz v1.14.0: ", settings.HardwareDatabaseVersionText, StringComparison.Ordinal);
+            Assert.StartsWith("Datensatz v1.15.0: ", settings.HardwareDatabaseVersionText, StringComparison.Ordinal);
 
             Assert.Equal("Ordner für Berichtsexporte", settings.ExportTitleText);
             Assert.EndsWith(" (Standard)", settings.ExportFolderText, StringComparison.Ordinal);
@@ -808,7 +808,7 @@ public class SettingsViewModelTests
             Assert.Equal(
                 "Affiche la fréquence boost nominale à partir d'une petite base de données intégrée des caractéristiques des processeurs et des cartes graphiques, lorsque votre processeur ou votre carte graphique y figure. La base de données est facultative et ne remplace jamais une valeur mesurée. Prend effet après redémarrage.",
                 settings.HardwareDatabaseNoteText);
-            Assert.StartsWith("Jeu de données v1.14.0 : ", settings.HardwareDatabaseVersionText, StringComparison.Ordinal);
+            Assert.StartsWith("Jeu de données v1.15.0 : ", settings.HardwareDatabaseVersionText, StringComparison.Ordinal);
 
             Assert.Equal("Dossier d'exportation des rapports", settings.ExportTitleText);
             Assert.EndsWith(" (par défaut)", settings.ExportFolderText, StringComparison.Ordinal);
@@ -1056,7 +1056,7 @@ public class SettingsViewModelTests
             Assert.Equal(
                 "Muestra la frecuencia de boost nominal de una pequeña base de datos integrada de especificaciones de CPU y GPU cuando tu procesador o tarjeta gráfica aparece en la lista. La base de datos es opcional y nunca sustituye un valor medido. Se aplica después de reiniciar.",
                 settings.HardwareDatabaseNoteText);
-            Assert.StartsWith("Conjunto de datos v1.14.0: ", settings.HardwareDatabaseVersionText, StringComparison.Ordinal);
+            Assert.StartsWith("Conjunto de datos v1.15.0: ", settings.HardwareDatabaseVersionText, StringComparison.Ordinal);
 
             Assert.Equal("Carpeta de exportación de informes", settings.ExportTitleText);
             Assert.EndsWith(" (predeterminada)", settings.ExportFolderText, StringComparison.Ordinal);
