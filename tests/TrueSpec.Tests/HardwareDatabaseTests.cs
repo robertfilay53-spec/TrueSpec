@@ -39,6 +39,10 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel(R) Core(TM) i7-12700H", "I7-12700H")]
     [InlineData("i7-12700H", "I7-12700H")]
     [InlineData("Intel(R) Core(TM) Ultra 7 155H", "ULTRA 7 155H")]
+    [InlineData("Intel Core Ultra 7 265U", "ULTRA 7 265U")]
+    [InlineData("Intel Core Ultra 7 255U", "ULTRA 7 255U")]
+    [InlineData("Intel Core Ultra 5 235U", "ULTRA 5 235U")]
+    [InlineData("Intel Core Ultra 5 225U", "ULTRA 5 225U")]
     [InlineData("AMD Ryzen 7 5800H with Radeon Graphics", "RYZEN 7 5800H")]
     [InlineData("AMD Ryzen 9 7945HX with Radeon Graphics", "RYZEN 9 7945HX")]
     [InlineData("AMD Ryzen AI 9 HX 370", "RYZEN AI 9 HX 370")]
@@ -253,9 +257,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.33.0", database.Version);
+        Assert.Equal("1.34.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(174, database.CpuCount);
+        Assert.Equal(178, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -2270,6 +2274,81 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(2.0, ryzenAi5Pro435.BaseGhz);
         Assert.Equal(4.5, ryzenAi5Pro435.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-400-series/amd-ryzen-ai-5-pro-435.html", ryzenAi5Pro435.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_CoreUltra200UMobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.34.0: the four Intel Core Ultra 200U Series mobile
+        // CPUs (Arrow Lake-U, launched January 6, 2025, 12 cores with
+        // 2 P-cores, 8 E-cores and 2 Low Power Efficient-cores, 14
+        // threads), the 15 W family the dataset never listed: the Core
+        // Ultra 7 265U and 255U and the Core Ultra 5 235U and 225U.
+        // Every figure was compiled by hand from Intel's own Quick
+        // Reference Guide for the 200H and 200U series, v1.1
+        // (cdrdv2-public.intel.com, read 2026-11-15), which publishes
+        // the Performance-core Base Frequency and the Max Turbo
+        // Frequency per SKU in its table, and each figure was
+        // cross-checked per SKU against ARK mirrors that agree on all
+        // four models (nanoreview, topcpu, siliconcat, cputronic):
+        // the 265U at Performance-core Base Frequency 2.1 GHz and Max
+        // Turbo Frequency up to 5.3 GHz with E-core Max Turbo
+        // Frequency 4.2 GHz; the 255U at 2.0 and up to 5.2 GHz with
+        // E-core turbo 4.2 GHz; the 235U at 2.0 and up to 4.9 GHz with
+        // E-core turbo 4.1 GHz; the 225U at 1.5 and up to 4.8 GHz with
+        // E-core turbo 3.8 GHz. The dataset's base_ghz is Intel's
+        // Performance-core Base Frequency, boost_ghz is Intel's Max
+        // Turbo Frequency, and e_core_boost_ghz is Intel's E-core Max
+        // Turbo Frequency, per its own definition. Two judgement calls
+        // are recorded. First, the 265U P-core base is 2.1 GHz in the
+        // launched ARK figures and in the Quick Reference Guide, while
+        // pre-launch listings and Intel's own December 2024 edge
+        // product brief list 1.8 GHz at 15 W; the launched figure
+        // decides it and the 1.8 GHz figure is rejected as pre-launch.
+        // Second, the trailing numbers in the Quick Reference Guide
+        // table (2.1, 2.1, 2.05 and 2.0 GHz) are the graphics Max
+        // Frequency, not E-core base figures, so they are not recorded
+        // as base figures anywhere. The Raptor Lake-based Core 200U
+        // (non-Ultra) models stay out: they are a separate family from
+        // the Core Ultra 200U family and are not in this slice. No code
+        // change was needed: the CPU normalizer already maps "Intel
+        // Core Ultra 7 265U" to "ULTRA 7 265U" and the other three
+        // names the same way, and the Settings card shows the CPU count
+        // from the dataset, so it reads 178 with no code change. One
+        // honest limitation is recorded: Intel's own compare pages
+        // return HTTP 403 in this sandbox, so no live compare-page
+        // spot-check was possible in this cycle; the figures rest on
+        // Intel's own Quick Reference Guide PDF plus the four agreeing
+        // ARK mirrors named above.
+        const string qrg = "https://cdrdv2-public.intel.com/842536/Intel%20Core%20Ultra%20200H%20and%20200U%20Series%20Processors%20-%20Quick%20Reference%20Guide%20v1.1.pdf";
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 265U", out var ultra7265U));
+        Assert.Equal("Intel", ultra7265U.Vendor);
+        Assert.Equal(2.1, ultra7265U.BaseGhz);
+        Assert.Equal(5.3, ultra7265U.BoostGhz);
+        Assert.Equal(4.2, ultra7265U.ECoreBoostGhz);
+        Assert.StartsWith(qrg, ultra7265U.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 255U", out var ultra7255U));
+        Assert.Equal("Intel", ultra7255U.Vendor);
+        Assert.Equal(2.0, ultra7255U.BaseGhz);
+        Assert.Equal(5.2, ultra7255U.BoostGhz);
+        Assert.Equal(4.2, ultra7255U.ECoreBoostGhz);
+        Assert.StartsWith(qrg, ultra7255U.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 235U", out var ultra5235U));
+        Assert.Equal("Intel", ultra5235U.Vendor);
+        Assert.Equal(2.0, ultra5235U.BaseGhz);
+        Assert.Equal(4.9, ultra5235U.BoostGhz);
+        Assert.Equal(4.1, ultra5235U.ECoreBoostGhz);
+        Assert.StartsWith(qrg, ultra5235U.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 225U", out var ultra5225U));
+        Assert.Equal("Intel", ultra5225U.Vendor);
+        Assert.Equal(1.5, ultra5225U.BaseGhz);
+        Assert.Equal(4.8, ultra5225U.BoostGhz);
+        Assert.Equal(3.8, ultra5225U.ECoreBoostGhz);
+        Assert.StartsWith(qrg, ultra5225U.SourceUrl, StringComparison.Ordinal);
     }
 
 
