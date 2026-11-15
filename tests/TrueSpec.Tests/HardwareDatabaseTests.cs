@@ -336,10 +336,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.58.0", database.Version);
+        Assert.Equal("1.59.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
         Assert.Equal(266, database.CpuCount);
-        Assert.Equal(96, database.GpuCount);
+        Assert.Equal(97, database.GpuCount);
     }
 
     [Fact]
@@ -510,6 +510,35 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_Rx9070GreDesktopGpuCarriesVerifiedFigures()
+    {
+        // Dataset v1.59.0: the AMD Radeon RX 9070 GRE, the last
+        // announced RX 9000 desktop part the dataset was missing, and
+        // the fifth RX 9000 desktop SKU in the dataset (with the 9070
+        // XT, 9070, 9060 XT and 9060). Every figure was verified by
+        // hand against AMD's own product page, read 2026-11-15: RDNA 4
+        // (Navi 48), 48 compute units, Boost Frequency up to 2790 MHz,
+        // Game Frequency 2220 MHz, 12 GB GDDR6 on a 192-bit bus at up
+        // to 432 GB/s, 48 MB Infinity Cache, 220 W typical board
+        // power, launched in China May 8, 2025, global June 2, 2026
+        // at $549. The figures are cross-checked against agreeing
+        // third parties (Notebookcheck, cputronic and guru3d, which
+        // all agree on 48 compute units, 2790 MHz boost, 12 GB,
+        // 192-bit, 432 GB/s and 220 W). No judgement call was needed:
+        // unlike the Arc A310 in v2.1.89, AMD publishes a rated boost
+        // clock for the GRE, so the entry records AMD's own 2.79 GHz.
+        // The dataset carries no compute-unit, bus-width or bandwidth
+        // field, so those figures live here in the comment and in the
+        // README and ROADMAP entries, not in the entry itself.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 9070 GRE", out var rx9070Gre));
+        Assert.Equal("AMD", rx9070Gre.Vendor);
+        Assert.Equal(2.79, rx9070Gre.BoostGhz);
+        Assert.Equal(12, rx9070Gre.MemoryGb);
+        Assert.Equal(220, rx9070Gre.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/products/graphics/desktops/radeon/9000-series/amd-radeon-rx-9070-gre.html", rx9070Gre.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Default_KnownEntryCarriesTheVerifiedBoost()
     {
         Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) i7-13700K", out var spec));
@@ -563,6 +592,7 @@ public sealed class HardwareDatabaseTests
     [InlineData("NVIDIA GeForce RTX 2060 SUPER", "RTX 2060 SUPER")]
     [InlineData("NVIDIA GeForce RTX 3050 6GB Laptop GPU", "RTX 3050 6GB LAPTOP")]
     [InlineData("AMD Radeon RX 7800 XT", "RX 7800 XT")]
+    [InlineData("AMD Radeon RX 9070 GRE", "RX 9070 GRE")]
     [InlineData("AMD Radeon RX 7600 XT", "RX 7600 XT")]
     [InlineData("AMD Radeon(TM) RX 6600", "RX 6600")]
     [InlineData("AMD Radeon RX 5700 XT", "RX 5700 XT")]
