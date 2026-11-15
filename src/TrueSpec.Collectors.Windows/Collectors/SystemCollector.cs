@@ -11,6 +11,19 @@ using TrueSpec.Core.Models;
 /// Machine identity, BIOS, Windows install, TPM and security basics from real
 /// CIM classes. There is no CPU, RAM or motherboard life sensor here, because
 /// no such sensor exists.
+///
+/// The reads are independent, so they run at the same time instead of one
+/// after another: on a real standard-user laptop (v2.1.59, November 15,
+/// 2026) the serial version took longer than the 10 second per-collector
+/// budget and the whole System page went not available, even though most
+/// reads finish in milliseconds. The slow reads are the 1000-row PnP
+/// driver enumeration, the 30-day event log walk (up to 10,000 entries)
+/// and the BitLocker provider query, each of which can take seconds on
+/// its own, plus the first WMI query paying the cold WMI service start.
+/// Each read group is also time-boxed, so one slow source only loses its
+/// own specs, never the page: a group that does not finish in time
+/// contributes nothing and its specs read as not reported, exactly as a
+/// read that returned no rows does.
 /// </summary>
 public sealed class SystemCollector : ICollector
 {
@@ -24,6 +37,12 @@ public sealed class SystemCollector : ICollector
 
     public bool RequiresAdministrator => false;
 
+    // One read group gets at most half the per-collector budget. The
+    // groups run at the same time, so the collector finishes in about
+    // the slowest group's time, always inside the 10 second budget the
+    // scan gives each collector, with room for assembly.
+    internal static readonly TimeSpan GroupTimeout = TimeSpan.FromSeconds(5);
+
     // WMI query strings are hoisted so CollectorWmiSelectionTests can pin
     // the SELECT list to the properties this collector reads (hardening
     // item 7, F9 bug class): WmiRow only carries the properties the query
@@ -36,23 +55,121 @@ public sealed class SystemCollector : ICollector
     internal const string TpmQuery = "SELECT SpecVersion, IsEnabled_InitialValue FROM Win32_Tpm";
     internal const string EncryptableVolumeQuery = "SELECT DriveLetter, ProtectionStatus FROM Win32_EncryptableVolume";
 
-    public Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The four singleton identity queries, read as one group. They are
+    /// the gate for the whole snapshot: when none of ComputerSystem, BIOS
+    /// or OperatingSystem returns a row, the collector reports not
+    /// available, exactly as the serial version did.
+    /// </summary>
+    internal sealed record CoreIdentity(
+        WmiRow? Computer,
+        WmiRow? Bios,
+        WmiRow? OperatingSystem,
+        WmiRow? Enclosure);
+
+    /// <summary>
+    /// The TPM reading, or nulls when the class returns no row. A null
+    /// reading means the group timed out, which reads the same way.
+    /// </summary>
+    internal sealed record TpmReading(string? Version, string? Enabled);
+
+    public async Task<ComponentSnapshot> CollectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var computer = Wmi.Query("root\\cimv2", ComputerSystemQuery).FirstOrDefault();
-        var bios = Wmi.Query("root\\cimv2", BiosQuery).FirstOrDefault();
-        var os = Wmi.Query("root\\cimv2", OperatingSystemQuery).FirstOrDefault();
-        var enclosure = Wmi.Query("root\\cimv2", EnclosureQuery).FirstOrDefault();
+        // Every group starts up front on the thread pool, so a slow group
+        // waits out its own budget on its own task while the rest finish.
+        // SecureBoot is one registry read, fast enough to run inline.
+        var coreTask = RunWithTimeoutAsync(ReadCoreIdentity, GroupTimeout, cancellationToken);
+        var tpmTask = RunWithTimeoutAsync(ReadTpm, GroupTimeout, cancellationToken);
+        var deviceGuardTask = RunWithTimeoutAsync(ReadDeviceGuard, GroupTimeout, cancellationToken);
+        var bitLockerTask = RunWithTimeoutAsync(ReadBitLocker, GroupTimeout, cancellationToken);
+        var driversTask = RunWithTimeoutAsync(CollectorSupport.ReadDriverSignatureSummary, GroupTimeout, cancellationToken);
+        var logTask = RunWithTimeoutAsync(ReadEventLogSummary, GroupTimeout, cancellationToken);
+
+        var secureBoot = ReadSecureBoot();
+
+        return BuildSnapshot(
+            await coreTask,
+            await tpmTask,
+            await deviceGuardTask,
+            secureBoot,
+            await bitLockerTask,
+            await driversTask,
+            await logTask);
+    }
+
+    /// <summary>
+    /// Runs one read group with its own time-box and converts a slow group
+    /// into a missing group: the caller gets null and the specs that group
+    /// feeds read as not reported. A group that finishes holds its real
+    /// result. A fault inside the group escapes to the caller, the same as
+    /// a fault in the old serial version. Only a caller cancellation
+    /// escapes as a cancellation: a budget timeout is a missing group,
+    /// never an exception. A group abandoned by its budget keeps running
+    /// in the background; any later fault is observed so it can never
+    /// surface as unobserved. This mirrors the per-collector race in
+    /// MachineScanService, one level down.
+    /// </summary>
+    internal static async Task<T?> RunWithTimeoutAsync<T>(
+        Func<T?> work,
+        TimeSpan budget,
+        CancellationToken cancellationToken)
+        where T : class
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var workTask = Task.Run(work, cancellationToken);
+        var timeoutTask = Task.Delay(budget, cancellationToken);
+        var completed = await Task.WhenAny(workTask, timeoutTask);
+        if (completed == workTask)
+        {
+            return await workTask;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        _ = workTask.ContinueWith(
+            task => _ = task.Exception,
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted,
+            TaskScheduler.Default);
+        return null;
+    }
+
+    /// <summary>
+    /// Pure snapshot assembly from the read groups, so the partial-result
+    /// path is unit-testable without live WMI (same pattern as
+    /// DriverSignatureSpecs): a missing group leaves its specs as not
+    /// reported while every other spec keeps its measured value. Only a
+    /// missing core group reports the whole component as not available.
+    /// </summary>
+    internal static ComponentSnapshot BuildSnapshot(
+        CoreIdentity? core,
+        TpmReading? tpm,
+        WmiRow? deviceGuard,
+        string secureBoot,
+        string? bitLocker,
+        CollectorSupport.DriverSignatureSummary? drivers,
+        WindowsEventLog.SystemLogSummary? logSummary)
+    {
+        const string id = "system";
+        const string name = "System";
+        const string category = "System";
+
+        var computer = core?.Computer;
+        var bios = core?.Bios;
+        var os = core?.OperatingSystem;
+        var enclosure = core?.Enclosure;
 
         if (computer is null && bios is null && os is null)
         {
-            return Task.FromResult(ComponentSnapshot.NotAvailable(
-                Id,
-                Name,
-                Category,
-                Id,
-                "Windows CIM did not return Win32_ComputerSystem, Win32_BIOS or Win32_OperatingSystem."));
+            return ComponentSnapshot.NotAvailable(
+                id,
+                name,
+                category,
+                id,
+                "Windows CIM did not return Win32_ComputerSystem, Win32_BIOS or Win32_OperatingSystem.");
         }
 
         var manufacturer = computer?.String("Manufacturer");
@@ -85,25 +202,9 @@ public sealed class SystemCollector : ICollector
                 : string.Create(CultureInfo.InvariantCulture, $"{major}.{minor}");
         }
 
-        var tpm = ReadTpm();
-        var deviceGuard = Wmi.Query(
-            "root\\Microsoft\\Windows\\DeviceGuard",
-            DeviceGuardQuery).FirstOrDefault();
-        var secureBoot = ReadSecureBoot();
-        var bitLocker = ReadBitLocker();
-
-        // Driver signatures come from the shared enumeration
-        // (CollectorSupport): the same Win32_PnPSignedDriver list the
-        // Security collector counts, truncated honestly at the WMI row
-        // cap instead of silently counted (H2 defect class).
-        var drivers = CollectorSupport.ReadDriverSignatureSummary();
-        // One open of the System event log for all three readings: three
-        // separate walks (critical count, memory count, earliest entry)
-        // were a large share of this collector's cost on a busy log.
-        var logSummary = WindowsEventLog.ReadSummary(TimeSpan.FromDays(30));
-        var criticalErrors = logSummary.CriticalErrors;
-        var memoryErrors = logSummary.MemoryErrors;
-        var earliestLogEntry = logSummary.EarliestEntry;
+        var criticalErrors = logSummary?.CriticalErrors;
+        var memoryErrors = logSummary?.MemoryErrors;
+        var earliestLogEntry = logSummary?.EarliestEntry;
 
         var specs = new List<SpecValue>
         {
@@ -123,8 +224,8 @@ public sealed class SystemCollector : ICollector
             CollectorSupport.Spec(SpecLabels.BIOSVersion, bios?.String("SMBIOSBIOSVersion") ?? bios?.String("Version"), "CIM Win32_BIOS"),
             CollectorSupport.Spec(SpecLabels.BIOSDate, biosDate, "CIM Win32_BIOS.ReleaseDate"),
             CollectorSupport.Spec(SpecLabels.SMBIOSVersion, smbios, "CIM Win32_BIOS"),
-            CollectorSupport.Spec(SpecLabels.TPMVersion, tpm.Version, "CIM Win32_Tpm"),
-            CollectorSupport.Spec(SpecLabels.TPMEnabled, tpm.Enabled, "CIM Win32_Tpm"),
+            CollectorSupport.Spec(SpecLabels.TPMVersion, tpm?.Version, "CIM Win32_Tpm"),
+            CollectorSupport.Spec(SpecLabels.TPMEnabled, tpm?.Enabled, "CIM Win32_Tpm"),
             CollectorSupport.Spec(SpecLabels.SecureBoot, secureBoot, "Windows registry SecureBoot\\State"),
             CollectorSupport.Spec(SpecLabels.BitLocker, bitLocker, "CIM Win32_EncryptableVolume"),
             CollectorSupport.Spec(SpecLabels.VirtualizationBasedSecurity, DeviceGuardText(deviceGuard), "CIM Win32_DeviceGuard"),
@@ -136,18 +237,33 @@ public sealed class SystemCollector : ICollector
         // The driver-signature specs are built by a pure helper (same
         // pattern as DriversCollector.BuildSnapshot, PR #12) so the
         // truncation handling is unit-testable without live WMI. They
-        // are the last specs in the list.
-        specs.AddRange(DriverSignatureSpecs(drivers));
+        // are the last specs in the list. A missing driver group reads
+        // as no counts at all, never a guessed number.
+        var driverSummary = drivers ?? new CollectorSupport.DriverSignatureSummary(null, null, null, Truncated: false);
+        specs.AddRange(DriverSignatureSpecs(driverSummary));
 
-        return Task.FromResult(ComponentSnapshot.NotMeasurable(
-            Id,
-            Name,
-            Category,
-            Id,
+        return ComponentSnapshot.NotMeasurable(
+            id,
+            name,
+            category,
+            id,
             string.IsNullOrWhiteSpace(headline) ? Environment.MachineName : headline,
             specs,
-            "This block is the machine identity. Check the model and serial number against the listing. The BIOS and Windows install dates support the idea that the machine was set up recently. No CPU, RAM or motherboard life percentage is shown because hardware does not expose one."));
+            "This block is the machine identity. Check the model and serial number against the listing. The BIOS and Windows install dates support the idea that the machine was set up recently. No CPU, RAM or motherboard life percentage is shown because hardware does not expose one.");
     }
+
+    private static CoreIdentity ReadCoreIdentity() => new(
+        Wmi.Query("root\\cimv2", ComputerSystemQuery).FirstOrDefault(),
+        Wmi.Query("root\\cimv2", BiosQuery).FirstOrDefault(),
+        Wmi.Query("root\\cimv2", OperatingSystemQuery).FirstOrDefault(),
+        Wmi.Query("root\\cimv2", EnclosureQuery).FirstOrDefault());
+
+    private static WmiRow? ReadDeviceGuard() => Wmi.Query(
+        "root\\Microsoft\\Windows\\DeviceGuard",
+        DeviceGuardQuery).FirstOrDefault();
+
+    private static WindowsEventLog.SystemLogSummary ReadEventLogSummary() =>
+        WindowsEventLog.ReadSummary(TimeSpan.FromDays(30));
 
     private static string FormatBuild(WmiRow? os)
     {
@@ -243,7 +359,7 @@ public sealed class SystemCollector : ICollector
         };
     }
 
-    private static (string? Version, string? Enabled) ReadTpm()
+    private static TpmReading ReadTpm()
     {
         var rows = Wmi.Query("root\\CIMV2\\Security\\MicrosoftTpm", TpmQuery);
         if (rows.Count == 0)
@@ -254,7 +370,7 @@ public sealed class SystemCollector : ICollector
         var tpm = rows.FirstOrDefault();
         if (tpm is null)
         {
-            return (null, null);
+            return new TpmReading(null, null);
         }
 
         var version = tpm.String("SpecVersion");
@@ -270,7 +386,7 @@ public sealed class SystemCollector : ICollector
             _ => null,
         };
 
-        return (version, enabled);
+        return new TpmReading(version, enabled);
     }
 
     private static string ReadSecureBoot()
