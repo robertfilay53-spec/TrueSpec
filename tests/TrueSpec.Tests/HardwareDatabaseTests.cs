@@ -342,10 +342,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.65.0", database.Version);
+        Assert.Equal("1.66.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
         Assert.Equal(277, database.CpuCount);
-        Assert.Equal(106, database.GpuCount);
+        Assert.Equal(107, database.GpuCount);
     }
 
     [Fact]
@@ -778,6 +778,45 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_Rx7650GreDesktopGpuCarriesVerifiedFigures()
+    {
+        // Dataset v1.66.0: the one AMD Radeon RX 7650 GRE desktop GPU
+        // the dataset was missing, completing the RX 7000 desktop
+        // family at eight SKUs (the 7600, 7600 XT, 7650 GRE, 7700 XT,
+        // 7800 XT, 7900 GRE, 7900 XT and 7900 XTX). The Radeon RX 7650
+        // GRE at Boost Frequency up to 2695 MHz (Base Frequency 1720
+        // MHz, Game Frequency 2350 MHz), 32 compute units, 2048 stream
+        // processors, 8 GB GDDR6 on a 128-bit bus at up to 288 GB/s,
+        // 32 MB Infinity Cache, 165 W typical board power, RDNA 3
+        // (Navi 33 XL), launched February 2025 in China at $279 per
+        // TechPowerUp. Every figure was verified by hand, read
+        // 2026-11-15: AMD's own product page is the China site and its
+        // exact URL did not surface, so the entry records the
+        // TechPowerUp GPU database page, fetched directly as page text,
+        // cross-checked against agreeing third parties (technical.city,
+        // Tom's Hardware and TweakTown, which all agree on 2695 MHz
+        // boost, 8 GB and 165 W), the same disclosed third-party
+        // exception as the RTX 5090 D in v2.1.98 and the GTX 10 set in
+        // v2.2.0. Two reading traps are recorded: siliconcat alone
+        // lists the boost as 2690 MHz while TechPowerUp, technical.city,
+        // Tom's Hardware and TweakTown all list 2695 MHz, so the four
+        // agreeing sources decide it; and board-partner cards are
+        // factory-overclocked (up to 2810 MHz boost on the ASRock
+        // Challenger OC+ and the Sapphire Black Edition), so the entry
+        // records AMD's reference boost figure. The dataset carries no
+        // compute-unit, bus-width or bandwidth field, so those figures
+        // live here in the comment and in the README and ROADMAP
+        // entries, not in the entry itself.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 7650 GRE", out var rx7650Gre));
+        Assert.Equal("AMD", rx7650Gre.Vendor);
+        Assert.Equal(2.695, rx7650Gre.BoostGhz);
+        Assert.Equal(8, rx7650Gre.MemoryGb);
+        Assert.Equal(165, rx7650Gre.TdpW);
+        Assert.Null(rx7650Gre.TdpNote);
+        Assert.StartsWith("https://www.techpowerup.com/gpu-specs/radeon-rx-7650-gre.c4258", rx7650Gre.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Default_Core14thGenUnlockedDesktopFamilyCompletesAt7()
     {
         // Dataset v1.63.0: the five Intel Core 14th-gen unlocked desktop
@@ -1019,6 +1058,7 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Radeon RX 9070 GRE", "RX 9070 GRE")]
     [InlineData("AMD Radeon RX 6700", "RX 6700")]
     [InlineData("AMD Radeon RX 6950 XT", "RX 6950 XT")]
+    [InlineData("AMD Radeon RX 7650 GRE", "RX 7650 GRE")]
     [InlineData("AMD Radeon RX 6500 XT", "RX 6500 XT")]
     [InlineData("AMD Radeon RX 6400", "RX 6400")]
     [InlineData("AMD Radeon RX 7600 XT", "RX 7600 XT")]
