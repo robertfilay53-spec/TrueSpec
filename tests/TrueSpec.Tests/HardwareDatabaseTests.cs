@@ -342,10 +342,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.63.0", database.Version);
+        Assert.Equal("1.64.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
         Assert.Equal(277, database.CpuCount);
-        Assert.Equal(101, database.GpuCount);
+        Assert.Equal(105, database.GpuCount);
     }
 
     [Fact]
@@ -664,6 +664,80 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_Gtx10DesktopGpusCarryVerifiedFigures()
+    {
+        // Dataset v1.64.0: the four NVIDIA GeForce GTX 10 desktop GPUs
+        // the dataset was missing, bringing the GTX 10 desktop family
+        // to seven of eight SKUs (with the 1050 Ti, 1060 6GB and 1080).
+        // The GeForce GTX 1080 Ti at Boost Clock up to 1582 MHz
+        // (Base Clock 1481 MHz per TechPowerUp, 1480 MHz per NVIDIA's
+        // own launch material), 3584 CUDA cores, 11 GB GDDR5X on a
+        // 352-bit bus at up to 484 GB/s, 250 W total graphics power,
+        // Pascal (GP102), launched March 10, 2017 at $699. The GeForce
+        // GTX 1070 Ti at 1683 MHz, 2432 CUDA cores, 8 GB GDDR5 on a
+        // 256-bit bus at up to 256 GB/s, 180 W, Pascal (GP104),
+        // launched November 2, 2017 at $449. The GeForce GTX 1070 at
+        // 1683 MHz, 1920 CUDA cores, 8 GB GDDR5 on a 256-bit bus at
+        // up to 256 GB/s, 150 W, Pascal (GP104), launched June 10,
+        // 2016 at $379. The GeForce GTX 1060 3GB at 1708 MHz, 1152
+        // CUDA cores, 3 GB GDDR5 on a 192-bit bus at up to 192 GB/s,
+        // 120 W, Pascal (GP106; a GP104 variant of the 3GB card also
+        // shipped), launched August 18, 2016 at $199. Every figure was
+        // verified by hand, read 2026-11-15: NVIDIA's own GTX 10
+        // product pages are gone (the 1080 Ti page now redirects to
+        // the generic RTX 50 Series page), so the entries record the
+        // TechPowerUp GPU database pages, the 1080 Ti page fetched
+        // directly as page text, cross-checked against agreeing third
+        // parties (Notebookcheck, technical.city, nanoreview, pcbench
+        // and siliconcat, which all agree per SKU on the boost clock,
+        // the memory size and the board power), the same disclosed
+        // third-party exception as the RTX 5090 D in v2.1.98. Four
+        // reading traps are recorded: TechPowerUp lists the 1080 Ti
+        // base clock as 1481 MHz while NVIDIA's own launch material
+        // lists 1480 MHz, and the dataset records no GPU base clock,
+        // so it does not affect the entries; the 1070 Ti and the 1070
+        // share the same 1683 MHz boost, and differ in CUDA cores and
+        // board power, so the boost must be read per SKU and never
+        // inferred from the tier; TechPowerUp lists the 1070 Ti launch
+        // price as $399, while NVIDIA's own price history and the
+        // launch coverage give $449 for the Founders Edition, so the
+        // $399 figure is the GTX 1070 Founders Edition price, not the
+        // 1070 Ti; and board-partner cards are factory-overclocked,
+        // so the entries record NVIDIA's reference boost figures. The
+        // dataset carries no CUDA-core, bus-width or bandwidth field,
+        // so those figures live here in the comment and in the README
+        // and ROADMAP entries, not in the entries themselves.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1080 Ti", out var gtx1080Ti));
+        Assert.Equal("NVIDIA", gtx1080Ti.Vendor);
+        Assert.Equal(1.582, gtx1080Ti.BoostGhz);
+        Assert.Equal(11, gtx1080Ti.MemoryGb);
+        Assert.Equal(250, gtx1080Ti.TdpW);
+        Assert.Null(gtx1080Ti.TdpNote);
+        Assert.StartsWith("https://www.techpowerup.com/gpu-specs/geforce-gtx-1080-ti.c2877", gtx1080Ti.SourceUrl, StringComparison.Ordinal);
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1070 Ti", out var gtx1070Ti));
+        Assert.Equal("NVIDIA", gtx1070Ti.Vendor);
+        Assert.Equal(1.683, gtx1070Ti.BoostGhz);
+        Assert.Equal(8, gtx1070Ti.MemoryGb);
+        Assert.Equal(180, gtx1070Ti.TdpW);
+        Assert.Null(gtx1070Ti.TdpNote);
+        Assert.StartsWith("https://www.techpowerup.com/gpu-specs/geforce-gtx-1070-ti.c3010", gtx1070Ti.SourceUrl, StringComparison.Ordinal);
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1070", out var gtx1070));
+        Assert.Equal("NVIDIA", gtx1070.Vendor);
+        Assert.Equal(1.683, gtx1070.BoostGhz);
+        Assert.Equal(8, gtx1070.MemoryGb);
+        Assert.Equal(150, gtx1070.TdpW);
+        Assert.Null(gtx1070.TdpNote);
+        Assert.StartsWith("https://www.techpowerup.com/gpu-specs/geforce-gtx-1070.c2840", gtx1070.SourceUrl, StringComparison.Ordinal);
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1060 3GB", out var gtx1060_3gb));
+        Assert.Equal("NVIDIA", gtx1060_3gb.Vendor);
+        Assert.Equal(1.708, gtx1060_3gb.BoostGhz);
+        Assert.Equal(3, gtx1060_3gb.MemoryGb);
+        Assert.Equal(120, gtx1060_3gb.TdpW);
+        Assert.Null(gtx1060_3gb.TdpNote);
+        Assert.StartsWith("https://www.techpowerup.com/gpudb/2867/geforce-gtx-1060-3-gb", gtx1060_3gb.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Default_Core14thGenUnlockedDesktopFamilyCompletesAt7()
     {
         // Dataset v1.63.0: the five Intel Core 14th-gen unlocked desktop
@@ -886,6 +960,10 @@ public sealed class HardwareDatabaseTests
     [InlineData("NVIDIA GeForce RTX 4060 Laptop GPU", "RTX 4060 LAPTOP")]
     [InlineData("NVIDIA GeForce RTX 5090 Laptop GPU", "RTX 5090 LAPTOP")]
     [InlineData("NVIDIA GeForce RTX 5090 D", "RTX 5090 D")]
+    [InlineData("NVIDIA GeForce GTX 1080 Ti", "GTX 1080 TI")]
+    [InlineData("NVIDIA GeForce GTX 1070 Ti", "GTX 1070 TI")]
+    [InlineData("NVIDIA GeForce GTX 1070", "GTX 1070")]
+    [InlineData("NVIDIA GeForce GTX 1060 3GB", "GTX 1060 3GB")]
     [InlineData("NVIDIA GeForce RTX 4060", "RTX 4060")]
     [InlineData("NVIDIA GeForce RTX 4060 Ti", "RTX 4060 TI")]
     [InlineData("NVIDIA GeForce RTX 3080", "RTX 3080")]
@@ -1514,16 +1592,15 @@ public sealed class HardwareDatabaseTests
         // desktop: the same shape, boost 1.65/1.68 GHz, memory 12/6 GB
         // and power 185/160 W all differ between its 12 GB and 6 GB
         // variants under one device name, with no mapping on NVIDIA's
-        // compare page. GTX 1060
-        // 3GB: no power figure on nvidia.com. GTX 1070: the old
-        // nvidia.com 10-series product page now redirects to the RTX 50
-        // Series page, so no boost or power figure exists on nvidia.com
-        // (verified 2026-11-14); the retailer tables that list its
-        // figures do not satisfy the manufacturer-page source policy.
-        // A 2026-11-14 check of the live compare page found no GTX 10
-        // per-card table on it either: the page's per-card tables end
-        // at the GTX 16 series, so the GTX 10 Series column in the
-        // header table carries no boost or power figure.
+        // compare page. The GTX 1060 3GB and GTX 1070 exclusion is
+        // overturned in v2.2.0: both cards are listed now, in dataset
+        // v1.64.0, and the GTX 1070 assertion below is removed.
+        // NVIDIA's own GTX 10 product pages are gone (the old
+        // 10-series page now redirects to the RTX 50 Series page, and
+        // the live compare page carries no GTX 10 per-card table), so
+        // the figures rest on the TechPowerUp GPU database pages, the
+        // same disclosed third-party exception as the RTX 5090 D in
+        // v2.1.98.
         // GTX 1050 desktop: the device name covers the 2 GB card
         // (1455 MHz, verified live on NVIDIA's own GTX 1050 launch
         // specs table) and a later 3 GB variant (1518 MHz, 3 GB), so
@@ -1542,7 +1619,6 @@ public sealed class HardwareDatabaseTests
         Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 560", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6600M", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2060 Laptop GPU", out _));
-        Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1070", out _));
     }
 
     [Fact]
