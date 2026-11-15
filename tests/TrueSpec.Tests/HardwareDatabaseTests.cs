@@ -54,6 +54,10 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel Core Ultra 5 135UL", "ULTRA 5 135UL")]
     [InlineData("Intel Core Ultra 5 125UL", "ULTRA 5 125UL")]
     [InlineData("Intel Core Ultra 3 105UL", "ULTRA 3 105UL")]
+    [InlineData("Intel Core Ultra 7 165HL", "ULTRA 7 165HL")]
+    [InlineData("Intel Core Ultra 7 155HL", "ULTRA 7 155HL")]
+    [InlineData("Intel Core Ultra 5 135HL", "ULTRA 5 135HL")]
+    [InlineData("Intel Core Ultra 5 125HL", "ULTRA 5 125HL")]
     [InlineData("Intel Core Ultra 7 164U", "ULTRA 7 164U")]
     [InlineData("Intel Core Ultra 5 134U", "ULTRA 5 134U")]
     [InlineData("AMD Ryzen 7 5800H with Radeon Graphics", "RYZEN 7 5800H")]
@@ -323,9 +327,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.54.0", database.Version);
+        Assert.Equal("1.55.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(253, database.CpuCount);
+        Assert.Equal(257, database.CpuCount);
         Assert.Equal(96, database.GpuCount);
     }
 
@@ -2188,6 +2192,78 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.2, ultra3_105UL.BoostGhz);
         Assert.Equal(3.5, ultra3_105UL.ECoreBoostGhz);
         Assert.Equal(appUrl, ultra3_105UL.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_CoreUltra100HLDesktopCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.55.0: the four Intel Core Ultra 100HL desktop CPUs
+        // (Meteor Lake-PS, Intel 4, Socket 1851, launched April 8, 2024),
+        // completing the HL family, which was wholly absent before. Only
+        // the U, H and UL parts were in the dataset; the higher-power HL
+        // family was never listed, the same unnoticed gap as the 100UL
+        // family in v2.1.90, the 100U family in v2.1.85, the 200V family
+        // in v2.1.83 and the 200S family in v2.1.84, because no cycle had
+        // listed the family against the dataset. The Max Turbo figures
+        // and cache sizes come from Intel's own APP Metrics for Intel
+        // Microprocessors Revision 1 (January 6, 2026), read 2026-11-15,
+        // which lists all four HL parts with the same turbos and cache
+        // (165HL at 24 MB up to 5.00 GHz, 155HL at 24 MB up to 4.80 GHz,
+        // 135HL at 18 MB up to 4.60 GHz, 125HL at 18 MB up to 4.50 GHz),
+        // and Intel's own product page confirms the headline figures
+        // (the 165HL page lists 24M Cache, up to 5.00 GHz). Intel's own
+        // document publishes no P-core base or E-core turbo frequency,
+        // so the P-core base and E-core turbo rest on agreeing
+        // third-party databases (TechPowerUp, cputronic, topcpu,
+        // technical.city, cpu-monkey and siliconcat), the same disclosed
+        // mirror exception as the 100U parts in v2.1.85, the 100H parts
+        // in v2.1.86 and the 100UL parts in v2.1.90. The HL parts are
+        // the socketed Meteor Lake-PS counterparts of the 100H mobile
+        // parts, with the same clocks as their H twins (the 165HL
+        // matches the 165H at 1.4, 5.0 and 3.8 GHz, the 155HL the 155H
+        // at 1.4, 4.8 and 3.8 GHz, the 135HL the 135H at 1.7, 4.6 and
+        // 3.6 GHz, the 125HL the 125H at 1.2, 4.5 and 3.6 GHz), which
+        // cross-validates the figures. Two reading traps are recorded
+        // in the coverage text: notebookcheck's per-SKU pages give only
+        // the E-core turbo to P-core turbo min-max range (the 165HL
+        // reads 3.8 to 5.0 GHz), not the P-core base; and the 155HL
+        // shares the 165HL's 1.4 GHz P-core base despite its lower
+        // 4.8 GHz turbo, so the base does not scale with the tier and
+        // must be read per SKU. Staying out, recorded in the coverage
+        // text: no further hardware family candidate is named; the
+        // v2.1.84 audit's list (the Ryzen 8000G desktop parts, the
+        // Ryzen 5000G parts, the Arc A310 GPU, the Core Ultra UL family
+        // and the Core Ultra HL family) is now complete, so the next
+        // cycle runs a fresh audit of the dataset against the vendor
+        // catalogues before picking a slice; and the standing exclusions
+        // (13th-gen HX P-core base, Core 7 245HX non-Ultra, Core 3 100U,
+        // Ryzen AI 7 HX 455, Ryzen AI 400 mobile H variants), unchanged
+        // in this cycle.
+        const string appUrl = "https://cdrdv2-public.intel.com/874290/APP-for-Intel-Core-Ultra-Processors.pdf";
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 165HL", out var ultra7_165HL));
+        Assert.Equal(1.4, ultra7_165HL.BaseGhz);
+        Assert.Equal(5.0, ultra7_165HL.BoostGhz);
+        Assert.Equal(3.8, ultra7_165HL.ECoreBoostGhz);
+        Assert.Equal(appUrl, ultra7_165HL.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 155HL", out var ultra7_155HL));
+        Assert.Equal(1.4, ultra7_155HL.BaseGhz);
+        Assert.Equal(4.8, ultra7_155HL.BoostGhz);
+        Assert.Equal(3.8, ultra7_155HL.ECoreBoostGhz);
+        Assert.Equal(appUrl, ultra7_155HL.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 135HL", out var ultra5_135HL));
+        Assert.Equal(1.7, ultra5_135HL.BaseGhz);
+        Assert.Equal(4.6, ultra5_135HL.BoostGhz);
+        Assert.Equal(3.6, ultra5_135HL.ECoreBoostGhz);
+        Assert.Equal(appUrl, ultra5_135HL.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 125HL", out var ultra5_125HL));
+        Assert.Equal(1.2, ultra5_125HL.BaseGhz);
+        Assert.Equal(4.5, ultra5_125HL.BoostGhz);
+        Assert.Equal(3.6, ultra5_125HL.ECoreBoostGhz);
+        Assert.Equal(appUrl, ultra5_125HL.SourceUrl);
     }
 
     [Fact]
