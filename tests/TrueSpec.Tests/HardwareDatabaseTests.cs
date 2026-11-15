@@ -77,6 +77,12 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 7 165", "RYZEN 7 165")]
     [InlineData("AMD Ryzen 7 155", "RYZEN 7 155")]
     [InlineData("AMD Ryzen 5 125", "RYZEN 5 125")]
+    [InlineData("AMD Ryzen AI 7 450G", "RYZEN AI 7 450G")]
+    [InlineData("AMD Ryzen AI 7 450GE", "RYZEN AI 7 450GE")]
+    [InlineData("AMD Ryzen AI 5 440G", "RYZEN AI 5 440G")]
+    [InlineData("AMD Ryzen AI 5 440GE", "RYZEN AI 5 440GE")]
+    [InlineData("AMD Ryzen AI 5 435G", "RYZEN AI 5 435G")]
+    [InlineData("AMD Ryzen AI 5 435GE", "RYZEN AI 5 435GE")]
     [InlineData("intel core i5-12400", "I5-12400")]
     [InlineData("Intel(R) Core(TM) i5-12400F Processor", "I5-12400F")]
     [InlineData("Intel(R) Core(TM) i5-14400", "I5-14400")]
@@ -217,9 +223,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.28.0", database.Version);
+        Assert.Equal("1.29.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(138, database.CpuCount);
+        Assert.Equal(144, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1847,4 +1853,69 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.5, ryzen5125.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/100-series/amd-ryzen-7-125.html", ryzen5125.SourceUrl, StringComparison.Ordinal);
     }
+    [Fact]
+    public void Default_RyzenAi400DesktopGGeCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.29.0: the six consumer AMD Ryzen AI 400 desktop G and
+        // GE CPUs (Gorgon Point AM5, Zen 5, TSMC 4nm FinFET), the complete
+        // consumer desktop half of the AI 400 family, which the dataset
+        // never listed. All six launched on March 2, 2026. The G parts run
+        // at 65W and the GE parts at 35W; the Ryzen AI 7 parts are 8-core
+        // with Radeon 860M graphics and the Ryzen AI 5 parts are 6-core
+        // with Radeon 840M graphics. All figures were verified by hand
+        // against AMD's own product pages, read 2026-11-15 from fresh
+        // fetches: the Ryzen AI 7 450G and 450GE at Base Clock 2.0 GHz and
+        // Max Boost Clock up to 5.1 GHz; the Ryzen AI 5 440G and 440GE at
+        // 2.0 and up to 4.8 GHz; the Ryzen AI 5 435G and 435GE at 2.0 and
+        // up to 4.5 GHz. The family list comes from AMD's own March 2,
+        // 2026 press release table (450G, 440G, 435G) plus the GE product
+        // pages, which also exist on AMD's site: the 440G and 440GE middle
+        // parts were not in the original brief, which named only 450G/GE
+        // and 435G/GE, but they are real consumer parts, so all six are
+        // added and the consumer desktop family is complete. The PRO
+        // mirrors (Ryzen AI 7 PRO 450G/450GE, Ryzen AI 5 PRO 440G/440GE,
+        // Ryzen AI 5 PRO 435G/435GE) stay out: consumer parts only. The
+        // older Rembrandt Zen 3+ Ryzen 100 chips and the hybrid Ryzen 5
+        // 126 stay out for a future cycle. No code change was needed: the
+        // CPU normalizer already maps "AMD Ryzen AI 7 450G" to "RYZEN AI 7
+        // 450G" and the other five names the same way, and the Settings
+        // card shows the CPU count from the dataset, so it reads 144 with
+        // no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 7 450G", out var ryzenAi7450G));
+        Assert.Equal("AMD", ryzenAi7450G.Vendor);
+        Assert.Equal(2.0, ryzenAi7450G.BaseGhz);
+        Assert.Equal(5.1, ryzenAi7450G.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/ai-400-series/amd-ryzen-ai-7-450g.html", ryzenAi7450G.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 7 450GE", out var ryzenAi7450GE));
+        Assert.Equal("AMD", ryzenAi7450GE.Vendor);
+        Assert.Equal(2.0, ryzenAi7450GE.BaseGhz);
+        Assert.Equal(5.1, ryzenAi7450GE.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/ai-400-series/amd-ryzen-ai-7-450ge.html", ryzenAi7450GE.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 5 440G", out var ryzenAi5440G));
+        Assert.Equal("AMD", ryzenAi5440G.Vendor);
+        Assert.Equal(2.0, ryzenAi5440G.BaseGhz);
+        Assert.Equal(4.8, ryzenAi5440G.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/ai-400-series/amd-ryzen-ai-5-440g.html", ryzenAi5440G.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 5 440GE", out var ryzenAi5440GE));
+        Assert.Equal("AMD", ryzenAi5440GE.Vendor);
+        Assert.Equal(2.0, ryzenAi5440GE.BaseGhz);
+        Assert.Equal(4.8, ryzenAi5440GE.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/ai-400-series/amd-ryzen-ai-5-440ge.html", ryzenAi5440GE.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 5 435G", out var ryzenAi5435G));
+        Assert.Equal("AMD", ryzenAi5435G.Vendor);
+        Assert.Equal(2.0, ryzenAi5435G.BaseGhz);
+        Assert.Equal(4.5, ryzenAi5435G.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/ai-400-series/amd-ryzen-ai-5-435g.html", ryzenAi5435G.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 5 435GE", out var ryzenAi5435GE));
+        Assert.Equal("AMD", ryzenAi5435GE.Vendor);
+        Assert.Equal(2.0, ryzenAi5435GE.BaseGhz);
+        Assert.Equal(4.5, ryzenAi5435GE.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/ai-400-series/amd-ryzen-ai-5-435ge.html", ryzenAi5435GE.SourceUrl, StringComparison.Ordinal);
+    }
+
 }
