@@ -120,6 +120,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 5 8600G", "RYZEN 5 8600G")]
     [InlineData("AMD Ryzen 5 8500G", "RYZEN 5 8500G")]
     [InlineData("AMD Ryzen 3 8300G", "RYZEN 3 8300G")]
+    [InlineData("AMD Ryzen 7 8700F", "RYZEN 7 8700F")]
+    [InlineData("AMD Ryzen 5 8400F", "RYZEN 5 8400F")]
     [InlineData("AMD Ryzen AI 9 HX PRO 475", "RYZEN AI 9 HX PRO 475")]
     [InlineData("AMD Ryzen AI 9 HX PRO 470", "RYZEN AI 9 HX PRO 470")]
     [InlineData("AMD Ryzen AI 9 PRO 465", "RYZEN AI 9 PRO 465")]
@@ -327,9 +329,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.55.0", database.Version);
+        Assert.Equal("1.56.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(257, database.CpuCount);
+        Assert.Equal(259, database.CpuCount);
         Assert.Equal(96, database.GpuCount);
     }
 
@@ -2420,6 +2422,67 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.4, ryzen5_5600G.BoostGhz);
         Assert.Null(ryzen5_5600G.ECoreBoostGhz);
         Assert.Equal("https://www.amd.com/en/support/downloads/drivers.html/processors/ryzen/ryzen-5000-series/amd-ryzen-5-5600g.html", ryzen5_5600G.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Ryzen8000FDesktopCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.56.0: the two AMD Ryzen 8000F desktop CPUs (Phoenix,
+        // Zen 4, TSMC 4nm FinFET, AM5, 65 W default TDP), completing the
+        // 8000F family, which was wholly absent before. Only the 8000G
+        // parts were in the dataset; no 8000F part had ever been listed,
+        // the same unnoticed gap as the 5000G family in v2.1.88, the 8000G
+        // family in v2.1.87, the 100H family in v2.1.86, the 100U family
+        // in v2.1.85, the 200V family in v2.1.83 and the 200S family in
+        // v2.1.84, because no cycle had listed the family against the
+        // dataset. The slice was picked by the fresh audit this cycle,
+        // which checked the dataset against the vendor catalogues after
+        // the v2.1.84 audit's list was completed in v2.1.91; the audit
+        // also checked the Core Ultra 200U family (complete at four SKUs,
+        // 265U, 255U, 235U, 225U, per Intel's own Quick Reference Guide),
+        // the Core 200U family (complete at two SKUs, 250U, 220U), the
+        // Core Ultra 200H family (complete at five SKUs, 285H, 265H,
+        // 255H, 235H, 225H), the Ryzen 7000F desktop CPUs (7500F, 7400F),
+        // the Ryzen 5 5600GT desktop APU and the Ryzen 5 5600T, 5600XT,
+        // 5600F and 5500GT AM4 refresh parts, and the AMD Radeon RX 9070
+        // GRE GPU (12 GB GDDR6, 192-bit, 432 GB/s, launched in China May
+        // 8, 2025, global June 2, 2026). Every figure was verified by
+        // hand against AMD's own product page per model, read 2026-11-15:
+        // the 8700F page was fetched directly as page text (8 cores, 16
+        // threads, Max Boost Clock up to 5 GHz, Base Clock 4.1 GHz, L2 8
+        // MB, L3 16 MB, 65 W, launch 04/01/2024), and the 8400F page was
+        // read through the search index of AMD's own product page, which
+        // publishes the same fields per SKU (6 cores, 12 threads, Max
+        // Boost Clock up to 4.7 GHz, Base Clock 4.2 GHz, L2 6 MB, L3 16
+        // MB, 65 W, launch 04/01/2024). The 8400F is a hybrid Phoenix 2
+        // part (2 Zen 4 plus 4 Zen 4c cores) and uses AMD's headline Base
+        // Clock and Max Boost Clock, not the per-core-type figures, the
+        // same rule as the Ryzen 200 PRO hybrid parts in v2.1.81 and
+        // v2.1.82 and the 8000G hybrid parts in v2.1.87. One reading trap
+        // is recorded: the pre-launch leak tables list the boost clocks
+        // at 5.05 GHz for the 8700F and 4.75 GHz for the 8400F, while
+        // AMD's own pages list 5.0 and 4.7 GHz, so AMD's pages decide it.
+        // Both parts carry no integrated graphics and require a discrete
+        // graphics card; the 8700F carries the Ryzen AI XDNA NPU at 16
+        // TOPS and the 8400F carries no NPU. Staying out, recorded in the
+        // coverage text: the Ryzen 7000F desktop CPUs (7500F, 7400F), the
+        // next candidate; the Ryzen 5 5600GT desktop APU and the Ryzen 5
+        // 5600T, 5600XT, 5600F and 5500GT AM4 refresh parts; the AMD
+        // Radeon RX 9070 GRE GPU; and the standing exclusions (13th-gen
+        // HX P-core base, Core 7 245HX non-Ultra, Core 3 100U, Ryzen AI 7
+        // HX 455, Ryzen AI 400 mobile H variants), unchanged in this
+        // cycle.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 8700F", out var ryzen7_8700F));
+        Assert.Equal(4.1, ryzen7_8700F.BaseGhz);
+        Assert.Equal(5.0, ryzen7_8700F.BoostGhz);
+        Assert.Null(ryzen7_8700F.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/8000-series/amd-ryzen-7-8700f.html", ryzen7_8700F.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 8400F", out var ryzen5_8400F));
+        Assert.Equal(4.2, ryzen5_8400F.BaseGhz);
+        Assert.Equal(4.7, ryzen5_8400F.BoostGhz);
+        Assert.Null(ryzen5_8400F.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/8000-series/amd-ryzen-5-8400f.html", ryzen5_8400F.SourceUrl);
     }
 
     [Fact]
