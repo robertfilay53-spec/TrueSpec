@@ -141,6 +141,13 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel(R) Core(TM) Ultra 7 251HX", "ULTRA 7 251HX")]
     [InlineData("Intel(R) Core(TM) Ultra 5 245HX", "ULTRA 5 245HX")]
     [InlineData("Intel(R) Core(TM) Ultra 5 235HX", "ULTRA 5 235HX")]
+    [InlineData("Intel(R) Core(TM) Ultra 9 288V", "ULTRA 9 288V")]
+    [InlineData("Intel(R) Core(TM) Ultra 7 268V", "ULTRA 7 268V")]
+    [InlineData("Intel(R) Core(TM) Ultra 7 266V", "ULTRA 7 266V")]
+    [InlineData("Intel(R) Core(TM) Ultra 7 256V", "ULTRA 7 256V")]
+    [InlineData("Intel(R) Core(TM) Ultra 5 238V", "ULTRA 5 238V")]
+    [InlineData("Intel(R) Core(TM) Ultra 5 236V", "ULTRA 5 236V")]
+    [InlineData("Intel(R) Core(TM) Ultra 5 228V", "ULTRA 5 228V")]
     [InlineData("Intel Core 9 270H", "9 270H")]
     [InlineData("Intel Core 7 250H", "7 250H")]
     [InlineData("Intel Core 7 240H", "7 240H")]
@@ -288,9 +295,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.46.0", database.Version);
+        Assert.Equal("1.47.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(218, database.CpuCount);
+        Assert.Equal(225, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1774,6 +1781,103 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(2.9, ryzen5Pro216.BaseGhz);
         Assert.Equal(4.7, ryzen5Pro216.BoostGhz);
         Assert.Equal("https://www.amd.com/en/products/processors/laptop/ryzen-pro/200-series/amd-ryzen-5-pro-216.html", ryzen5Pro216.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_CoreUltra200VMobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.47.0: the seven remaining Intel Core Ultra 200V
+        // mobile CPUs (Lunar Lake, TSMC N3B), completing the 200V family
+        // at nine parts. The 226V and 258V were in the dataset since
+        // v2.1.14; the other seven were never listed, the same unnoticed
+        // gap as the 9000 X3D family in v2.1.80, because no cycle had
+        // listed the family against the dataset. All seven are 8 cores
+        // (4 P-cores, 4 LP E-cores, 8 threads), launched Q3 2024, 17 W
+        // base power and 37 W maximum turbo power except the 288V at
+        // 30 W base power; the 288V, 268V, 266V, 258V and 256V carry
+        // 12 MB Intel Smart Cache and the 238V, 236V, 228V and 226V
+        // carry 8 MB. The Core Ultra 9 288V at Performance-core Base
+        // Frequency 3.3 GHz and Max Turbo Frequency up to 5.1 GHz with
+        // Low Power Efficient-core Max Turbo Frequency 3.7 GHz; the Core
+        // Ultra 7 268V and 266V at 2.2 and up to 5.0 GHz with LP E-core
+        // turbo 3.7 GHz; the Core Ultra 7 256V at 2.2 and up to 4.8 GHz
+        // with LP E-core turbo 3.7 GHz; the Core Ultra 5 238V and 236V
+        // at 2.1 and up to 4.7 GHz with LP E-core turbo 3.5 GHz; and
+        // the Core Ultra 5 228V at 2.1 and up to 4.5 GHz with LP E-core
+        // turbo 3.5 GHz. All figures below were verified by hand against
+        // Intel's own product specification comparison page, read
+        // 2026-11-15 from the fourteen-product compare page that lists
+        // all nine V SKUs alongside the Core Ultra 200S desktop parts:
+        // the page publishes Performance-core Base Frequency, Max Turbo
+        // Frequency and Low Power Efficient-core Max Turbo Frequency
+        // per SKU, and the two V parts already in the dataset match it
+        // exactly (the 226V at 2.1, 4.5 and 3.5 GHz; the 258V at 2.2,
+        // 4.8 and 3.7 GHz), which validates the column mapping. The
+        // dataset's e_core_boost_ghz is the Low Power Efficient-core
+        // Max Turbo Frequency, the same rule the dataset already uses
+        // for the 200V parts and the Core Ultra Series 3 non-H models.
+        // The pairs differ only in on-package memory (the 268V ships
+        // 32 GB against the 266V 16 GB, the 258V 32 GB against the 256V
+        // 16 GB, the 238V 32 GB against the 236V 16 GB, the 228V 32 GB
+        // against the 226V 16 GB), so all four pairs are listed, the
+        // same rule as the 378H and 368H in v2.1.65. Cross-checked
+        // against Notebookcheck's per-SKU pages, which state the same
+        // P-cluster ranges for all seven, and against TechPowerUp for
+        // the 268V (2.2 GHz base, up to 5.0 GHz boost, E-cores 2.2 to
+        // 3.7 GHz). One mirror disagreement is resolved: cputronic
+        // lists the 256V Performance-core Base Frequency at 1.6 GHz,
+        // which Intel's own page contradicts at 2.2 GHz, so Intel's
+        // page decides it. The dataset's base_ghz is Intel's
+        // Performance-core Base Frequency and boost_ghz is Intel's Max
+        // Turbo Frequency, per its own definition. No code change was
+        // needed: the CPU normalizer already maps "Intel(R) Core(TM)
+        // Ultra 9 288V" to "ULTRA 9 288V", and the Settings card shows
+        // the CPU count from the dataset, so it reads 225 with no code
+        // change.
+        const string compareUrl = "https://www.intel.com/content/www/us/en/products/compare.html?productIds=240961,241060,240958,240956,241062,241063,240957,240954,241066,241067,240951,240959,240955,240960";
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 9 288V", out var ultra9_288V));
+        Assert.Equal("Intel", ultra9_288V.Vendor);
+        Assert.Equal(3.3, ultra9_288V.BaseGhz);
+        Assert.Equal(5.1, ultra9_288V.BoostGhz);
+        Assert.Equal(3.7, ultra9_288V.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra9_288V.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 268V", out var ultra7_268V));
+        Assert.Equal(2.2, ultra7_268V.BaseGhz);
+        Assert.Equal(5.0, ultra7_268V.BoostGhz);
+        Assert.Equal(3.7, ultra7_268V.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra7_268V.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 266V", out var ultra7_266V));
+        Assert.Equal(2.2, ultra7_266V.BaseGhz);
+        Assert.Equal(5.0, ultra7_266V.BoostGhz);
+        Assert.Equal(3.7, ultra7_266V.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra7_266V.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 256V", out var ultra7_256V));
+        Assert.Equal(2.2, ultra7_256V.BaseGhz);
+        Assert.Equal(4.8, ultra7_256V.BoostGhz);
+        Assert.Equal(3.7, ultra7_256V.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra7_256V.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 238V", out var ultra5_238V));
+        Assert.Equal(2.1, ultra5_238V.BaseGhz);
+        Assert.Equal(4.7, ultra5_238V.BoostGhz);
+        Assert.Equal(3.5, ultra5_238V.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra5_238V.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 236V", out var ultra5_236V));
+        Assert.Equal(2.1, ultra5_236V.BaseGhz);
+        Assert.Equal(4.7, ultra5_236V.BoostGhz);
+        Assert.Equal(3.5, ultra5_236V.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra5_236V.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 228V", out var ultra5_228V));
+        Assert.Equal(2.1, ultra5_228V.BaseGhz);
+        Assert.Equal(4.5, ultra5_228V.BoostGhz);
+        Assert.Equal(3.5, ultra5_228V.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra5_228V.SourceUrl);
     }
 
     [Fact]
