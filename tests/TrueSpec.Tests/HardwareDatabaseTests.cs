@@ -138,6 +138,9 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 7 9800X3D", "RYZEN 7 9800X3D")]
     [InlineData("AMD Ryzen 9 7950X3D", "RYZEN 9 7950X3D")]
     [InlineData("AMD Ryzen 7 5800X3D", "RYZEN 7 5800X3D")]
+    [InlineData("AMD Ryzen 7 5700X3D", "RYZEN 7 5700X3D")]
+    [InlineData("AMD Ryzen 5 5600X3D", "RYZEN 5 5600X3D")]
+    [InlineData("AMD Ryzen 5 5500X3D", "RYZEN 5 5500X3D")]
     [InlineData("AMD Ryzen 9 7900", "RYZEN 9 7900")]
     [InlineData("AMD Ryzen 7 7700", "RYZEN 7 7700")]
     [InlineData("AMD Ryzen 5 7600X", "RYZEN 5 7600X")]
@@ -270,9 +273,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.41.0", database.Version);
+        Assert.Equal("1.42.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(200, database.CpuCount);
+        Assert.Equal(203, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1418,6 +1421,59 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.4, ultra5322.BoostGhz);
         Assert.Equal(3.3, ultra5322.ECoreBoostGhz);
         Assert.StartsWith("https://cdrdv2-public.intel.com/871380/Intel%20Core%20Ultra%20Series%203%20Processors%20-%20Quick%20Reference%20Guide%20v1.pdf", ultra5322.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Ryzen5000X3dDesktopCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.42.0: the three remaining AMD Ryzen 5000 X3D desktop
+        // CPUs (Vermeer, Zen 3 with 3D V-Cache), which complete the AM4
+        // X3D set alongside the 5800X3D already in the dataset. This
+        // overturns the stays-out note for the 5700X3D, which kept it out
+        // because AMD's own product page could not be read live: AMD has
+        // removed the per-product page, the product URL now redirects to
+        // the specifications hub and the new-style URL redirects to the
+        // AMD homepage, so no live AMD read was possible in this cycle.
+        // The 5700X3D figures rest on AMD's own documentation as mirrored
+        // verbatim, AMD's own spec sheet (Product ID Boxed
+        // 100-100001503WOF, launch 1/8/2024) and AMD's own user manual
+        // (Base Clock Speed 3.0 GHz, Max Boost Clock Up to 4.1 GHz, 96 MB
+        // L3 cache, 105 W), plus a dated PDF print of AMD's own product
+        // page amd.com/en/product/14101 and unanimous third-party
+        // agreement (nanoreview, siliconcat, cputronic, cpu-monkey and
+        // technical.city); the only disagreement is a pre-launch
+        // speculation piece that guessed 3.4 and 4.5 GHz before AMD
+        // announced the part, superseded by AMD's own announcement at 3.0
+        // and 4.1 GHz. The other two verify against AMD's own live pages:
+        // the 5600X3D against AMD's support page (Base Clock 3.3 GHz,
+        // Max. Boost Clock Up to 4.4 GHz, 96 MB L3 cache, 105 W, launch
+        // 07/07/2023) and the 5500X3D against AMD's product page (Base
+        // Clock 3 GHz, Max. Boost Clock Up to 4 GHz, 96 MB L3 cache,
+        // 105 W, launch 6/5/2025, Latin America). All three are Zen 3
+        // Vermeer on AM4 with 96 MB of L3 cache and a 105 W default TDP,
+        // and all three launched after the 5800X3D: the 5600X3D on
+        // July 7, 2023 (Micro Center exclusive in the US), the 5700X3D on
+        // January 8, 2024, and the 5500X3D on June 5, 2025. No code change
+        // was needed: the CPU normalizer already maps the names, and the
+        // Settings card shows the CPU count from the dataset, so it reads
+        // 203 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 5700X3D", out var ryzen75700X3d));
+        Assert.Equal("AMD", ryzen75700X3d.Vendor);
+        Assert.Equal(3.0, ryzen75700X3d.BaseGhz);
+        Assert.Equal(4.1, ryzen75700X3d.BoostGhz);
+        Assert.Equal("https://www.amd.com/en/product/14101", ryzen75700X3d.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 5600X3D", out var ryzen55600X3d));
+        Assert.Equal("AMD", ryzen55600X3d.Vendor);
+        Assert.Equal(3.3, ryzen55600X3d.BaseGhz);
+        Assert.Equal(4.4, ryzen55600X3d.BoostGhz);
+        Assert.Equal("https://www.amd.com/en/support/downloads/drivers.html/processors/ryzen/ryzen-5000-series/amd-ryzen-5-5600x3d.html", ryzen55600X3d.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 5500X3D", out var ryzen55500X3d));
+        Assert.Equal("AMD", ryzen55500X3d.Vendor);
+        Assert.Equal(3.0, ryzen55500X3d.BaseGhz);
+        Assert.Equal(4.0, ryzen55500X3d.BoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/5000-series/amd-ryzen-5-5500x3d.html", ryzen55500X3d.SourceUrl);
     }
 
     [Fact]
