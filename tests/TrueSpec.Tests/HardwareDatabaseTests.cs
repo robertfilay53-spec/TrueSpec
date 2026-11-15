@@ -342,9 +342,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.68.0", database.Version);
+        Assert.Equal("1.69.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(282, database.CpuCount);
+        Assert.Equal(285, database.CpuCount);
         Assert.Equal(109, database.GpuCount);
     }
 
@@ -1054,6 +1054,78 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(5.1, i5_13600Kf.BoostGhz);
         Assert.Equal(3.9, i5_13600Kf.ECoreBoostGhz);
         Assert.Equal(compareUrl, i5_13600Kf.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Core12thGenUnlockedDesktopFamilyCompletesAt6()
+    {
+        // Dataset v1.69.0: the three Intel Core 12th-gen unlocked desktop
+        // KF CPUs the dataset was missing, completing the unlocked set at
+        // six SKUs (the 12900K, 12700K, 12600K, 12900KF, 12700KF and
+        // 12600KF; the three K parts were already listed). All three are
+        // Alder Lake on Intel 7, LGA 1700, and each KF part shares its K
+        // twin's clocks exactly and differs only by the missing integrated
+        // graphics, so a discrete card is required. The 12900KF at
+        // Performance-core Base Frequency 3.2 GHz and Max Turbo
+        // Frequency up to 5.2 GHz with Efficient-core Max Turbo
+        // Frequency 3.9 GHz, 16 cores (8 P-cores and 8 E-cores,
+        // 24 threads, 30 MB Intel Smart Cache), 125 W base power,
+        // launched November 2021. The 12700KF at 3.6 and up to 5.0 GHz
+        // with E-core turbo 3.8 GHz, 12 cores (8 P-cores and 4 E-cores,
+        // 20 threads, 25 MB cache), 125 W base power, no integrated
+        // graphics, launched November 2021. The 12600KF at 3.7 and up
+        // to 4.9 GHz with E-core turbo 3.6 GHz, 10 cores (6 P-cores
+        // and 4 E-cores, 16 threads, 20 MB cache), 125 W base power,
+        // no integrated graphics, launched November 2021. The boost
+        // figures are ARK Max Turbo Frequency, the headline up-to
+        // figure, per the dataset boost definition. Every figure was
+        // verified by hand, read 2026-11-15: Intel's own 12th-gen
+        // comparison table as republished by ASRock (12900KF 3.2 GHz,
+        // Max Turbo 5.2 GHz, E-core turbo 3.9 GHz, 16 cores, 24 threads,
+        // 30 MB, 125 W; 12700KF 3.6 GHz, Max Turbo 5.0 GHz, E-core turbo
+        // 3.8 GHz, 12 cores, 20 threads, 25 MB, 125 W; 12600KF 3.7 GHz,
+        // Max Turbo 4.9 GHz, E-core turbo 3.6 GHz, 10 cores, 16 threads,
+        // 20 MB, 125 W), cross-checked against agreeing third parties
+        // (cpu-world, TechPowerUp, Newegg, B and H, Overclockers and
+        // siliconcat, which all agree per SKU on the base, the boost and
+        // the E-core turbo). Intel's own compare pages return HTTP 403
+        // in this sandbox, so the figures rest on agreeing ARK mirrors,
+        // the same disclosed third-party exception as the 14th-gen
+        // unlocked set in v2.1.99 and the 13th-gen unlocked set in
+        // v2.2.4, and each entry records Intel's own compare URL with
+        // the three verified ARK IDs (134600, 134595, 134590). Three
+        // reading traps are recorded: pre-launch leak tables listed the
+        // 12900K boost as 5.3 GHz, while the final ARK Max Turbo is
+        // 5.2 GHz, the same figure the KF twin carries; some retailers
+        // list the 12700KF turbo as 4.9 GHz, which is its Single P-core
+        // Turbo, while the ARK Max Turbo is 5.0 GHz via Turbo Boost Max
+        // 3.0, the same trap class as the 13900KF's 5.7 GHz listing; and
+        // one retailer lists the 12600KF cache as 25 MB, which is the
+        // 12700KF's cache, while the agreeing sources give 20 MB. The
+        // dataset carries no core-count, cache or power field, so those
+        // figures live here in the comment and in the README and ROADMAP
+        // entries, not in the entries themselves.
+        var compareUrl = "https://www.intel.com/content/www/us/en/products/compare.html?productIds=134600,134595,134590";
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i9-12900KF", out var i9_12900Kf));
+        Assert.Equal("Intel", i9_12900Kf.Vendor);
+        Assert.Equal(3.2, i9_12900Kf.BaseGhz);
+        Assert.Equal(5.2, i9_12900Kf.BoostGhz);
+        Assert.Equal(3.9, i9_12900Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i9_12900Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i7-12700KF", out var i7_12700Kf));
+        Assert.Equal("Intel", i7_12700Kf.Vendor);
+        Assert.Equal(3.6, i7_12700Kf.BaseGhz);
+        Assert.Equal(5.0, i7_12700Kf.BoostGhz);
+        Assert.Equal(3.8, i7_12700Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i7_12700Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i5-12600KF", out var i5_12600Kf));
+        Assert.Equal("Intel", i5_12600Kf.Vendor);
+        Assert.Equal(3.7, i5_12600Kf.BaseGhz);
+        Assert.Equal(4.9, i5_12600Kf.BoostGhz);
+        Assert.Equal(3.6, i5_12600Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i5_12600Kf.SourceUrl);
     }
 
     [Fact]
