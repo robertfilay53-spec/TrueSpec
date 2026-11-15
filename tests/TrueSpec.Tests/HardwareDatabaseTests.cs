@@ -342,9 +342,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.67.0", database.Version);
+        Assert.Equal("1.68.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(277, database.CpuCount);
+        Assert.Equal(282, database.CpuCount);
         Assert.Equal(109, database.GpuCount);
     }
 
@@ -955,6 +955,105 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(5.3, i5_14600Kf.BoostGhz);
         Assert.Equal(4.0, i5_14600Kf.ECoreBoostGhz);
         Assert.Equal(compareUrl, i5_14600Kf.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Core13thGenUnlockedDesktopFamilyCompletesAt7()
+    {
+        // Dataset v1.68.0: the five Intel Core 13th-gen unlocked desktop
+        // CPUs the dataset was missing, completing the unlocked set at
+        // seven SKUs (the 13900KS, 13900K, 13900KF, 13700K, 13700KF,
+        // 13600K and 13600KF; the 13900K and 13700K were already listed).
+        // All five are Raptor Lake on Intel 7, LGA 1700. The 13900KS at
+        // Performance-core Base Frequency 3.2 GHz and Max Turbo
+        // Frequency up to 6.0 GHz with Efficient-core Max Turbo
+        // Frequency 4.3 GHz, 24 cores (8 P-cores and 16 E-cores,
+        // 32 threads, 36 MB Intel Smart Cache), 150 W base power,
+        // launched January 2023. The 13900KF at 3.0 and up to 5.8 GHz
+        // with E-core turbo 4.3 GHz, 24 cores, 36 MB cache, 125 W base
+        // power, no integrated graphics, launched October 2022. The
+        // 13700KF at 3.4 and up to 5.4 GHz with E-core turbo 4.2 GHz,
+        // 16 cores (8 P-cores and 8 E-cores, 24 threads, 30 MB cache),
+        // 125 W base power, no integrated graphics, launched October
+        // 2022. The 13600K at 3.5 and up to 5.1 GHz with E-core turbo
+        // 3.9 GHz, 14 cores (6 P-cores and 8 E-cores, 20 threads,
+        // 24 MB cache), 125 W base power, launched October 2022. The
+        // 13600KF at the same clocks, cores, cache and power as the
+        // 13600K, no integrated graphics, launched October 2022. The
+        // boost figures are ARK Max Turbo Frequency, the headline up-to
+        // figure, per the dataset boost definition. Every figure was
+        // verified by hand, read 2026-11-15: Intel's own ARK spec
+        // tables as republished by agreeing retailers and comparison
+        // tables (ARK IDs 232167, 230497, 230489, 230493, 230494;
+        // 13900KS Max Turbo 6.0 GHz, Thermal Velocity Boost 6.0 GHz,
+        // Turbo Boost Max 3.0 5.8 GHz, P-core Max Turbo 5.4 GHz,
+        // E-core Max Turbo 4.3 GHz, P-core base 3.2 GHz, 36 MB,
+        // 150 W; 13900KF Max Turbo 5.8 GHz, Thermal Velocity Boost
+        // 5.8 GHz, Turbo Boost Max 3.0 5.7 GHz, P-core Max Turbo
+        // 5.4 GHz, E-core Max Turbo 4.3 GHz, P-core base 3.0 GHz,
+        // 36 MB, 125 W; 13700KF Max Turbo 5.4 GHz, Turbo Boost Max
+        // 3.0 5.4 GHz, P-core Max Turbo 5.3 GHz, E-core Max Turbo
+        // 4.2 GHz, P-core base 3.4 GHz, 30 MB, 125 W; 13600K Max
+        // Turbo 5.1 GHz, P-core Max Turbo 5.1 GHz, E-core Max Turbo
+        // 3.9 GHz, P-core base 3.5 GHz, 24 MB, 125 W; 13600KF the
+        // same clocks as the 13600K, 24 MB, 125 W), cross-checked
+        // against agreeing third parties (cpu-monkey, cpu-world,
+        // Notebookcheck, TechPowerUp, Overclockers and WikiChip,
+        // which all agree per SKU on the base, the boost and the
+        // E-core turbo). Intel's own compare pages return HTTP 403
+        // in this sandbox, so the figures rest on agreeing ARK
+        // mirrors, the same disclosed third-party exception as the
+        // 14th-gen unlocked set in v2.1.99, and each entry records
+        // Intel's own compare URL with the five verified ARK IDs
+        // (232167, 230497, 230489, 230493, 230494). Three reading
+        // traps are recorded: the 13900KS 6.0 GHz is Thermal Velocity
+        // Boost, not the P-core Max Turbo (5.4 GHz), and the dataset
+        // records the ARK Max Turbo headline, the same convention as
+        // the 14900KS 6.2 GHz; the 13900KF 5.8 GHz is likewise
+        // Thermal Velocity Boost, its P-core Max Turbo is 5.4 GHz
+        // and some retailers list its 5.7 GHz Turbo Boost Max 3.0
+        // figure as its maximum turbo, while the ARK Max Turbo is
+        // 5.8 GHz; and one retailer lists the 13600K boost as
+        // 5.3 GHz, which is the 14600K's figure, while the agreeing
+        // ARK mirrors give 5.1 GHz. The dataset carries no
+        // core-count, cache or power field, so those figures live
+        // here in the comment and in the README and ROADMAP entries,
+        // not in the entries themselves.
+        var compareUrl = "https://www.intel.com/content/www/us/en/products/compare.html?productIds=232167,230497,230489,230493,230494";
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i9-13900KS", out var i9_13900Ks));
+        Assert.Equal("Intel", i9_13900Ks.Vendor);
+        Assert.Equal(3.2, i9_13900Ks.BaseGhz);
+        Assert.Equal(6.0, i9_13900Ks.BoostGhz);
+        Assert.Equal(4.3, i9_13900Ks.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i9_13900Ks.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i9-13900KF", out var i9_13900Kf));
+        Assert.Equal("Intel", i9_13900Kf.Vendor);
+        Assert.Equal(3.0, i9_13900Kf.BaseGhz);
+        Assert.Equal(5.8, i9_13900Kf.BoostGhz);
+        Assert.Equal(4.3, i9_13900Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i9_13900Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i7-13700KF", out var i7_13700Kf));
+        Assert.Equal("Intel", i7_13700Kf.Vendor);
+        Assert.Equal(3.4, i7_13700Kf.BaseGhz);
+        Assert.Equal(5.4, i7_13700Kf.BoostGhz);
+        Assert.Equal(4.2, i7_13700Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i7_13700Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i5-13600K", out var i5_13600K));
+        Assert.Equal("Intel", i5_13600K.Vendor);
+        Assert.Equal(3.5, i5_13600K.BaseGhz);
+        Assert.Equal(5.1, i5_13600K.BoostGhz);
+        Assert.Equal(3.9, i5_13600K.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i5_13600K.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i5-13600KF", out var i5_13600Kf));
+        Assert.Equal("Intel", i5_13600Kf.Vendor);
+        Assert.Equal(3.5, i5_13600Kf.BaseGhz);
+        Assert.Equal(5.1, i5_13600Kf.BoostGhz);
+        Assert.Equal(3.9, i5_13600Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i5_13600Kf.SourceUrl);
     }
 
     [Fact]
