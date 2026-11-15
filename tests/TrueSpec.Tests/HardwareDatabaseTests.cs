@@ -342,10 +342,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.64.0", database.Version);
+        Assert.Equal("1.65.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
         Assert.Equal(277, database.CpuCount);
-        Assert.Equal(105, database.GpuCount);
+        Assert.Equal(106, database.GpuCount);
     }
 
     [Fact]
@@ -738,6 +738,46 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_Rx6950XtDesktopGpuCarriesVerifiedFigures()
+    {
+        // Dataset v1.65.0: the one AMD Radeon RX 6950 XT desktop GPU
+        // the dataset was missing, completing the RX 6000 desktop
+        // family at twelve SKUs (the 6400, 6500 XT, 6600, 6600 XT,
+        // 6650 XT, 6700, 6700 XT, 6750 XT, 6800, 6800 XT, 6900 XT and
+        // 6950 XT; the RX 6750 GRE stays out, declined in v2.1.98
+        // because its two variants differ in boost as well as memory
+        // and power). The Radeon RX 6950 XT at Boost Frequency up to
+        // 2310 MHz (Base Frequency 1890 MHz, Game Frequency 2100 MHz),
+        // 80 compute units, 5120 stream processors, 16 GB GDDR6 on a
+        // 256-bit bus at up to 576 GB/s, 128 MB Infinity Cache, 335 W
+        // typical board power, RDNA 2 (Navi 21 KXTX), launched May 10,
+        // 2022 at $1099 per the launch coverage. Every figure was
+        // verified by hand against AMD's own product page, fetched
+        // directly as page text and read 2026-11-15, cross-checked
+        // against agreeing third parties (TechPowerUp, siliconcat,
+        // pcbench and hardwaredb, which all agree on 2310 MHz boost,
+        // 16 GB and 335 W). Two reading traps are recorded:
+        // TechPowerUp lists the base clock as 1860 MHz while AMD's own
+        // page lists 1890 MHz, and the dataset records no GPU base
+        // clock, so it does not affect the entry; and AMD's page lists
+        // a minimum PSU recommendation of 850 W while TechPowerUp
+        // suggests 700 W, and the dataset records no PSU figure, so
+        // that disagreement does not affect the entry either.
+        // Board-partner cards are factory-overclocked, so the entry
+        // records AMD's reference boost figure. The dataset carries no
+        // compute-unit, bus-width or bandwidth field, so those figures
+        // live here in the comment and in the README and ROADMAP
+        // entries, not in the entry itself.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6950 XT", out var rx6950Xt));
+        Assert.Equal("AMD", rx6950Xt.Vendor);
+        Assert.Equal(2.31, rx6950Xt.BoostGhz);
+        Assert.Equal(16, rx6950Xt.MemoryGb);
+        Assert.Equal(335, rx6950Xt.TdpW);
+        Assert.Null(rx6950Xt.TdpNote);
+        Assert.StartsWith("https://www.amd.com/en/products/graphics/desktops/radeon/6000-series/amd-radeon-rx-6950-xt.html", rx6950Xt.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Default_Core14thGenUnlockedDesktopFamilyCompletesAt7()
     {
         // Dataset v1.63.0: the five Intel Core 14th-gen unlocked desktop
@@ -978,6 +1018,7 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Radeon RX 7800 XT", "RX 7800 XT")]
     [InlineData("AMD Radeon RX 9070 GRE", "RX 9070 GRE")]
     [InlineData("AMD Radeon RX 6700", "RX 6700")]
+    [InlineData("AMD Radeon RX 6950 XT", "RX 6950 XT")]
     [InlineData("AMD Radeon RX 6500 XT", "RX 6500 XT")]
     [InlineData("AMD Radeon RX 6400", "RX 6400")]
     [InlineData("AMD Radeon RX 7600 XT", "RX 7600 XT")]
