@@ -180,6 +180,12 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel(R) Core(TM) Ultra 5 228V", "ULTRA 5 228V")]
     [InlineData("Intel(R) Core(TM) Ultra 7 265KF", "ULTRA 7 265KF")]
     [InlineData("Intel(R) Core(TM) Ultra 5 245KF", "ULTRA 5 245KF")]
+    [InlineData("Intel(R) Core(TM) Ultra 9 285KF", "ULTRA 9 285KF")]
+    [InlineData("Intel(R) Core(TM) Ultra 9 285T", "ULTRA 9 285T")]
+    [InlineData("Intel(R) Core(TM) Ultra 7 265T", "ULTRA 7 265T")]
+    [InlineData("Intel(R) Core(TM) Ultra 5 245T", "ULTRA 5 245T")]
+    [InlineData("Intel(R) Core(TM) Ultra 5 235T", "ULTRA 5 235T")]
+    [InlineData("Intel(R) Core(TM) Ultra 5 225T", "ULTRA 5 225T")]
     [InlineData("Intel(R) Core(TM) Ultra 9 285", "ULTRA 9 285")]
     [InlineData("Intel(R) Core(TM) Ultra 7 265", "ULTRA 7 265")]
     [InlineData("Intel(R) Core(TM) Ultra 7 265F", "ULTRA 7 265F")]
@@ -336,9 +342,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.59.0", database.Version);
+        Assert.Equal("1.60.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(266, database.CpuCount);
+        Assert.Equal(272, database.CpuCount);
         Assert.Equal(97, database.GpuCount);
     }
 
@@ -536,6 +542,95 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(12, rx9070Gre.MemoryGb);
         Assert.Equal(220, rx9070Gre.TdpW);
         Assert.StartsWith("https://www.amd.com/en/products/graphics/desktops/radeon/9000-series/amd-radeon-rx-9070-gre.html", rx9070Gre.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_CoreUltra200SDesktopFamilyCompletesAt18()
+    {
+        // Dataset v1.60.0: the six Intel Core Ultra 200S desktop CPUs the
+        // dataset was missing, completing the Core Ultra 200S desktop
+        // family at 18 SKUs (the three K parts 285K, 265K and 245K, the
+        // three KF parts 285KF, 265KF and 245KF, the seven 65 W parts
+        // 285, 265, 265F, 245, 235, 225 and 225F, and the five 35 W T
+        // parts 285T, 265T, 245T, 235T and 225T). All six are Arrow Lake
+        // on TSMC 3nm FinFET, LGA 1851. The 285KF at Performance-core
+        // Base Frequency 3.7 GHz and Max Turbo Frequency up to 5.7 GHz
+        // with Efficient-core Max Turbo Frequency 4.6 GHz, 24 cores
+        // (8 P-cores and 16 E-cores, 24 threads, 36 MB Intel Smart
+        // Cache), 125 W base power, unlocked, no integrated graphics,
+        // launched October 24, 2024. The 285T at 1.4 and up to 5.4 GHz
+        // with E-core turbo 4.6 GHz, 24 cores, 36 MB cache, 35 W,
+        // launched January 7, 2025. The 265T at 1.5 and up to 5.3 GHz
+        // with E-core turbo 4.6 GHz, 20 cores (8 P-cores and 12
+        // E-cores, 20 threads, 30 MB cache), 35 W, launched January 7,
+        // 2025. The 245T at 2.2 and up to 5.1 GHz with E-core turbo
+        // 4.5 GHz, 14 cores (6 P-cores and 8 E-cores, 14 threads,
+        // 24 MB cache), 35 W, launched January 7, 2025. The 235T at
+        // 2.2 and up to 5.0 GHz with E-core turbo 4.4 GHz, 14 cores,
+        // 24 MB cache, 35 W, launched January 7, 2025. The 225T at
+        // 2.5 and up to 4.9 GHz with E-core turbo 4.4 GHz, 10 cores
+        // (6 P-cores and 4 E-cores, 10 threads, 20 MB cache), 35 W,
+        // launched January 7, 2025. The boost figures are ARK Max Turbo
+        // Frequency, the headline up-to figure, per the dataset's boost
+        // definition. The 265T figures rest on Intel's own Core Ultra
+        // 200S series processors for the edge product brief (December
+        // 2024), which lists the 265T at 20 cores, 30 MB cache, 35 W,
+        // P-core turbo 5.3 GHz, E-core turbo 4.6 GHz, P-core base
+        // 1.5 GHz and E-core base 1.2 GHz, cross-checked against
+        // agreeing third parties. The 285T, 245T, 235T and 225T
+        // figures rest on agreeing third-party ARK mirrors, the same
+        // disclosed mirror exception as the 251HX in v2.1.76, because
+        // Intel's own compare pages return HTTP 403 in this sandbox.
+        // The 285KF figures rest on the K twin: the KF is the same
+        // silicon as the 285K with the integrated graphics disabled,
+        // and the dataset already records the 265KF and 245KF at their
+        // K twins' clocks. Two reading traps are recorded: topcpu and
+        // siliconcat give the 265T a 2.4 GHz P-core base, while
+        // Intel's own product brief and the agreeing sources give
+        // 1.5 GHz, so Intel's own document decides it; and topcpu and
+        // siliconcat give the 265T a 4.5 GHz E-core turbo, while
+        // Intel's own product brief and the agreeing sources give
+        // 4.6 GHz, so Intel's own document decides it. The dataset
+        // carries no core-count, cache or TDP field, so those figures
+        // live here in the comment and in the README and ROADMAP
+        // entries, not in the entries themselves.
+        const string compareUrl = "https://www.intel.com/content/www/us/en/products/compare.html?productIds=240961,241060,240958,240956,241062,241063,240957,240954,241066,241067,240951,240959,240955,240960";
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 9 285KF", out var ultra9_285Kf));
+        Assert.Equal(3.7, ultra9_285Kf.BaseGhz);
+        Assert.Equal(5.7, ultra9_285Kf.BoostGhz);
+        Assert.Equal(4.6, ultra9_285Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra9_285Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 9 285T", out var ultra9_285T));
+        Assert.Equal(1.4, ultra9_285T.BaseGhz);
+        Assert.Equal(5.4, ultra9_285T.BoostGhz);
+        Assert.Equal(4.6, ultra9_285T.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra9_285T.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 265T", out var ultra7_265T));
+        Assert.Equal(1.5, ultra7_265T.BaseGhz);
+        Assert.Equal(5.3, ultra7_265T.BoostGhz);
+        Assert.Equal(4.6, ultra7_265T.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra7_265T.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 245T", out var ultra5_245T));
+        Assert.Equal(2.2, ultra5_245T.BaseGhz);
+        Assert.Equal(5.1, ultra5_245T.BoostGhz);
+        Assert.Equal(4.5, ultra5_245T.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra5_245T.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 235T", out var ultra5_235T));
+        Assert.Equal(2.2, ultra5_235T.BaseGhz);
+        Assert.Equal(5.0, ultra5_235T.BoostGhz);
+        Assert.Equal(4.4, ultra5_235T.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra5_235T.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 225T", out var ultra5_225T));
+        Assert.Equal(2.5, ultra5_225T.BaseGhz);
+        Assert.Equal(4.9, ultra5_225T.BoostGhz);
+        Assert.Equal(4.4, ultra5_225T.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra5_225T.SourceUrl);
     }
 
     [Fact]
