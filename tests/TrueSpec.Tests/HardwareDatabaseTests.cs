@@ -83,6 +83,12 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen AI 5 440GE", "RYZEN AI 5 440GE")]
     [InlineData("AMD Ryzen AI 5 435G", "RYZEN AI 5 435G")]
     [InlineData("AMD Ryzen AI 5 435GE", "RYZEN AI 5 435GE")]
+    [InlineData("AMD Ryzen AI 7 PRO 450G", "RYZEN AI 7 PRO 450G")]
+    [InlineData("AMD Ryzen AI 7 PRO 450GE", "RYZEN AI 7 PRO 450GE")]
+    [InlineData("AMD Ryzen AI 5 PRO 440G", "RYZEN AI 5 PRO 440G")]
+    [InlineData("AMD Ryzen AI 5 PRO 440GE", "RYZEN AI 5 PRO 440GE")]
+    [InlineData("AMD Ryzen AI 5 PRO 435G", "RYZEN AI 5 PRO 435G")]
+    [InlineData("AMD Ryzen AI 5 PRO 435GE", "RYZEN AI 5 PRO 435GE")]
     [InlineData("AMD Ryzen 7 170", "RYZEN 7 170")]
     [InlineData("AMD Ryzen 7 160", "RYZEN 7 160")]
     [InlineData("AMD Ryzen 5 150", "RYZEN 5 150")]
@@ -241,9 +247,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.31.0", database.Version);
+        Assert.Equal("1.32.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(162, database.CpuCount);
+        Assert.Equal(168, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -2114,6 +2120,71 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.7, ultra7355.BoostGhz);
         Assert.Equal(3.5, ultra7355.ECoreBoostGhz);
         Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=245722", ultra7355.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_RyzenAi400ProDesktopGGeCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.32.0: the six AMD Ryzen AI PRO 400 Series desktop G
+        // and GE CPUs (Gorgon Point AM5, Zen 5, TSMC 4nm FinFET), the PRO
+        // mirrors of the six consumer desktop parts added in v1.29.0,
+        // which complete the desktop half of the AI 400 family. All six
+        // launched on March 2, 2026 (AMD press release, MWC 2026); the G
+        // parts run at 65W and the GE parts at 35W; the Ryzen AI 7 PRO
+        // parts are 8-core with Radeon 860M graphics and the Ryzen AI 5
+        // PRO parts are 6-core with Radeon 840M graphics. Every figure
+        // was verified by hand against AMD's own product page for that
+        // exact model, read 2026-11-15: the Ryzen AI 7 PRO 450G and
+        // 450GE at Base Clock 2.0 GHz and Max Boost Clock up to 5.1 GHz;
+        // the Ryzen AI 5 PRO 440G and 440GE at 2.0 and up to 4.8 GHz;
+        // the Ryzen AI 5 PRO 435G and 435GE at 2.0 and up to 4.5 GHz.
+        // The PRO clocks are identical to their consumer mirrors; the
+        // PRO parts add AMD PRO Technologies (security, manageability,
+        // 18-month feature stability, 36-month support), which is why
+        // they are separate dataset entries. The slice was picked by a
+        // fresh audit: the brief named Core Ultra Series 3 desktop, but
+        // Intel's own Series 3 Quick Reference Guide lists only mobile
+        // H, non-H and U parts, so no Series 3 desktop SKUs exist and
+        // there is nothing to add there; the coverage text now says so.
+        // No code change was needed: the CPU normalizer already maps
+        // "AMD Ryzen AI 7 PRO 450G" to "RYZEN AI 7 PRO 450G" and the
+        // other five names the same way, and the Settings card shows the
+        // CPU count from the dataset, so it reads 168 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 7 PRO 450G", out var ryzenAi7Pro450G));
+        Assert.Equal("AMD", ryzenAi7Pro450G.Vendor);
+        Assert.Equal(2.0, ryzenAi7Pro450G.BaseGhz);
+        Assert.Equal(5.1, ryzenAi7Pro450G.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen-pro/ai-400-series/amd-ryzen-ai-7-pro-450g.html", ryzenAi7Pro450G.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 7 PRO 450GE", out var ryzenAi7Pro450GE));
+        Assert.Equal("AMD", ryzenAi7Pro450GE.Vendor);
+        Assert.Equal(2.0, ryzenAi7Pro450GE.BaseGhz);
+        Assert.Equal(5.1, ryzenAi7Pro450GE.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen-pro/ai-400-series/amd-ryzen-ai-7-pro-450ge.html", ryzenAi7Pro450GE.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 5 PRO 440G", out var ryzenAi5Pro440G));
+        Assert.Equal("AMD", ryzenAi5Pro440G.Vendor);
+        Assert.Equal(2.0, ryzenAi5Pro440G.BaseGhz);
+        Assert.Equal(4.8, ryzenAi5Pro440G.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen-pro/ai-400-series/amd-ryzen-ai-5-pro-440g.html", ryzenAi5Pro440G.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 5 PRO 440GE", out var ryzenAi5Pro440GE));
+        Assert.Equal("AMD", ryzenAi5Pro440GE.Vendor);
+        Assert.Equal(2.0, ryzenAi5Pro440GE.BaseGhz);
+        Assert.Equal(4.8, ryzenAi5Pro440GE.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen-pro/ai-400-series/amd-ryzen-ai-5-pro-440ge.html", ryzenAi5Pro440GE.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 5 PRO 435G", out var ryzenAi5Pro435G));
+        Assert.Equal("AMD", ryzenAi5Pro435G.Vendor);
+        Assert.Equal(2.0, ryzenAi5Pro435G.BaseGhz);
+        Assert.Equal(4.5, ryzenAi5Pro435G.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen-pro/ai-400-series/amd-ryzen-ai-5-pro-435g.html", ryzenAi5Pro435G.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 5 PRO 435GE", out var ryzenAi5Pro435GE));
+        Assert.Equal("AMD", ryzenAi5Pro435GE.Vendor);
+        Assert.Equal(2.0, ryzenAi5Pro435GE.BaseGhz);
+        Assert.Equal(4.5, ryzenAi5Pro435GE.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen-pro/ai-400-series/amd-ryzen-ai-5-pro-435ge.html", ryzenAi5Pro435GE.SourceUrl, StringComparison.Ordinal);
     }
 
 }
