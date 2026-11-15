@@ -262,9 +262,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.35.0", database.Version);
+        Assert.Equal("1.36.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(183, database.CpuCount);
+        Assert.Equal(187, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -2426,6 +2426,79 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(2.0, ryzenAi5Pro340.BaseGhz);
         Assert.Equal(4.8, ryzenAi5Pro340.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-300-series/amd-ryzen-ai-5-pro-340.html", ryzenAi5Pro340.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_RyzenAiMaxPro300MobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.36.0: the four AMD Ryzen AI Max PRO 300 Series
+        // mobile CPUs, the PRO mirrors of the consumer AI Max family
+        // already in the dataset. All four are Strix Halo FP11 (Zen 5,
+        // TSMC 4nm FinFET), announced January 6, 2025 at CES 2025 as the
+        // commercial Max PRO family. The Ryzen AI Max+ PRO 395 is
+        // 16-core (16 Zen 5) with Radeon 8060S graphics and up to 50
+        // TOPS of NPU performance; the Ryzen AI Max PRO 390 is 12-core
+        // with Radeon 8050S; the Ryzen AI Max PRO 385 is 8-core with
+        // Radeon 8050S; the Ryzen AI Max PRO 380 is 6-core with Radeon
+        // 8040S. Every figure was verified by hand against AMD's own
+        // product page for that exact model, read 2026-11-15 from fresh
+        // fetches: the Max+ PRO 395 at Base Clock 3.0 GHz and Max Boost
+        // Clock up to 5.1 GHz; the Max PRO 390 at 3.2 and up to 5.0 GHz;
+        // the Max PRO 385 at 3.6 and up to 5.0 GHz; the Max PRO 380 at
+        // 3.6 and up to 4.9 GHz. The figures were cross-checked against
+        // AMD's January 2026 mobile-for-business Quick Reference Guide,
+        // which lists the same four models with the same clocks, and the
+        // CES 2025 press release, which announces the Max+ PRO 395 at
+        // up to 5.1 GHz and 3.0 GHz base. The PRO clocks are identical
+        // to their consumer mirrors where a consumer twin exists in the
+        // dataset (the Max+ PRO 395 mirrors the Max+ 395, the Max PRO
+        // 390 mirrors the Max 390, the Max PRO 385 mirrors the Max
+        // 385); the Max PRO 380 has no consumer twin in the dataset,
+        // the consumer Max family lists only the 395, 392, 390, 388 and
+        // 385. The PRO parts are separate dataset entries because they
+        // add AMD PRO Technologies (security, manageability, 18-month
+        // feature stability, 36-month support), not because any clock
+        // differs. The slice was picked by a fresh audit: the brief
+        // named the Intel 13th-gen HX P-core Base Frequency rows first,
+        // and that target was re-checked in this cycle and still fails.
+        // Intel's own Compare Products page, crawled 2026-11-14, shows
+        // the Performance-core Base Frequency row for the i9-13980HX
+        // with an empty cell, so the 13980HX P-core base is still not
+        // published by Intel and nothing is added for it; the Intel
+        // datasheet gives P-core base per configuration, not per SKU,
+        // and mapping a configuration to a SKU would be inference, so
+        // it is not usable under the project rules. The v2.1.57
+        // rationale that kept the Max PRO 300 family out, that no PRO
+        // chip had been listed in any cycle, is now outdated: the AI
+        // 400 PRO and AI 300 PRO families are listed, so the family is
+        // a genuine gap and it is closed here. No code change was
+        // needed: the CPU normalizer already maps "AMD Ryzen AI Max+
+        // PRO 395" to "RYZEN AI MAX+ PRO 395" and the other three names
+        // the same way, and the Settings card shows the CPU count from
+        // the dataset, so it reads 187 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI Max+ PRO 395", out var ryzenAiMaxPlusPro395));
+        Assert.Equal("AMD", ryzenAiMaxPlusPro395.Vendor);
+        Assert.Equal(3.0, ryzenAiMaxPlusPro395.BaseGhz);
+        Assert.Equal(5.1, ryzenAiMaxPlusPro395.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-max-pro-300-series/amd-ryzen-ai-max-plus-pro-395.html", ryzenAiMaxPlusPro395.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI Max PRO 390", out var ryzenAiMaxPro390));
+        Assert.Equal("AMD", ryzenAiMaxPro390.Vendor);
+        Assert.Equal(3.2, ryzenAiMaxPro390.BaseGhz);
+        Assert.Equal(5.0, ryzenAiMaxPro390.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-max-pro-300-series/amd-ryzen-ai-max-pro-390.html", ryzenAiMaxPro390.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI Max PRO 385", out var ryzenAiMaxPro385));
+        Assert.Equal("AMD", ryzenAiMaxPro385.Vendor);
+        Assert.Equal(3.6, ryzenAiMaxPro385.BaseGhz);
+        Assert.Equal(5.0, ryzenAiMaxPro385.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-max-pro-300-series/amd-ryzen-ai-max-pro-385.html", ryzenAiMaxPro385.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI Max PRO 380", out var ryzenAiMaxPro380));
+        Assert.Equal("AMD", ryzenAiMaxPro380.Vendor);
+        Assert.Equal(3.6, ryzenAiMaxPro380.BaseGhz);
+        Assert.Equal(4.9, ryzenAiMaxPro380.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-max-pro-300-series/amd-ryzen-ai-max-pro-380.html", ryzenAiMaxPro380.SourceUrl, StringComparison.Ordinal);
     }
 
 
