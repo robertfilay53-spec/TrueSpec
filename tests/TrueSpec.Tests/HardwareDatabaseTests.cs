@@ -89,6 +89,12 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen AI 5 PRO 440GE", "RYZEN AI 5 PRO 440GE")]
     [InlineData("AMD Ryzen AI 5 PRO 435G", "RYZEN AI 5 PRO 435G")]
     [InlineData("AMD Ryzen AI 5 PRO 435GE", "RYZEN AI 5 PRO 435GE")]
+    [InlineData("AMD Ryzen AI 9 HX PRO 475", "RYZEN AI 9 HX PRO 475")]
+    [InlineData("AMD Ryzen AI 9 HX PRO 470", "RYZEN AI 9 HX PRO 470")]
+    [InlineData("AMD Ryzen AI 9 PRO 465", "RYZEN AI 9 PRO 465")]
+    [InlineData("AMD Ryzen AI 7 PRO 450", "RYZEN AI 7 PRO 450")]
+    [InlineData("AMD Ryzen AI 5 PRO 440", "RYZEN AI 5 PRO 440")]
+    [InlineData("AMD Ryzen AI 5 PRO 435", "RYZEN AI 5 PRO 435")]
     [InlineData("AMD Ryzen 7 170", "RYZEN 7 170")]
     [InlineData("AMD Ryzen 7 160", "RYZEN 7 160")]
     [InlineData("AMD Ryzen 5 150", "RYZEN 5 150")]
@@ -247,9 +253,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.32.0", database.Version);
+        Assert.Equal("1.33.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(168, database.CpuCount);
+        Assert.Equal(174, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -2186,5 +2192,85 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.5, ryzenAi5Pro435GE.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen-pro/ai-400-series/amd-ryzen-ai-5-pro-435ge.html", ryzenAi5Pro435GE.SourceUrl, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Default_RyzenAi400ProMobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.33.0: the six AMD Ryzen AI PRO 400 Series mobile
+        // CPUs (Gorgon Point FP8, Zen 5 and Zen 5c, TSMC 4nm FinFET),
+        // the PRO mirrors of the six consumer mobile parts already in
+        // the dataset, which complete the AI 400 family: consumer and
+        // PRO, desktop and mobile. All six launched January 5, 2026
+        // (CES 2026, announced alongside the consumer mobile parts);
+        // the Ryzen AI 9 HX PRO parts are 12-core with Radeon 890M
+        // graphics, the Ryzen AI 9 PRO 465 is 10-core with Radeon
+        // 880M, the Ryzen AI 7 PRO 450 is 8-core with Radeon 860M,
+        // and the Ryzen AI 5 PRO parts are 6-core with Radeon 840M.
+        // Every figure was verified by hand against AMD's own product
+        // page for that exact model, read 2026-11-15: the Ryzen AI 9
+        // HX PRO 475 and HX PRO 470 at Base Clock 2.0 GHz and Max
+        // Boost Clock up to 5.2 GHz; the Ryzen AI 9 PRO 465 at 2.0
+        // and up to 5.0 GHz; the Ryzen AI 7 PRO 450 at 2.0 and up to
+        // 5.1 GHz; the Ryzen AI 5 PRO 440 at 2.0 and up to 4.8 GHz;
+        // the Ryzen AI 5 PRO 435 at 2.0 and up to 4.5 GHz. The PRO
+        // clocks are identical to their consumer mirrors; the PRO
+        // parts add AMD PRO Technologies (security, manageability,
+        // 18-month feature stability, 36-month support), which is why
+        // they are separate dataset entries. Two judgement calls are
+        // recorded. First, the HX PRO 470 is identical to the HX PRO
+        // 475 on clocks, cores, cache and graphics and differs only
+        // in NPU (55 TOPS against 60), so both are listed. Second,
+        // the H variants of the mobile parts (H PRO 450, H PRO 465
+        // and the rest) stay out: no separate AMD product pages with
+        // their own clock figures surfaced for them in this cycle.
+        // The slice was picked by a fresh audit: the brief named
+        // Ryzen 9000G desktop APUs first, but no such product exists,
+        // the name was a rumor and AMD never announced a desktop part
+        // under it, and the real Zen 5 desktop APU family is the
+        // Ryzen AI 400 Series announced March 2, 2026, already in the
+        // dataset; the audit then found the six PRO mobile parts
+        // absent (zero PRO mobile models of any family). No code
+        // change was needed: the CPU normalizer already maps "AMD
+        // Ryzen AI 9 HX PRO 475" to "RYZEN AI 9 HX PRO 475" and the
+        // other five names the same way, and the Settings card shows
+        // the CPU count from the dataset, so it reads 174 with no
+        // code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 9 HX PRO 475", out var ryzenAi9HxPro475));
+        Assert.Equal("AMD", ryzenAi9HxPro475.Vendor);
+        Assert.Equal(2.0, ryzenAi9HxPro475.BaseGhz);
+        Assert.Equal(5.2, ryzenAi9HxPro475.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-400-series/amd-ryzen-ai-9-hx-pro-475.html", ryzenAi9HxPro475.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 9 HX PRO 470", out var ryzenAi9HxPro470));
+        Assert.Equal("AMD", ryzenAi9HxPro470.Vendor);
+        Assert.Equal(2.0, ryzenAi9HxPro470.BaseGhz);
+        Assert.Equal(5.2, ryzenAi9HxPro470.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-400-series/amd-ryzen-ai-9-hx-pro-470.html", ryzenAi9HxPro470.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 9 PRO 465", out var ryzenAi9Pro465));
+        Assert.Equal("AMD", ryzenAi9Pro465.Vendor);
+        Assert.Equal(2.0, ryzenAi9Pro465.BaseGhz);
+        Assert.Equal(5.0, ryzenAi9Pro465.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-400-series/amd-ryzen-ai-9-pro-465.html", ryzenAi9Pro465.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 7 PRO 450", out var ryzenAi7Pro450));
+        Assert.Equal("AMD", ryzenAi7Pro450.Vendor);
+        Assert.Equal(2.0, ryzenAi7Pro450.BaseGhz);
+        Assert.Equal(5.1, ryzenAi7Pro450.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-400-series/amd-ryzen-ai-7-pro-450.html", ryzenAi7Pro450.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 5 PRO 440", out var ryzenAi5Pro440));
+        Assert.Equal("AMD", ryzenAi5Pro440.Vendor);
+        Assert.Equal(2.0, ryzenAi5Pro440.BaseGhz);
+        Assert.Equal(4.8, ryzenAi5Pro440.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-400-series/amd-ryzen-ai-5-pro-440.html", ryzenAi5Pro440.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen AI 5 PRO 435", out var ryzenAi5Pro435));
+        Assert.Equal("AMD", ryzenAi5Pro435.Vendor);
+        Assert.Equal(2.0, ryzenAi5Pro435.BaseGhz);
+        Assert.Equal(4.5, ryzenAi5Pro435.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-400-series/amd-ryzen-ai-5-pro-435.html", ryzenAi5Pro435.SourceUrl, StringComparison.Ordinal);
+    }
+
 
 }
