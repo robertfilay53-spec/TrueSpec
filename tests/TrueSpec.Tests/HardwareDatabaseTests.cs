@@ -342,9 +342,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.62.0", database.Version);
+        Assert.Equal("1.63.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(272, database.CpuCount);
+        Assert.Equal(277, database.CpuCount);
         Assert.Equal(101, database.GpuCount);
     }
 
@@ -661,6 +661,97 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(575, rtx5090D.TdpW);
         Assert.Equal("Memory 32 GB (original, Jan 2025) / 24 GB (V2, Aug 2025); no single figure for the shared device name", rtx5090D.TdpNote);
         Assert.StartsWith("http://techpowerup.com/gpu-specs/geforce-rtx-5090-d.c4253", rtx5090D.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Core14thGenUnlockedDesktopFamilyCompletesAt7()
+    {
+        // Dataset v1.63.0: the five Intel Core 14th-gen unlocked desktop
+        // CPUs the dataset was missing, completing the unlocked set at
+        // seven SKUs (the 14900KS, 14900K, 14900KF, 14700K, 14700KF,
+        // 14600K and 14600KF; the 14700K and 14900K were already listed).
+        // All five are Raptor Lake Refresh on Intel 7, LGA 1700. The
+        // 14900KS at Performance-core Base Frequency 3.2 GHz and Max
+        // Turbo Frequency up to 6.2 GHz with Efficient-core Max Turbo
+        // Frequency 4.5 GHz, 24 cores (8 P-cores and 16 E-cores,
+        // 32 threads, 36 MB Intel Smart Cache), 150 W base power,
+        // launched March 2024. The 14900KF at 3.2 and up to 6.0 GHz
+        // with E-core turbo 4.4 GHz, 24 cores, 36 MB cache, 125 W base
+        // power, no integrated graphics, launched October 2023. The
+        // 14700KF at 3.4 and up to 5.6 GHz with E-core turbo 4.3 GHz,
+        // 20 cores (8 P-cores and 12 E-cores, 28 threads, 33 MB cache),
+        // 125 W base power, no integrated graphics, launched October
+        // 2023. The 14600K at 3.5 and up to 5.3 GHz with E-core turbo
+        // 4.0 GHz, 14 cores (6 P-cores and 8 E-cores, 20 threads,
+        // 24 MB cache), 125 W base power, launched October 2023. The
+        // 14600KF at the same clocks, cores, cache and power as the
+        // 14600K, no integrated graphics, launched October 2023. The
+        // boost figures are ARK Max Turbo Frequency, the headline up-to
+        // figure, per the dataset boost definition. Every figure was
+        // verified by hand, read 2026-11-15: the 14900KS against
+        // Intel's own ARK spec table as republished by agreeing
+        // retailers (ARK ID 237504; Max Turbo 6.2 GHz, Thermal Velocity
+        // Boost 6.2 GHz, Turbo Boost Max 3.0 5.9 GHz, P-core Max Turbo
+        // 5.7 GHz, E-core Max Turbo 4.5 GHz, P-core base 3.2 GHz, 36 MB,
+        // 150 W) and the 14900KF, 14700KF, 14600K and 14600KF against
+        // Intel's own 14th-gen comparison table as republished by
+        // Newegg (Max Turbo 6.0, 5.6 and 5.3 GHz; P-core base 3.2, 3.4
+        // and 3.5 GHz; E-core turbo 4.4, 4.3 and 4.0 GHz), cross-checked
+        // against agreeing third parties (nanoreview, digit, wccftech
+        // and the AnandTech table, which all agree per SKU on the base,
+        // the boost and the E-core turbo). Intel's own compare pages
+        // return HTTP 403 in this sandbox, so the figures rest on
+        // agreeing ARK mirrors, the same disclosed third-party
+        // exception as the 285T, 245T, 235T and 225T in v2.1.96, and
+        // each entry records Intel's own compare URL with the five
+        // verified ARK IDs (237504, 236787, 236789, 236799, 236778).
+        // Three reading traps are recorded: the 14900KS 6.2 GHz is
+        // Thermal Velocity Boost, not the P-core Max Turbo (5.7 GHz),
+        // and the dataset records the ARK Max Turbo headline, the same
+        // convention as the 14900K 6.0 GHz; some retailers list the
+        // 14900KF 5.8 GHz Turbo Boost Max 3.0 figure as its maximum
+        // turbo, while the ARK Max Turbo is 6.0 GHz; and Newegg's
+        // comparison table lists the i7-14700K/KF cache as 30 MB, while
+        // the L3 cache is 33 MB (28 MB L2) per the ARK spec tables, so
+        // the comment records 33 MB. The dataset carries no core-count,
+        // cache or power field, so those figures live here in the
+        // comment and in the README and ROADMAP entries, not in the
+        // entries themselves.
+        var compareUrl = "https://www.intel.com/content/www/us/en/products/compare.html?productIds=237504,236787,236789,236799,236778";
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i9-14900KS", out var i9_14900Ks));
+        Assert.Equal("Intel", i9_14900Ks.Vendor);
+        Assert.Equal(3.2, i9_14900Ks.BaseGhz);
+        Assert.Equal(6.2, i9_14900Ks.BoostGhz);
+        Assert.Equal(4.5, i9_14900Ks.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i9_14900Ks.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i9-14900KF", out var i9_14900Kf));
+        Assert.Equal("Intel", i9_14900Kf.Vendor);
+        Assert.Equal(3.2, i9_14900Kf.BaseGhz);
+        Assert.Equal(6.0, i9_14900Kf.BoostGhz);
+        Assert.Equal(4.4, i9_14900Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i9_14900Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i7-14700KF", out var i7_14700Kf));
+        Assert.Equal("Intel", i7_14700Kf.Vendor);
+        Assert.Equal(3.4, i7_14700Kf.BaseGhz);
+        Assert.Equal(5.6, i7_14700Kf.BoostGhz);
+        Assert.Equal(4.3, i7_14700Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i7_14700Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i5-14600K", out var i5_14600K));
+        Assert.Equal("Intel", i5_14600K.Vendor);
+        Assert.Equal(3.5, i5_14600K.BaseGhz);
+        Assert.Equal(5.3, i5_14600K.BoostGhz);
+        Assert.Equal(4.0, i5_14600K.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i5_14600K.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i5-14600KF", out var i5_14600Kf));
+        Assert.Equal("Intel", i5_14600Kf.Vendor);
+        Assert.Equal(3.5, i5_14600Kf.BaseGhz);
+        Assert.Equal(5.3, i5_14600Kf.BoostGhz);
+        Assert.Equal(4.0, i5_14600Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i5_14600Kf.SourceUrl);
     }
 
     [Fact]
