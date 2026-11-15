@@ -342,10 +342,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.66.0", database.Version);
+        Assert.Equal("1.67.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
         Assert.Equal(277, database.CpuCount);
-        Assert.Equal(107, database.GpuCount);
+        Assert.Equal(109, database.GpuCount);
     }
 
     [Fact]
@@ -817,6 +817,56 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_Rtx30SeriesLaptopGpusCompleteAtEight()
+    {
+        // Dataset v1.67.0: the two NVIDIA GeForce RTX 30-series laptop
+        // GPUs the dataset was missing, completing the RTX 30-series
+        // laptop family at eight SKUs (the 3080 Ti, 3080, 3070 Ti,
+        // 3070, 3060, 3050 Ti, 3050 and 3050 6GB Laptop GPUs). The RTX
+        // 3080 Ti Laptop GPU at Boost Clock up to 1590 MHz, 7424 CUDA
+        // cores, 16 GB GDDR6 on a 256-bit bus, 150 W maximum TGP,
+        // Ampere (GA103S), launched January 2022. The RTX 3050 Ti
+        // Laptop GPU at Boost Clock up to 1695 MHz, 2560 CUDA cores,
+        // 4 GB GDDR6 on a 128-bit bus, 80 W maximum TGP, Ampere
+        // (GA107), launched May 2021. Every figure was verified by
+        // hand, read 2026-11-15: NVIDIA's own GeForce RTX 30 Series
+        // laptop compare page, fetched directly as page text (3080 Ti
+        // at Boost Clock 1125-1590 MHz, GPU Subsystem Power 80-150 W,
+        // Standard Memory Config 16 GB GDDR6; 3050 Ti at Boost Clock
+        // 1035-1695 MHz, GPU Subsystem Power 35-80 W, Standard Memory
+        // Config 4 GB GDDR6), cross-checked against agreeing third
+        // parties (Notebookcheck, nanoreview, Guru3D, WCCFTech and
+        // KitGuru, which all agree per SKU on the boost clock, the
+        // memory size and the TGP range). Boost is the upper end of
+        // NVIDIA's published Boost Clock range and board power is the
+        // maximum of the published TGP range, per the dataset's own
+        // definitions, exactly like the RTX 50/40-series laptop
+        // entries. One reading trap is recorded: some third-party
+        // tables list the 3080 Ti Laptop GPU TGP up to 175 W with
+        // Dynamic Boost, while NVIDIA's own compare page lists 80-150
+        // W, and the entry records the NVIDIA figure per the dataset's
+        // convention, the same as the RTX 3080 Laptop GPU entry. The
+        // dataset carries no CUDA-core, bus-width or launch-date field,
+        // so those figures live here in the comment and in the README
+        // and ROADMAP entries, not in the entries themselves.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3080 Ti Laptop GPU", out var rtx3080TiLaptop));
+        Assert.Equal("NVIDIA", rtx3080TiLaptop.Vendor);
+        Assert.Equal(1.59, rtx3080TiLaptop.BoostGhz);
+        Assert.Equal(16, rtx3080TiLaptop.MemoryGb);
+        Assert.Equal(150, rtx3080TiLaptop.TdpW);
+        Assert.Equal("TGP range 80-150 W; figure is the maximum", rtx3080TiLaptop.TdpNote);
+        Assert.StartsWith("https://www.nvidia.com/en-in/geforce/laptops/compare/30-series/", rtx3080TiLaptop.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 3050 Ti Laptop GPU", out var rtx3050TiLaptop));
+        Assert.Equal("NVIDIA", rtx3050TiLaptop.Vendor);
+        Assert.Equal(1.695, rtx3050TiLaptop.BoostGhz);
+        Assert.Equal(4, rtx3050TiLaptop.MemoryGb);
+        Assert.Equal(80, rtx3050TiLaptop.TdpW);
+        Assert.Equal("TGP range 35-80 W; figure is the maximum", rtx3050TiLaptop.TdpNote);
+        Assert.StartsWith("https://www.nvidia.com/en-in/geforce/laptops/compare/30-series/", rtx3050TiLaptop.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Default_Core14thGenUnlockedDesktopFamilyCompletesAt7()
     {
         // Dataset v1.63.0: the five Intel Core 14th-gen unlocked desktop
@@ -1059,6 +1109,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Radeon RX 6700", "RX 6700")]
     [InlineData("AMD Radeon RX 6950 XT", "RX 6950 XT")]
     [InlineData("AMD Radeon RX 7650 GRE", "RX 7650 GRE")]
+    [InlineData("NVIDIA GeForce RTX 3080 Ti Laptop GPU", "RTX 3080 TI LAPTOP")]
+    [InlineData("NVIDIA GeForce RTX 3050 Ti Laptop GPU", "RTX 3050 TI LAPTOP")]
     [InlineData("AMD Radeon RX 6500 XT", "RX 6500 XT")]
     [InlineData("AMD Radeon RX 6400", "RX 6400")]
     [InlineData("AMD Radeon RX 7600 XT", "RX 7600 XT")]
