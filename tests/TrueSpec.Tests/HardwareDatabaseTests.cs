@@ -140,6 +140,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel Core 7 240H", "7 240H")]
     [InlineData("Intel Core 5 220H", "5 220H")]
     [InlineData("Intel Core 5 210H", "5 210H")]
+    [InlineData("Intel Core 7 230H", "7 230H")]
+    [InlineData("Intel Core 5 205H", "5 205H")]
     [InlineData("Intel Core 7 250U", "7 250U")]
     [InlineData("Intel Core 5 220U", "5 220U")]
     [InlineData("AMD Ryzen 7 9800X3D", "RYZEN 7 9800X3D")]
@@ -280,9 +282,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.43.0", database.Version);
+        Assert.Equal("1.44.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(210, database.CpuCount);
+        Assert.Equal(212, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1576,6 +1578,79 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(5.0, core5220U.BoostGhz);
         Assert.Equal(3.9, core5220U.ECoreBoostGhz);
         Assert.Equal("https://siliconcat.net/cpu/intel-core-5-220u", core5220U.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Core200HDisabledGraphicsCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.44.0: the two remaining Intel Core 200H mobile CPUs
+        // with disabled graphics (Raptor Lake-H Refresh, non-Ultra,
+        // Series 2), completing the family at nine parts. This overturns
+        // the v2.1.79 exclusion, which kept the 230H out because no
+        // source found published its P-core base distinctly, notebookcheck
+        // giving only the 1.8 to 5.2 GHz min-max range from the E-core
+        // base to the P-core turbo, and it was not inferred from the
+        // 240H. The 205H was not considered at all in that cycle. The
+        // per-SKU pages, fetched directly in this cycle, state the
+        // P-cluster range distinctly: the 230H P-cores run 2.5 to 5.2
+        // GHz with E-cores at 1.8 to 4.0 GHz, and the 205H P-cores run
+        // 2.2 to 4.8 GHz with E-cores at 1.6 to 3.6 GHz. VideoCardz's
+        // read of Intel's own product pages confirms the 230H has the
+        // same CPU configuration, clocks, cache and power limits as the
+        // Core 7 240H and the 205H the same specifications as the Core 5
+        // 210H, and topcpu's spec listing for the 205H (8 cores, 12
+        // threads, 12 MB cache, 45 W, boost up to 4.8 GHz, E-core boost
+        // 3.6 GHz) is stated to follow specifications published by
+        // Intel. The 230H launched June 12, 2026 and the 205H on June 7,
+        // 2026, both on Intel 7 at 45 W. The one difference from the
+        // 240H and the 210H is the graphics: the 230H's Xe iGPU is
+        // disabled, and the 205H has no Xe graphics unit enabled or
+        // installed. One judgement call is recorded, the same disclosed
+        // mirror exception as the 251HX in v2.1.76, the 5700X3D in
+        // v2.1.78 and the 250U and 220U in v2.1.79: Intel's own ARK page
+        // for the 230H exists (SKU 246028, its title confirms 24M cache
+        // and up to 5.20 GHz), but the spec table values could not be
+        // extracted here, the fetched page text carries only boilerplate,
+        // and Intel's own compare pages return HTTP 403 in this sandbox,
+        // so no live compare-page spot-check was possible in this cycle
+        // and the P-core base figures rest on notebookcheck's per-SKU
+        // pages stating the P-cluster range distinctly, corroborated by
+        // the Intel-sourced same-clocks reports. Two blocks were
+        // re-checked in this cycle and stay out. Intel 13th-gen HX
+        // P-core base: Intel's own compare page for the i9-13900K,
+        // i9-13900T and i9-13980HX, fetched directly, still shows the
+        // Performance-core Base Frequency row with an empty cell for the
+        // 13980HX (3.00 GHz for the 13900K, 1.10 GHz for the 13900T) and
+        // the Efficient-core Base Frequency cell empty too, while Max
+        // Turbo 5.60 GHz and E-core Max Turbo 4.00 GHz are published;
+        // the mirrors still agree on 2.2 GHz, but the vendor-page rule
+        // keeps the family out. The Core 7 245HX non-Ultra: its figures
+        // now verify distinctly on mirrors (GadReview gives P-core base
+        // 2.9 GHz, E-core base 2.6 GHz, turbo 5.1 GHz; notebookcheck
+        // gives a slower P-core base than the Ultra 5 245HX's 3.1 GHz
+        // with a 2.6 to 5.1 GHz range; VideoCardz and TweakTown, from
+        // Intel ARK, give the same clocks as the Ultra 5 235HX), but it
+        // stays out because the number 245HX already names the Ultra 5
+        // part and a second 245HX would invite the misidentification the
+        // dataset exists to prevent. The Core 3 100U stays out too: it
+        // is a Series 1 part launched January 2024, a rebrand of the
+        // i3-1315U, not part of the Core 200U family. No code change was
+        // needed: the CPU normalizer already maps the names, and the
+        // Settings card shows the CPU count from the dataset, so it
+        // reads 212 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) 7 230H", out var core7230H));
+        Assert.Equal("Intel", core7230H.Vendor);
+        Assert.Equal(2.5, core7230H.BaseGhz);
+        Assert.Equal(5.2, core7230H.BoostGhz);
+        Assert.Equal(4.0, core7230H.ECoreBoostGhz);
+        Assert.Equal("https://www.notebookcheck.net/Intel-Core-7-230H-Processor-Benchmarks-and-Specs.1363555.0.html", core7230H.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) 5 205H", out var core5205H));
+        Assert.Equal("Intel", core5205H.Vendor);
+        Assert.Equal(2.2, core5205H.BaseGhz);
+        Assert.Equal(4.8, core5205H.BoostGhz);
+        Assert.Equal(3.6, core5205H.ECoreBoostGhz);
+        Assert.Equal("https://www.notebookcheck.net/Intel-Core-5-205H-Processor-Benchmarks-and-Specs.1364948.0.html", core5205H.SourceUrl);
     }
 
     [Fact]
