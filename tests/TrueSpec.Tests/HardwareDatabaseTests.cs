@@ -135,6 +135,13 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel(R) Core(TM) Ultra 7 251HX", "ULTRA 7 251HX")]
     [InlineData("Intel(R) Core(TM) Ultra 5 245HX", "ULTRA 5 245HX")]
     [InlineData("Intel(R) Core(TM) Ultra 5 235HX", "ULTRA 5 235HX")]
+    [InlineData("Intel Core 9 270H", "9 270H")]
+    [InlineData("Intel Core 7 250H", "7 250H")]
+    [InlineData("Intel Core 7 240H", "7 240H")]
+    [InlineData("Intel Core 5 220H", "5 220H")]
+    [InlineData("Intel Core 5 210H", "5 210H")]
+    [InlineData("Intel Core 7 250U", "7 250U")]
+    [InlineData("Intel Core 5 220U", "5 220U")]
     [InlineData("AMD Ryzen 7 9800X3D", "RYZEN 7 9800X3D")]
     [InlineData("AMD Ryzen 9 7950X3D", "RYZEN 9 7950X3D")]
     [InlineData("AMD Ryzen 7 5800X3D", "RYZEN 7 5800X3D")]
@@ -273,9 +280,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.42.0", database.Version);
+        Assert.Equal("1.43.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(203, database.CpuCount);
+        Assert.Equal(210, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1474,6 +1481,101 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(3.0, ryzen55500X3d.BaseGhz);
         Assert.Equal(4.0, ryzen55500X3d.BoostGhz);
         Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/5000-series/amd-ryzen-5-5500x3d.html", ryzen55500X3d.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Core200HAnd200UMobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.43.0: the seven Intel Core 200H and 200U mobile CPUs
+        // (Raptor Lake-H/U Refresh, non-Ultra, Series 2), which the dataset
+        // never listed. This overturns the v2.1.78 exclusion, which kept
+        // them out because no Intel document published their figures, only
+        // the CES 2025 keynote deck, whose table text is garbled, and
+        // pre-launch leaks. Intel itself published the full Core 200H
+        // table on its own website in December 2024, and Notebookcheck
+        // reproduces that table verbatim (Core 9 270H, Core 7 250H, Core 7
+        // 240H, Core 5 220H, Core 5 210H, with P-core base, P-core boost,
+        // E-core base, E-core boost, TDP and cache per SKU); the 210H
+        // figures are independently confirmed by Intel's own product
+        // comparison page as read through the search index (8 cores,
+        // 12 threads, Max Turbo 4.8 GHz, P-core base 2.2 GHz, E-core base
+        // 1.6 GHz, 12 MB cache, 45 W, launch Q4'24). The five H parts
+        // launched December 18, 2024, all on Intel 7 at 45 W. The two U
+        // parts launched January 6, 2025, both 10 cores (2 P-cores, 8
+        // E-cores, 12 threads, 12 MB cache) at 15 W. One judgement call
+        // is recorded, the same disclosed mirror exception as the 251HX
+        // in v2.1.76 and the 5700X3D in v2.1.78: no Intel document with a
+        // per-SKU table for the U parts surfaced, so the 250U at 1.9 and
+        // up to 5.4 GHz with E-core turbo 4.1 GHz and the 220U at 1.5 and
+        // up to 5.0 GHz with E-core turbo 3.9 GHz rest on agreeing ARK
+        // mirrors (siliconcat, cputronic, topcpu, technical.city, and
+        // techpowerup for the 220U), not on a direct Intel read, because
+        // Intel's own compare pages return HTTP 403 in this sandbox and
+        // no live compare-page spot-check was possible in this cycle. Two
+        // mirror disagreements are resolved: the 250U P-core base is 1.9
+        // GHz per the agreeing ARK mirrors, while notebookcheck's
+        // per-SKU page gives 1.8 GHz because it copies the renamed
+        // predecessor 150U's clocks (and pc-builds also lists 1.8 GHz);
+        // the 220U E-core turbo is 3.9 GHz per the agreeing ARK mirrors
+        // including techpowerup, while notebookcheck's per-SKU page gives
+        // 3.8 GHz, the predecessor 120U's figure. Staying out: the Core 7
+        // 230H, a real SKU shipping since June 12, 2026, because no
+        // source found publishes its P-core base distinctly (notebookcheck
+        // gives only the 1.8 to 5.2 GHz min-max range), and it is not
+        // inferred from the 240H; and the Core 3 100U, a Series 1 part
+        // launched January 2024 and a rebrand of the i3-1315U, not part
+        // of the Core 200U family. No code change was needed: the CPU
+        // normalizer already maps the names, and the Settings card shows
+        // the CPU count from the dataset, so it reads 210 with no code
+        // change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) 9 270H", out var core9270H));
+        Assert.Equal("Intel", core9270H.Vendor);
+        Assert.Equal(2.7, core9270H.BaseGhz);
+        Assert.Equal(5.8, core9270H.BoostGhz);
+        Assert.Equal(4.1, core9270H.ECoreBoostGhz);
+        Assert.Equal("https://www.notebookcheck.net/Intel-confirms-specs-of-Core-9-Processor-270H-Core-7-Processor-250H-Core-5-Processor-220H-and-other-rebadged-Raptor-Lake-CPUs-on-its-website.934559.0.html", core9270H.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) 7 250H", out var core7250H));
+        Assert.Equal("Intel", core7250H.Vendor);
+        Assert.Equal(2.5, core7250H.BaseGhz);
+        Assert.Equal(5.4, core7250H.BoostGhz);
+        Assert.Equal(4.0, core7250H.ECoreBoostGhz);
+        Assert.Equal("https://www.notebookcheck.net/Intel-confirms-specs-of-Core-9-Processor-270H-Core-7-Processor-250H-Core-5-Processor-220H-and-other-rebadged-Raptor-Lake-CPUs-on-its-website.934559.0.html", core7250H.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) 7 240H", out var core7240H));
+        Assert.Equal("Intel", core7240H.Vendor);
+        Assert.Equal(2.5, core7240H.BaseGhz);
+        Assert.Equal(5.2, core7240H.BoostGhz);
+        Assert.Equal(4.0, core7240H.ECoreBoostGhz);
+        Assert.Equal("https://www.notebookcheck.net/Intel-confirms-specs-of-Core-9-Processor-270H-Core-7-Processor-250H-Core-5-Processor-220H-and-other-rebadged-Raptor-Lake-CPUs-on-its-website.934559.0.html", core7240H.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) 5 220H", out var core5220H));
+        Assert.Equal("Intel", core5220H.Vendor);
+        Assert.Equal(2.7, core5220H.BaseGhz);
+        Assert.Equal(4.9, core5220H.BoostGhz);
+        Assert.Equal(3.7, core5220H.ECoreBoostGhz);
+        Assert.Equal("https://www.notebookcheck.net/Intel-confirms-specs-of-Core-9-Processor-270H-Core-7-Processor-250H-Core-5-Processor-220H-and-other-rebadged-Raptor-Lake-CPUs-on-its-website.934559.0.html", core5220H.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) 5 210H", out var core5210H));
+        Assert.Equal("Intel", core5210H.Vendor);
+        Assert.Equal(2.2, core5210H.BaseGhz);
+        Assert.Equal(4.8, core5210H.BoostGhz);
+        Assert.Equal(3.6, core5210H.ECoreBoostGhz);
+        Assert.Equal("https://www.notebookcheck.net/Intel-confirms-specs-of-Core-9-Processor-270H-Core-7-Processor-250H-Core-5-Processor-220H-and-other-rebadged-Raptor-Lake-CPUs-on-its-website.934559.0.html", core5210H.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) 7 250U", out var core7250U));
+        Assert.Equal("Intel", core7250U.Vendor);
+        Assert.Equal(1.9, core7250U.BaseGhz);
+        Assert.Equal(5.4, core7250U.BoostGhz);
+        Assert.Equal(4.1, core7250U.ECoreBoostGhz);
+        Assert.Equal("https://siliconcat.net/cpu/intel-core-7-250u", core7250U.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) 5 220U", out var core5220U));
+        Assert.Equal("Intel", core5220U.Vendor);
+        Assert.Equal(1.5, core5220U.BaseGhz);
+        Assert.Equal(5.0, core5220U.BoostGhz);
+        Assert.Equal(3.9, core5220U.ECoreBoostGhz);
+        Assert.Equal("https://siliconcat.net/cpu/intel-core-5-220u", core5220U.SourceUrl);
     }
 
     [Fact]
