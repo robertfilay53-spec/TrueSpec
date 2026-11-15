@@ -127,6 +127,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel(R) Core(TM) i5-14400", "I5-14400")]
     [InlineData("Intel(R) Core(TM) i9-14900HX", "I9-14900HX")]
     [InlineData("Intel(R) Core(TM) Ultra 9 285HX", "ULTRA 9 285HX")]
+    [InlineData("Intel(R) Core(TM) Ultra 9 290HX Plus", "ULTRA 9 290HX PLUS")]
+    [InlineData("Intel(R) Core(TM) Ultra 7 270HX Plus", "ULTRA 7 270HX PLUS")]
     [InlineData("Intel(R) Core(TM) Ultra 5 245HX", "ULTRA 5 245HX")]
     [InlineData("Intel(R) Core(TM) Ultra 5 235HX", "ULTRA 5 235HX")]
     [InlineData("AMD Ryzen 7 9800X3D", "RYZEN 7 9800X3D")]
@@ -264,9 +266,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.38.0", database.Version);
+        Assert.Equal("1.39.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(194, database.CpuCount);
+        Assert.Equal(196, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1257,6 +1259,52 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(5.1, ultra5235Hx.BoostGhz);
         Assert.Equal(4.5, ultra5235Hx.ECoreBoostGhz);
         Assert.StartsWith(qrgHx, ultra5235Hx.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_CoreUltra200HxPlusMobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.39.0: the two Core Ultra 200HX Plus mobile CPUs,
+        // the Arrow Lake-HX Refresh family Intel announced March 17,
+        // 2026: the Core Ultra 9 290HX Plus and the Core Ultra 7 270HX
+        // Plus. The P-core base figures come from Intel's own Core
+        // Ultra 200HX Plus datasheet (832586 Rev 007, March 2026),
+        // Table 61, which publishes frequencies per configuration and
+        // the HX-Plus line has exactly two configurations, so the
+        // mapping to the two SKUs is one to one. The Max Turbo figures
+        // come from Intel's own press deck for the series and the ARK
+        // spec page titles, which publish the cache and the up-to Max
+        // Turbo per SKU. The E-core Max Turbo Frequency of 4.7 GHz for
+        // both comes from agreeing ARK mirrors (nanoreview, topcpu,
+        // cputronic and rottenwifi, plus Clove and Ryans spec sheets),
+        // the same mirror rule used for the 200H, 200U and 200HX
+        // families. The ARK
+        // spec table values could not be extracted in this cycle
+        // (Intel returns HTTP 403 in this sandbox and the fetched page
+        // text carries only boilerplate), so the ARK page titles are
+        // what corroborate the model, cache and Max Turbo. This cycle
+        // also corrects the coverage note from v2.1.73 and v2.1.74,
+        // which named the family as 290HX Plus plus 251HX with the
+        // launch dates swapped: the family is 290HX Plus plus 270HX
+        // Plus, launched March 17, 2026, and the 251HX is a separate
+        // non-Plus SKU announced April 1, 2026, which stays out until
+        // an Intel document corroborates its figures. No code change
+        // was needed: the CPU normalizer already maps the names, and
+        // the Settings card shows the CPU count from the dataset, so
+        // it reads 196 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) Ultra 9 290HX Plus", out var ultra9290HxPlus));
+        Assert.Equal("Intel", ultra9290HxPlus.Vendor);
+        Assert.Equal(2.7, ultra9290HxPlus.BaseGhz);
+        Assert.Equal(5.5, ultra9290HxPlus.BoostGhz);
+        Assert.Equal(4.7, ultra9290HxPlus.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/sku/245960/intel-core-ultra-9-processor-290hx-plus-36m-cache-up-to-5-50-ghz/specifications.html", ultra9290HxPlus.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) Ultra 7 270HX Plus", out var ultra7270HxPlus));
+        Assert.Equal("Intel", ultra7270HxPlus.Vendor);
+        Assert.Equal(2.4, ultra7270HxPlus.BaseGhz);
+        Assert.Equal(5.3, ultra7270HxPlus.BoostGhz);
+        Assert.Equal(4.7, ultra7270HxPlus.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/sku/245961/intel-core-ultra-7-processor-270hx-plus-30m-cache-up-to-5-30-ghz/specifications.html", ultra7270HxPlus.SourceUrl, StringComparison.Ordinal);
     }
 
     [Fact]
