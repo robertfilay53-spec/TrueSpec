@@ -1930,26 +1930,61 @@ public sealed class HardwareDatabaseTests
         // 245HX non-Ultra, whose number still names the Ultra 5 part; the
         // Core 3 100U, a Series 1 rebrand of the i3-1315U; and the Ryzen AI
         // 7 HX 455, still an unconfirmed leak.
-        var database = HardwareDatabase.Default;
+        const string compareUrl = "https://www.intel.com/content/www/us/en/products/compare.html?productIds=240961,241060,240958,240956,241062,241063,240957,240954,241066,241067,240951,240959,240955,240960";
 
-        AssertCoversCpu(database, "ULTRA 7 265KF", 3.9, 5.5, 4.6,
-            "https://www.intel.com/content/www/us/en/products/compare.html?productIds=240961,241060,240958,240956,241062,241063,240957,240954,241066,241067,240951,240959,240955,240960");
-        AssertCoversCpu(database, "ULTRA 5 245KF", 4.2, 5.2, 4.6,
-            "https://www.intel.com/content/www/us/en/products/compare.html?productIds=240961,241060,240958,240956,241062,241063,240957,240954,241066,241067,240951,240959,240955,240960");
-        AssertCoversCpu(database, "ULTRA 9 285", 2.5, 5.6, 4.6,
-            "https://www.bhphotovideo.com/c/product/1860691-REG/intel_bx80768285_core_ultra_9_285.html/overview");
-        AssertCoversCpu(database, "ULTRA 7 265", 2.4, 5.3, 4.6,
-            "https://www.newegg.com/intel-core-ultra-7-265-arrow-lake-lga-1851-desktop-cpu-processor/p/N82E16819118575");
-        AssertCoversCpu(database, "ULTRA 7 265F", 2.4, 5.3, 4.6,
-            "https://www.bhphotovideo.com/c/product/1860690-REG/intel_bx80768265f_core_ultra_7_265f.html");
-        AssertCoversCpu(database, "ULTRA 5 245", 3.5, 5.1, 4.5,
-            "https://www.techpowerup.com/cpu-specs/core-ultra-5-245.c4020");
-        AssertCoversCpu(database, "ULTRA 5 235", 3.4, 5.0, 4.4,
-            "https://www.overclockers.co.uk/intel-core-ultra-5-235-arrow-lake-socket-lga-1851-processor-retail/PRO-INT-04177.html");
-        AssertCoversCpu(database, "ULTRA 5 225", 3.3, 4.9, 4.4,
-            "https://www.comx-computers.co.za/BX80768225-Intel-Arrow-Lake-Socket-LGA-1851-Core-Ultra-5-Series-2-10-Core-245-up-p-331020.php");
-        AssertCoversCpu(database, "ULTRA 5 225F", 3.3, 4.9, 4.4,
-            "https://videocardz.com/newz/intel-core-ultra-5-225f-leaks-out-10-core-arrow-lake-desktop-cpu-with-4-9-ghz-boost");
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 265KF", out var ultra7_265KF));
+        Assert.Equal(3.9, ultra7_265KF.BaseGhz);
+        Assert.Equal(5.5, ultra7_265KF.BoostGhz);
+        Assert.Equal(4.6, ultra7_265KF.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra7_265KF.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 245KF", out var ultra5_245KF));
+        Assert.Equal(4.2, ultra5_245KF.BaseGhz);
+        Assert.Equal(5.2, ultra5_245KF.BoostGhz);
+        Assert.Equal(4.6, ultra5_245KF.ECoreBoostGhz);
+        Assert.Equal(compareUrl, ultra5_245KF.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 9 285", out var ultra9_285));
+        Assert.Equal(2.5, ultra9_285.BaseGhz);
+        Assert.Equal(5.6, ultra9_285.BoostGhz);
+        Assert.Equal(4.6, ultra9_285.ECoreBoostGhz);
+        Assert.Equal("https://www.bhphotovideo.com/c/product/1860691-REG/intel_bx80768285_core_ultra_9_285.html/overview", ultra9_285.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 265", out var ultra7_265));
+        Assert.Equal(2.4, ultra7_265.BaseGhz);
+        Assert.Equal(5.3, ultra7_265.BoostGhz);
+        Assert.Equal(4.6, ultra7_265.ECoreBoostGhz);
+        Assert.Equal("https://www.newegg.com/intel-core-ultra-7-265-arrow-lake-lga-1851-desktop-cpu-processor/p/N82E16819118575", ultra7_265.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 265F", out var ultra7_265F));
+        Assert.Equal(2.4, ultra7_265F.BaseGhz);
+        Assert.Equal(5.3, ultra7_265F.BoostGhz);
+        Assert.Equal(4.6, ultra7_265F.ECoreBoostGhz);
+        Assert.Equal("https://www.bhphotovideo.com/c/product/1860690-REG/intel_bx80768265f_core_ultra_7_265f.html", ultra7_265F.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 245", out var ultra5_245));
+        Assert.Equal(3.5, ultra5_245.BaseGhz);
+        Assert.Equal(5.1, ultra5_245.BoostGhz);
+        Assert.Equal(4.5, ultra5_245.ECoreBoostGhz);
+        Assert.Equal("https://www.techpowerup.com/cpu-specs/core-ultra-5-245.c4020", ultra5_245.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 235", out var ultra5_235));
+        Assert.Equal(3.4, ultra5_235.BaseGhz);
+        Assert.Equal(5.0, ultra5_235.BoostGhz);
+        Assert.Equal(4.4, ultra5_235.ECoreBoostGhz);
+        Assert.Equal("https://www.overclockers.co.uk/intel-core-ultra-5-235-arrow-lake-socket-lga-1851-processor-retail/PRO-INT-04177.html", ultra5_235.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 225", out var ultra5_225));
+        Assert.Equal(3.3, ultra5_225.BaseGhz);
+        Assert.Equal(4.9, ultra5_225.BoostGhz);
+        Assert.Equal(4.4, ultra5_225.ECoreBoostGhz);
+        Assert.Equal("https://www.comx-computers.co.za/BX80768225-Intel-Arrow-Lake-Socket-LGA-1851-Core-Ultra-5-Series-2-10-Core-245-up-p-331020.php", ultra5_225.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 225F", out var ultra5_225F));
+        Assert.Equal(3.3, ultra5_225F.BaseGhz);
+        Assert.Equal(4.9, ultra5_225F.BoostGhz);
+        Assert.Equal(4.4, ultra5_225F.ECoreBoostGhz);
+        Assert.Equal("https://videocardz.com/newz/intel-core-ultra-5-225f-leaks-out-10-core-arrow-lake-desktop-cpu-with-4-9-ghz-boost", ultra5_225F.SourceUrl);
     }
 
     [Fact]
