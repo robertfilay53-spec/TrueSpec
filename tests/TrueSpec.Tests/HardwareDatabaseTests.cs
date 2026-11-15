@@ -195,6 +195,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 5 5500", "RYZEN 5 5500")]
     [InlineData("AMD Ryzen 7 5700", "RYZEN 7 5700")]
     [InlineData("AMD Ryzen 7 5700X", "RYZEN 7 5700X")]
+    [InlineData("AMD Ryzen 7 5700G", "RYZEN 7 5700G")]
+    [InlineData("AMD Ryzen 5 5600G", "RYZEN 5 5600G")]
     [InlineData("AMD Ryzen 7 3700U with Radeon Graphics", "RYZEN 7 3700U")]
     [InlineData(null, "")]
     [InlineData("", "")]
@@ -316,9 +318,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.51.0", database.Version);
+        Assert.Equal("1.52.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(246, database.CpuCount);
+        Assert.Equal(248, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -2194,6 +2196,45 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.9, ryzen3_8300G.BoostGhz);
         Assert.Null(ryzen3_8300G.ECoreBoostGhz);
         Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/8000-series/amd-ryzen-3-8300g.html", ryzen3_8300G.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Ryzen5000GDesktopCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.52.0: the two AMD Ryzen 5000G desktop APUs (Cezanne,
+        // Zen 3 with Radeon Vega integrated graphics, TSMC 7nm FinFET,
+        // AM4, 65 W default TDP), completing the 5000G family, which was
+        // wholly absent before. Only the 5000 X3D parts and the non-G 5000
+        // parts were in the dataset; no 5000G part had ever been listed,
+        // the same unnoticed gap as the 8000G family in v2.1.87, the 100H
+        // family in v2.1.86, the 100U family in v2.1.85, the 200V family
+        // in v2.1.83 and the 200S family in v2.1.84, because no cycle had
+        // listed the family against the dataset. Every figure was verified
+        // by hand against AMD's own product page per model, read
+        // 2026-11-15, and both pages were fetched directly as page text:
+        // the 5700G page (8 cores, 16 threads, Max Boost Clock up to 4.6
+        // GHz, Base Clock 3.8 GHz, L2 4 MB, L3 16 MB, 65 W, launch April
+        // 13, 2021, Radeon Graphics 8 compute units at 2000 MHz) and the
+        // 5600G page (6 cores, 12 threads, Max Boost Clock up to 4.4 GHz,
+        // Base Clock 3.9 GHz, L2 3 MB, L3 16 MB, 65 W, launch April 13,
+        // 2021, Radeon Graphics 7 compute units at 1900 MHz). Staying
+        // out, recorded in the coverage text: the Arc A310 GPU, the next
+        // candidate; the Core Ultra UL family (165UL, 155UL, 135UL,
+        // 125UL, 105UL); the Core Ultra HL family (165HL, 155HL, 135HL,
+        // 125HL); and the standing exclusions (13th-gen HX P-core base,
+        // Core 7 245HX non-Ultra, Core 3 100U, Ryzen AI 7 HX 455, Ryzen
+        // AI 400 mobile H variants), unchanged in this cycle.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 5700G", out var ryzen7_5700G));
+        Assert.Equal(3.8, ryzen7_5700G.BaseGhz);
+        Assert.Equal(4.6, ryzen7_5700G.BoostGhz);
+        Assert.Null(ryzen7_5700G.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/support/downloads/drivers.html/processors/ryzen/ryzen-5000-series/amd-ryzen-7-5700g.html", ryzen7_5700G.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 5600G", out var ryzen5_5600G));
+        Assert.Equal(3.9, ryzen5_5600G.BaseGhz);
+        Assert.Equal(4.4, ryzen5_5600G.BoostGhz);
+        Assert.Null(ryzen5_5600G.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/support/downloads/drivers.html/processors/ryzen/ryzen-5000-series/amd-ryzen-5-5600g.html", ryzen5_5600G.SourceUrl);
     }
 
     [Fact]
