@@ -107,6 +107,10 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen AI 5 PRO 440GE", "RYZEN AI 5 PRO 440GE")]
     [InlineData("AMD Ryzen AI 5 PRO 435G", "RYZEN AI 5 PRO 435G")]
     [InlineData("AMD Ryzen AI 5 PRO 435GE", "RYZEN AI 5 PRO 435GE")]
+    [InlineData("AMD Ryzen 7 8700G", "RYZEN 7 8700G")]
+    [InlineData("AMD Ryzen 5 8600G", "RYZEN 5 8600G")]
+    [InlineData("AMD Ryzen 5 8500G", "RYZEN 5 8500G")]
+    [InlineData("AMD Ryzen 3 8300G", "RYZEN 3 8300G")]
     [InlineData("AMD Ryzen AI 9 HX PRO 475", "RYZEN AI 9 HX PRO 475")]
     [InlineData("AMD Ryzen AI 9 HX PRO 470", "RYZEN AI 9 HX PRO 470")]
     [InlineData("AMD Ryzen AI 9 PRO 465", "RYZEN AI 9 PRO 465")]
@@ -312,9 +316,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.50.0", database.Version);
+        Assert.Equal("1.51.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(242, database.CpuCount);
+        Assert.Equal(246, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -2129,6 +2133,67 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.6, ultra5_135H.BoostGhz);
         Assert.Equal(3.6, ultra5_135H.ECoreBoostGhz);
         Assert.Equal(qrgUrl, ultra5_135H.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Ryzen8000GDesktopCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.51.0: the four AMD Ryzen 8000G desktop APUs (Hawk
+        // Point, Zen 4 with RDNA 3 integrated graphics, TSMC 4nm FinFET,
+        // AM5, 65 W default TDP), completing the 8000G family, which was
+        // wholly absent before. Only the Ryzen 200 PRO and AI 400 G parts
+        // were in the dataset; no 8000G part had ever been listed, the
+        // same unnoticed gap as the 100H family in v2.1.86, the 100U
+        // family in v2.1.85, the 200V family in v2.1.83 and the 200S
+        // family in v2.1.84, because no cycle had listed the family
+        // against the dataset. Every figure was verified by hand against
+        // AMD's own product page per model, read 2026-11-15: the 8700G
+        // page was fetched directly as page text (8 cores, 16 threads,
+        // Max Boost Clock up to 5.1 GHz, Base Clock 4.2 GHz, L2 8 MB, L3
+        // 16 MB, 65 W, launch Q1 2024), and the 8600G, 8500G and 8300G
+        // pages were read through the search index of AMD's own product
+        // pages, which publish the same fields per SKU. Two judgement
+        // calls are recorded in the coverage text: the two hybrid parts
+        // use AMD's headline Base Clock and Max Boost Clock, not the
+        // per-core-type figures (the 8500G lists Zen4 Base Clock 4.1 GHz
+        // and Zen4c Base Clock 3.3 GHz with Max Zen4c Clock up to 3.7
+        // GHz; the 8300G lists Zen4 Base Clock 4.0 GHz and Zen4c Base
+        // Clock 3.2 GHz with Max Zen4c Clock up to 3.6 GHz), the same
+        // rule as the Ryzen 200 PRO hybrid parts in v2.1.81 and v2.1.82;
+        // and the pre-launch leak tables list the base clocks at 4.35 GHz
+        // for the 8600G, 3.55 GHz for the 8500G and 3.45 GHz for the 8300G,
+        // while AMD's own pages list 4.3, 3.5 and 3.4 GHz, so AMD's pages
+        // decide it. The 8300G is OEM only, sold through system
+        // integrators, not retail. Staying out, recorded in the coverage
+        // text: the Ryzen 5000G parts (5600G, 5700G), the next candidate;
+        // the Arc A310 GPU; the Core Ultra UL family (165UL, 155UL,
+        // 135UL, 125UL, 105UL); the Core Ultra HL family (165HL, 155HL,
+        // 135HL, 125HL); and the standing exclusions (13th-gen HX P-core
+        // base, Core 7 245HX non-Ultra, Core 3 100U, Ryzen AI 7 HX 455,
+        // Ryzen AI 400 mobile H variants), unchanged in this cycle.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 8700G", out var ryzen7_8700G));
+        Assert.Equal(4.2, ryzen7_8700G.BaseGhz);
+        Assert.Equal(5.1, ryzen7_8700G.BoostGhz);
+        Assert.Null(ryzen7_8700G.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/8000-series/amd-ryzen-7-8700g.html", ryzen7_8700G.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 8600G", out var ryzen5_8600G));
+        Assert.Equal(4.3, ryzen5_8600G.BaseGhz);
+        Assert.Equal(5.0, ryzen5_8600G.BoostGhz);
+        Assert.Null(ryzen5_8600G.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/8000-series/amd-ryzen-5-8600g.html", ryzen5_8600G.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 8500G", out var ryzen5_8500G));
+        Assert.Equal(3.5, ryzen5_8500G.BaseGhz);
+        Assert.Equal(5.0, ryzen5_8500G.BoostGhz);
+        Assert.Null(ryzen5_8500G.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/8000-series/amd-ryzen-5-8500g.html", ryzen5_8500G.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 3 8300G", out var ryzen3_8300G));
+        Assert.Equal(3.4, ryzen3_8300G.BaseGhz);
+        Assert.Equal(4.9, ryzen3_8300G.BoostGhz);
+        Assert.Null(ryzen3_8300G.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/8000-series/amd-ryzen-3-8300g.html", ryzen3_8300G.SourceUrl);
     }
 
     [Fact]
