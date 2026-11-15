@@ -61,6 +61,19 @@ public class SystemCollectorTests
     }
 
     [Fact]
+    public void DriverGroupTimeout_IsEightSecondsAndInsideBudget()
+    {
+        // The 1000-row cold-WMI driver enumeration exceeded the 5
+        // second box twice on loaded CI runners in v2.1.65, so the
+        // driver group alone gets 8 seconds. It must stay below the
+        // per-collector budget, like every other group.
+        Assert.Equal(TimeSpan.FromSeconds(8), SystemCollector.DriverGroupTimeout);
+        Assert.True(
+            SystemCollector.DriverGroupTimeout < ScanTimeouts.Default.PerCollector,
+            $"Driver group timeout {SystemCollector.DriverGroupTimeout} must stay below the per-collector budget {ScanTimeouts.Default.PerCollector}.");
+    }
+
+    [Fact]
     public async Task RunWithTimeoutAsync_FastWork_ReturnsValue()
     {
         var result = await SystemCollector.RunWithTimeoutAsync(

@@ -37,11 +37,19 @@ public sealed class SystemCollector : ICollector
 
     public bool RequiresAdministrator => false;
 
-    // One read group gets at most half the per-collector budget. The
+    // Most read groups get at most half the per-collector budget. The
     // groups run at the same time, so the collector finishes in about
     // the slowest group's time, always inside the 10 second budget the
     // scan gives each collector, with room for assembly.
     internal static readonly TimeSpan GroupTimeout = TimeSpan.FromSeconds(5);
+
+    // The driver group alone gets 8 seconds: the 1000-row cold-WMI
+    // driver enumeration exceeded the 5 second box twice on loaded CI
+    // runners in v2.1.65 (run 43665837906, attempts 1 and 2), cutting
+    // the driver specs while every other group finished. The groups run
+    // at the same time, so 8 seconds is still inside the 10 second
+    // per-collector budget.
+    internal static readonly TimeSpan DriverGroupTimeout = TimeSpan.FromSeconds(8);
 
     // WMI query strings are hoisted so CollectorWmiSelectionTests can pin
     // the SELECT list to the properties this collector reads (hardening
@@ -84,7 +92,7 @@ public sealed class SystemCollector : ICollector
         var tpmTask = RunWithTimeoutAsync(ReadTpm, GroupTimeout, cancellationToken);
         var deviceGuardTask = RunWithTimeoutAsync(ReadDeviceGuard, GroupTimeout, cancellationToken);
         var bitLockerTask = RunWithTimeoutAsync(ReadBitLocker, GroupTimeout, cancellationToken);
-        var driversTask = RunWithTimeoutAsync(CollectorSupport.ReadDriverSignatureSummary, GroupTimeout, cancellationToken);
+        var driversTask = RunWithTimeoutAsync(CollectorSupport.ReadDriverSignatureSummary, DriverGroupTimeout, cancellationToken);
         var logTask = RunWithTimeoutAsync(ReadEventLogSummary, GroupTimeout, cancellationToken);
 
         var secureBoot = ReadSecureBoot();
