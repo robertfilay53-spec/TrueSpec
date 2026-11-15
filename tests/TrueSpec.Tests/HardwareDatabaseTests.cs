@@ -342,10 +342,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.60.0", database.Version);
+        Assert.Equal("1.61.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
         Assert.Equal(272, database.CpuCount);
-        Assert.Equal(97, database.GpuCount);
+        Assert.Equal(100, database.GpuCount);
     }
 
     [Fact]
@@ -545,6 +545,72 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_Rx6000DesktopFamilyCompletesAt11()
+    {
+        // Dataset v1.61.0: the three AMD Radeon RX 6000 desktop GPUs
+        // the dataset was missing, completing the RX 6000 desktop
+        // family at eleven SKUs (the 6900 XT, 6800 XT, 6800, 6750 XT,
+        // 6700 XT, 6700, 6650 XT, 6600 XT, 6600, 6500 XT and 6400).
+        // Every figure was verified by hand against AMD's own product
+        // pages, read 2026-11-15: the RX 6700 at Boost Frequency up
+        // to 2450 MHz (Game Frequency 2174 MHz, Base Frequency
+        // 1941 MHz), 36 compute units, 2304 stream processors, 10 GB
+        // GDDR6 on a 160-bit bus at up to 320 GB/s, 80 MB Infinity
+        // Cache, 175 W typical board power, RDNA 2 (Navi 22), launched
+        // June 9, 2022; the RX 6500 XT at Boost Frequency up to
+        // 2815 MHz (Game Frequency 2650 MHz on the 8 GB model,
+        // 2610 MHz on the 4 GB launch model), 16 compute units, 1024
+        // stream processors, GDDR6 on a 64-bit bus at up to 144 GB/s,
+        // 16 MB Infinity Cache, RDNA 2 (Navi 24, TSMC 6nm), launched
+        // January 19, 2022 at $199; the RX 6400 at Boost Frequency up
+        // to 2321 MHz (Game Frequency 2039 MHz), 12 compute units,
+        // 768 stream processors, 4 GB GDDR6 on a 64-bit bus at up to
+        // 128 GB/s, 16 MB Infinity Cache, 53 W typical board power,
+        // PCIe powered with no extra connector, RDNA 2 (Navi 24),
+        // launched January 19, 2022. Cross-checked against agreeing
+        // third parties (TechPowerUp, KitGuru, VideoCardz and the
+        // launch coverage, which all agree per SKU on the boost clock,
+        // the memory size and the board power, except for the 6500 XT
+        // board-power split recorded below). Two reading traps are
+        // recorded: AMD's own RX 6500 XT page now lists Typical Board
+        // Power 113 W and Max Memory Size 8 GB, the later 8 GB model,
+        // while the 4 GB launch model is 107 W and 4 GB, so with two
+        // memory sizes and two board-power figures sharing the device
+        // name the entry records no single memory or board-power
+        // figure, the same null treatment as the RX 9060 XT in
+        // v1.59.0; and AMD's own RX 6700 page prints a launch date of
+        // 6/9/2021, while the card launched June 9, 2022, so the page
+        // date is a typo and the dataset records no launch date for
+        // it. The Sapphire custom RX 6700 cards are factory-overclocked
+        // (2495 MHz boost, over 220 W board power), so the entry
+        // records AMD's own reference figures (2450 MHz, 175 W). The
+        // dataset carries no compute-unit, bus-width or bandwidth
+        // field, so those figures live here in the comment and in the
+        // README and ROADMAP entries, not in the entries themselves.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6700", out var rx6700));
+        Assert.Equal("AMD", rx6700.Vendor);
+        Assert.Equal(2.45, rx6700.BoostGhz);
+        Assert.Equal(10, rx6700.MemoryGb);
+        Assert.Equal(175, rx6700.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/products/graphics/desktops/radeon/6000-series/amd-radeon-rx-6700.html", rx6700.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6500 XT", out var rx6500Xt));
+        Assert.Equal("AMD", rx6500Xt.Vendor);
+        Assert.Equal(2.815, rx6500Xt.BoostGhz);
+        Assert.Null(rx6500Xt.MemoryGb);
+        Assert.Null(rx6500Xt.TdpW);
+        Assert.Equal("TBP 107 W (4 GB launch model) / 113 W (8 GB model); no single figure for the shared device name", rx6500Xt.TdpNote);
+        Assert.StartsWith("https://www.amd.com/en/products/graphics/desktops/radeon/6000-series/amd-radeon-rx-6500-xt.html", rx6500Xt.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6400", out var rx6400));
+        Assert.Equal("AMD", rx6400.Vendor);
+        Assert.Equal(2.321, rx6400.BoostGhz);
+        Assert.Equal(4, rx6400.MemoryGb);
+        Assert.Equal(53, rx6400.TdpW);
+        Assert.StartsWith("https://www.amd.com/en/products/graphics/desktops/radeon/6000-series/amd-radeon-rx-6400.html", rx6400.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Default_CoreUltra200SDesktopFamilyCompletesAt18()
     {
         // Dataset v1.60.0: the six Intel Core Ultra 200S desktop CPUs the
@@ -688,6 +754,9 @@ public sealed class HardwareDatabaseTests
     [InlineData("NVIDIA GeForce RTX 3050 6GB Laptop GPU", "RTX 3050 6GB LAPTOP")]
     [InlineData("AMD Radeon RX 7800 XT", "RX 7800 XT")]
     [InlineData("AMD Radeon RX 9070 GRE", "RX 9070 GRE")]
+    [InlineData("AMD Radeon RX 6700", "RX 6700")]
+    [InlineData("AMD Radeon RX 6500 XT", "RX 6500 XT")]
+    [InlineData("AMD Radeon RX 6400", "RX 6400")]
     [InlineData("AMD Radeon RX 7600 XT", "RX 7600 XT")]
     [InlineData("AMD Radeon(TM) RX 6600", "RX 6600")]
     [InlineData("AMD Radeon RX 5700 XT", "RX 5700 XT")]
