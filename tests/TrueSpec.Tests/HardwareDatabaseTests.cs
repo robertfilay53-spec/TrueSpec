@@ -262,9 +262,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.36.0", database.Version);
+        Assert.Equal("1.37.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(187, database.CpuCount);
+        Assert.Equal(192, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -2499,6 +2499,103 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(3.6, ryzenAiMaxPro380.BaseGhz);
         Assert.Equal(4.9, ryzenAiMaxPro380.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen-pro/ai-max-pro-300-series/amd-ryzen-ai-max-pro-380.html", ryzenAiMaxPro380.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_CoreUltra200HMobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.37.0: the five Intel Core Ultra 200H Series mobile
+        // CPUs (Arrow Lake-H, launched January 6, 2025, 28 W base power,
+        // 115 W maximum turbo power), the 28 W family the dataset never
+        // listed: the Core Ultra 9 285H and the Core Ultra 7 265H and
+        // 255H at 16 cores (6 P-cores, 8 E-cores and 2 Low Power
+        // Efficient-cores, 16 threads, 24 MB cache), and the Core Ultra
+        // 5 235H and 225H at 14 cores (4 P-cores, 8 E-cores and 2 Low
+        // Power Efficient-cores, 14 threads, 18 MB cache). Every figure
+        // was compiled by hand from Intel's own Quick Reference Guide
+        // for the 200H and 200U series, v1.1 (cdrdv2-public.intel.com,
+        // read 2026-11-15), which publishes the Performance-core Base
+        // Frequency and the Max Turbo Frequency per SKU in its H table,
+        // and each figure was cross-checked per SKU against ARK mirrors
+        // that agree on all five models (nanoreview, siliconcat,
+        // cputronic, notebookcheck, techpowerup): the 285H at
+        // Performance-core Base Frequency 2.9 GHz and Max Turbo
+        // Frequency up to 5.4 GHz with E-core Max Turbo Frequency 4.5
+        // GHz; the 265H at 2.2 and up to 5.3 GHz with E-core turbo 4.5
+        // GHz; the 255H at 2.0 and up to 5.1 GHz with E-core turbo 4.4
+        // GHz; the 235H at 2.4 and up to 5.0 GHz with E-core turbo 4.4
+        // GHz; the 225H at 1.7 and up to 4.9 GHz with E-core turbo 4.3
+        // GHz. The dataset's base_ghz is Intel's Performance-core Base
+        // Frequency, boost_ghz is Intel's Max Turbo Frequency, and
+        // e_core_boost_ghz is Intel's E-core Max Turbo Frequency, per
+        // its own definition. Two judgement calls are recorded. First,
+        // the 235H P-core base is 2.4 GHz, higher than the 265H and
+        // 255H at 2.2 and 2.0 GHz: the 235H has only 4 P-cores against
+        // their 6, and the Quick Reference Guide and all five mirrors
+        // agree on it, so the figure stands as published. Second, the
+        // trailing numbers in the Quick Reference Guide H table (2.35,
+        // 2.3, 2.25, 2.25 and 2.2 GHz) are the graphics Max Frequency
+        // (Arc 140T at 2.35 GHz on the 285H, 2.3 GHz on the 265H, 2.25
+        // GHz on the 255H and 235H, Arc 130T at 2.2 GHz on the 225H),
+        // not E-core base figures, so they are not recorded as base
+        // figures anywhere; the same reading was used for the 200U
+        // family in v2.1.70. The slice was picked by a fresh audit: the
+        // brief named the AMD Ryzen AI Max 300 consumer mobile parts
+        // first, but the Max 392 and Max 388 are already in the
+        // dataset, and the brief named the AMD Ryzen AI 400 consumer
+        // mobile parts second, but all seven are already in the
+        // dataset (AI 9 HX 475, HX 470, AI 9 465, AI 7 450, AI 7 445,
+        // AI 5 435, AI 5 430), so both targets yield nothing and the
+        // 200H family, the direct sibling of the 200U family shipped
+        // in v2.1.70 and listed in the same Quick Reference Guide, is
+        // the genuine gap. The Intel 13th-gen HX P-core Base Frequency
+        // rows stay out on the v2.1.47 finding, re-checked again in
+        // v2.1.72 and not re-checked in this cycle. No code change was
+        // needed: the CPU normalizer already maps "Intel Core Ultra 9
+        // 285H" to "ULTRA 9 285H" and the other four names the same
+        // way, and the Settings card shows the CPU count from the
+        // dataset, so it reads 192 with no code change. One honest
+        // limitation is recorded: Intel's own compare pages return
+        // HTTP 403 in this sandbox, so no live compare-page spot-check
+        // was possible in this cycle; the figures rest on Intel's own
+        // Quick Reference Guide PDF plus the five agreeing ARK mirrors
+        // named above.
+        const string qrg = "https://cdrdv2-public.intel.com/842536/Intel%20Core%20Ultra%20200H%20and%20200U%20Series%20Processors%20-%20Quick%20Reference%20Guide%20v1.1.pdf";
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 9 285H", out var ultra9285H));
+        Assert.Equal("Intel", ultra9285H.Vendor);
+        Assert.Equal(2.9, ultra9285H.BaseGhz);
+        Assert.Equal(5.4, ultra9285H.BoostGhz);
+        Assert.Equal(4.5, ultra9285H.ECoreBoostGhz);
+        Assert.StartsWith(qrg, ultra9285H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 265H", out var ultra7265H));
+        Assert.Equal("Intel", ultra7265H.Vendor);
+        Assert.Equal(2.2, ultra7265H.BaseGhz);
+        Assert.Equal(5.3, ultra7265H.BoostGhz);
+        Assert.Equal(4.5, ultra7265H.ECoreBoostGhz);
+        Assert.StartsWith(qrg, ultra7265H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 255H", out var ultra7255H));
+        Assert.Equal("Intel", ultra7255H.Vendor);
+        Assert.Equal(2.0, ultra7255H.BaseGhz);
+        Assert.Equal(5.1, ultra7255H.BoostGhz);
+        Assert.Equal(4.4, ultra7255H.ECoreBoostGhz);
+        Assert.StartsWith(qrg, ultra7255H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 235H", out var ultra5235H));
+        Assert.Equal("Intel", ultra5235H.Vendor);
+        Assert.Equal(2.4, ultra5235H.BaseGhz);
+        Assert.Equal(5.0, ultra5235H.BoostGhz);
+        Assert.Equal(4.4, ultra5235H.ECoreBoostGhz);
+        Assert.StartsWith(qrg, ultra5235H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 225H", out var ultra5225H));
+        Assert.Equal("Intel", ultra5225H.Vendor);
+        Assert.Equal(1.7, ultra5225H.BaseGhz);
+        Assert.Equal(4.9, ultra5225H.BoostGhz);
+        Assert.Equal(4.3, ultra5225H.ECoreBoostGhz);
+        Assert.StartsWith(qrg, ultra5225H.SourceUrl, StringComparison.Ordinal);
     }
 
 
