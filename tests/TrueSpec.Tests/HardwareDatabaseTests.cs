@@ -124,6 +124,11 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 5 8400F", "RYZEN 5 8400F")]
     [InlineData("AMD Ryzen 5 7500F", "RYZEN 5 7500F")]
     [InlineData("AMD Ryzen 5 7400F", "RYZEN 5 7400F")]
+    [InlineData("AMD Ryzen 5 5600GT", "RYZEN 5 5600GT")]
+    [InlineData("AMD Ryzen 5 5500GT", "RYZEN 5 5500GT")]
+    [InlineData("AMD Ryzen 5 5600T", "RYZEN 5 5600T")]
+    [InlineData("AMD Ryzen 5 5600XT", "RYZEN 5 5600XT")]
+    [InlineData("AMD Ryzen 5 5600F", "RYZEN 5 5600F")]
     [InlineData("AMD Ryzen AI 9 HX PRO 475", "RYZEN AI 9 HX PRO 475")]
     [InlineData("AMD Ryzen AI 9 HX PRO 470", "RYZEN AI 9 HX PRO 470")]
     [InlineData("AMD Ryzen AI 9 PRO 465", "RYZEN AI 9 PRO 465")]
@@ -331,9 +336,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.57.0", database.Version);
+        Assert.Equal("1.58.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(261, database.CpuCount);
+        Assert.Equal(266, database.CpuCount);
         Assert.Equal(96, database.GpuCount);
     }
 
@@ -2534,6 +2539,94 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.7, ryzen5_7400F.BoostGhz);
         Assert.Null(ryzen5_7400F.ECoreBoostGhz);
         Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/7000-series/amd-ryzen-5-7400f.html", ryzen5_7400F.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Ryzen5000Am4RefreshCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.58.0: the five AMD Ryzen 5000 AM4 refresh parts
+        // (Zen 3, TSMC 7nm FinFET, AM4, 65 W default TDP), completing
+        // the AM4 refresh set, which was wholly absent before. Only the
+        // 5000 parts without a GT, T, XT or F suffix were in the dataset;
+        // no refresh part had ever been listed, the same unnoticed gap
+        // as the 7000F family in v2.1.93, the 8000F family in v2.1.92,
+        // the 5000G family in v2.1.88, the 8000G family in v2.1.87, the
+        // 100H family in v2.1.86, the 100U family in v2.1.85, the 200V
+        // family in v2.1.83 and the 200S family in v2.1.84, because no
+        // cycle had listed the family against the dataset. The slice was
+        // picked by the brief, which named the 5600GT desktop APU plus
+        // the 5600T, 5600XT, 5600F and 5500GT refresh singles first
+        // among the v2.1.93 audit's two future candidates; all five
+        // parts verified, so the dependency-audit fallback was not
+        // needed and the other candidate (the AMD Radeon RX 9070 GRE
+        // GPU) was not researched in this cycle and is recorded in the
+        // coverage text as the next candidate. Every figure was verified
+        // by hand against AMD's own pages, read 2026-11-15. The 5600T
+        // page was fetched directly as page text (6 cores, 12 threads,
+        // Max Boost Clock up to 4.5 GHz, Base Clock 3.5 GHz, L1 384 KB,
+        // L2 3 MB, L3 32 MB, 65 W, launch 10/31/2024, Global) and the
+        // 5600F page was fetched directly as page text (6 cores, 12
+        // threads, Max Boost Clock up to 4.0 GHz, Base Clock 3.0 GHz,
+        // L1 384 KB, L2 3 MB, L3 32 MB, 65 W, launch 9/16/25, APJ
+        // only). The 5600XT figures were read from AMD's own processor
+        // comparison page, fetched directly as page text, which lists
+        // the 5600XT at Base Clock 3.7 GHz and Max Boost Clock up to
+        // 4.7 GHz with L2 3 MB, L3 32 MB, 65 W and launch 10/31/2024;
+        // no standalone AMD product page for the 5600XT was found, so
+        // the comparison page URL is recorded as its source. The two GT
+        // parts have no standalone AMD product page either: their
+        // figures rest on AMD's own January 8, 2024 press release,
+        // which lists the 5600GT at up to 4.6 GHz with Base Clock 3.6
+        // GHz and the 5500GT at up to 4.4 GHz with Base Clock 3.6 GHz,
+        // both 6 cores, 12 threads, 19 MB cache, 65 W, cross-checked
+        // against agreeing third-party databases (cputronic, cpu-monkey,
+        // pcbench, Gigabyte's CPU support list and the ASUS QVL), which
+        // all agree on 3.6 and up to 4.6 GHz for the 5600GT and 3.6 and
+        // up to 4.4 GHz for the 5500GT, with Radeon Vega 7 at up to
+        // 1900 MHz. Three reading traps are recorded: the WCCFTech leak
+        // table lists the 5600XT base clock at 3.8 GHz with a 105 W
+        // TDP, while AMD's own comparison page lists 3.7 GHz and 65 W,
+        // so AMD's page decides it; WCCFTech's prose lists the 5600T
+        // base clock at 3.7 GHz, while AMD's own product page lists
+        // 3.5 GHz, so AMD's page decides it; and one Flipkart listing
+        // gives the 5600GT a 4.4 GHz boost, which is the 5500GT's
+        // figure, not the 5600GT's. The two GT parts carry Radeon Vega
+        // 7 integrated graphics; the three Vermeer parts (5600T,
+        // 5600XT, 5600F) carry no integrated graphics and require a
+        // discrete graphics card. Staying out, recorded in the coverage
+        // text: the AMD Radeon RX 9070 GRE GPU, the next candidate; and
+        // the standing exclusions (13th-gen HX P-core base, Core 7
+        // 245HX non-Ultra, Core 3 100U, Ryzen AI 7 HX 455, Ryzen AI 400
+        // mobile H variants), unchanged in this cycle.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 5600GT", out var ryzen5_5600GT));
+        Assert.Equal(3.6, ryzen5_5600GT.BaseGhz);
+        Assert.Equal(4.6, ryzen5_5600GT.BoostGhz);
+        Assert.Null(ryzen5_5600GT.ECoreBoostGhz);
+        Assert.Equal("https://www.nasdaq.com/press-release/amd-reveals-next-gen-desktop-processors-for-extreme-pc-gaming-and-creator-performance", ryzen5_5600GT.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 5500GT", out var ryzen5_5500GT));
+        Assert.Equal(3.6, ryzen5_5500GT.BaseGhz);
+        Assert.Equal(4.4, ryzen5_5500GT.BoostGhz);
+        Assert.Null(ryzen5_5500GT.ECoreBoostGhz);
+        Assert.Equal("https://www.nasdaq.com/press-release/amd-reveals-next-gen-desktop-processors-for-extreme-pc-gaming-and-creator-performance", ryzen5_5500GT.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 5600T", out var ryzen5_5600T));
+        Assert.Equal(3.5, ryzen5_5600T.BaseGhz);
+        Assert.Equal(4.5, ryzen5_5600T.BoostGhz);
+        Assert.Null(ryzen5_5600T.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/5000-series/amd-ryzen-5-5600t.html", ryzen5_5600T.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 5600XT", out var ryzen5_5600XT));
+        Assert.Equal(3.7, ryzen5_5600XT.BaseGhz);
+        Assert.Equal(4.7, ryzen5_5600XT.BoostGhz);
+        Assert.Null(ryzen5_5600XT.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/specifications/processors.html?product-0=AMD Ryzen\u2122 5 5600XT&product-1=AMD Ryzen\u2122 5 5600", ryzen5_5600XT.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 5600F", out var ryzen5_5600F));
+        Assert.Equal(3.0, ryzen5_5600F.BaseGhz);
+        Assert.Equal(4.0, ryzen5_5600F.BoostGhz);
+        Assert.Null(ryzen5_5600F.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/5000-series/amd-ryzen-5-5600f.html", ryzen5_5600F.SourceUrl);
     }
 
     [Fact]
