@@ -342,9 +342,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.72.0", database.Version);
-        Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(297, database.CpuCount);
+        Assert.Equal("1.73.0", database.Version);
+        Assert.Equal("2026-11-16", database.Updated);
+        Assert.Equal(301, database.CpuCount);
         Assert.Equal(109, database.GpuCount);
     }
 
@@ -1292,6 +1292,88 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.8, i5_10600Kf.BoostGhz);
         Assert.Null(i5_10600Kf.ECoreBoostGhz);
         Assert.Equal(compareUrl, i5_10600Kf.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Core9thGenUnlockedDesktopFamilyCompletesAt6()
+    {
+        // Dataset v1.73.0: the four Intel Core 9th-gen unlocked desktop
+        // CPUs the dataset was missing, completing the unlocked set at
+        // six SKUs (the 9900K, 9900KF, 9700K, 9700KF, 9600K and 9600KF;
+        // only the 9900K and 9700K were already listed). All four are
+        // Coffee Lake Refresh on 14 nm, socket LGA 1151, and each KF part
+        // shares its K twin's clocks exactly and differs only by the
+        // missing integrated graphics, so a discrete card is required.
+        // There are no E-cores in this generation, so ECoreBoostGhz is
+        // null on all four. The 9900KF at Processor Base Frequency
+        // 3.6 GHz and Max Turbo Frequency up to 5.0 GHz (Turbo Boost 2.0
+        // 5.0 GHz, no Turbo Boost Max 3.0, no Thermal Velocity Boost),
+        // 8 cores, 16 threads, 16 MB Intel Smart Cache, 95 W base power,
+        // no integrated graphics, launched Q1 2019. The 9700KF at 3.6 and
+        // up to 4.9 GHz (Turbo Boost 2.0 4.9 GHz), 8 cores, 8 threads,
+        // 12 MB cache, 95 W, no integrated graphics, launched Q1 2019.
+        // The 9600K at 3.7 and up to 4.6 GHz (Turbo Boost 2.0 4.6 GHz),
+        // 6 cores, 6 threads, 9 MB cache, 95 W, launched Q4 2018. The
+        // 9600KF at the same 3.7 and 4.6 GHz, 6 cores, 6 threads,
+        // 9 MB cache, 95 W, no integrated graphics, launched Q1 2019.
+        // The boost figures are ARK Max Turbo Frequency, the headline
+        // up-to figure, per the dataset's boost definition. Intel's own
+        // compare pages return HTTP 403 in this sandbox, so the figures
+        // rest on agreeing ARK mirrors, the same disclosed third-party
+        // exception as the 14th-gen unlocked set in v2.1.99, the 13th-gen
+        // unlocked set in v2.2.4 and the 11th-gen unlocked set in v2.2.6;
+        // Intel's own compare page surfaced in the search index for the
+        // 9700KF and the 9600KF and agrees exactly (9700KF Max Turbo
+        // 4.90, TBT 2.0 4.90, Base 3.60, 12 MB, 95 W; 9600KF Max Turbo
+        // 4.60, TBT 2.0 4.60, Base 3.70, 9 MB, 95 W), and the 9900KF
+        // figures agree across Newegg, technical.city, Scan, WikiChip,
+        // PCCaseGear and ShopCGX, which republish the ARK table verbatim
+        // (Base 3.60, Max Turbo 5.00, TBT 2.0 5.00, 16 MB, 95 W).
+        // Three reading traps are recorded: the KF parts launched in
+        // Q1 2019 while their K twins launched in Q4 2018, and some
+        // sources date the KF parts to late 2018, which is the
+        // announcement, not the retail launch; technical.city lists the
+        // 9600KF recommended price as $262, which is the 9600K's price,
+        // while cpu-world lists $237 for the 9600KF; and the 9700KF and
+        // 9700K are 8 cores and 8 threads, with no Hyper-Threading on the
+        // 9th-gen i7, while the i9 twins carry 16 threads. The dataset
+        // carries no core-count, cache or TDP field, so those figures
+        // live here in the comment and in the README and ROADMAP entries,
+        // not in the entries themselves. The six-SKU family follows the
+        // v2.2.8 audit's definition (the i9, i7 and i5 K and KF parts);
+        // two further unlocked 9th-gen desktop SKUs stay outside it and
+        // are not counted here: the Core i9-9900KS special edition
+        // (4.0/5.0 GHz, 127 W, October 2019) and the Core i3-9350K and
+        // 9350KF (4.0/4.6 GHz, 4 cores, 4 threads, 91 W, January 2019).
+        const string compareUrl = "https://www.intel.com/content/www/us/en/products/compare.html?productIds=190887,190885,134896,190884";
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i9-9900KF", out var i9_9900Kf));
+        Assert.Equal("Intel", i9_9900Kf.Vendor);
+        Assert.Equal(3.6, i9_9900Kf.BaseGhz);
+        Assert.Equal(5.0, i9_9900Kf.BoostGhz);
+        Assert.Null(i9_9900Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i9_9900Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i7-9700KF", out var i7_9700Kf));
+        Assert.Equal("Intel", i7_9700Kf.Vendor);
+        Assert.Equal(3.6, i7_9700Kf.BaseGhz);
+        Assert.Equal(4.9, i7_9700Kf.BoostGhz);
+        Assert.Null(i7_9700Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i7_9700Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i5-9600K", out var i5_9600K));
+        Assert.Equal("Intel", i5_9600K.Vendor);
+        Assert.Equal(3.7, i5_9600K.BaseGhz);
+        Assert.Equal(4.6, i5_9600K.BoostGhz);
+        Assert.Null(i5_9600K.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i5_9600K.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i5-9600KF", out var i5_9600Kf));
+        Assert.Equal("Intel", i5_9600Kf.Vendor);
+        Assert.Equal(3.7, i5_9600Kf.BaseGhz);
+        Assert.Equal(4.6, i5_9600Kf.BoostGhz);
+        Assert.Null(i5_9600Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i5_9600Kf.SourceUrl);
     }
 
     [Fact]
