@@ -342,9 +342,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.70.0", database.Version);
+        Assert.Equal("1.71.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(290, database.CpuCount);
+        Assert.Equal(294, database.CpuCount);
         Assert.Equal(109, database.GpuCount);
     }
 
@@ -1213,6 +1213,85 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.9, i5_11600Kf.BoostGhz);
         Assert.Null(i5_11600Kf.ECoreBoostGhz);
         Assert.Equal(compareUrl, i5_11600Kf.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Core10thGenUnlockedDesktopFamilyCompletesAt6()
+    {
+        // Dataset v1.71.0: the four Intel Core 10th-gen unlocked desktop
+        // CPUs the dataset was missing, completing the unlocked set at
+        // six SKUs (the 10900K, 10900KF, 10700K, 10700KF, 10600K and
+        // 10600KF; only the 10900K and 10700K were already listed). All
+        // four are Comet Lake on 14 nm, LGA 1200, and each KF part shares
+        // its K twin's clocks exactly and differs only by the missing
+        // integrated graphics, so a discrete card is required. There are
+        // no E-cores in this generation, so ECoreBoostGhz is null on all
+        // four. The 10900KF at Processor Base Frequency 3.7 GHz and Max
+        // Turbo Frequency up to 5.3 GHz (Thermal Velocity Boost 5.3 GHz,
+        // Turbo Boost Max 3.0 5.2 GHz, Turbo Boost 2.0 5.1 GHz), 10 cores,
+        // 20 threads, 20 MB Intel Smart Cache, 125 W base power, no
+        // integrated graphics, launched Q2 2020. The 10700KF at 3.8 and
+        // up to 5.1 GHz (Turbo Boost Max 3.0 5.1 GHz, Turbo Boost 2.0
+        // 5.0 GHz), 8 cores, 16 threads, 16 MB cache, 125 W, no
+        // integrated graphics, launched Q2 2020. The 10600K at 4.1 and up
+        // to 4.8 GHz (Turbo Boost 2.0 4.8 GHz, no Turbo Boost Max 3.0),
+        // 6 cores, 12 threads, 12 MB cache, 125 W, launched Q2 2020. The
+        // 10600KF at the same 4.1 and 4.8 GHz, 6 cores, 12 threads,
+        // 12 MB cache, 125 W, no integrated graphics, launched Q2 2020.
+        // The boost figures are ARK Max Turbo Frequency, the headline
+        // up-to figure, per the dataset's boost definition. Intel's own
+        // compare pages return HTTP 403 in this sandbox, so the figures
+        // rest on agreeing ARK mirrors, the same disclosed third-party
+        // exception as the 14th-gen unlocked set in v2.1.99, the 13th-gen
+        // unlocked set in v2.2.4 and the 11th-gen unlocked set in v2.2.6;
+        // Intel's own compare page surfaced in the search index for all
+        // four and agrees exactly (10900KF Max Turbo 5.30, TVB 5.30,
+        // TBMT 3.0 5.20, TBT 2.0 5.10, Base 3.70, 20 MB, 125 W; 10700KF
+        // Max Turbo 5.10, TBMT 3.0 5.10, TBT 2.0 5.00, Base 3.80, 16 MB,
+        // 125 W; 10600K and 10600KF Max Turbo 4.80, TBT 2.0 4.80, Base
+        // 4.10, 12 MB, 125 W). Three reading traps are recorded: the
+        // 10900KF 5.3 GHz is Thermal Velocity Boost, not the P-core Max
+        // Turbo, and some sources list its 5.2 GHz Turbo Boost Max 3.0
+        // figure as its maximum turbo, while the ARK Max Turbo is
+        // 5.3 GHz, the same trap class as the 13900KF's 5.7 GHz listing;
+        // the 10700KF's Turbo Boost 2.0 figure is 5.0 GHz while the ARK
+        // Max Turbo is 5.1 GHz via Turbo Boost Max 3.0, and pre-launch
+        // leak tables quoted the two figures the other way round; and
+        // cpu-world's CPUID dump on its 10600KF page lists a 4900 MHz
+        // maximum frequency from a single sampled chip, which is not the
+        // rated figure: the agreeing ARK mirrors give 4.8 GHz. The
+        // dataset carries no core-count, cache or TDP field, so those
+        // figures live here in the comment and in the README and ROADMAP
+        // entries, not in the entries themselves.
+        const string compareUrl = "https://www.intel.com/content/www/us/en/products/compare.html?productIds=199331,199325,199311,199315";
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i9-10900KF", out var i9_10900Kf));
+        Assert.Equal("Intel", i9_10900Kf.Vendor);
+        Assert.Equal(3.7, i9_10900Kf.BaseGhz);
+        Assert.Equal(5.3, i9_10900Kf.BoostGhz);
+        Assert.Null(i9_10900Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i9_10900Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i7-10700KF", out var i7_10700Kf));
+        Assert.Equal("Intel", i7_10700Kf.Vendor);
+        Assert.Equal(3.8, i7_10700Kf.BaseGhz);
+        Assert.Equal(5.1, i7_10700Kf.BoostGhz);
+        Assert.Null(i7_10700Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i7_10700Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i5-10600K", out var i5_10600K));
+        Assert.Equal("Intel", i5_10600K.Vendor);
+        Assert.Equal(4.1, i5_10600K.BaseGhz);
+        Assert.Equal(4.8, i5_10600K.BoostGhz);
+        Assert.Null(i5_10600K.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i5_10600K.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i5-10600KF", out var i5_10600Kf));
+        Assert.Equal("Intel", i5_10600Kf.Vendor);
+        Assert.Equal(4.1, i5_10600Kf.BaseGhz);
+        Assert.Equal(4.8, i5_10600Kf.BoostGhz);
+        Assert.Null(i5_10600Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i5_10600Kf.SourceUrl);
     }
 
     [Fact]
