@@ -43,6 +43,12 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel Core Ultra 7 255U", "ULTRA 7 255U")]
     [InlineData("Intel Core Ultra 5 235U", "ULTRA 5 235U")]
     [InlineData("Intel Core Ultra 5 225U", "ULTRA 5 225U")]
+    [InlineData("Intel Core Ultra 7 165U", "ULTRA 7 165U")]
+    [InlineData("Intel Core Ultra 7 155U", "ULTRA 7 155U")]
+    [InlineData("Intel Core Ultra 5 135U", "ULTRA 5 135U")]
+    [InlineData("Intel Core Ultra 5 125U", "ULTRA 5 125U")]
+    [InlineData("Intel Core Ultra 7 164U", "ULTRA 7 164U")]
+    [InlineData("Intel Core Ultra 5 134U", "ULTRA 5 134U")]
     [InlineData("AMD Ryzen 7 5800H with Radeon Graphics", "RYZEN 7 5800H")]
     [InlineData("AMD Ryzen 9 7945HX with Radeon Graphics", "RYZEN 9 7945HX")]
     [InlineData("AMD Ryzen AI 9 HX 370", "RYZEN AI 9 HX 370")]
@@ -304,9 +310,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.48.0", database.Version);
+        Assert.Equal("1.49.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(234, database.CpuCount);
+        Assert.Equal(240, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1985,6 +1991,86 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.9, ultra5_225F.BoostGhz);
         Assert.Equal(4.4, ultra5_225F.ECoreBoostGhz);
         Assert.Equal("https://videocardz.com/newz/intel-core-ultra-5-225f-leaks-out-10-core-arrow-lake-desktop-cpu-with-4-9-ghz-boost", ultra5_225F.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_CoreUltra100UMobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.49.0: the six Intel Core Ultra 100U mobile CPUs
+        // (Meteor Lake-U, Intel 4, launched December 14, 2023), completing
+        // the 100U family, which was wholly absent before. Only the 100H
+        // parts (185H, 155H, 125H) were in the dataset, all since v2.1.14;
+        // the 100U family was never listed, the same unnoticed gap as the
+        // 200V family in v2.1.83 and the 200S family in v2.1.84, because no
+        // cycle had listed the family against the dataset. The Max Turbo
+        // figures (P-core and E-core) come from Intel's own Core Ultra
+        // Processors Quick Reference Guide Phase 2, read 2026-11-15, whose
+        // U-series table lists all six parts with the same turbos, cores,
+        // threads and cache; the same table lists the three H parts already
+        // in the dataset at the same figures (the 185H at 5.1 and 3.8 GHz,
+        // the 155H at 4.8 and 3.8 GHz, the 125H at 4.5 and 3.6 GHz), which
+        // validates the column mapping. The QRG publishes no P-core base
+        // frequency, so the P-core base rests on agreeing ARK mirrors
+        // (nanoreview, topcpu, cpu-monkey, notebookcheck, TechPowerUp,
+        // technical.city and the CNX Software table taken from Intel ARK),
+        // the same disclosed mirror exception as the Series 3 335, 332 and
+        // 322 in v2.1.77 and the 251HX in v2.1.76. The 164U and 134U are
+        // the 9 W vPro Type 4 parts (FCBGA2551 package, fewer PCIe lanes,
+        // LPDDR5-6400 maximum, 9 W base power and 30 W maximum turbo power)
+        // with distinct P-core base frequencies, so they are listed
+        // separately from their 15 W twins, the same rule as the 332 and
+        // 322 in v2.1.77. Two reading traps are recorded in the coverage
+        // text: Notebookcheck's per-SKU pages give only the E-core turbo
+        // to P-core turbo min-max range (the 165U reads 3.8 to 4.9 GHz),
+        // not the P-core base; and the pre-launch WCCFTech leak table lists
+        // the 135U and 125U base at 3.6 GHz, which is the E-core turbo
+        // mislabeled, superseded by the launched ARK figures. Staying out,
+        // recorded in the coverage text: the Core Ultra 7 165H and Core
+        // Ultra 5 135H, the next candidate; the Ryzen 8000G desktop parts,
+        // the Ryzen 5000G parts (5600G, 5700G) and the Arc A310, all
+        // recorded as future candidates by the v2.1.84 audit; the Core
+        // Ultra UL family (165UL, 155UL, 135UL, 125UL, 105UL), named in
+        // Intel's own APP Metrics Revision 1; and the standing exclusions
+        // (13th-gen HX P-core base, Core 7 245HX non-Ultra, Core 3 100U,
+        // Ryzen AI 7 HX 455, Ryzen AI 400 mobile H variants), unchanged in
+        // this cycle.
+        const string qrgUrl = "https://cdrdv2-public.intel.com/791727/Intel%20Core%20Ultra%20Processors%20Quick%20Reference%20Guide%20Phase%202.pdf";
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 165U", out var ultra7_165U));
+        Assert.Equal(1.7, ultra7_165U.BaseGhz);
+        Assert.Equal(4.9, ultra7_165U.BoostGhz);
+        Assert.Equal(3.8, ultra7_165U.ECoreBoostGhz);
+        Assert.Equal(qrgUrl, ultra7_165U.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 155U", out var ultra7_155U));
+        Assert.Equal(1.7, ultra7_155U.BaseGhz);
+        Assert.Equal(4.8, ultra7_155U.BoostGhz);
+        Assert.Equal(3.8, ultra7_155U.ECoreBoostGhz);
+        Assert.Equal(qrgUrl, ultra7_155U.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 135U", out var ultra5_135U));
+        Assert.Equal(1.6, ultra5_135U.BaseGhz);
+        Assert.Equal(4.4, ultra5_135U.BoostGhz);
+        Assert.Equal(3.6, ultra5_135U.ECoreBoostGhz);
+        Assert.Equal(qrgUrl, ultra5_135U.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 125U", out var ultra5_125U));
+        Assert.Equal(1.3, ultra5_125U.BaseGhz);
+        Assert.Equal(4.3, ultra5_125U.BoostGhz);
+        Assert.Equal(3.6, ultra5_125U.ECoreBoostGhz);
+        Assert.Equal(qrgUrl, ultra5_125U.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 164U", out var ultra7_164U));
+        Assert.Equal(1.1, ultra7_164U.BaseGhz);
+        Assert.Equal(4.8, ultra7_164U.BoostGhz);
+        Assert.Equal(3.8, ultra7_164U.ECoreBoostGhz);
+        Assert.Equal(qrgUrl, ultra7_164U.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 134U", out var ultra5_134U));
+        Assert.Equal(0.7, ultra5_134U.BaseGhz);
+        Assert.Equal(4.4, ultra5_134U.BoostGhz);
+        Assert.Equal(3.6, ultra5_134U.ECoreBoostGhz);
+        Assert.Equal(qrgUrl, ultra5_134U.SourceUrl);
     }
 
     [Fact]
