@@ -122,6 +122,8 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 3 8300G", "RYZEN 3 8300G")]
     [InlineData("AMD Ryzen 7 8700F", "RYZEN 7 8700F")]
     [InlineData("AMD Ryzen 5 8400F", "RYZEN 5 8400F")]
+    [InlineData("AMD Ryzen 5 7500F", "RYZEN 5 7500F")]
+    [InlineData("AMD Ryzen 5 7400F", "RYZEN 5 7400F")]
     [InlineData("AMD Ryzen AI 9 HX PRO 475", "RYZEN AI 9 HX PRO 475")]
     [InlineData("AMD Ryzen AI 9 HX PRO 470", "RYZEN AI 9 HX PRO 470")]
     [InlineData("AMD Ryzen AI 9 PRO 465", "RYZEN AI 9 PRO 465")]
@@ -329,9 +331,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.56.0", database.Version);
+        Assert.Equal("1.57.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(259, database.CpuCount);
+        Assert.Equal(261, database.CpuCount);
         Assert.Equal(96, database.GpuCount);
     }
 
@@ -2483,6 +2485,55 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.7, ryzen5_8400F.BoostGhz);
         Assert.Null(ryzen5_8400F.ECoreBoostGhz);
         Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/8000-series/amd-ryzen-5-8400f.html", ryzen5_8400F.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Ryzen7000FDesktopCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.57.0: the two AMD Ryzen 7000F desktop CPUs (Raphael,
+        // Zen 4, TSMC 5nm FinFET, AM5, 65 W default TDP), completing the
+        // 7000F family, which was wholly absent before. Only the 7000
+        // parts without an F suffix were in the dataset; no 7000F part
+        // had ever been listed, the same unnoticed gap as the 8000F
+        // family in v2.1.92, the 5000G family in v2.1.88, the 8000G
+        // family in v2.1.87, the 100H family in v2.1.86, the 100U family
+        // in v2.1.85, the 200V family in v2.1.83 and the 200S family in
+        // v2.1.84, because no cycle had listed the family against the
+        // dataset. The slice was picked by the brief, which named the
+        // Ryzen 7000F pair first among the v2.1.92 audit's three future
+        // candidates; both parts verified against AMD's own product
+        // pages, so the dependency-audit fallback was not needed and the
+        // other two candidates (the Ryzen 5 5600GT desktop APU and the
+        // Ryzen 5 5600T, 5600XT, 5600F and 5500GT AM4 refresh parts, and
+        // the AMD Radeon RX 9070 GRE GPU) were not researched in this
+        // cycle and are recorded in the coverage text as future
+        // candidates. Every figure was verified by hand against AMD's
+        // own product page per model, read 2026-11-15, and both pages
+        // were fetched directly as page text: the 7500F page (6 cores,
+        // 12 threads, Max Boost Clock up to 5 GHz, Base Clock 3.7 GHz,
+        // L1 384 KB, L2 6 MB, L3 32 MB, 65 W, launch 07/22/2023, Global)
+        // and the 7400F page (6 cores, 12 threads, Max Boost Clock up
+        // to 4.7 GHz, Base Clock 3.7 GHz, L1 384 KB, L2 6 MB, L3 32 MB,
+        // 65 W, launch 1/9/2025, China and APJ only). Both parts carry
+        // no integrated graphics and require a discrete graphics card.
+        // Staying out, recorded in the coverage text: the Ryzen 5
+        // 5600GT desktop APU and the Ryzen 5 5600T, 5600XT, 5600F and
+        // 5500GT AM4 refresh parts, the next candidate; the AMD Radeon
+        // RX 9070 GRE GPU; and the standing exclusions (13th-gen HX
+        // P-core base, Core 7 245HX non-Ultra, Core 3 100U, Ryzen AI 7
+        // HX 455, Ryzen AI 400 mobile H variants), unchanged in this
+        // cycle.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 7500F", out var ryzen5_7500F));
+        Assert.Equal(3.7, ryzen5_7500F.BaseGhz);
+        Assert.Equal(5.0, ryzen5_7500F.BoostGhz);
+        Assert.Null(ryzen5_7500F.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/7000-series/amd-ryzen-5-7500f.html", ryzen5_7500F.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 7400F", out var ryzen5_7400F));
+        Assert.Equal(3.7, ryzen5_7400F.BaseGhz);
+        Assert.Equal(4.7, ryzen5_7400F.BoostGhz);
+        Assert.Null(ryzen5_7400F.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/desktops/ryzen/7000-series/amd-ryzen-5-7400f.html", ryzen5_7400F.SourceUrl);
     }
 
     [Fact]
