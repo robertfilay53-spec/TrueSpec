@@ -342,9 +342,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.71.0", database.Version);
+        Assert.Equal("1.72.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(294, database.CpuCount);
+        Assert.Equal(297, database.CpuCount);
         Assert.Equal(109, database.GpuCount);
     }
 
@@ -1292,6 +1292,63 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.8, i5_10600Kf.BoostGhz);
         Assert.Null(i5_10600Kf.ECoreBoostGhz);
         Assert.Equal(compareUrl, i5_10600Kf.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Ryzen7000DragonRangeHxMobileFamilyCompletesAt4()
+    {
+        // Dataset v1.72.0: the three AMD Ryzen 7000 Dragon Range HX mobile
+        // CPUs the dataset was missing, completing the Dragon Range HX
+        // mobile family at four SKUs (the 7945HX, 7845HX, 7745HX and
+        // 7645HX; only the 7945HX was already listed). All three are Zen 4
+        // Dragon Range on 5 nm, socket FL1, with Radeon 610M integrated
+        // graphics, and all three are unlocked. The Ryzen 9 7845HX at Base
+        // Clock 3.0 GHz and Max Boost Clock up to 5.2 GHz, 12 cores,
+        // 24 threads, 64 MB L3 cache, 55 W default TDP (45-75 W
+        // configurable), launched February 28, 2023. The Ryzen 7 7745HX at
+        // 3.6 and up to 5.1 GHz, 8 cores, 16 threads, 32 MB L3 cache,
+        // 55 W default TDP (45-75 W configurable), launched February 28,
+        // 2023. The Ryzen 5 7645HX at 4.0 and up to 5.0 GHz, 6 cores,
+        // 12 threads, 32 MB L3 cache, 55 W default TDP (45-75 W
+        // configurable), launched February 28, 2023. The boost figures are
+        // AMD Max Boost Clock, the headline up-to figure, per the
+        // dataset's boost definition. AMD's own product pages surfaced in
+        // the search index for all three and agree exactly (7845HX Max
+        // Boost Clock up to 5.2 GHz, Base Clock 3.0 GHz, 12 cores,
+        // 24 threads, 64 MB L3, Default TDP 55 W, cTDP 45-75 W; 7745HX up
+        // to 5.1 GHz, Base 3.6 GHz, 8 cores, 16 threads, 32 MB L3,
+        // 55 W; 7645HX up to 5.0 GHz, Base 4.0 GHz, 6 cores, 12 threads,
+        // 32 MB L3, 55 W), cross-checked against agreeing third parties
+        // (notebookcheck, nanoreview, technical.city and wccftech, which
+        // all agree per SKU on the base and the boost). Two reading traps
+        // are recorded: technical.city lists the 7645HX TDP as 45 W in
+        // some views, which is the configurable TDP floor, while AMD's own
+        // page gives Default TDP 55 W with cTDP 45-75 W; and some laptop
+        // reviews report the 7845HX drawing 110 W or more under load,
+        // which is an OEM power limit, not the rated 55 W default TDP.
+        // The dataset carries no core-count, cache or TDP field, so those
+        // figures live here in the comment and in the README and ROADMAP
+        // entries, not in the entries themselves.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 9 7845HX", out var r9_7845Hx));
+        Assert.Equal("AMD", r9_7845Hx.Vendor);
+        Assert.Equal(3.0, r9_7845Hx.BaseGhz);
+        Assert.Equal(5.2, r9_7845Hx.BoostGhz);
+        Assert.Null(r9_7845Hx.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/laptop/ryzen/7000-series/amd-ryzen-9-7845hx.html", r9_7845Hx.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 7745HX", out var r7_7745Hx));
+        Assert.Equal("AMD", r7_7745Hx.Vendor);
+        Assert.Equal(3.6, r7_7745Hx.BaseGhz);
+        Assert.Equal(5.1, r7_7745Hx.BoostGhz);
+        Assert.Null(r7_7745Hx.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/laptop/ryzen/7000-series/amd-ryzen-7-7745hx.html", r7_7745Hx.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 7645HX", out var r5_7645Hx));
+        Assert.Equal("AMD", r5_7645Hx.Vendor);
+        Assert.Equal(4.0, r5_7645Hx.BaseGhz);
+        Assert.Equal(5.0, r5_7645Hx.BoostGhz);
+        Assert.Null(r5_7645Hx.ECoreBoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/laptop/ryzen/7000-series/amd-ryzen-5-7645hx.html", r5_7645Hx.SourceUrl);
     }
 
     [Fact]
