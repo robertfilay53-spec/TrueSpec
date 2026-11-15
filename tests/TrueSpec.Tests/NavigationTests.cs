@@ -371,6 +371,114 @@ public class NavigationTests
     }
 
     /// <summary>
+    [Fact]
+    public void Navigation_CollapsedRailNavItemsShowLabelTooltips()
+    {
+        // v2.1.61: when the rail is collapsed the labels are hidden and
+        // each of the 22 nav items is an icon only. Hovering an item must
+        // show its label as a tooltip, or the destinations are
+        // unidentifiable until the rail is expanded again. The tooltip
+        // lives on the item template root Grid and binds to the same
+        // Label the visible text uses, so it follows the UI language.
+        var path = FindRepoFile("src", "TrueSpec.App", "Views", "MainWindow.axaml");
+        var lines = File.ReadAllLines(path);
+        var templateStart = Array.FindIndex(lines, line =>
+            line.Contains("<DataTemplate", StringComparison.Ordinal) &&
+            line.Contains("NavItemViewModel", StringComparison.Ordinal));
+        Assert.True(templateStart >= 0, "MainWindow.axaml must contain the nav item DataTemplate.");
+
+        var templateEnd = Array.FindIndex(lines, templateStart, line =>
+            line.Contains("</DataTemplate>", StringComparison.Ordinal));
+        Assert.True(templateEnd > templateStart, "The nav item DataTemplate must close.");
+
+        var gridIndex = Array.FindIndex(lines, templateStart, templateEnd - templateStart + 1, line =>
+            line.Contains("<Grid", StringComparison.Ordinal));
+        Assert.InRange(gridIndex, templateStart, templateEnd);
+
+        // The Grid opening tag spans two lines (attributes, then the
+        // tooltip on the next line), so the assertion reads the whole
+        // tag, not just the line with "<Grid".
+        var tag = new List<string>();
+        for (var i = gridIndex; i <= templateEnd; i++)
+        {
+            tag.Add(lines[i]);
+            if (lines[i].Contains('>'))
+            {
+                break;
+            }
+        }
+
+        Assert.Contains("ToolTip.Tip=\"{Binding Label}\"", string.Join(" ", tag), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Navigation_RailButtonsShowTooltips()
+    {
+        // v2.1.61: the two buttons at the bottom of the rail are icon
+        // only when the rail is collapsed (the theme button shows just
+        // its sun icon, the rail button just ">>"), so each must carry
+        // a tooltip with the action it performs. The strings already
+        // existed on MainViewModel (ThemeToggleText, RailToggleText);
+        // RailToggleText was defined and raised but bound by no view.
+        var path = FindRepoFile("src", "TrueSpec.App", "Views", "MainWindow.axaml");
+        var lines = File.ReadAllLines(path);
+
+        Assert.Contains("ToolTip.Tip=\"{Binding ThemeToggleText}\"", ButtonOpeningTag(lines, "ToggleThemeCommand"), StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding RailToggleText}\"", ButtonOpeningTag(lines, "ToggleRailCommand"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Navigation_RailToggleText_ReflectsRailState()
+    {
+        // v2.1.61: the rail button tooltip text comes from
+        // RailToggleText, so it must say what the button will do next:
+        // "Collapse rail" while expanded, "Expand rail" while collapsed.
+        var main = new MainViewModel(
+            MachineScanService.CreateDefault(),
+            new UnavailableSensorMonitor(),
+            new BuyerCheckEvaluator());
+
+        try
+        {
+            Assert.True(main.IsRailExpanded);
+            Assert.Equal("Collapse rail", main.RailToggleText);
+
+            main.IsRailExpanded = false;
+
+            Assert.Equal("Expand rail", main.RailToggleText);
+        }
+        finally
+        {
+            main.Dispose();
+        }
+    }
+
+    private static string ButtonOpeningTag(string[] lines, string commandName)
+    {
+        var commandLine = Array.FindIndex(lines, line =>
+            line.Contains("Command=\"{Binding " + commandName + "}\"", StringComparison.Ordinal));
+        Assert.True(commandLine >= 0, "MainWindow.axaml must contain a button bound to " + commandName + ".");
+
+        var buttonStart = commandLine;
+        while (buttonStart > 0 && !lines[buttonStart].Contains("<Button", StringComparison.Ordinal))
+        {
+            buttonStart--;
+        }
+
+        Assert.Contains("<Button", lines[buttonStart], StringComparison.Ordinal);
+        var tag = new List<string>();
+        for (var i = buttonStart; i < lines.Length; i++)
+        {
+            tag.Add(lines[i]);
+            if (lines[i].Contains('>'))
+            {
+                break;
+            }
+        }
+
+        return string.Join(" ", tag);
+    }
+
     /// Lives here because this is a Windows-leg file that can reference the
     /// App: the single-instance mutex name must be the base name plus a
     /// per-user hash suffix, stable across calls, and must never contain
