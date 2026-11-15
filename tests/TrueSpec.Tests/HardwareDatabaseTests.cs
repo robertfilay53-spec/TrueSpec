@@ -70,6 +70,10 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 5 230", "RYZEN 5 230")]
     [InlineData("AMD Ryzen 5 220", "RYZEN 5 220")]
     [InlineData("AMD Ryzen 3 210", "RYZEN 3 210")]
+    [InlineData("AMD Ryzen 7 PRO 250", "RYZEN 7 PRO 250")]
+    [InlineData("AMD Ryzen 5 PRO 230", "RYZEN 5 PRO 230")]
+    [InlineData("AMD Ryzen 5 PRO 220", "RYZEN 5 PRO 220")]
+    [InlineData("AMD Ryzen 3 PRO 210", "RYZEN 3 PRO 210")]
     [InlineData("AMD Ryzen 7 253", "RYZEN 7 253")]
     [InlineData("AMD Ryzen 7 249", "RYZEN 7 249")]
     [InlineData("AMD Ryzen 5 225", "RYZEN 5 225")]
@@ -282,9 +286,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.44.0", database.Version);
+        Assert.Equal("1.45.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(212, database.CpuCount);
+        Assert.Equal(216, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1651,6 +1655,74 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.8, core5205H.BoostGhz);
         Assert.Equal(3.6, core5205H.ECoreBoostGhz);
         Assert.Equal("https://www.notebookcheck.net/Intel-Core-5-205H-Processor-Benchmarks-and-Specs.1364948.0.html", core5205H.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Ryzen200ProMobileCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.45.0: the four AMD Ryzen 200 PRO mobile CPUs (Hawk
+        // Point, Zen 4 on TSMC 4nm FinFET, RDNA 3 graphics, 28 W default
+        // TDP), the PRO family the dataset never listed. This overturns
+        // the v2.1.59 exclusion, which kept the PRO variants out on the
+        // ground that the dataset covered consumer parts only, a ground
+        // later cycles superseded by listing the AI 400, AI 300 and AI
+        // Max PRO families. All figures below were verified by hand
+        // against AMD's own product page per model, read 2026-11-15 from
+        // fresh fetches, and cross-checked against AMD's own January 2026
+        // mobile-for-business Quick Reference Guide, which publishes the
+        // same boost and base figures for all four, and against the CES
+        // 2025 press-release table as reproduced by Tom's Hardware: the
+        // Ryzen 7 PRO 250 at Base Clock 3.3 GHz and Max Boost Clock up to
+        // 5.1 GHz, 8 cores and 16 threads, 24 MB total cache (8 MB L2,
+        // 16 MB L3), Radeon 780M; the Ryzen 5 PRO 230 at 3.5 and up to
+        // 4.9 GHz, 6 cores and 12 threads, 22 MB total cache (6 MB L2,
+        // 16 MB L3), Radeon 760M; the Ryzen 5 PRO 220 at 3.2 and up to
+        // 4.9 GHz, 6 cores and 12 threads, 22 MB total cache (6 MB L2,
+        // 16 MB L3), Radeon 740M; the Ryzen 3 PRO 210 at 3.0 and up to
+        // 4.7 GHz, 4 cores and 8 threads, 12 MB total cache (4 MB L2,
+        // 8 MB L3), Radeon 740M. All four were announced at CES 2025 on
+        // January 6, 2025 and launched March 27, 2025. The two hybrid
+        // parts (the PRO 220 with two Zen 4 plus four Zen 4c cores, the
+        // PRO 210 with one Zen 4 plus three Zen 4c cores) use AMD's
+        // headline Base Clock and Max Boost Clock, not the per-core-type
+        // figures (the PRO 220 lists Max Zen4c Clock up to 3.5 GHz, the
+        // PRO 210 up to 3.3 GHz), the same rule as the consumer Ryzen 200
+        // hybrid parts and the AI 400 chips' Max Zen5c Clock. The dataset's
+        // base_ghz is AMD's headline Base Clock and boost_ghz is AMD's
+        // Max Boost Clock, per its own definition. Staying out for a
+        // future cycle: the Ryzen 5 PRO 215 (6 cores, Base Clock 3.2 GHz
+        // and Max Boost Clock up to 4.7 GHz, AMD's own product page,
+        // launch March 27, 2025) and the Ryzen 5 PRO 216 (6 cores, 2.9
+        // and up to 4.7 GHz, Lenovo PSREF), later PRO 200 additions
+        // outside the four CES 2025 parts. No code change was needed: the
+        // CPU normalizer already maps "AMD Ryzen 7 PRO 250" to
+        // "RYZEN 7 PRO 250", "AMD Ryzen 5 PRO 230" to "RYZEN 5 PRO 230",
+        // "AMD Ryzen 5 PRO 220" to "RYZEN 5 PRO 220" and "AMD Ryzen 3
+        // PRO 210" to "RYZEN 3 PRO 210", and the Settings card shows the
+        // CPU count from the dataset, so it reads 216 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 PRO 250", out var ryzen7Pro250));
+        Assert.Equal("AMD", ryzen7Pro250.Vendor);
+        Assert.Equal(3.3, ryzen7Pro250.BaseGhz);
+        Assert.Equal(5.1, ryzen7Pro250.BoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/laptop/ryzen-pro/200-series/amd-ryzen-7-pro-250.html", ryzen7Pro250.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 PRO 230", out var ryzen5Pro230));
+        Assert.Equal("AMD", ryzen5Pro230.Vendor);
+        Assert.Equal(3.5, ryzen5Pro230.BaseGhz);
+        Assert.Equal(4.9, ryzen5Pro230.BoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/laptop/ryzen-pro/200-series/amd-ryzen-5-pro-230.html", ryzen5Pro230.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 PRO 220", out var ryzen5Pro220));
+        Assert.Equal("AMD", ryzen5Pro220.Vendor);
+        Assert.Equal(3.2, ryzen5Pro220.BaseGhz);
+        Assert.Equal(4.9, ryzen5Pro220.BoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/laptop/ryzen-pro/200-series/amd-ryzen-5-pro-220.html", ryzen5Pro220.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 3 PRO 210", out var ryzen3Pro210));
+        Assert.Equal("AMD", ryzen3Pro210.Vendor);
+        Assert.Equal(3.0, ryzen3Pro210.BaseGhz);
+        Assert.Equal(4.7, ryzen3Pro210.BoostGhz);
+        Assert.Equal("https://www.amd.com/en/products/processors/laptop/ryzen-pro/200-series/amd-ryzen-3-pro-210.html", ryzen3Pro210.SourceUrl);
     }
 
     [Fact]
