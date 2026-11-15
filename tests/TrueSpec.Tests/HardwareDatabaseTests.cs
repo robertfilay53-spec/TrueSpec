@@ -122,6 +122,9 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel Core Ultra 7 365", "ULTRA 7 365")]
     [InlineData("Intel Core Ultra 5 325", "ULTRA 5 325")]
     [InlineData("Intel Core Ultra 7 355", "ULTRA 7 355")]
+    [InlineData("Intel Core Ultra 5 335", "ULTRA 5 335")]
+    [InlineData("Intel Core Ultra 5 332", "ULTRA 5 332")]
+    [InlineData("Intel Core Ultra 5 322", "ULTRA 5 322")]
     [InlineData("intel core i5-12400", "I5-12400")]
     [InlineData("Intel(R) Core(TM) i5-12400F Processor", "I5-12400F")]
     [InlineData("Intel(R) Core(TM) i5-14400", "I5-14400")]
@@ -267,9 +270,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.40.0", database.Version);
+        Assert.Equal("1.41.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(197, database.CpuCount);
+        Assert.Equal(200, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1354,6 +1357,67 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(5.1, ultra7251Hx.BoostGhz);
         Assert.Equal(4.5, ultra7251Hx.ECoreBoostGhz);
         Assert.StartsWith("https://www.intel.com/content/www/us/en/content-details/916308/intel-core-ultra-7-processor-270hx-plus-ultra-9-processor-290hx-plus-ultra-7-processor-251hx-105143-mdds.html", ultra7251Hx.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_CoreUltraSeries3RemainingCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.41.0: the three remaining Intel Core Ultra Series 3
+        // (Panther Lake) mobile CPUs, which complete the family at fifteen
+        // SKUs: the Core Ultra 5 335, 332 and 322, launched January 5,
+        // 2026 on Intel 18A. This overturns the v2.1.65 exclusion, which
+        // kept them out because their Performance-core Base Frequency
+        // figures could not be verified live on Intel's own page: Intel's
+        // own Series 3 Quick Reference Guide v1 (cdrdv2-public.intel.com
+        // 871380), fetched directly as a PDF in this cycle and
+        // text-extracted, lists all three SKUs with P-core Max Turbo
+        // Frequency 4.6, 4.4 and 4.4 GHz, 8, 6 and 6 cores and threads,
+        // 12 MB Intel Smart Cache, 25 W processor base power and 55 W
+        // maximum turbo power, which corroborates the SKUs and their Max
+        // Turbo from Intel itself. The guide publishes no P-core base
+        // frequency, so one judgement call is recorded, the same disclosed
+        // exception as the 251HX in v2.1.76: the Performance-core Base
+        // Frequencies 2.2, 2.5 and 2.5 GHz and the Low Power
+        // Efficient-core Max Turbo Frequencies 3.4, 3.3 and 3.3 GHz rest
+        // on agreeing ARK mirrors (nanoreview, topcpu, siliconcat,
+        // cputronic, cpu-monkey, eatyourbytes and notebookcheck), not on a
+        // direct Intel read, because Intel's own compare pages return HTTP
+        // 403 in this sandbox and no Intel compare page containing these
+        // three SKUs surfaced. The old 322 disagreement is resolved: the
+        // 1.9 GHz figure is the Low Power Efficient-core base, not the
+        // P-core base (technical.city mislabels it as the base clock, and
+        // notebookcheck's "1.9 - 4.4 GHz" is a min-max range from the
+        // LP-E base to the P-core turbo); every source that reports the
+        // P-core base distinctly agrees on 2.5 GHz. The three have no
+        // standard E-cores, so their e_core_boost_ghz carries the Low
+        // Power Efficient-core Max Turbo Frequency, the same rule the
+        // dataset already uses for the 365, 325 and 355. The 332 and 322
+        // are identical on clocks, cores, cache and graphics and differ
+        // only in vPro eligibility (the guide lists the 332 as eligible
+        // and the 322 as not), so both are listed, the same as the 378H
+        // and 368H. No code change was needed: the CPU normalizer already
+        // maps the names, and the Settings card shows the CPU count from
+        // the dataset, so it reads 200 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) Ultra 5 335", out var ultra5335));
+        Assert.Equal("Intel", ultra5335.Vendor);
+        Assert.Equal(2.2, ultra5335.BaseGhz);
+        Assert.Equal(4.6, ultra5335.BoostGhz);
+        Assert.Equal(3.4, ultra5335.ECoreBoostGhz);
+        Assert.StartsWith("https://cdrdv2-public.intel.com/871380/Intel%20Core%20Ultra%20Series%203%20Processors%20-%20Quick%20Reference%20Guide%20v1.pdf", ultra5335.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) Ultra 5 332", out var ultra5332));
+        Assert.Equal("Intel", ultra5332.Vendor);
+        Assert.Equal(2.5, ultra5332.BaseGhz);
+        Assert.Equal(4.4, ultra5332.BoostGhz);
+        Assert.Equal(3.3, ultra5332.ECoreBoostGhz);
+        Assert.StartsWith("https://cdrdv2-public.intel.com/871380/Intel%20Core%20Ultra%20Series%203%20Processors%20-%20Quick%20Reference%20Guide%20v1.pdf", ultra5332.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel(R) Core(TM) Ultra 5 322", out var ultra5322));
+        Assert.Equal("Intel", ultra5322.Vendor);
+        Assert.Equal(2.5, ultra5322.BaseGhz);
+        Assert.Equal(4.4, ultra5322.BoostGhz);
+        Assert.Equal(3.3, ultra5322.ECoreBoostGhz);
+        Assert.StartsWith("https://cdrdv2-public.intel.com/871380/Intel%20Core%20Ultra%20Series%203%20Processors%20-%20Quick%20Reference%20Guide%20v1.pdf", ultra5322.SourceUrl, StringComparison.Ordinal);
     }
 
     [Fact]
