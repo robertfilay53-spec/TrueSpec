@@ -342,10 +342,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.61.0", database.Version);
+        Assert.Equal("1.62.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
         Assert.Equal(272, database.CpuCount);
-        Assert.Equal(100, database.GpuCount);
+        Assert.Equal(101, database.GpuCount);
     }
 
     [Fact]
@@ -611,6 +611,59 @@ public sealed class HardwareDatabaseTests
     }
 
     [Fact]
+    public void Default_Rtx5090DDesktopGpuCarriesVerifiedFigures()
+    {
+        // Dataset v1.62.0: the NVIDIA GeForce RTX 5090 D desktop GPU,
+        // the eighth RTX 50 desktop SKU in the dataset (with the 5090,
+        // 5080, 5070 Ti, 5070, 5060 Ti, 5060 and 5050) and the
+        // China-only variant of the 5090, named as a future candidate
+        // by the v2.1.97 audit. Blackwell (GB202, GB202-250-A1), 21,760
+        // CUDA cores, 680 tensor cores, 170 ray tracing cores, base
+        // clock 2017 MHz, Boost Clock up to 2407 MHz, 32 GB GDDR7 on a
+        // 512-bit bus at up to 1.79 TB/s in the original model, 575 W
+        // total graphics power, launched January 30, 2025 at CNY
+        // 16,499. The V2, launched August 12, 2025, ships 24 GB GDDR7
+        // on a 384-bit bus at the same 2407 MHz boost and 575 W, so
+        // with two memory sizes sharing the device name the entry
+        // records no single memory figure, the same null treatment as
+        // the RX 6500 XT in v1.61.0 and the RX 9060 XT in v1.59.0, and
+        // the split is recorded in the entry note. The entry records
+        // the boost and the board power because both are the same on
+        // the two variants. Every figure was verified by hand, read
+        // 2026-11-15: NVIDIA's own 5090 D page is the China site and
+        // its exact URL did not surface in the search index, so the
+        // entry records the TechPowerUp GPU database page, fetched
+        // directly as page text (21,760 shading units, 32 GB GDDR7,
+        // 512-bit, base 2017 MHz, boost up to 2407 MHz, TDP 575 W,
+        // launched January 30, 2025), cross-checked against agreeing
+        // third parties (VideoCardz, technical.city, cputronic and
+        // gpuspecs, which all agree on 2407 MHz boost, 32 GB and
+        // 575 W for the original), the same disclosed third-party
+        // exception as the 285T, 245T, 235T and 225T in v2.1.96,
+        // because NVIDIA's own compare pages for the D variant are
+        // China-only. Two reading traps are recorded: the V2 is a
+        // separate product, not a revision of the original, so its
+        // 24 GB and 384-bit figures must not be read as the 5090 D
+        // figures; and board-partner cards are factory-overclocked
+        // (up to 2655 MHz boost on the GALAX HOF OC LAB XOC and the
+        // GIGABYTE AORUS MASTER), so the entry records NVIDIA's
+        // reference boost of 2407 MHz. The stored key is "RTX 5090 D"
+        // with a space, because that is what Windows reports ("NVIDIA
+        // GeForce RTX 5090 D"), which the normalizer reduces to the
+        // same key. The dataset carries no CUDA-core, bus-width or
+        // bandwidth field, so those figures live here in the comment
+        // and in the README and ROADMAP entries, not in the entry
+        // itself.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 5090 D", out var rtx5090D));
+        Assert.Equal("NVIDIA", rtx5090D.Vendor);
+        Assert.Equal(2.407, rtx5090D.BoostGhz);
+        Assert.Null(rtx5090D.MemoryGb);
+        Assert.Equal(575, rtx5090D.TdpW);
+        Assert.Equal("Memory 32 GB (original, Jan 2025) / 24 GB (V2, Aug 2025); no single figure for the shared device name", rtx5090D.TdpNote);
+        Assert.StartsWith("http://techpowerup.com/gpu-specs/geforce-rtx-5090-d.c4253", rtx5090D.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Default_CoreUltra200SDesktopFamilyCompletesAt18()
     {
         // Dataset v1.60.0: the six Intel Core Ultra 200S desktop CPUs the
@@ -741,6 +794,7 @@ public sealed class HardwareDatabaseTests
     [Theory]
     [InlineData("NVIDIA GeForce RTX 4060 Laptop GPU", "RTX 4060 LAPTOP")]
     [InlineData("NVIDIA GeForce RTX 5090 Laptop GPU", "RTX 5090 LAPTOP")]
+    [InlineData("NVIDIA GeForce RTX 5090 D", "RTX 5090 D")]
     [InlineData("NVIDIA GeForce RTX 4060", "RTX 4060")]
     [InlineData("NVIDIA GeForce RTX 4060 Ti", "RTX 4060 TI")]
     [InlineData("NVIDIA GeForce RTX 3080", "RTX 3080")]
