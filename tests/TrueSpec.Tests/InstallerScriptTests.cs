@@ -104,7 +104,7 @@ public class InstallerScriptTests
     }
 
     [Fact]
-    public void Version_Is_2_2_5_InAllThreePlaces()
+    public void Version_Is_2_2_6_InAllThreePlaces()
     {
         // The version lives in three places and they must agree: the app
         // project (assembly version), the installer script, and the

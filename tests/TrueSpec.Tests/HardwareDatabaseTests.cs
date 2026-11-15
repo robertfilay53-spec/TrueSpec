@@ -342,9 +342,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.69.0", database.Version);
+        Assert.Equal("1.70.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(285, database.CpuCount);
+        Assert.Equal(290, database.CpuCount);
         Assert.Equal(109, database.GpuCount);
     }
 
@@ -1126,6 +1126,93 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.9, i5_12600Kf.BoostGhz);
         Assert.Equal(3.6, i5_12600Kf.ECoreBoostGhz);
         Assert.Equal(compareUrl, i5_12600Kf.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Core11thGenUnlockedDesktopFamilyCompletesAt6()
+    {
+        // Dataset v1.70.0: the five Intel Core 11th-gen unlocked desktop
+        // CPUs the dataset was missing, completing the unlocked set at
+        // six SKUs (the 11900K, 11900KF, 11700K, 11700KF, 11600K and
+        // 11600KF; only the 11900K was already listed). All five are
+        // Rocket Lake on 14 nm, LGA 1200, and each KF part shares its K
+        // twin's clocks exactly and differs only by the missing integrated
+        // graphics, so a discrete card is required. There are no E-cores
+        // in this generation, so ECoreBoostGhz is null on all five. The
+        // 11900KF at Processor Base Frequency 3.5 GHz and Max Turbo
+        // Frequency up to 5.3 GHz (Thermal Velocity Boost 5.3 GHz, Turbo
+        // Boost Max 3.0 5.2 GHz, Turbo Boost 2.0 5.1 GHz), 8 cores,
+        // 16 threads, 16 MB Intel Smart Cache, 125 W base power, no
+        // integrated graphics, launched Q1 2021. The 11700K at 3.6 and up
+        // to 5.0 GHz (Turbo Boost Max 3.0 5.0 GHz, Turbo Boost 2.0
+        // 4.9 GHz), 8 cores, 16 threads, 16 MB cache, 125 W, launched
+        // Q1 2021. The 11700KF at the same 3.6 and 5.0 GHz, 8 cores,
+        // 16 threads, 16 MB cache, 125 W, no integrated graphics,
+        // launched Q1 2021. The 11600K at 3.9 and up to 4.9 GHz (Turbo
+        // Boost 2.0 4.9 GHz, no Turbo Boost Max 3.0), 6 cores, 12 threads,
+        // 12 MB cache, 125 W, launched Q1 2021. The 11600KF at the same
+        // 3.9 and 4.9 GHz, 6 cores, 12 threads, 12 MB cache, 125 W, no
+        // integrated graphics, launched Q1 2021. The boost figures are
+        // ARK Max Turbo Frequency, the headline up-to figure, per the
+        // dataset's boost definition. Intel's own compare pages return
+        // HTTP 403 in this sandbox, so the figures rest on agreeing ARK
+        // mirrors, the same disclosed third-party exception as the
+        // 14th-gen unlocked set in v2.1.99 and the 13th-gen unlocked set
+        // in v2.2.4; Intel's own compare page did surface in the search
+        // index for the 11900KF and the 11700K and agrees exactly
+        // (11900KF Max Turbo 5.30, TVB 5.30, TBMT 3.0 5.20, TBT 2.0 5.10,
+        // Base 3.50, 16 MB, 125 W; 11700K Max Turbo 5.00, TBMT 3.0 5.00,
+        // TBT 2.0 4.90, Base 3.60, 16 MB, 125 W). Three reading traps
+        // are recorded: cpu-monkey lists the 11700K base as 3.4 GHz and
+        // the 11600K at 3.8 GHz with a 4.5 GHz boost, which are all-core
+        // figures, while Intel's own compare page and the agreeing
+        // sources give 3.6 GHz base and 5.0 GHz Max Turbo for the 11700K
+        // and 3.9 GHz base and 4.9 GHz Max Turbo for the 11600K;
+        // technical.city lists the 11900KF boost as 5.2 GHz, which is
+        // its Turbo Boost Max 3.0 frequency, while the ARK Max Turbo is
+        // 5.3 GHz via Thermal Velocity Boost, the same trap class as the
+        // 13900KF's 5.7 GHz listing; and some retailers list the 12700KF
+        // turbo as 4.9 GHz, which is its Single P-core Turbo, while the
+        // ARK Max Turbo is 5.0 GHz via Turbo Boost Max 3.0. The dataset
+        // carries no core-count, cache or TDP field, so those figures
+        // live here in the comment and in the README and ROADMAP
+        // entries, not in the entries themselves.
+        const string compareUrl = "https://www.intel.com/content/www/us/en/products/compare.html?productIds=212326,212327,212325,212275,212276";
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i9-11900KF", out var i9_11900Kf));
+        Assert.Equal("Intel", i9_11900Kf.Vendor);
+        Assert.Equal(3.5, i9_11900Kf.BaseGhz);
+        Assert.Equal(5.3, i9_11900Kf.BoostGhz);
+        Assert.Null(i9_11900Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i9_11900Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i7-11700K", out var i7_11700K));
+        Assert.Equal("Intel", i7_11700K.Vendor);
+        Assert.Equal(3.6, i7_11700K.BaseGhz);
+        Assert.Equal(5.0, i7_11700K.BoostGhz);
+        Assert.Null(i7_11700K.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i7_11700K.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i7-11700KF", out var i7_11700Kf));
+        Assert.Equal("Intel", i7_11700Kf.Vendor);
+        Assert.Equal(3.6, i7_11700Kf.BaseGhz);
+        Assert.Equal(5.0, i7_11700Kf.BoostGhz);
+        Assert.Null(i7_11700Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i7_11700Kf.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i5-11600K", out var i5_11600K));
+        Assert.Equal("Intel", i5_11600K.Vendor);
+        Assert.Equal(3.9, i5_11600K.BaseGhz);
+        Assert.Equal(4.9, i5_11600K.BoostGhz);
+        Assert.Null(i5_11600K.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i5_11600K.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i5-11600KF", out var i5_11600Kf));
+        Assert.Equal("Intel", i5_11600Kf.Vendor);
+        Assert.Equal(3.9, i5_11600Kf.BaseGhz);
+        Assert.Equal(4.9, i5_11600Kf.BoostGhz);
+        Assert.Null(i5_11600Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i5_11600Kf.SourceUrl);
     }
 
     [Fact]
