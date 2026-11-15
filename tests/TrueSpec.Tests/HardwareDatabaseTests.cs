@@ -148,6 +148,15 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel(R) Core(TM) Ultra 5 238V", "ULTRA 5 238V")]
     [InlineData("Intel(R) Core(TM) Ultra 5 236V", "ULTRA 5 236V")]
     [InlineData("Intel(R) Core(TM) Ultra 5 228V", "ULTRA 5 228V")]
+    [InlineData("Intel(R) Core(TM) Ultra 7 265KF", "ULTRA 7 265KF")]
+    [InlineData("Intel(R) Core(TM) Ultra 5 245KF", "ULTRA 5 245KF")]
+    [InlineData("Intel(R) Core(TM) Ultra 9 285", "ULTRA 9 285")]
+    [InlineData("Intel(R) Core(TM) Ultra 7 265", "ULTRA 7 265")]
+    [InlineData("Intel(R) Core(TM) Ultra 7 265F", "ULTRA 7 265F")]
+    [InlineData("Intel(R) Core(TM) Ultra 5 245", "ULTRA 5 245")]
+    [InlineData("Intel(R) Core(TM) Ultra 5 235", "ULTRA 5 235")]
+    [InlineData("Intel(R) Core(TM) Ultra 5 225", "ULTRA 5 225")]
+    [InlineData("Intel(R) Core(TM) Ultra 5 225F", "ULTRA 5 225F")]
     [InlineData("Intel Core 9 270H", "9 270H")]
     [InlineData("Intel Core 7 250H", "7 250H")]
     [InlineData("Intel Core 7 240H", "7 240H")]
@@ -295,9 +304,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.47.0", database.Version);
+        Assert.Equal("1.48.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(225, database.CpuCount);
+        Assert.Equal(234, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1878,6 +1887,69 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.5, ultra5_228V.BoostGhz);
         Assert.Equal(3.5, ultra5_228V.ECoreBoostGhz);
         Assert.Equal(compareUrl, ultra5_228V.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_CoreUltra200SDesktopCpusCarryVerifiedFigures()
+    {
+        // Dataset v1.48.0: the nine remaining Intel Core Ultra 200S desktop
+        // CPUs (Arrow Lake-S, TSMC N3B), completing the family at twelve
+        // parts. The 285K, 265K and 245K were in the dataset since v2.1.14;
+        // the nine remaining parts were never listed, the same unnoticed
+        // gap as the 200V family in v2.1.83, because no cycle had listed the
+        // family against the dataset. The two K/KF figures were verified
+        // directly against Intel's own product specification comparison
+        // page, read 2026-11-15, whose fourteen-product table also lists
+        // the 285K at 3.7, 5.7 and 4.6 GHz, the 265K at 3.9, 5.5 and 4.6 GHz
+        // and the 245K at 4.2, 5.2 and 4.6 GHz, matching the dataset
+        // exactly, which validates the column mapping. The page also
+        // resolves one pre-launch disagreement: the early retailer listing
+        // gave the 245KF Max Turbo as 5.0 GHz, Intel's own page lists 5.2
+        // GHz, so Intel's page decides it. The seven 65 W figures rest on
+        // Intel's own ARK specification tables as reproduced by agreeing
+        // retailers (B and H Photo, Newegg, TechPowerUp, Overclockers UK,
+        // ComX Computers, VideoCardz), not on a direct Intel read, because
+        // Intel's own compare pages return HTTP 403 in this sandbox and no
+        // compare page containing the seven 65 W SKUs surfaced; the same
+        // disclosed mirror exception as the 251HX in v2.1.76, the 5700X3D
+        // in v2.1.78, the 250U and 220U in v2.1.79 and the 230H and 205H in
+        // v2.1.80. The 245's launched P-core base is 3.5 GHz per the
+        // agreeing ARK tables, not the 3.4 GHz the pre-launch leak tables
+        // guessed; the launched figure decides it, the same rule as the
+        // 265U P-core base in v2.1.70. The KF and F parts carry the same CPU
+        // clocks as their K and non-K twins and differ only in the disabled
+        // integrated graphics, so all of them are listed, the same rule as
+        // the 378H and 368H in v2.1.65. Staying out, recorded in the
+        // coverage text: the three 35 W T-series parts (the 285T, 265T and
+        // 245T), whose figures rest only on pre-launch leak tables that
+        // disagree with each other; the Core Ultra 5 250K PLUS, a 2026
+        // refresh SKU on one retailer's table that needs Intel's own
+        // documentation; the Core Ultra 3 205, leak only; the Intel
+        // 13th-gen HX P-core base rows, not re-checked because no new Intel
+        // document publishing per-SKU P-core base surfaced; the Core 7
+        // 245HX non-Ultra, whose number still names the Ultra 5 part; the
+        // Core 3 100U, a Series 1 rebrand of the i3-1315U; and the Ryzen AI
+        // 7 HX 455, still an unconfirmed leak.
+        var database = HardwareDatabase.Default;
+
+        AssertCoversCpu(database, "ULTRA 7 265KF", 3.9, 5.5, 4.6,
+            "https://www.intel.com/content/www/us/en/products/compare.html?productIds=240961,241060,240958,240956,241062,241063,240957,240954,241066,241067,240951,240959,240955,240960");
+        AssertCoversCpu(database, "ULTRA 5 245KF", 4.2, 5.2, 4.6,
+            "https://www.intel.com/content/www/us/en/products/compare.html?productIds=240961,241060,240958,240956,241062,241063,240957,240954,241066,241067,240951,240959,240955,240960");
+        AssertCoversCpu(database, "ULTRA 9 285", 2.5, 5.6, 4.6,
+            "https://www.bhphotovideo.com/c/product/1860691-REG/intel_bx80768285_core_ultra_9_285.html/overview");
+        AssertCoversCpu(database, "ULTRA 7 265", 2.4, 5.3, 4.6,
+            "https://www.newegg.com/intel-core-ultra-7-265-arrow-lake-lga-1851-desktop-cpu-processor/p/N82E16819118575");
+        AssertCoversCpu(database, "ULTRA 7 265F", 2.4, 5.3, 4.6,
+            "https://www.bhphotovideo.com/c/product/1860690-REG/intel_bx80768265f_core_ultra_7_265f.html");
+        AssertCoversCpu(database, "ULTRA 5 245", 3.5, 5.1, 4.5,
+            "https://www.techpowerup.com/cpu-specs/core-ultra-5-245.c4020");
+        AssertCoversCpu(database, "ULTRA 5 235", 3.4, 5.0, 4.4,
+            "https://www.overclockers.co.uk/intel-core-ultra-5-235-arrow-lake-socket-lga-1851-processor-retail/PRO-INT-04177.html");
+        AssertCoversCpu(database, "ULTRA 5 225", 3.3, 4.9, 4.4,
+            "https://www.comx-computers.co.za/BX80768225-Intel-Arrow-Lake-Socket-LGA-1851-Core-Ultra-5-Series-2-10-Core-245-up-p-331020.php");
+        AssertCoversCpu(database, "ULTRA 5 225F", 3.3, 4.9, 4.4,
+            "https://videocardz.com/newz/intel-core-ultra-5-225f-leaks-out-10-core-arrow-lake-desktop-cpu-with-4-9-ghz-boost");
     }
 
     [Fact]
