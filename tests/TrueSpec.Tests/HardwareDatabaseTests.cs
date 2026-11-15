@@ -83,6 +83,12 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen AI 5 440GE", "RYZEN AI 5 440GE")]
     [InlineData("AMD Ryzen AI 5 435G", "RYZEN AI 5 435G")]
     [InlineData("AMD Ryzen AI 5 435GE", "RYZEN AI 5 435GE")]
+    [InlineData("AMD Ryzen 7 170", "RYZEN 7 170")]
+    [InlineData("AMD Ryzen 7 160", "RYZEN 7 160")]
+    [InlineData("AMD Ryzen 5 150", "RYZEN 5 150")]
+    [InlineData("AMD Ryzen 5 130", "RYZEN 5 130")]
+    [InlineData("AMD Ryzen 3 110", "RYZEN 3 110")]
+    [InlineData("AMD Ryzen 5 126", "RYZEN 5 126")]
     [InlineData("intel core i5-12400", "I5-12400")]
     [InlineData("Intel(R) Core(TM) i5-12400F Processor", "I5-12400F")]
     [InlineData("Intel(R) Core(TM) i5-14400", "I5-14400")]
@@ -223,9 +229,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.29.0", database.Version);
+        Assert.Equal("1.30.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(144, database.CpuCount);
+        Assert.Equal(150, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1916,6 +1922,72 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(2.0, ryzenAi5435GE.BaseGhz);
         Assert.Equal(4.5, ryzenAi5435GE.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/desktops/ryzen/ai-400-series/amd-ryzen-ai-5-435ge.html", ryzenAi5435GE.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_Ryzen100RembrandtAndRyzen5126CpusCarryVerifiedFigures()
+    {
+        // Dataset v1.30.0: the five consumer AMD Ryzen 100 Rembrandt Zen 3+
+        // mobile CPUs and the hybrid Ryzen 5 126, the half of the consumer
+        // Ryzen 100 family the dataset never listed. With them the consumer
+        // Ryzen 100 family is complete: the four Hawk Point CPUs (Ryzen 9
+        // 180, Ryzen 7 165, Ryzen 7 155, Ryzen 5 125) shipped in v2.1.60.
+        // The Rembrandt five are rebadged Ryzen 7035 (Rembrandt-R) parts,
+        // TSMC 6nm FinFET, launched October 1, 2025: the Ryzen 7 170 and
+        // 160 are 8-core with Radeon 680M graphics, the Ryzen 5 150 and
+        // 130 are 6-core with Radeon 660M graphics, and the Ryzen 3 110
+        // is 4-core with Radeon 660M graphics. The Ryzen 5 126 is the
+        // hybrid Hawk Point part: one Zen 4 core plus three Zen 4c cores
+        // on the FP8 socket, TSMC 4nm FinFET, with Radeon 740M graphics.
+        // All figures were verified by hand against AMD's own product
+        // pages, read 2026-11-15 from fresh fetches: the Ryzen 7 170 at
+        // Base Clock 3.2 GHz and Max Boost Clock up to 4.75 GHz; the Ryzen
+        // 7 160 at 2.7 and up to 4.75 GHz; the Ryzen 5 150 at 3.3 and up to
+        // 4.55 GHz; the Ryzen 5 130 at 2.9 and up to 4.55 GHz; the Ryzen 3
+        // 110 at 3.0 and up to 4.3 GHz; the Ryzen 5 126 at 2.8 and up to
+        // 4.6 GHz. The brief named the 160 as a Ryzen 5, but AMD's own
+        // product page lists it as Ryzen 7 160 (8 cores, 16 threads), so
+        // that is the name added. The Ryzen 5 126 carries a single
+        // headline Base Clock of 2.8 GHz on AMD's page, so that is the
+        // base_ghz recorded. No code change was needed: the CPU normalizer
+        // already maps "AMD Ryzen 7 170" to "RYZEN 7 170" and the other
+        // five names the same way, and the Settings card shows the CPU
+        // count from the dataset, so it reads 150 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 170", out var ryzen7170));
+        Assert.Equal("AMD", ryzen7170.Vendor);
+        Assert.Equal(3.2, ryzen7170.BaseGhz);
+        Assert.Equal(4.75, ryzen7170.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/100-series/amd-ryzen-7-170.html", ryzen7170.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 7 160", out var ryzen7160));
+        Assert.Equal("AMD", ryzen7160.Vendor);
+        Assert.Equal(2.7, ryzen7160.BaseGhz);
+        Assert.Equal(4.75, ryzen7160.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/100-series/amd-ryzen-7-160.html", ryzen7160.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 150", out var ryzen5150));
+        Assert.Equal("AMD", ryzen5150.Vendor);
+        Assert.Equal(3.3, ryzen5150.BaseGhz);
+        Assert.Equal(4.55, ryzen5150.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/100-series/amd-ryzen-5-150.html", ryzen5150.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 130", out var ryzen5130));
+        Assert.Equal("AMD", ryzen5130.Vendor);
+        Assert.Equal(2.9, ryzen5130.BaseGhz);
+        Assert.Equal(4.55, ryzen5130.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/100-series/amd-ryzen-5-130.html", ryzen5130.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 3 110", out var ryzen3110));
+        Assert.Equal("AMD", ryzen3110.Vendor);
+        Assert.Equal(3.0, ryzen3110.BaseGhz);
+        Assert.Equal(4.3, ryzen3110.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/100-series/amd-ryzen-3-110.html", ryzen3110.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("AMD Ryzen 5 126", out var ryzen5126));
+        Assert.Equal("AMD", ryzen5126.Vendor);
+        Assert.Equal(2.8, ryzen5126.BaseGhz);
+        Assert.Equal(4.6, ryzen5126.BoostGhz);
+        Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/100-series/amd-ryzen-5-126.html", ryzen5126.SourceUrl, StringComparison.Ordinal);
     }
 
 }
