@@ -89,6 +89,18 @@ public sealed class HardwareDatabaseTests
     [InlineData("AMD Ryzen 5 130", "RYZEN 5 130")]
     [InlineData("AMD Ryzen 3 110", "RYZEN 3 110")]
     [InlineData("AMD Ryzen 5 126", "RYZEN 5 126")]
+    [InlineData("Intel Core Ultra X7 368H", "ULTRA X7 368H")]
+    [InlineData("Intel Core Ultra X9 388H", "ULTRA X9 388H")]
+    [InlineData("Intel Core Ultra X9 378H", "ULTRA X9 378H")]
+    [InlineData("Intel Core Ultra X7 358H", "ULTRA X7 358H")]
+    [InlineData("Intel Core Ultra 9 386H", "ULTRA 9 386H")]
+    [InlineData("Intel Core Ultra 7 366H", "ULTRA 7 366H")]
+    [InlineData("Intel Core Ultra 5 338H", "ULTRA 5 338H")]
+    [InlineData("Intel Core Ultra 7 356H", "ULTRA 7 356H")]
+    [InlineData("Intel Core Ultra 5 336H", "ULTRA 5 336H")]
+    [InlineData("Intel Core Ultra 7 365", "ULTRA 7 365")]
+    [InlineData("Intel Core Ultra 5 325", "ULTRA 5 325")]
+    [InlineData("Intel Core Ultra 7 355", "ULTRA 7 355")]
     [InlineData("intel core i5-12400", "I5-12400")]
     [InlineData("Intel(R) Core(TM) i5-12400F Processor", "I5-12400F")]
     [InlineData("Intel(R) Core(TM) i5-14400", "I5-14400")]
@@ -229,9 +241,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.30.0", database.Version);
+        Assert.Equal("1.31.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
-        Assert.Equal(150, database.CpuCount);
+        Assert.Equal(162, database.CpuCount);
         Assert.Equal(95, database.GpuCount);
     }
 
@@ -1988,6 +2000,120 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(2.8, ryzen5126.BaseGhz);
         Assert.Equal(4.6, ryzen5126.BoostGhz);
         Assert.StartsWith("https://www.amd.com/en/products/processors/laptop/ryzen/100-series/amd-ryzen-5-126.html", ryzen5126.SourceUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_CoreUltraSeries3CpusCarryVerifiedFigures()
+    {
+        // Dataset v1.31.0: twelve Intel Core Ultra Series 3 (Panther Lake)
+        // mobile CPUs, the family the dataset never listed. Launched
+        // January 5, 2026 on Intel 18A, retail in Q1 2026. All figures
+        // were verified by hand against Intel's own compare pages: eleven
+        // SKUs read 2026-11-13 from the compare page listing 368H, 388H,
+        // 358H, 386H, 366H, 338H, 356H, 336H, 365, 325 and 355, and the
+        // X9 378H read 2026-11-12 from the compare page listing 368H,
+        // 388H, 358H and 378H. base_ghz is Intel's Performance-core Base
+        // Frequency, boost_ghz is the Max Turbo Frequency, and
+        // e_core_boost_ghz is the Efficient-core Max Turbo Frequency.
+        // The 388H P-core base is 2.1 GHz on Intel's own page; third-party
+        // listings disagree (2.1 vs 2.2 GHz) and Intel's page decides it.
+        // The 378H carries identical clocks and cores to the 368H and
+        // differs only in vPro eligibility. The 365, 355 and 325 have no
+        // standard E-cores, so their e_core_boost_ghz carries the Low
+        // Power Efficient-core Max Turbo Frequency, the same rule the
+        // dataset already uses for the Core Ultra 200V parts, and the
+        // boost definition now says so. The 335, 332 and 322 stay out:
+        // their Performance-core Base Frequency figures could not be
+        // verified live on Intel's own page in this cycle, so the
+        // coverage text names them as not included, the same rule that
+        // kept the 245HX and 235HX out. No code change was needed: the
+        // CPU normalizer already maps "Intel Core Ultra X9 388H" to
+        // "ULTRA X9 388H" and the other eleven names the same way, and
+        // the Settings card shows the CPU count from the dataset, so it
+        // reads 162 with no code change.
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra X7 368H", out var ultraX7368H));
+        Assert.Equal("Intel", ultraX7368H.Vendor);
+        Assert.Equal(2.0, ultraX7368H.BaseGhz);
+        Assert.Equal(5.0, ultraX7368H.BoostGhz);
+        Assert.Equal(3.8, ultraX7368H.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=245523", ultraX7368H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra X9 388H", out var ultraX9388H));
+        Assert.Equal("Intel", ultraX9388H.Vendor);
+        Assert.Equal(2.1, ultraX9388H.BaseGhz);
+        Assert.Equal(5.1, ultraX9388H.BoostGhz);
+        Assert.Equal(3.8, ultraX9388H.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=245526", ultraX9388H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra X9 378H", out var ultraX9378H));
+        Assert.Equal("Intel", ultraX9378H.Vendor);
+        Assert.Equal(2.0, ultraX9378H.BaseGhz);
+        Assert.Equal(5.0, ultraX9378H.BoostGhz);
+        Assert.Equal(3.8, ultraX9378H.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=246128", ultraX9378H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra X7 358H", out var ultraX7358H));
+        Assert.Equal("Intel", ultraX7358H.Vendor);
+        Assert.Equal(1.9, ultraX7358H.BaseGhz);
+        Assert.Equal(4.8, ultraX7358H.BoostGhz);
+        Assert.Equal(3.5, ultraX7358H.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=245527", ultraX7358H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 9 386H", out var ultra9386H));
+        Assert.Equal("Intel", ultra9386H.Vendor);
+        Assert.Equal(2.1, ultra9386H.BaseGhz);
+        Assert.Equal(4.9, ultra9386H.BoostGhz);
+        Assert.Equal(3.7, ultra9386H.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=245529", ultra9386H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 366H", out var ultra7366H));
+        Assert.Equal("Intel", ultra7366H.Vendor);
+        Assert.Equal(2.0, ultra7366H.BaseGhz);
+        Assert.Equal(4.8, ultra7366H.BoostGhz);
+        Assert.Equal(3.6, ultra7366H.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=245530", ultra7366H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 338H", out var ultra5338H));
+        Assert.Equal("Intel", ultra5338H.Vendor);
+        Assert.Equal(1.9, ultra5338H.BaseGhz);
+        Assert.Equal(4.7, ultra5338H.BoostGhz);
+        Assert.Equal(3.4, ultra5338H.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=245531", ultra5338H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 356H", out var ultra7356H));
+        Assert.Equal("Intel", ultra7356H.Vendor);
+        Assert.Equal(1.9, ultra7356H.BaseGhz);
+        Assert.Equal(4.7, ultra7356H.BoostGhz);
+        Assert.Equal(3.5, ultra7356H.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=245532", ultra7356H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 336H", out var ultra5336H));
+        Assert.Equal("Intel", ultra5336H.Vendor);
+        Assert.Equal(1.9, ultra5336H.BaseGhz);
+        Assert.Equal(4.6, ultra5336H.BoostGhz);
+        Assert.Equal(3.4, ultra5336H.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=245533", ultra5336H.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 365", out var ultra7365));
+        Assert.Equal("Intel", ultra7365.Vendor);
+        Assert.Equal(2.4, ultra7365.BaseGhz);
+        Assert.Equal(4.8, ultra7365.BoostGhz);
+        Assert.Equal(3.6, ultra7365.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=245713", ultra7365.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 5 325", out var ultra5325));
+        Assert.Equal("Intel", ultra5325.Vendor);
+        Assert.Equal(2.1, ultra5325.BaseGhz);
+        Assert.Equal(4.5, ultra5325.BoostGhz);
+        Assert.Equal(3.4, ultra5325.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=245720", ultra5325.SourceUrl, StringComparison.Ordinal);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core Ultra 7 355", out var ultra7355));
+        Assert.Equal("Intel", ultra7355.Vendor);
+        Assert.Equal(2.3, ultra7355.BaseGhz);
+        Assert.Equal(4.7, ultra7355.BoostGhz);
+        Assert.Equal(3.5, ultra7355.ECoreBoostGhz);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/compare.html?productIds=245722", ultra7355.SourceUrl, StringComparison.Ordinal);
     }
 
 }
