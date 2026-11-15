@@ -342,9 +342,9 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.73.0", database.Version);
+        Assert.Equal("1.74.0", database.Version);
         Assert.Equal("2026-11-16", database.Updated);
-        Assert.Equal(301, database.CpuCount);
+        Assert.Equal(304, database.CpuCount);
         Assert.Equal(109, database.GpuCount);
     }
 
@@ -1374,6 +1374,78 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(4.6, i5_9600Kf.BoostGhz);
         Assert.Null(i5_9600Kf.ECoreBoostGhz);
         Assert.Equal(compareUrl, i5_9600Kf.SourceUrl);
+    }
+
+    [Fact]
+    public void Default_Core9thGenUnlockedDesktopRemainingSkusCompleteAt9()
+    {
+        // Dataset v1.74.0: the three remaining Intel Core 9th-gen unlocked
+        // desktop CPUs the dataset was missing, completing the unlocked
+        // 9th-gen desktop set at nine SKUs (with the six from v1.73.0: the
+        // 9900K, 9900KF, 9700K, 9700KF, 9600K and 9600KF). All three are
+        // Coffee Lake Refresh on 14 nm, socket LGA 1151. There are no
+        // E-cores in this generation, so ECoreBoostGhz is null on all
+        // three. The 9900KS special edition at Processor Base Frequency
+        // 4.0 GHz and Max Turbo Frequency up to 5.0 GHz, 8 cores,
+        // 16 threads, 16 MB Intel Smart Cache, 127 W base power, launched
+        // October 2019. The 9350K at 4.0 and up to 4.6 GHz (Turbo Boost
+        // 2.0 4.6 GHz), 4 cores, 4 threads, 8 MB cache, 91 W, launched
+        // Q2 2019. The 9350KF at the same 4.0 and 4.6 GHz, 4 cores,
+        // 4 threads, 8 MB cache, 91 W, no integrated graphics, launched
+        // Q1 2019. The boost figures are ARK Max Turbo Frequency, the
+        // headline up-to figure, per the dataset's boost definition.
+        // Intel's own compare pages return HTTP 403 in this sandbox, so
+        // the figures rest on agreeing ARK mirrors, the same disclosed
+        // third-party exception as the 14th-gen unlocked set in v2.1.99,
+        // the 13th-gen unlocked set in v2.2.4 and the 11th-gen unlocked
+        // set in v2.2.6; Intel's own compare page surfaced in the search
+        // index for the 9350KF and agrees exactly (9350KF Max Turbo 4.60,
+        // TBT 2.0 4.60, Base 4.00, 8 MB, 91 W; launch Q1'19), and the
+        // 9900KS figures agree across TechPowerUp, notebookcheck and
+        // PCCaseGear, which republishes the ARK table verbatim (Base 4.00,
+        // Max Turbo 5.00, Cache 16 MB, TDP 127 W), with the 9900KS ARK ID
+        // 192943 confirmed on the Intel datasheet, and the 9350K figures
+        // agree across cpu-world, multitronic (ARK ID 186606, launch
+        // Q2'19), cputronic and siliconcat. Three reading traps are
+        // recorded: the 9900KS 5.0 GHz is an all-core turbo, while the
+        // 9900K's 5.0 GHz is a single-core maximum, so the two parts share
+        // the headline figure but not its meaning; cpu-monkey lists the
+        // 9350K as 4 cores and 8 threads in its header while its own
+        // specification table says 4 cores and 4 threads, and every
+        // agreeing source gives 4 threads; and the 9350K launched in Q2
+        // 2019 (April 23), after the 9350KF in Q1 2019 (January 8), so the
+        // K part is the later launch, the reverse of the K/KF pattern in
+        // the i9, i7 and i5 pairs. The dataset carries no core-count,
+        // cache or TDP field, so those figures live here in the comment
+        // and in the README and ROADMAP entries, not in the entries
+        // themselves. Family-definition decision: the six-SKU family of
+        // v2.2.8/v2.2.9 covered the i9, i7 and i5 K and KF parts, and the
+        // three SKUs added here, the KS special edition and the i3 K and
+        // KF pair, complete the unlocked 9th-gen desktop set at nine
+        // SKUs; counting the KS part follows the 13th-gen and 14th-gen
+        // sets, which counted their KS parts.
+        const string compareUrl = "https://www.intel.com/content/www/us/en/products/compare.html?productIds=192943,186606,191126";
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i9-9900KS", out var i9_9900Ks));
+        Assert.Equal("Intel", i9_9900Ks.Vendor);
+        Assert.Equal(4.0, i9_9900Ks.BaseGhz);
+        Assert.Equal(5.0, i9_9900Ks.BoostGhz);
+        Assert.Null(i9_9900Ks.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i9_9900Ks.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i3-9350K", out var i3_9350K));
+        Assert.Equal("Intel", i3_9350K.Vendor);
+        Assert.Equal(4.0, i3_9350K.BaseGhz);
+        Assert.Equal(4.6, i3_9350K.BoostGhz);
+        Assert.Null(i3_9350K.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i3_9350K.SourceUrl);
+
+        Assert.True(HardwareDatabase.Default.TryGetCpu("Intel Core i3-9350KF", out var i3_9350Kf));
+        Assert.Equal("Intel", i3_9350Kf.Vendor);
+        Assert.Equal(4.0, i3_9350Kf.BaseGhz);
+        Assert.Equal(4.6, i3_9350Kf.BoostGhz);
+        Assert.Null(i3_9350Kf.ECoreBoostGhz);
+        Assert.Equal(compareUrl, i3_9350Kf.SourceUrl);
     }
 
     [Fact]
