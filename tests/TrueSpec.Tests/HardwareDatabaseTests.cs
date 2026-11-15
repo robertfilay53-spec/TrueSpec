@@ -318,10 +318,10 @@ public sealed class HardwareDatabaseTests
     {
         var database = HardwareDatabase.Default;
 
-        Assert.Equal("1.52.0", database.Version);
+        Assert.Equal("1.53.0", database.Version);
         Assert.Equal("2026-11-15", database.Updated);
         Assert.Equal(248, database.CpuCount);
-        Assert.Equal(95, database.GpuCount);
+        Assert.Equal(96, database.GpuCount);
     }
 
     [Fact]
@@ -423,7 +423,7 @@ public sealed class HardwareDatabaseTests
     [Fact]
     public void Default_ArcASeriesDesktopGpusCarryVerifiedFigures()
     {
-        // Dataset v1.4.0: the four Intel Arc A-series desktop GPUs, the
+        // Dataset v1.4.0: the five Intel Arc A-series desktop GPUs, the
         // last Arc family the dataset was missing. The dataset used to
         // say no manufacturer spec page could be located for the
         // A580/A750/A770; that is no longer true: Intel's ARK pages
@@ -465,6 +465,30 @@ public sealed class HardwareDatabaseTests
         Assert.Equal(6, a380.MemoryGb);
         Assert.Equal(75, a380.TdpW);
         Assert.StartsWith("https://game.intel.com/stories/intel-arc-graphics-qa-hardware-specs/", a380.SourceUrl, StringComparison.Ordinal);
+
+        // Dataset v1.53.0: the Arc A310, the last A-series desktop GPU
+        // the dataset was missing, completing the set at five SKUs.
+        // Intel never published a rated clock for the A310 (its launch
+        // spec table listed the clock as TBD and Intel's own A-series
+        // page lists no clock), so the 2.0 GHz figure is a judgement
+        // call: every shipping board partner card runs at 2000 MHz
+        // (ASRock, Sparkle and Gigabyte, per TechPowerUp's own
+        // retail-board table), Intel's own launch announcement said
+        // the six Xe-cores run at around 2000 MHz, and VideoCardz and
+        // Notebookcheck both list 2000 MHz. TechPowerUp's
+        // reference-design entry lists 1750 MHz, but no A310 was ever
+        // sold at that clock, so the entry records 2.0 GHz. Board
+        // power is Intel's typical 75 W, the same rule as the A380;
+        // the single-slot reference design draws 30 W and retail
+        // boards 50 W to 75 W. The source is Intel's own A-series
+        // desktop page, which lists the A310 at 6 Xe-cores, 6 ray
+        // tracing units, 4 GB, 124 GB/s, 52 TOPS INT8 and 4 displays.
+        Assert.True(HardwareDatabase.Default.TryGetGpu("Intel(R) Arc(TM) A310 Graphics", out var a310));
+        Assert.Equal("Intel", a310.Vendor);
+        Assert.Equal(2.0, a310.BoostGhz);
+        Assert.Equal(4, a310.MemoryGb);
+        Assert.Equal(75, a310.TdpW);
+        Assert.StartsWith("https://www.intel.com/content/www/us/en/products/details/discrete-gpus/arc/desktop/a-series.html", a310.SourceUrl, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -537,6 +561,7 @@ public sealed class HardwareDatabaseTests
     [InlineData("Intel(R) Arc(TM) A770 Graphics", "ARC A770")]
     [InlineData("Intel(R) Arc(TM) A580 Graphics", "ARC A580")]
     [InlineData("Intel(R) Arc(TM) A380 Graphics", "ARC A380")]
+    [InlineData("Intel(R) Arc(TM) A310 Graphics", "ARC A310")]
     [InlineData("Intel(R) Arc(TM) B580 Graphics", "ARC B580")]
     [InlineData("nvidia geforce rtx 4060 laptop gpu", "RTX 4060 LAPTOP")]
     [InlineData(null, "")]
