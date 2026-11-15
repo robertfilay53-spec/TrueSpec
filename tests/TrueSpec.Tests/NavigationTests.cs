@@ -394,7 +394,21 @@ public class NavigationTests
         var gridIndex = Array.FindIndex(lines, templateStart, templateEnd - templateStart + 1, line =>
             line.Contains("<Grid", StringComparison.Ordinal));
         Assert.InRange(gridIndex, templateStart, templateEnd);
-        Assert.Contains("ToolTip.Tip=\"{Binding Label}\"", lines[gridIndex], StringComparison.Ordinal);
+
+        // The Grid opening tag spans two lines (attributes, then the
+        // tooltip on the next line), so the assertion reads the whole
+        // tag, not just the line with "<Grid".
+        var tag = new List<string>();
+        for (var i = gridIndex; i <= templateEnd; i++)
+        {
+            tag.Add(lines[i]);
+            if (lines[i].Contains('>'))
+            {
+                break;
+            }
+        }
+
+        Assert.Contains("ToolTip.Tip=\"{Binding Label}\"", string.Join(" ", tag), StringComparison.Ordinal);
     }
 
     [Fact]
