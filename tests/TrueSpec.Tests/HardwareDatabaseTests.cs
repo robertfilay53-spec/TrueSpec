@@ -1592,16 +1592,15 @@ public sealed class HardwareDatabaseTests
         // desktop: the same shape, boost 1.65/1.68 GHz, memory 12/6 GB
         // and power 185/160 W all differ between its 12 GB and 6 GB
         // variants under one device name, with no mapping on NVIDIA's
-        // compare page. GTX 1060
-        // 3GB: no power figure on nvidia.com. GTX 1070: the old
-        // nvidia.com 10-series product page now redirects to the RTX 50
-        // Series page, so no boost or power figure exists on nvidia.com
-        // (verified 2026-11-14); the retailer tables that list its
-        // figures do not satisfy the manufacturer-page source policy.
-        // A 2026-11-14 check of the live compare page found no GTX 10
-        // per-card table on it either: the page's per-card tables end
-        // at the GTX 16 series, so the GTX 10 Series column in the
-        // header table carries no boost or power figure.
+        // compare page. The GTX 1060 3GB and GTX 1070 exclusion is
+        // overturned in v2.2.0: both cards are listed now, in dataset
+        // v1.64.0, and the GTX 1070 assertion below is removed.
+        // NVIDIA's own GTX 10 product pages are gone (the old
+        // 10-series page now redirects to the RTX 50 Series page, and
+        // the live compare page carries no GTX 10 per-card table), so
+        // the figures rest on the TechPowerUp GPU database pages, the
+        // same disclosed third-party exception as the RTX 5090 D in
+        // v2.1.98.
         // GTX 1050 desktop: the device name covers the 2 GB card
         // (1455 MHz, verified live on NVIDIA's own GTX 1050 launch
         // specs table) and a later 3 GB variant (1518 MHz, 3 GB), so
@@ -1620,7 +1619,6 @@ public sealed class HardwareDatabaseTests
         Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 560", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("AMD Radeon RX 6600M", out _));
         Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce RTX 2060 Laptop GPU", out _));
-        Assert.False(HardwareDatabase.Default.TryGetGpu("NVIDIA GeForce GTX 1070", out _));
     }
 
     [Fact]
