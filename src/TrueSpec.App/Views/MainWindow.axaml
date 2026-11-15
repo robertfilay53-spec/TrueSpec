@@ -58,7 +58,14 @@
                          SelectedItem="{Binding SelectedNavItem}">
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:NavItemViewModel">
-                            <Grid ColumnDefinitions="20,*" ColumnSpacing="12">
+                            <!-- Collapsed-rail tooltip (v2.1.61): when the rail
+                                 is collapsed the labels are hidden and each
+                                 item is an icon only, so hovering an item
+                                 shows its label. Without this, the 22
+                                 destinations were unidentifiable until the
+                                 rail was expanded again. -->
+                            <Grid ColumnDefinitions="20,*" ColumnSpacing="12"
+                                  ToolTip.Tip="{Binding Label}">
                                 <PathIcon Width="16" Height="16"
                                           Data="{Binding IconData, Converter={StaticResource Geometry}}"
                                           Foreground="{Binding $parent[ListBoxItem].Foreground}"
@@ -75,6 +82,7 @@
                 <StackPanel Grid.Row="2" Margin="10,10,10,14" Spacing="4">
                     <Button Classes="ghost"
                             Command="{Binding ToggleThemeCommand}"
+                            ToolTip.Tip="{Binding ThemeToggleText}"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left">
                         <StackPanel Orientation="Horizontal" Spacing="10">
@@ -88,6 +96,7 @@
                     </Button>
                     <Button Classes="ghost"
                             Command="{Binding ToggleRailCommand}"
+                            ToolTip.Tip="{Binding RailToggleText}"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left">
                         <StackPanel>
